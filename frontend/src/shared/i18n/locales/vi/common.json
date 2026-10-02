@@ -1,0 +1,219 @@
+{
+  "actions": {
+    "back": "Quay lại",
+    "cancel": "Huỷ",
+    "continue": "Tiếp tục",
+    "retry": "Thử lại",
+    "loading": "Đang tải…"
+  },
+  "app": {
+    "name": "CatCheck"
+  },
+  "comingSoon": {
+    "description": "Tính năng này đang được phát triển, sẽ mở ở giai đoạn sau.",
+    "title": "Sắp ra mắt"
+  },
+  "dashboard": {
+    "addCat": "Thêm mèo",
+    "analyzed": "Đã phân tích",
+    "careTipBody": "Bổ sung thêm bát nước hoặc vòi phun giúp bé uống nhiều nước hơn trong ngày.",
+    "careTipLabel": "Thói quen chăm sóc trong ngày",
+    "careTipTitle": "Mèo thích uống nước chảy",
+    "catMeta": "{{age}} tuổi • {{sex}}",
+    "catNoScan": "Chưa có lần quét",
+    "catsCount": "{{count}} bé đã đăng ký",
+    "confidence": "Độ tin cậy: {{value}}%",
+    "disclaimer": "CATCHECK hỗ trợ theo dõi sức khỏe hàng ngày và không thay thế chẩn đoán của bác sĩ thú y.",
+    "greeting": "Xin chào, {{name}}!",
+    "guestBanner": {
+      "title": "Bạn đang xem ở chế độ khách",
+      "body": "Đăng nhập để theo dõi hồ sơ sức khoẻ thật của bé mèo và lưu lại lịch sử quét.",
+      "login": "Đăng nhập",
+      "register": "Tạo tài khoản"
+    },
+    "guestName": "bạn",
+    "heroBadge": "Phát hiện Dấu ấn Sinh học",
+    "heroBody": "Ghi nhận màu sắc hạt chỉ thị để theo dõi chỉ số sức khỏe đường tiết niệu chỉ trong vài giây.",
+    "heroTitle": "Quét Màu Cát Vệ Sinh",
+    "latestMonitoring": "Lần theo dõi gần nhất",
+    "noScanBody": "Quét khay cát lần đầu để xem chỉ số pH và nhận xét theo dõi cho bé.",
+    "noScanTitle": "Chưa có lần theo dõi nào",
+    "phReadoutLabel": "Chỉ số pH nước tiểu",
+    "phReadoutValue": "pH {{value}} ({{label}})",
+    "primaryCat": "Mèo chính",
+    "reminderEmpty": "Chưa đặt lịch kiểm tra định kỳ",
+    "reminderManage": "Quản lý",
+    "reminderNext": "Nhắc kiểm tra {{when}} cho {{name}}",
+    "reminderNextNoCat": "Nhắc kiểm tra {{when}}",
+    "reminderTitle": "Lịch kiểm tra tiếp theo",
+    "scaleAcid": "Axit",
+    "scaleAlkaline": "Kiềm",
+    "scaleIdeal": "Lý tưởng ({{min}} – {{max}})",
+    "scanHelp": "Hướng dẫn quét cát vệ sinh",
+    "sessionOf": "Phiên kiểm tra của {{name}}",
+    "startScan": "Bắt đầu quét",
+    "subGreeting": "Mèo cưng luôn tin tưởng vào sự chăm sóc của bạn.",
+    "today": "Hôm nay",
+    "viewAll": "Xem tất cả",
+    "viewDetail": "Xem phân tích chi tiết",
+    "yesterday": "Hôm qua",
+    "yourCats": "Mèo của bạn"
+  },
+  "forbidden": {
+    "description": "Tài khoản của bạn không có quyền xem trang này.",
+    "title": "Không đủ quyền truy cập"
+  },
+  "nav": {
+    "cats": "Mèo của tôi",
+    "community": "Cộng đồng",
+    "dashboard": "Trang chủ",
+    "history": "Lịch sử",
+    "mainLabel": "Điều hướng chính",
+    "notifications": "Thông báo",
+    "profile": "Cá nhân",
+    "scan": "Quét",
+    "settings": "Cài đặt",
+    "overview": "Tổng quan",
+    "scanColor": "Quét màu cát",
+    "historyAnalytics": "Lịch sử & Phân tích",
+    "catProfile": "Hồ sơ Bé Mèo",
+    "vetMap": "Bản đồ Thú y",
+    "shop": "Cửa hàng Cát"
+  },
+  "pages": {
+    "accountPrivacy": {
+      "title": "Quyền riêng tư tài khoản"
+    },
+    "dashboard": {
+      "title": "Bảng điều khiển"
+    },
+    "historyRedirect": {
+      "title": "Lịch sử"
+    },
+    "home": {
+      "title": "Trang chủ"
+    },
+    "install": {
+      "title": "Cài đặt ứng dụng"
+    },
+    "notFound": {
+      "title": "Không tìm thấy trang"
+    },
+    "offline": {
+      "title": "Không có kết nối mạng"
+    },
+    "sharedTrayLog": {
+      "title": "Nhật ký khay cát dùng chung"
+    }
+  },
+  "placeholder": {
+    "todoDescription": "TODO: nội dung thật ở milestone sau."
+  },
+  "welcome": {
+    "disclaimer": "Hỗ trợ theo dõi sức khỏe • Không thay thế chẩn đoán thú y",
+    "sloganLeft": "CHECK WITH CARE",
+    "sloganRight": "ALWAYS THERE",
+    "sloganVi": "Check để hiểu, Chăm để yêu",
+    "slideTitle": "Chăm sóc thông minh bắt đầu từ việc quan sát mỗi ngày",
+    "slideBody": "Theo dõi sự thay đổi màu sắc hạt cát vệ sinh và lưu trữ hồ sơ sức khỏe đường tiết niệu của mèo cưng theo thời gian.",
+    "features": {
+      "scan": "Quét dễ dàng",
+      "ph": "Đo pH nước tiểu",
+      "journal": "Nhật ký sức khỏe"
+    },
+    "ctaPrimary": "Bắt đầu ngay",
+    "ctaSecondary": "Đăng nhập",
+    "legalPrefix": "Bằng việc tiếp tục, bạn đồng ý với",
+    "legalTerms": "Điều khoản",
+    "legalAnd": "&",
+    "legalPrivacy": "Chính sách bảo mật",
+    "legalSuffix": "của chúng tôi"
+  },
+  "upsell": {
+    "description": "Gói hiện tại của bạn chưa bao gồm tính năng này.",
+    "title": "Cần nâng cấp gói"
+  },
+  "webShell": {
+    "searchPlaceholder": "Tìm kiếm kết quả quét, bệnh lý, phòng khám...",
+    "statusPill": "Hệ vi sinh & pH ổn định",
+    "switcherWatching": "Đang theo dõi",
+    "promoLabel": "CÁT CHỈ THỊ PH",
+    "promoTitle": "Gói SmartSand Pro",
+    "promoNote": "Còn lại 6 ngày cần thay khay"
+  },
+  "dashboardWeb": {
+    "addCatNote": "Hỗ trợ nhận diện tự động qua AI",
+    "addCatTitle": "Thêm bé mèo mới vào khay cát",
+    "adviceBody": "Mèo triệt sản ít vận động thường giảm 30% nhu cầu tự uống nước. Hãy bổ sung súp thưởng bổ nước hoặc máy lọc nước tuần hoàn để giữ pH luôn trong ngưỡng 6.2 - 6.8.",
+    "adviceLabel": "LỜI KHUYÊN BÁC SĨ FELINE",
+    "adviceLink": "Tìm hiểu thêm về hội chứng FLUTD",
+    "adviceTitle": "Bảo vệ hệ tiết niệu mùa hanh khô",
+    "ageYears": "{{years}} tuổi",
+    "aiZone": "Vùng phân tích AI",
+    "capturedLabel": "Thời điểm quét",
+    "catsEmptyBody": "Thêm bé mèo đầu tiên để bắt đầu theo dõi màu hạt cát.",
+    "catsEmptyTitle": "Chưa có hồ sơ mèo nào",
+    "clinicDetail": "Chi tiết phòng khám",
+    "clinicDistance": "Cách bạn {{km}} km • {{area}}",
+    "clinicLabel": "CƠ SỞ ĐỒNG HÀNH",
+    "clinicMap": "Xem trên bản đồ",
+    "clinicOpen": "Đang mở cửa",
+    "clinicRating": "{{rating}} ({{count}} đánh giá)",
+    "colAi": "ĐÁNH GIÁ AI",
+    "colColor": "MÀU PHẢN ỨNG CÁT",
+    "colDetail": "CHI TIẾT",
+    "colPh": "ĐỘ PH",
+    "colTime": "THỜI GIAN",
+    "colorimetryLabel": "SMART SAND COLORIMETRY",
+    "colorimetryTitle": "Chỉ thị màu hạt cát & Nồng độ pH",
+    "confidence": "Độ tin cậy thuật toán: {{value}}%",
+    "ctaAddCat": "Thêm hồ sơ mèo",
+    "ctaScan": "Quét hạt cát ngay",
+    "emptyCell": "—",
+    "extracted": "Kết quả trích xuất",
+    "greeting": "Xin chào, {{name}}!",
+    "idealIndex": "Chỉ số lý tưởng",
+    "intro": "Chúc bé mèo một ngày bình yên khỏe mạnh. Dữ liệu nước tiểu và hạt cát đổi màu sáng nay hoàn toàn ổn định.",
+    "litterCta": "Đặt giao nhanh 2 giờ",
+    "litterLabel": "KHO CÁT GIA ĐÌNH",
+    "litterNote": "Còn lại {{bags}} túi dự phòng (đủ dùng {{days}} ngày)",
+    "litterTitle": "Cát CATCHECK SmartSand™",
+    "logEmpty": "Chưa có bản ghi quét nào.",
+    "logTitle": "Nhật ký 5 lần quét gần nhất",
+    "logViewAll": "Xem toàn bộ {{count}} bản ghi",
+    "monitorBadge": "PET HEALTH MONITOR",
+    "phAxis": "{{value}} pH",
+    "phBig": "pH {{value}}",
+    "phValue": "pH {{value}}",
+    "range30": "30 ngày",
+    "range7": "7 ngày",
+    "range90": "90 ngày",
+    "safeBand": "Vùng an toàn khuyến nghị (pH {{min}} - {{max}})",
+    "scaleAcid": "Axit",
+    "scaleAlkaline": "Kiềm",
+    "scaleSafe": "Vùng chuẩn {{min}} - {{max}}",
+    "scanEmptyBody": "Quét khay cát lần đầu để xem chỉ thị màu và chỉ số pH tại đây.",
+    "scanEmptyTitle": "Chưa có lần quét nào",
+    "scannedAt": "Quét: {{time}}",
+    "scheduleCta": "Cài đặt tần suất nhắc thông minh",
+    "scheduleEmpty": "Chưa có lịch nhắc nào đang bật.",
+    "scheduleEvery": "Quét định kỳ mỗi {{days}} ngày",
+    "scheduleLabel": "LỊCH CHĂM SÓC",
+    "scheduleRepeat": "Lịch nhắc lặp theo quy tắc",
+    "scheduleTitle": "Lịch nhắc kiểm tra định kỳ",
+    "scheduleWhen": "{{when}} (Khung giờ {{time}})",
+    "scheduleWhenPlain": "{{when}}",
+    "statAvg": "Giá trị trung bình",
+    "statAvgValue": "{{value}} pH",
+    "statDeviation": "Độ lệch tiêu chuẩn",
+    "statDeviationValue": "± {{value}}",
+    "statFrequency": "Tần suất quét",
+    "statFrequencyValue": "{{value}} lần/ngày",
+    "syncedAt": "Đồng bộ lúc {{time}}",
+    "today": "Hôm nay",
+    "trendEmpty": "Chưa đủ dữ liệu để vẽ xu hướng cho khoảng thời gian này.",
+    "trendLabel": "LONGITUDINAL BIOMARKERS",
+    "trendTitle": "Xu hướng pH 30 ngày qua ({{name}})",
+    "weightKg": "{{value}} kg"
+  }
+}

@@ -1,0 +1,76 @@
+# ---- Secrets (KHÔNG BAO GIỜ commit) ----
+figma-key.txt
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*-service-account*.json
+firebase-adminsdk*.json
+
+# ---- Java / Spring Boot ----
+target/
+build/
+!**/src/**/build/
+# …nhưng artifact spring-modulith-javadoc sinh lọt vào cây source thì phải bỏ
+# (đặt SAU negation ở trên — git lấy rule khớp cuối cùng).
+**/src/**/build/generated-spring-modulith/
+.gradle/
+*.class
+*.jar
+# Wrapper jar là file nhị phân cần cho CI — ngoại lệ cho cả hai hệ sinh tạo.
+!gradle/wrapper/gradle-wrapper.jar
+!**/mvn/wrapper/maven-wrapper.jar
+*.log
+hs_err_pid*
+dependency-reduced-pom.xml
+pom.xml.tag
+release.properties
+# OpenCV native: dump lỗi native xuất hiện khi thiếu glibc
+core.*
+
+# ---- Node / React / Vite ----
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+*.local
+.eslintcache
+
+# ---- Frontend: script/artifact sinh tay lúc debug, không thuộc dự án ----
+# (gitignore KHÔNG đọc comment cùng dòng pattern — mọi comment phải đứng riêng 1 dòng)
+# tsc -b cache (đã có ở frontend/.gitignore, để cả ở root)
+*.tsbuildinfo
+# Playwright: artifact của lần chạy e2e
+test-results/
+# Playwright: HTML report (reporter: "html")
+playwright-report/
+blob-report/
+.playwright/
+# script chụp màn hình tạm của agent session
+frontend/.shot-*.mjs
+frontend/e2e/**/screenshots/
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# ---- Runtime data ----
+uploads/
+storage/
+# /data/ ở trên chỉ khớp thư mục data ở GỐC repo, không khớp backend/data/
+# ảnh media local của profile dev — KHÔNG commit
+backend/data/
+
+# ---- Agent skills là repo riêng, không nhúng vào repo chính ----
+agent-skills/
+context/
+build/
+asset/
+.github/
+.claude/
+deployment/

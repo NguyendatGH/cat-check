@@ -1,0 +1,75 @@
+{
+  "mobile": {
+    "safetyTitle": "LƯU Ý AN TOÀN CỘNG ĐỒNG",
+    "tabs": {
+      "all": "Tất cả bài viết",
+      "qa": "Hỏi & Đáp (Q&A)",
+      "tips": "Mẹo chăm sóc"
+    },
+    "composeFab": "Đăng bài viết",
+    "detailTitle": "Chi tiết thảo luận"
+  },
+  "web": {
+    "askVetCta": "Đặt câu hỏi cho Bác Sĩ",
+    "tabs": {
+      "all": "Tất cả thảo luận",
+      "vetQa": "Hỏi đáp Bác sĩ Thú y",
+      "colorTips": "Kinh nghiệm đọc màu cát",
+      "nutrition": "Dinh dưỡng & Tiết niệu",
+      "clinicReview": "Review phòng khám"
+    },
+    "composer": {
+      "placeholder": "Hỏi bác sĩ thú y hoặc chia sẻ tình trạng hạt cát hôm nay…",
+      "tagsLabel": "NHÃN BỆNH LÝ:",
+      "attachPhoto": "Ảnh khay cát",
+      "attachScan": "Kết quả quét AI",
+      "attachRecord": "Hồ sơ khám",
+      "submit": "Đăng thảo luận"
+    },
+    "rail": {
+      "topicsTitle": "Chủ Đề Y Khoa Tuần Này",
+      "rulesTitle": "Quy Chuẩn Cộng Đồng ISFM"
+    }
+  },
+  "post": {
+    "like": "Thích",
+    "comment": "Bình luận",
+    "share": "Chia sẻ",
+    "save": "Lưu bài viết",
+    "moreOptions": "Tuỳ chọn bài viết",
+    "openThread": "Mở thảo luận"
+  },
+  "detail": {
+    "breadcrumbRoot": "Cộng đồng y khoa",
+    "savePost": "Lưu bài viết",
+    "sharePost": "Chia sẻ",
+    "pinnedByVet": "Ghim bởi bác sĩ",
+    "commentsTitle": "Thảo luận từ cộng đồng Sen",
+    "sortLabel": "Sắp xếp:",
+    "commentPlaceholder": "Chia sẻ kinh nghiệm hoặc đặt câu hỏi với BS. Lan Phương và các sen khác…",
+    "commentAttachPhoto": "Ảnh khay cát",
+    "commentAttachScan": "Mã scan AI",
+    "commentSubmit": "Gửi bình luận",
+    "commentReply": "Trả lời",
+    "commentLike": "Thích",
+    "mobileCommentPlaceholder": "Viết bình luận…",
+    "mobileAttachPhoto": "Đính kèm ảnh",
+    "mobileAttachEmoji": "Chèn biểu tượng cảm xúc",
+    "mobileSend": "Gửi bình luận"
+  },
+  "newPost": {
+    "title": "Đăng thảo luận mới",
+    "subtitle": "Mô tả màu hạt cát và chỉ số pH bạn quan sát được để cộng đồng và bác sĩ dễ hỗ trợ.",
+    "phase2Notice": "Cộng đồng đang trong giai đoạn hoàn thiện. Bài viết chưa được gửi đi — đây là bản xem trước giao diện.",
+    "titleLabel": "Tiêu đề thảo luận",
+    "titlePlaceholder": "Ví dụ: Hạt cát chuyển xanh nhạt sau 1 ngày có phải do thức ăn mới?",
+    "bodyLabel": "Nội dung chia sẻ",
+    "bodyPlaceholder": "Hỏi bác sĩ thú y hoặc chia sẻ tình trạng hạt cát hôm nay…",
+    "categoryLabel": "Chuyên mục",
+    "tagsLabel": "NHÃN BỆNH LÝ:",
+    "attachLabel": "Đính kèm",
+    "guidelinesTitle": "Quy Chuẩn Cộng Đồng ISFM",
+    "submit": "Đăng thảo luận",
+    "cancel": "Huỷ bỏ"
+  }
+}

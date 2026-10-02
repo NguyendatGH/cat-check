@@ -1,0 +1,332 @@
+{
+  "pages": {
+    "activate": {
+      "title": "Kích hoạt gói"
+    },
+    "cat": {
+      "title": "Hồ sơ bé mèo"
+    },
+    "disclaimer": {
+      "title": "Miễn trừ trách nhiệm y tế"
+    },
+    "healthSurvey": {
+      "title": "Khảo sát sức khoẻ"
+    },
+    "success": {
+      "title": "Hoàn tất thiết lập"
+    }
+  },
+  "stepper": {
+    "label": "Bước {{current}} trên {{total}}",
+    "steps": {
+      "cat": "Hồ sơ mèo",
+      "healthSurvey": "Sức khoẻ",
+      "disclaimer": "Miễn trừ y tế",
+      "activate": "Kích hoạt gói",
+      "success": "Hoàn tất"
+    }
+  },
+  "cat": {
+    "title": "Hồ sơ bé mèo",
+    "subtitle": "Thông tin này giúp CatCheck hiệu chuẩn kết quả theo độ tuổi và giống mèo.",
+    "avatar": {
+      "label": "Ảnh đại diện",
+      "add": "Thêm ảnh",
+      "change": "Đổi ảnh",
+      "remove": "Xoá ảnh",
+      "hint": "Chụp ảnh hoặc tải từ thư viện (JPG/PNG, tối đa 5MB).",
+      "invalidType": "Chỉ hỗ trợ ảnh JPG hoặc PNG.",
+      "tooLarge": "Ảnh tối đa 5MB."
+    },
+    "name": {
+      "label": "Tên bé mèo",
+      "placeholder": "Ví dụ: Bánh Bao",
+      "required": "Vui lòng nhập tên bé mèo.",
+      "tooLong": "Tên tối đa 50 ký tự."
+    },
+    "breed": {
+      "label": "Giống mèo",
+      "placeholder": "Chọn giống mèo",
+      "all": "Tất cả giống",
+      "required": "Vui lòng chọn giống mèo.",
+      "searchPlaceholder": "Tìm giống mèo…",
+      "empty": "Không tìm thấy giống mèo phù hợp.",
+      "loading": "Đang tải danh sách giống mèo…",
+      "loadError": "Không tải được danh sách giống mèo."
+    },
+    "sex": {
+      "label": "Giới tính sinh học",
+      "required": "Vui lòng chọn giới tính.",
+      "male": "Đực",
+      "female": "Cái",
+      "unknown": "Chưa rõ",
+      "maleDesc": "Bé đực",
+      "femaleDesc": "Bé cái",
+      "unknownDesc": "Chưa xác định"
+    },
+    "neutered": {
+      "label": "Đã triệt sản",
+      "warning": "Mèo đực chưa triệt sản có nguy cơ tắc niệu đạo và tinh thể struvite cao hơn."
+    },
+    "birthDate": {
+      "label": "Ngày sinh",
+      "placeholder": "DD/MM/YYYY",
+      "hint": "Để trống nếu chỉ biết tuổi ước lượng.",
+      "invalid": "Ngày sinh không hợp lệ.",
+      "future": "Ngày sinh không thể ở tương lai."
+    },
+    "weight": {
+      "label": "Cân nặng",
+      "placeholder": "Ví dụ: 4.2",
+      "invalid": "Cân nặng phải từ 0.5 đến 15 kg.",
+      "unit": "kg"
+    },
+    "submit": "Tiếp tục: Khảo sát sức khoẻ",
+    "saving": "Đang lưu hồ sơ…",
+    "addAnother": "Thêm một bé mèo khác",
+    "addedToast": "Đã thêm bé mèo mới.",
+    "limitError": {
+      "title": "Đã đạt giới hạn hồ sơ mèo",
+      "description": "Gói hiện tại cho phép tối đa {{max}} hồ sơ mèo. Kích hoạt gói cao hơn để thêm bé mới."
+    }
+  },
+  "survey": {
+    "title": "Khảo sát sức khoẻ ban đầu",
+    "subtitle": "Giúp CatCheck thiết lập mốc chuẩn và lịch nhắc phù hợp cho {{catName}}.",
+    "forCat": "Dành riêng cho {{catName}}",
+    "skip": "Bỏ qua, để sau",
+    "skipConfirm": {
+      "title": "Bỏ qua khảo sát?",
+      "description": "Bạn có thể hoàn thành khảo sát sau trong Cài đặt. Hồ sơ mèo vẫn được kích hoạt bình thường.",
+      "confirm": "Bỏ qua",
+      "cancel": "Tiếp tục trả lời"
+    },
+    "submit": "Tiếp tục: Xác nhận miễn trừ y tế",
+    "saving": "Đang lưu khảo sát…",
+    "questions": {
+      "litterType": {
+        "label": "Loại cát vệ sinh đang dùng ở nhà",
+        "required": "Vui lòng chọn loại cát.",
+        "options": {
+          "CATCHECK_SMART": "Cát thông minh CatCheck",
+          "BENTONITE": "Cát đất sét bentonite",
+          "TOFU_WOOD": "Cát đậu nành / gỗ hữu cơ",
+          "SILICA": "Cát thủy tinh silica"
+        },
+        "meta": "Chọn 1",
+        "recommended": "Khuyến dùng",
+        "descriptions": {
+          "CATCHECK_SMART": "Hạt chỉ thị đổi màu theo pH nước tiểu.",
+          "BENTONITE": "Vón cục nhanh, bề mặt phản xạ và độ bết dính riêng.",
+          "TOFU_WOOD": "Xả bồn cầu tiện lợi, nền cát sáng màu.",
+          "SILICA": "Hạt silica hút ẩm mạnh."
+        }
+      },
+      "urinaryHistory": {
+        "label": "Bé có tiền sử bệnh tiết niệu không?",
+        "required": "Vui lòng chọn câu trả lời.",
+        "options": {
+          "NONE": "Không có / Bé khỏe mạnh",
+          "CYSTITIS_OR_STONES": "Từng bị viêm bàng quang, sỏi",
+          "UNKNOWN": "Chưa rõ / Mèo mới nhận nuôi"
+        },
+        "notes": {
+          "CYSTITIS_OR_STONES": "Cần theo dõi sát hơn",
+          "UNKNOWN": "Khởi tạo mốc chuẩn"
+        }
+      },
+      "dietType": {
+        "label": "Chế độ ăn chính của bé",
+        "required": "Vui lòng chọn chế độ ăn.",
+        "options": {
+          "DRY": "Hạt khô",
+          "WET": "Pate / Thức ăn ướt",
+          "MIXED": "Kết hợp cả hai",
+          "RAW": "Thịt tươi tự nhiên"
+        },
+        "meta": "Ảnh hưởng độ pH",
+        "descriptions": {
+          "DRY": "Thức ăn hạt tiêu chuẩn",
+          "WET": "Cung cấp nhiều nước",
+          "MIXED": "Hạt & pate xen kẽ",
+          "RAW": "Thức ăn tươi sống"
+        }
+      },
+      "urinationFrequency": {
+        "label": "Tần suất đi tiểu trung bình mỗi ngày",
+        "required": "Vui lòng chọn tần suất.",
+        "options": {
+          "1_2_PER_DAY": "1–2 lần/ngày",
+          "3_4_PER_DAY": "3–4 lần/ngày",
+          "MORE_THAN_5": "Hơn 5 lần/ngày",
+          "UNKNOWN": "Chưa rõ"
+        }
+      },
+      "symptoms": {
+        "label": "Dấu hiệu bất thường trong 6 tháng qua",
+        "hint": "Chọn nhiều câu trả lời",
+        "required": "Vui lòng chọn ít nhất một câu trả lời.",
+        "options": {
+          "NONE": "Không có / Bé khỏe mạnh",
+          "STRAINING": "Rặn lâu, ngồi lâu trong khay",
+          "CRYING": "Kêu, gào khi đi vệ sinh",
+          "FREQUENT_LITTER": "Vào khay liên tục nhưng khay khô",
+          "BLOOD_VISIBLE": "Nước tiểu có máu",
+          "LETHARGY": "Bỏ ăn, nôn, nằm li bì"
+        },
+        "exclusiveNone": "Không thể chọn cùng các dấu hiệu khác."
+      }
+    }
+  },
+  "disclaimer": {
+    "title": "Miễn trừ trách nhiệm y tế",
+    "subtitle": "Vui lòng đọc kỹ trước khi bắt đầu theo dõi.",
+    "scrollHint": "Cuộn đến cuối để xác nhận",
+    "readDone": "Đã đọc hết — hãy xác nhận bên dưới",
+    "ack": "Tôi đã đọc và hiểu",
+    "ackRequired": "Vui lòng xác nhận bạn đã đọc.",
+    "continue": "Tiếp tục: Kích hoạt gói",
+    "content": {
+      "heading": "CatCheck giúp bạn theo dõi, không chẩn đoán",
+      "intro": "CatCheck ghi lại màu của hạt chỉ thị trong khay cát và theo dõi thay đổi theo thời gian. Những gì bạn thấy trong ứng dụng là thông tin quan sát mang tính tham khảo — không phải kết quả xét nghiệm, không phải chẩn đoán y khoa, và không thay thế việc thăm khám, xét nghiệm tại cơ sở thú y.",
+      "points": [
+        "Màu sắc có thể bị ảnh hưởng bởi nhiều yếu tố ngoài sức khoẻ của bé: ánh sáng trong phòng, camera điện thoại, góc chụp, thức ăn, nước uống, thuốc đang dùng, độ ẩm và thời gian cát tiếp xúc với nước tiểu.",
+        "Một kết quả đơn lẻ không nói lên nhiều điều. Điều đáng chú ý là xu hướng — thay đổi lặp lại so với mức thường ngày của chính bé. Khi thấy một kết quả khác thường, cách phổ biến là tiếp tục theo dõi thêm 24–48 giờ, trừ trường hợp khẩn cấp nêu bên dưới.",
+        "CatCheck không biết con mèo nào vừa dùng khay. Nếu nhà bạn nuôi nhiều bé, bạn cần tự chọn đúng hồ sơ trước khi lưu kết quả. Nếu không chắc chắn, hãy bỏ qua lần ghi nhận đó — dữ liệu gắn sai bé còn gây nhiễu hơn là không có dữ liệu.",
+        "Kết quả trong khoảng tham chiếu không có nghĩa là bé hoàn toàn khoẻ mạnh. Nhiều vấn đề sức khoẻ không làm thay đổi đặc tính nước tiểu."
+      ],
+      "outro": "Mọi quyết định liên quan tới sức khoẻ của bé nên được đưa ra cùng bác sĩ thú y. Hãy xem CatCheck như một cuốn nhật ký theo dõi để mang theo khi đi khám, chứ không phải người thay bác sĩ trả lời."
+    }
+  },
+  "activate": {
+    "title": "Kích hoạt gói",
+    "subtitle": "Nhập mã in trên bao bì CatCheck để nhận lượt quét.",
+    "inputLabel": "Mã kích hoạt",
+    "inputPlaceholder": "CC-PLUS-XXXXXXXXXX",
+    "formatHint": "Định dạng: CC-<GÓI>-<10 ký tự>. Mã nằm trên bao bì hoặc trong email xác nhận.",
+    "invalidFormat": "Mã chưa đúng định dạng. Kiểm tra lại mã in trên bao bì (dạng CC-PLUS-XXXXXXXXXX).",
+    "required": "Vui lòng nhập mã kích hoạt.",
+    "submit": "Kích hoạt",
+    "checking": "Đang kiểm tra…",
+    "skip": "Bỏ qua, dùng thử trước",
+    "skipHint": "Bạn có 3 lần quét thử miễn phí, không cần kích hoạt.",
+    "success": {
+      "title": "Kích hoạt thành công",
+      "packageLabel": "Gói",
+      "creditsLabel": "Lượt quét",
+      "creditsValue": "{{credits}} lượt",
+      "expiresLabel": "Hạn dùng",
+      "continue": "Tiếp tục"
+    },
+    "errors": {
+      "malformed": "Mã kích hoạt chưa đúng định dạng. Kiểm tra lại mã in trên bao bì (dạng CC-PLUS-XXXXXXXXXX).",
+      "invalid": "Mã kích hoạt không đúng. Kiểm tra lại mã in trên bao bì.",
+      "alreadyUsed": "Mã này đã được sử dụng.",
+      "expired": "Mã đã hết hạn kích hoạt."
+    }
+  },
+  "success": {
+    "title": "Hoàn tất thiết lập",
+    "badge": "Tài khoản của bạn đã sẵn sàng",
+    "welcome": "Chào mừng bạn!",
+    "subtitle": "Hồ sơ của {{catName}} đã được tạo. Bé sẵn sàng để theo dõi từ hôm nay.",
+    "summary": {
+      "title": "Tóm tắt hồ sơ",
+      "weight": "{{weight}} kg",
+      "sexLabel": "Giới tính",
+      "age": "Tuổi",
+      "ageYears": "{{years}} tuổi {{months}} tháng",
+      "ageMonthsOnly": "{{months}} tháng",
+      "sex": {
+        "male": "Đực",
+        "female": "Cái",
+        "unknown": "Chưa rõ"
+      },
+      "neutered": "Đã triệt sản",
+      "notNeutered": "Chưa triệt sản",
+      "breed": "Giống",
+      "litter": "Loại cát",
+      "surveyLabel": "Khảo sát sức khoẻ",
+      "phRange": "Dải pH tham chiếu",
+      "catId": "Mã hồ sơ",
+      "surveyDone": "Đã hoàn thành khảo sát",
+      "surveySkipped": "Chưa hoàn thành khảo sát",
+      "unknown": "Chưa rõ"
+    },
+    "credit": {
+      "title": "Lượt quét",
+      "activated": "{{credits}} lượt quét · hạn dùng đến {{date}}",
+      "trial": "Còn {{count}} lần quét thử miễn phí",
+      "none": "Chưa có lượt quét"
+    },
+    "cta": "Vào trang chủ",
+    "ctaScan": "Quét cát ngay",
+    "footer": "CatCheck hỗ trợ theo dõi sức khoẻ tại nhà — không chẩn đoán bệnh, không thay thế bác sĩ thú y."
+  },
+  "web": {
+    "cat": {
+      "card": {
+        "title": "Thẻ hồ sơ sức khoẻ bé mèo",
+        "live": "Thẻ cập nhật trực tiếp theo thông tin bạn đang nhập.",
+        "namePlaceholder": "Chưa đặt tên",
+        "breedPlaceholder": "Chưa chọn giống",
+        "unknown": "Chưa rõ",
+        "weight": "{{weight}} kg",
+        "phLabel": "Dải pH nước tiểu tham chiếu",
+        "phLoading": "Đang tải dải pH tham chiếu…"
+      },
+      "nextSteps": {
+        "title": "Các bước còn lại",
+        "subtitle": "Hoàn tất hồ sơ xong, bạn sẽ đi tiếp qua các bước này."
+      }
+    },
+    "survey": {
+      "catCard": {
+        "created": "Hồ sơ đã tạo"
+      },
+      "phCard": {
+        "title": "Dải pH tham chiếu",
+        "body": "Kết quả quét của {{catName}} sẽ được đối chiếu với dải này.",
+        "loading": "Đang tải dải pH tham chiếu…"
+      },
+      "guide": {
+        "title": "Hướng dẫn quét màu cát lần đầu",
+        "step1": {
+          "title": "Đổ khay cát mới",
+          "body": "Đảm bảo độ sâu tối thiểu 4cm để tạo lớp vón hoàn chỉnh."
+        },
+        "step2": {
+          "title": "Đợi bé đi tiểu",
+          "body": "Quét trong vòng 3–5 phút sau khi bé đi, lúc màu cát còn rõ nhất."
+        },
+        "step3": {
+          "title": "Bật camera CatCheck",
+          "body": "Căn vòng tròn vào vùng cát đã đổi màu; hệ thống tự cân bằng ánh sáng trước khi đọc màu."
+        }
+      }
+    },
+    "success": {
+      "roadmap": {
+        "title": "Lộ trình 3 bước tiếp theo",
+        "badge": "Dễ dàng & tức thì",
+        "intro": "Bắt đầu theo dõi của {{catName}} ngay trong lần đi vệ sinh kế tiếp.",
+        "step1": {
+          "title": "Quét màu cát sau khi bé đi tiểu",
+          "body": "Dùng camera quét vùng cát đã đổi màu trong khay, trong vòng 1–2 phút sau khi bé đi."
+        },
+        "step2": {
+          "title": "Xem phân tích màu & chỉ số pH",
+          "body": "CatCheck tự cân bằng ánh sáng, ước lượng pH rồi đối chiếu với dải tham chiếu."
+        },
+        "step3": {
+          "title": "Xuất hồ sơ mang theo khi đi khám",
+          "body": "Lịch sử quét được lưu lại và xuất ra PDF để bạn đưa cho bác sĩ thú y."
+        }
+      }
+    }
+  },
+  "errors": {
+    "generic": "Đã có lỗi xảy ra, vui lòng thử lại.",
+    "network": "Không có kết nối mạng."
+  }
+}

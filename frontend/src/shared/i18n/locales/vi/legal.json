@@ -1,0 +1,436 @@
+{
+  "pages": {
+    "complaints": {
+      "title": "Khiếu nại"
+    },
+    "contact": {
+      "title": "Liên hệ"
+    },
+    "cookies": {
+      "title": "Chính sách cookie"
+    },
+    "dataRequests": {
+      "title": "Yêu cầu về dữ liệu cá nhân"
+    },
+    "medicalDisclaimer": {
+      "title": "Miễn trừ trách nhiệm y tế"
+    },
+    "policyVersionDetail": {
+      "title": "Chi tiết phiên bản chính sách"
+    },
+    "policyVersions": {
+      "title": "Lịch sử phiên bản chính sách"
+    },
+    "privacy": {
+      "title": "Chính sách quyền riêng tư"
+    },
+    "terms": {
+      "title": "Điều khoản sử dụng"
+    }
+  },
+  "document": {
+    "versionBanner": "Phiên bản {{version}} — hiệu lực từ {{date}}",
+    "viewPreviousVersions": "Xem các phiên bản trước",
+    "summaryOfChangesLabel": "Có gì thay đổi:",
+    "notPublishedYet": "Bản nháp — nội dung đang chờ rà soát pháp lý. Chưa có bản chính thức để hiển thị tại đây.",
+    "loadError": "Không tải được nội dung. Vui lòng thử lại sau.",
+    "hostedExternally": "Nội dung đầy đủ được lưu tại:"
+  },
+  "versions": {
+    "title": "Lịch sử phiên bản",
+    "subtitle": "Số phiên bản và ngày hiệu lực giúp xác định bạn đã đồng ý với nội dung nào.",
+    "currentBadge": "Bản hiện hành",
+    "viewLink": "Xem bản này",
+    "historyNotAvailable": "Hệ thống hiện chỉ lưu và hiển thị được bản hiện hành. Lịch sử đầy đủ các phiên bản trước sẽ được bổ sung sau.",
+    "backToDocument": "Quay lại trang tài liệu",
+    "notFoundTitle": "Không tìm thấy tài liệu",
+    "notFoundDescription": "Đường dẫn không hợp lệ hoặc tài liệu không tồn tại."
+  },
+  "versionDetail": {
+    "archiveNotAvailableTitle": "Chưa có bản lưu trữ cho phiên bản này",
+    "archiveNotAvailableDescription": "Hệ thống hiện chỉ phục vụ được bản hiện hành, chưa lưu trữ được các phiên bản cũ (phiên bản yêu cầu: {{version}})."
+  },
+  "disclaimer": {
+    "short": {
+      "text": "Đây là kết quả quan sát tại nhà, không phải chẩn đoán y khoa. Nếu bạn thấy lo lắng về bé, hãy hỏi ý kiến bác sĩ thú y."
+    },
+    "medium": {
+      "title": "Lưu ý khi đọc biểu đồ này",
+      "text": "Biểu đồ này giúp bạn nhận ra những thay đổi so với thường ngày của chính bé nhà mình. CatCheck hỗ trợ theo dõi tại nhà, không chẩn đoán bệnh và không thay thế thăm khám thú y. Một kết quả nằm ngoài khoảng tham chiếu không có nghĩa là bé đang có bệnh; ngược lại, kết quả trong khoảng tham chiếu cũng không loại trừ được bệnh. Hãy mang lịch sử này theo khi đi khám — nó sẽ giúp bác sĩ có thêm thông tin."
+    },
+    "long": {
+      "title": "CatCheck giúp bạn theo dõi, không chẩn đoán",
+      "intro": "CatCheck ghi lại màu của hạt chỉ thị trong khay cát và theo dõi thay đổi theo thời gian. Những gì bạn thấy trong ứng dụng là thông tin quan sát mang tính tham khảo — không phải kết quả xét nghiệm, không phải chẩn đoán y khoa, và không thay thế việc thăm khám, xét nghiệm tại cơ sở thú y.",
+      "bullets": [
+        "Màu sắc có thể bị ảnh hưởng bởi nhiều yếu tố ngoài sức khoẻ của bé: ánh sáng trong phòng, camera điện thoại, góc chụp, thức ăn, nước uống, thuốc đang dùng, độ ẩm và thời gian cát tiếp xúc với nước tiểu.",
+        "Một kết quả đơn lẻ không nói lên nhiều điều. Điều đáng chú ý là xu hướng — thay đổi lặp lại so với mức thường ngày của chính bé. Khi thấy một kết quả khác thường, cách phổ biến là tiếp tục theo dõi thêm 24–48 giờ, trừ trường hợp khẩn cấp nêu bên dưới.",
+        "CatCheck không biết con mèo nào vừa dùng khay. Nếu nhà bạn nuôi nhiều bé, bạn cần tự chọn đúng hồ sơ trước khi lưu kết quả. Nếu không chắc chắn, hãy bỏ qua lần ghi nhận đó — dữ liệu gắn sai bé còn gây nhiễu hơn là không có dữ liệu.",
+        "Kết quả trong khoảng tham chiếu không có nghĩa là bé hoàn toàn khoẻ mạnh. Nhiều vấn đề sức khoẻ không làm thay đổi đặc tính nước tiểu."
+      ],
+      "closing": "Mọi quyết định liên quan tới sức khoẻ của bé nên được đưa ra cùng bác sĩ thú y. Hãy xem CatCheck như một cuốn nhật ký theo dõi để mang theo khi đi khám, chứ không phải người thay bác sĩ trả lời."
+    },
+    "emergency": {
+      "title": "Những dấu hiệu cần đi thú y NGAY — đừng chờ theo dõi thêm",
+      "intro": "Hãy đưa bé đến cơ sở thú y ngay lập tức nếu bạn thấy:",
+      "bullets": [
+        "Bé rặn nhiều nhưng không ra nước tiểu, hoặc chỉ ra vài giọt.",
+        "Bé kêu, gào, tỏ ra đau khi đi vệ sinh.",
+        "Bé ra vào khay liên tục mà khay vẫn khô.",
+        "Nước tiểu có máu.",
+        "Bé bỏ ăn, nôn, nằm li bì, bụng căng cứng."
+      ],
+      "closing": "Tắc nghẽn đường tiểu là tình trạng cấp cứu và có thể nguy hiểm đến tính mạng trong vòng 24–48 giờ. Trong những trường hợp này, đừng dùng CatCheck để chờ theo dõi thêm — hãy gọi cho phòng khám thú y gần nhất."
+    },
+    "footerLine": {
+      "text": "CatCheck hỗ trợ theo dõi sức khoẻ tại nhà — không chẩn đoán bệnh, không thay thế bác sĩ thú y.",
+      "linkLabel": "Tìm hiểu thêm"
+    }
+  },
+  "cookies": {
+    "tableTitle": "Danh sách cookie đang sử dụng",
+    "columns": {
+      "name": "Tên cookie",
+      "purpose": "Mục đích",
+      "group": "Nhóm",
+      "duration": "Thời hạn",
+      "party": "Bên đặt"
+    },
+    "purposes": {
+      "session": "Duy trì phiên đăng nhập của bạn giữa các lượt tải trang.",
+      "csrf": "Chống giả mạo yêu cầu (CSRF) — bảo vệ tài khoản của bạn khi gửi dữ liệu."
+    },
+    "groups": {
+      "essential": "Thiết yếu",
+      "measurement": "Đo lường"
+    },
+    "duration": {
+      "session": "Theo phiên đăng nhập (tối đa 90 ngày nếu chọn \"Ghi nhớ đăng nhập\")"
+    },
+    "noNonEssentialYet": "Ở giai đoạn hiện tại, CatCheck chỉ đặt các cookie thiết yếu nêu trên — chưa dùng cookie đo lường/quảng cáo nào. Bảng này sẽ được cập nhật ngay khi có thay đổi."
+  },
+  "dataRequests": {
+    "intro": "Trang này hướng dẫn thủ tục thực hiện quyền của bạn đối với dữ liệu cá nhân theo Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15 và Nghị định 356/2025/NĐ-CP.",
+    "rightsTitle": "Bạn có những quyền gì",
+    "rights": {
+      "known": {
+        "label": "Quyền được biết",
+        "description": "Biết về hoạt động xử lý dữ liệu cá nhân của bạn, trừ khi pháp luật có quy định khác.",
+        "sla": "Nghĩa vụ thường trực — xem chi tiết tại Chính sách quyền riêng tư."
+      },
+      "consent": {
+        "label": "Quyền đồng ý / rút lại đồng ý",
+        "description": "Đồng ý hoặc rút lại đồng ý cho từng mục đích xử lý dữ liệu.",
+        "sla": "Phản hồi 02 ngày làm việc · Thực hiện 15 ngày (20 ngày nếu qua bên thứ ba)."
+      },
+      "viewEdit": {
+        "label": "Quyền xem, chỉnh sửa dữ liệu",
+        "description": "Xem và yêu cầu chỉnh sửa dữ liệu cá nhân không chính xác.",
+        "sla": "Phản hồi 02 ngày làm việc · Thực hiện 10 ngày (15 ngày nếu qua bên thứ ba)."
+      },
+      "export": {
+        "label": "Quyền yêu cầu cung cấp (xuất) dữ liệu",
+        "description": "Nhận một bản sao dữ liệu cá nhân của bạn dưới định dạng có thể đọc được.",
+        "sla": "Phản hồi 02 ngày làm việc · Thực hiện 10 ngày (15 ngày nếu qua bên thứ ba)."
+      },
+      "erase": {
+        "label": "Quyền yêu cầu xoá dữ liệu",
+        "description": "Yêu cầu xoá tài khoản và dữ liệu cá nhân liên quan.",
+        "sla": "Phản hồi 02 ngày làm việc · Thực hiện 20 ngày (30 ngày nếu qua bên thứ ba)."
+      },
+      "restrict": {
+        "label": "Quyền hạn chế / phản đối xử lý",
+        "description": "Yêu cầu tạm ngừng phân tích, thông báo và thống kê trên dữ liệu của bạn — dữ liệu vẫn được giữ nguyên.",
+        "sla": "Phản hồi 02 ngày làm việc · Thực hiện 15 ngày (20 ngày nếu qua bên thứ ba)."
+      },
+      "complain": {
+        "label": "Quyền khiếu nại, tố cáo, khởi kiện, bồi thường",
+        "description": "Khiếu nại tới CatCheck hoặc cơ quan chuyên trách nếu quyền của bạn bị vi phạm.",
+        "sla": "Theo quy định pháp luật về khiếu nại — xem trang Liên hệ."
+      },
+      "protectionMeasure": {
+        "label": "Quyền yêu cầu áp dụng biện pháp bảo vệ dữ liệu",
+        "description": "Yêu cầu CatCheck áp dụng biện pháp bảo vệ bổ sung khi có lo ngại về an toàn dữ liệu.",
+        "sla": "Phản hồi 02 ngày làm việc · Thực hiện 15 ngày."
+      }
+    },
+    "slaNote": "Mốc thời gian tính từ khi yêu cầu được nộp đúng thủ tục nêu dưới đây.",
+    "howToSubmitTitle": "Cách nộp yêu cầu",
+    "howToSubmit": {
+      "selfService": "Tự thao tác trong ứng dụng (khuyến nghị) — tại Trung tâm quyền riêng tư trong tài khoản của bạn.",
+      "webForm": "Điền biểu mẫu khiếu nại tại trang Liên hệ.",
+      "email": "Gửi email trực tiếp cho bộ phận bảo vệ dữ liệu cá nhân (DPO) — xem địa chỉ tại trang Liên hệ."
+    },
+    "goToPrivacyCenter": "Vào Trung tâm quyền riêng tư",
+    "loginToSubmit": "Đăng nhập để gửi yêu cầu",
+    "verificationTitle": "Thông tin cần cung cấp và cách xác minh danh tính",
+    "verificationDescription": "Nếu bạn đang đăng nhập, chúng tôi xác minh bạn bằng chính phiên đăng nhập đó (và có thể yêu cầu xác thực lại qua mã gửi tới email). Nếu không đăng nhập được, vui lòng cung cấp email đã đăng ký và mô tả yêu cầu qua kênh Liên hệ — CatCheck sẽ liên hệ lại để xác minh danh tính trước khi xử lý.",
+    "rejectionTitle": "Các trường hợp có thể bị từ chối",
+    "rejectionDescription": "CatCheck có thể từ chối một phần hoặc toàn bộ yêu cầu nếu việc thực hiện xâm phạm quyền, lợi ích hợp pháp của người khác, hoặc thuộc các trường hợp pháp luật cho phép từ chối. Khi từ chối, chúng tôi luôn nêu rõ lý do cho bạn.",
+    "trackingTitle": "Cách tra cứu trạng thái yêu cầu",
+    "trackingDescription": "Mỗi yêu cầu được cấp một mã tra cứu dạng DSAR-XXXX-XXXXXX. Bạn có thể xem trạng thái và hạn xử lý tại Trung tâm quyền riêng tư trong tài khoản của mình.",
+    "complaintTitle": "Nếu bạn không hài lòng",
+    "complaintDescription": "Bạn có quyền khiếu nại tới CatCheck hoặc cơ quan chuyên trách bảo vệ dữ liệu cá nhân. Xem đầy đủ kênh liên hệ và thông tin cơ quan tiếp nhận tại",
+    "contactLink": "trang Liên hệ"
+  },
+  "contact": {
+    "intro": "Mọi thắc mắc, yêu cầu về dữ liệu cá nhân hoặc khiếu nại, bạn có thể liên hệ CatCheck qua các kênh dưới đây.",
+    "companyTitle": "Thông tin doanh nghiệp",
+    "companyName": "Công ty TNHH CatCheck",
+    "companyAddress": "Phường Chính Gián, Quận Thanh Khê, Đà Nẵng",
+    "fields": {
+      "name": "Tên công ty",
+      "address": "Trụ sở",
+      "hotline": "Hotline",
+      "email": "Email",
+      "workingHours": "Giờ làm việc"
+    },
+    "workingHoursValue": "Thứ 2 – Thứ 6, 8:30–12:00 và 13:00–17:30",
+    "dpoTitle": "Bộ phận bảo vệ dữ liệu cá nhân (DPO)",
+    "dpoDescription": "Mọi yêu cầu liên quan tới dữ liệu cá nhân, đồng ý xử lý dữ liệu, hoặc lo ngại về quyền riêng tư, vui lòng liên hệ qua kênh dưới đây.",
+    "complaintChannelTitle": "Kênh tiếp nhận khiếu nại",
+    "complaintChannelDescription": "Bạn có thể gửi khiếu nại qua email hoặc hotline ở trên, hoặc mở một yêu cầu khiếu nại chính thức để được cấp mã theo dõi tại trang Khiếu nại.",
+    "responseTimeCommitment": "CatCheck phản hồi mọi yêu cầu liên quan tới dữ liệu cá nhân trong vòng 02 ngày làm việc kể từ khi nhận được.",
+    "authorityTitle": "Cơ quan chuyên trách bảo vệ dữ liệu cá nhân",
+    "authorityName": "Cục An ninh mạng và phòng, chống tội phạm sử dụng công nghệ cao (A05) — Bộ Công an",
+    "authorityBasis": "Theo Điều 33 khoản 1 điểm a Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15, bạn có quyền khiếu nại, tố cáo tới cơ quan này nếu quyền của bạn bị vi phạm.",
+    "seeAlso": "Xem thêm thủ tục thực hiện quyền của bạn tại",
+    "dataRequestsLink": "trang Yêu cầu về dữ liệu cá nhân"
+  },
+  "complaints": {
+    "intro": "CatCheck tiếp nhận khiếu nại của bạn theo quy trình dưới đây. Ở giai đoạn hiện tại, mỗi khiếu nại được cấp một mã theo dõi và xử lý qua email cùng bộ phận bảo vệ dữ liệu cá nhân (DPO).",
+    "steps": {
+      "openTicket": "Mở một hồ sơ khiếu nại chính thức bên dưới để nhận mã theo dõi.",
+      "emailDetails": "Gửi email mô tả chi tiết khiếu nại tới DPO (địa chỉ tại trang Liên hệ), kèm mã theo dõi vừa nhận được.",
+      "wait": "CatCheck phản hồi trong vòng 02 ngày làm việc kể từ khi nhận được đầy đủ thông tin."
+    },
+    "openTicketCta": "Mở hồ sơ khiếu nại",
+    "loginCta": "Đăng nhập để mở hồ sơ khiếu nại",
+    "successTitle": "Đã mở hồ sơ khiếu nại",
+    "successDescription": "Mã theo dõi của bạn: {{publicRef}}. Vui lòng gửi email chi tiết khiếu nại kèm mã này tới DPO.",
+    "emailDpoLink": "Xem địa chỉ email DPO",
+    "alternative": "Bạn cũng có thể liên hệ trực tiếp qua",
+    "contactLink": "trang Liên hệ",
+    "errors": {
+      "generic": "Không mở được hồ sơ khiếu nại. Vui lòng thử lại hoặc liên hệ trực tiếp qua email.",
+      "rateLimited": "Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau hoặc liên hệ trực tiếp qua email."
+    },
+    "sideHelpTitle": "Kênh liên hệ khác"
+  },
+  "toc": {
+    "title": "Trong trang này"
+  },
+  "privacyCenter": {
+    "title": "Trung tâm quyền riêng tư",
+    "intro": "Xem CatCheck đang giữ dữ liệu gì về bạn, bật hoặc tắt từng mục đích xử lý, lấy một bản sao dữ liệu của mình, và yêu cầu xoá tài khoản.",
+    "loadError": "Không tải được dữ liệu từ máy chủ.",
+    "retry": "Thử lại",
+    "noApiBadge": "Chưa có API",
+    "savedAt": "Đã lưu lúc {{time}}",
+    "deletionBanner": {
+      "title": "Tài khoản của bạn đang chờ xoá",
+      "body": "Yêu cầu {{publicRef}} được ghi nhận lúc {{receivedAt}}. Hệ thống sẽ thực thi việc xoá vào {{scheduledAt}}.",
+      "graceNote": "Trong {{days}} ngày ân hạn, bạn vẫn huỷ được yêu cầu và tài khoản trở lại bình thường. Sau mốc đó thì không lùi lại được.",
+      "derivedNote": "Ngày thực thi hiển thị ở đây được tính bằng ngày nhận yêu cầu cộng 7 ngày (p15 §15.4.6). API chưa trả thẳng trường deletion_scheduled_at.",
+      "cancel": "Huỷ yêu cầu xoá",
+      "cancelled": "Đã huỷ yêu cầu xoá. Tài khoản của bạn hoạt động bình thường trở lại.",
+      "expired": "Đã quá thời gian ân hạn — yêu cầu không huỷ được nữa.",
+      "notRequested": "Không tìm thấy yêu cầu xoá nào đang mở."
+    },
+    "consent": {
+      "title": "Mục đích xử lý dữ liệu",
+      "intro": "Mỗi mục đích là một lựa chọn riêng — bạn bật hoặc tắt từng mục, CatCheck không gộp chúng vào một ô.",
+      "sourceNote": "Trạng thái dưới đây đọc trực tiếp từ sổ đồng ý trên máy chủ, không phải do trình duyệt tự suy ra.",
+      "appendOnlyNote": "Mỗi lần bật hoặc tắt, hệ thống ghi THÊM một dòng mới vào sổ bằng chứng. Dòng cũ không bị sửa và không bị xoá — đó là cách chứng minh bạn đã đồng ý điều gì, vào lúc nào.",
+      "mandatoryBadge": "Bắt buộc",
+      "sensitiveBadge": "Dữ liệu nhạy cảm",
+      "phaseBadge": "Giai đoạn {{phase}}",
+      "withdrawEffectLabel": "Nếu tắt:",
+      "mandatoryNote": "Mục đích này thuộc chính nội dung dịch vụ bạn đã đăng ký nên không tắt riêng được. Muốn dừng hẳn, hãy dùng mục Xoá tài khoản bên dưới.",
+      "toggleAria": "Bật hoặc tắt mục đích: {{label}}",
+      "noneHint": "Chưa được hỏi không có nghĩa là đồng ý.",
+      "empty": "Chưa có mục đích xử lý nào được cấu hình.",
+      "saveError": "Không ghi được thay đổi. Vui lòng thử lại.",
+      "mandatoryError": "Không rút được mục đích bắt buộc này.",
+      "unknownPurposeError": "Mục đích này không còn hiệu lực. Hãy tải lại trang.",
+      "status": {
+        "GRANTED": "Đang đồng ý",
+        "DENIED": "Đã từ chối",
+        "WITHDRAWN": "Đã rút lại",
+        "NONE": "Chưa được hỏi"
+      },
+      "evidenceTitle": "Tải tệp bằng chứng đồng ý",
+      "evidenceMissing": "p15 §15.3.1 (C6) yêu cầu bạn tải được sự đồng ý của mình ở định dạng in và sao chép được. PrivacyController chưa có endpoint trả tệp đó. Trong lúc chờ, mục Lấy một bản sao dữ liệu bên dưới có tệp consents.json trong gói ZIP."
+    },
+    "history": {
+      "title": "Lịch sử đồng ý",
+      "intro": "Sổ bằng chứng chỉ ghi thêm, không sửa, không xoá. Mới nhất trước.",
+      "colPurpose": "Mục đích",
+      "colStatus": "Trạng thái",
+      "colTime": "Thời điểm",
+      "colPolicy": "Bản chính sách",
+      "colMethod": "Cách ghi nhận",
+      "policyLink": "Xem bản {{version}}",
+      "policyUnknown": "Không gắn phiên bản",
+      "surfaceLabel": "Ghi tại: {{surface}}",
+      "empty": "Chưa có bản ghi nào.",
+      "showAll": "Xem toàn bộ lịch sử",
+      "showLess": "Thu gọn"
+    },
+    "inventory": {
+      "title": "Dữ liệu CatCheck đang giữ về bạn",
+      "intro": "Danh sách này dựng động từ bảng kiểm kê dữ liệu của hệ thống, không phải văn bản chép tay — thêm trường mới vào hệ thống là nó xuất hiện ở đây.",
+      "labelSensitivity": "Phân loại",
+      "labelLegalBasis": "Căn cứ pháp lý",
+      "labelPurposes": "Dùng cho mục đích",
+      "labelRetention": "Chính sách lưu trữ",
+      "labelStorage": "Nơi lưu",
+      "labelCrossBorder": "Chuyển ra nước ngoài",
+      "labelRecipient": "Bên nhận",
+      "recipientNone": "Không chuyển cho bên nào",
+      "crossBorderYes": "Có",
+      "crossBorderNo": "Không",
+      "retentionNote": "API chỉ trả mã chính sách lưu trữ. Thời hạn lưu bằng chữ nằm ở bảng retention p15 §15.5.1, chưa có endpoint nào trả kèm.",
+      "empty": "Bảng kiểm kê dữ liệu chưa được nạp.",
+      "sensitivity": {
+        "BASIC": "Cơ bản",
+        "SENSITIVE": "Nhạy cảm"
+      },
+      "legalBasis": {
+        "CONSENT": "Sự đồng ý của bạn",
+        "CONTRACT": "Thực hiện thoả thuận",
+        "LEGAL_OBLIGATION": "Nghĩa vụ luật định",
+        "VITAL_INTEREST": "Lợi ích sống còn"
+      }
+    },
+    "export": {
+      "title": "Lấy một bản sao dữ liệu của bạn",
+      "intro": "CatCheck dựng một gói ZIP gồm hồ sơ của bạn, danh sách mèo, lịch sử quét, lịch sử đồng ý và thông báo, kèm tệp giải thích từng cột.",
+      "sla": "Phản hồi trong 02 ngày làm việc, thực hiện trong 10 ngày. Tối đa 1 yêu cầu mỗi 24 giờ.",
+      "linkRule": "Link tải dùng được một lần, hết hạn sau 72 giờ và yêu cầu bạn đang đăng nhập. CatCheck không gửi gói dữ liệu dưới dạng tệp đính kèm email.",
+      "cta": "Yêu cầu xuất dữ liệu",
+      "created": "Đã nhận yêu cầu {{publicRef}}.",
+      "latestTitle": "Yêu cầu gần nhất",
+      "download": "Tải gói dữ liệu",
+      "expiresAt": "Link hết hạn: {{date}}",
+      "notReady": "Gói dữ liệu chưa sẵn sàng: job nền dựng gói (DataExportJob, p15 §15.4.5) chưa chạy ở giai đoạn này nên chưa có tệp để tải.",
+      "rateLimited": "Bạn đã gửi một yêu cầu xuất dữ liệu trong 24 giờ qua. Vui lòng thử lại sau.",
+      "gone": "Link tải đã hết hạn hoặc đã được dùng một lần rồi.",
+      "none": "Bạn chưa yêu cầu xuất dữ liệu lần nào."
+    },
+    "restriction": {
+      "title": "Tạm ngừng xử lý dữ liệu",
+      "intro": "Dữ liệu của bạn được giữ nguyên, nhưng hệ thống chỉ lưu trữ: không phân tích, không gửi thông báo, không đưa vào thống kê.",
+      "sla": "Phản hồi trong 02 ngày làm việc, thực hiện trong 15 ngày.",
+      "stateActive": "Đang tạm ngừng xử lý",
+      "stateInactive": "Đang xử lý bình thường",
+      "enable": "Bật tạm ngừng xử lý",
+      "disable": "Rút yêu cầu tạm ngừng",
+      "derivedNote": "Chưa có endpoint đọc thẳng trạng thái này. Trạng thái hiển thị được suy ra từ việc còn hay không một yêu cầu RESTRICT đang mở trong danh sách bên dưới (p15 §15.4.7).",
+      "alreadyActive": "Tài khoản đang ở trạng thái tạm ngừng xử lý rồi."
+    },
+    "deletion": {
+      "title": "Xoá tài khoản",
+      "intro": "Đây là thao tác không lùi lại được sau 7 ngày. Hãy đọc kỹ phần dưới trước khi bấm.",
+      "cta": "Yêu cầu xoá tài khoản",
+      "immediateTitle": "Ngay khi bạn xác nhận",
+      "immediate1": "Mọi phiên đăng nhập bị thu hồi và việc đăng nhập bị khoá — bạn sẽ không vào lại được tài khoản.",
+      "immediate2": "Mọi lịch nhắc bị huỷ và đăng ký nhận thông báo đẩy bị xoá ngay lập tức.",
+      "immediate3": "Hệ thống hẹn lịch thực thi sau 7 ngày và gửi email kèm link huỷ.",
+      "lostTitle": "Sau 7 ngày, những thứ này mất hẳn",
+      "lost1": "Hồ sơ tài khoản bị ẩn danh hoá: email, họ tên, số điện thoại và ảnh đại diện bị gỡ bỏ.",
+      "lost2": "Toàn bộ hồ sơ mèo, khảo sát sức khoẻ và ảnh bạn đã chụp bị xoá hẳn, kể cả ảnh còn trong hạn 14 ngày.",
+      "lost3": "Lịch sử quét được khử nhận dạng: số đo pH được giữ nhưng không còn gắn với bạn hay với bé nào. Nếu bạn đã tắt mục đích cải thiện thuật toán thì phần này bị xoá hẳn.",
+      "lost4": "Nhật ký hoạt động trong ứng dụng bị xoá hẳn.",
+      "keptTitle": "Những thứ CatCheck buộc phải giữ lại",
+      "kept1": "Sổ đồng ý: giữ thêm 05 năm dưới dạng bí danh — nghĩa vụ chứng minh đã lấy đồng ý hợp lệ.",
+      "kept2": "Hồ sơ yêu cầu quyền (DSAR): giữ 05 năm dưới dạng ẩn danh.",
+      "kept3": "Nhật ký kiểm toán: giữ 24 tháng, gắn với bí danh thay vì danh tính của bạn.",
+      "kept4": "Bản ghi tín dụng và mã kích hoạt: giữ để đối soát, đã gỡ mọi phần văn bản tự do.",
+      "backupNote": "Dữ liệu còn nằm trong bản sao lưu tối đa 30 ngày theo chu kỳ luân chuyển. CatCheck không chỉnh sửa bản sao lưu vì làm vậy sẽ phá tính toàn vẹn của chúng.",
+      "exportFirstTitle": "Nên lấy bản sao dữ liệu trước",
+      "exportFirst": "Sau khi xoá, không khôi phục lại được. Hãy cân nhắc yêu cầu xuất dữ liệu ở mục trên trước khi tiếp tục.",
+      "confirmTitle": "Xác nhận xoá tài khoản",
+      "confirmEmailLabel": "Nhập lại email của tài khoản để xác nhận",
+      "confirmEmailMismatch": "Email chưa khớp với tài khoản đang đăng nhập.",
+      "confirmCta": "Tôi hiểu, xoá tài khoản của tôi",
+      "cancelCta": "Để sau",
+      "alreadyRequested": "Đã có một yêu cầu xoá đang mở cho tài khoản này.",
+      "optionsMissing": "p15 §15.4.6 (Giai đoạn 2) yêu cầu cho bạn chọn giữ nội dung cộng đồng dạng ẩn danh hay xoá hẳn. Endpoint POST /privacy/account-deletion chưa nhận tuỳ chọn nào nên lựa chọn đó chưa hiện ở đây.",
+      "requested": "Đã ghi nhận yêu cầu xoá {{publicRef}}."
+    },
+    "requests": {
+      "title": "Yêu cầu khác về dữ liệu",
+      "intro": "Bốn loại yêu cầu dưới đây cần người xử lý. Mở một hồ sơ để nhận mã tra cứu và bắt đầu đồng hồ cam kết thời gian.",
+      "noContentField": "Biểu mẫu chỉ mở hồ sơ và cấp mã tra cứu — API chưa nhận phần mô tả chi tiết. Hãy gửi nội dung qua email cho bộ phận bảo vệ dữ liệu cá nhân, kèm mã tra cứu.",
+      "open": "Mở hồ sơ",
+      "created": "Đã mở hồ sơ {{publicRef}}.",
+      "listTitle": "Yêu cầu của bạn",
+      "listEmpty": "Bạn chưa gửi yêu cầu nào.",
+      "ackDue": "Hạn phản hồi: {{date}}",
+      "fulfilDue": "Hạn thực hiện: {{date}}",
+      "receivedAt": "Gửi lúc {{date}}",
+      "type": {
+        "ACCESS_EXPORT": "Xuất dữ liệu cá nhân",
+        "RECTIFY": "Chỉnh sửa dữ liệu không chính xác",
+        "ERASE": "Xoá tài khoản",
+        "RESTRICT": "Tạm ngừng xử lý dữ liệu",
+        "OBJECT": "Phản đối việc xử lý",
+        "WITHDRAW_CONSENT": "Rút lại đồng ý",
+        "PROTECTION_MEASURE": "Yêu cầu áp dụng biện pháp bảo vệ",
+        "COMPLAINT": "Khiếu nại"
+      },
+      "status": {
+        "RECEIVED": "Đã nhận",
+        "IDENTITY_PENDING": "Chờ xác minh danh tính",
+        "IN_PROGRESS": "Đang xử lý",
+        "EXTENDED": "Đã gia hạn",
+        "COMPLETED": "Hoàn tất",
+        "REJECTED": "Từ chối"
+      }
+    },
+    "stepUp": {
+      "title": "Xác minh lại danh tính",
+      "intro": "Thao tác này đụng tới toàn bộ dữ liệu cá nhân của bạn nên CatCheck phải chắc chắn người đang bấm là bạn.",
+      "windowNote": "Sau khi xác minh, bạn có khoảng 5 phút để hoàn tất thao tác.",
+      "methodLabel": "Cách xác minh",
+      "methodEmailOtp": "Mã gửi tới email",
+      "methodPassword": "Mật khẩu hiện tại",
+      "sendCode": "Gửi mã",
+      "resendCode": "Gửi lại mã",
+      "codeSent": "Đã gửi mã tới {{email}}.",
+      "codeLabel": "Mã xác minh",
+      "passwordLabel": "Mật khẩu hiện tại",
+      "submit": "Xác nhận",
+      "cancel": "Huỷ",
+      "required": "Cần xác minh lại danh tính trước khi thực hiện thao tác này.",
+      "failed": "Xác minh không thành công. Kiểm tra lại mã hoặc mật khẩu rồi thử lần nữa.",
+      "otpInvalid": "Mã không đúng.",
+      "otpExpired": "Mã đã hết hạn. Hãy gửi lại mã mới.",
+      "otpLocked": "Bạn đã thử quá nhiều lần. Vui lòng chờ một lát rồi thử lại.",
+      "cooldown": "Vui lòng chờ trước khi gửi lại mã.",
+      "deliveryFailed": "Không gửi được email chứa mã. Vui lòng thử lại sau.",
+      "passwordUnavailable": "Tài khoản này chưa đặt mật khẩu. Hãy dùng cách xác minh bằng mã gửi tới email.",
+      "noEmail": "Không đọc được email của phiên đăng nhập hiện tại."
+    },
+    "aside": {
+      "slaTitle": "Cam kết thời gian",
+      "slaAck": "Phản hồi mọi yêu cầu trong 02 ngày làm việc.",
+      "slaExport": "Xuất dữ liệu: 10 ngày.",
+      "slaErase": "Xoá tài khoản: 20 ngày (ân hạn 7 ngày, thực thi ở ngày thứ 7).",
+      "slaRestrict": "Tạm ngừng xử lý, phản đối, khiếu nại: 15 ngày.",
+      "linksTitle": "Đọc thêm",
+      "linkPrivacy": "Chính sách quyền riêng tư",
+      "linkDataRequests": "Thủ tục thực hiện quyền của bạn",
+      "linkContact": "Liên hệ và khiếu nại",
+      "gapsTitle": "Phần chưa có API",
+      "gapEvidence": "Tải tệp bằng chứng đồng ý (p15 §15.3.1 C6).",
+      "gapRetention": "Thời hạn lưu bằng chữ cho từng nhóm dữ liệu (p15 §15.5.1).",
+      "gapRestrictionState": "Đọc thẳng trạng thái tạm ngừng xử lý (p15 §15.4.7).",
+      "gapCommunityChoice": "Lựa chọn giữ hay xoá nội dung cộng đồng khi xoá tài khoản (p15 §15.4.6, Giai đoạn 2)."
+    },
+    "errors": {
+      "generic": "Có lỗi xảy ra. Vui lòng thử lại.",
+      "rateLimited": "Bạn thao tác hơi nhanh. Vui lòng thử lại sau ít phút."
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "pages": {
+    "export": {
+      "title": "Xuất hồ sơ PDF"
+    },
+    "job": {
+      "title": "Tiến trình xuất hồ sơ"
+    }
+  },
+  "wizard": {
+    "step1": {
+      "primaryLabel": "Mèo chính",
+      "secondaryLabel": "Mèo phụ"
+    },
+    "step2": {
+      "fromLabel": "Từ ngày",
+      "toLabel": "Đến ngày"
+    },
+    "submitting": "Đang tạo báo cáo…"
+  },
+  "range": {
+    "7D": "7 ngày qua",
+    "30D": "30 ngày qua",
+    "90D": "3 tháng qua",
+    "CUSTOM": "Tuỳ chỉnh ngày"
+  },
+  "sections": {
+    "TREND": {
+      "title": "Biểu đồ xu hướng & Phân bố pH",
+      "description": "Biểu đồ đường pH theo thời gian trong khoảng đã chọn, kèm vùng tham chiếu và phân bố phân loại."
+    },
+    "SCAN_LOG": {
+      "title": "Nhật ký quan sát màu hạt cát",
+      "description": "Ngày giờ, pH, phân loại, độ tin cậy và cảnh báo chất lượng của từng lượt quét."
+    },
+    "NOTES": {
+      "title": "Ghi chú của chủ nuôi & Chế độ ăn",
+      "description": "Các ghi chú liên quan (đổi thức ăn, đổi cát, triệu chứng…) trong kỳ báo cáo."
+    },
+    "PROFILE": {
+      "title": "Thông tin cơ bản của bé mèo",
+      "description": "Giống, tuổi, cân nặng và các thông tin hồ sơ liên quan."
+    }
+  },
+  "job": {
+    "documentCodeLabel": "Mã hồ sơ",
+    "pageCountLabel": "{{pages}} trang · {{scans}} lượt quét",
+    "download": "Tải file PDF",
+    "backToList": "Xem tất cả bản xuất",
+    "status": {
+      "QUEUED": "Đang xếp hàng xử lý…",
+      "RUNNING": "Đang tạo báo cáo…",
+      "READY": "Báo cáo đã sẵn sàng",
+      "FAILED": "Tạo báo cáo thất bại",
+      "EXPIRED": "Đường dẫn tải đã hết hạn"
+    }
+  },
+  "state": {
+    "noDataTitle": "Không đủ dữ liệu",
+    "noDataDescription": "Chưa có lượt quét nào trong khoảng thời gian đã chọn.",
+    "conflictTitle": "Đang có bản xuất khác chạy",
+    "conflictDescription": "Vui lòng đợi bản xuất hiện tại hoàn tất trước khi tạo bản mới.",
+    "loadError": "Không tải được thông tin. Vui lòng thử lại.",
+    "sectionsRequired": "Chọn ít nhất 1 mục nội dung.",
+    "rangeInvalidDescription": "Khoảng thời gian không hợp lệ: ngày bắt đầu phải trước ngày kết thúc và không vượt quá hôm nay."
+  },
+  "web": {
+    "eyebrow": "HỒ SƠ CHIA SẺ BÁC SĨ THÚ Y",
+    "title": "Xuất Hồ sơ Sức khoẻ",
+    "subtitle": "Cấu hình báo cáo PDF theo bé mèo, khoảng thời gian và các mục nội dung để gửi cho bác sĩ thú y.",
+    "step1": "Chọn bé mèo",
+    "step1Hint": "Hồ sơ đang theo dõi",
+    "step2": "Giai đoạn theo dõi",
+    "step3": "Các mục bao gồm trong báo cáo",
+    "recommendedSuffix": "(Khuyến nghị)",
+    "selectAll": "Chọn tất cả ({{count}})",
+    "rangeValue": "{{from}} – {{to}}",
+    "rangeFromFormat": "dd 'Th'MM",
+    "rangeToFormat": "dd 'Th'MM, yyyy",
+    "previewTitle": "Xem trước báo cáo",
+    "previewFormat": "Khổ A4",
+    "previewWatermark": "CATCHECK VET",
+    "reportTitle": "BÁO CÁO THEO DÕI TIẾT NIỆU MÈO CATCHECK",
+    "reportDescription": "Tổng hợp phân bố pH theo ngày trong {{range}}, kèm {{count}} mục nội dung đã chọn.",
+    "reportDescriptionNamed": "Tổng hợp phân bố pH theo ngày của {{name}} trong {{range}}, kèm {{count}} mục nội dung đã chọn.",
+    "submit": "Tạo & Tải file PDF",
+    "submitHint": "Chọn một bé mèo để bật nút tạo báo cáo."
+  }
+}

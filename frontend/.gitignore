@@ -1,0 +1,5 @@
+# Sinh tự động từ src/shared/i18n/locales lúc chạy vite (xem vite.config.ts) — không sửa tay.
+public/locales/
+
+# tsc -b build cache
+*.tsbuildinfo

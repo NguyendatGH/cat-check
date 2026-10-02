@@ -1,0 +1,294 @@
+{
+  "pages": {
+    "language": {
+      "title": "Ngôn ngữ"
+    },
+    "notifications": {
+      "title": "Cài đặt thông báo"
+    },
+    "profile": {
+      "title": "Hồ sơ cá nhân"
+    },
+    "root": {
+      "title": "Cài đặt"
+    },
+    "security": {
+      "title": "Bảo mật tài khoản"
+    }
+  },
+  "web": {
+    "heroTitle": "Cài đặt Tài khoản & Hệ thống Giám sát CATCHECK",
+    "heroBody": "Quản lý tài khoản, thiết bị khay cát, kết nối dữ liệu thú y và quyền riêng tư y sinh theo tiêu chuẩn lâm sàng phòng ngừa.",
+    "exportCta": "Xuất dữ liệu",
+    "isfmCta": "Chứng thực ISFM",
+    "navLabel": "Danh mục thiết lập",
+    "navHeading": "Danh mục thiết lập",
+    "nav": {
+      "profile": "Hồ sơ tài khoản & Chủ nuôi",
+      "cats": "Quản lý Bé Mèo",
+      "device": "Khay cát & CleanBox IoT",
+      "reminders": "Lịch nhắc & Tần suất pH",
+      "vetSharing": "Chia sẻ Bác sĩ & Viện",
+      "security": "Bảo mật & Y sinh (ISO)",
+      "subscription": "Gói Cát SmartSand Pro"
+    },
+    "catCount": "{{count}} bé",
+    "designOnly": "Khối giao diện theo thiết kế — chưa có backend",
+    "mockBadge": "Dữ liệu mẫu",
+    "outOfScope": "Ngoài phạm vi",
+    "standardTitle": "Tiêu chuẩn Y tế",
+    "certificateLabel": "Mã chứng chỉ:",
+    "accountTitle": "Thông tin tài khoản chủ nuôi",
+    "accountSubtitle": "Thông tin xác thực danh tính người chịu trách nhiệm chăm sóc cho mèo",
+    "edit": "Chỉnh sửa",
+    "fieldName": "Họ và tên",
+    "fieldEmail": "Email liên lạc",
+    "fieldPhone": "Số điện thoại khẩn cấp",
+    "fieldVetMember": "Hội viên thú y",
+    "primaryGuardian": "Chủ nuôi chính (Primary Guardian)",
+    "emailVerified": "Đã xác thực OTP",
+    "emailUnverified": "Chưa xác thực",
+    "phoneEmpty": "Chưa cập nhật",
+    "phoneNote": "Dùng cho cảnh báo SMS khẩn cấp",
+    "deviceTitle": "Thiết bị & Tích hợp Khay Cát Thông Minh",
+    "deviceSubtitle": "Giám sát thông số quang học thực thời và kết nối phần cứng CleanBox",
+    "deviceMeta": "{{location}} • MAC: {{mac}}",
+    "alertsTitle": "Cấu hình Lịch nhắc & Cảnh báo Sức khỏe",
+    "alertsSubtitle": "Chọn kênh nhận tin và loại cảnh báo bạn muốn theo dõi",
+    "thresholdsLegend": "Ngưỡng báo động màu cát & dấu hiệu lâm sàng",
+    "vetSharingTitle": "Uỷ quyền Hồ sơ Y tế Thú cưng",
+    "vetSharingSubtitle": "Chia sẻ dữ liệu theo dõi trực tiếp cho phòng khám để đối chiếu tiền sử",
+    "vetManageAccess": "Quản lý quyền truy cập",
+    "vetDoctor": "Bác sĩ phụ trách:",
+    "vetUpdatedAt": "Cập nhật gần nhất:",
+    "vetToken": "Mã token: {{token}}",
+    "subscriptionTitle": "Đăng ký nhận cát tự động (Subscription)",
+    "subscriptionSubtitle": "Giao hạt vi khoáng đổi màu định kỳ tận nhà, đảm bảo độ chuẩn xác xét nghiệm",
+    "subCurrentPlan": "Gói hiện tại",
+    "subNextDelivery": "Kỳ giao kế tiếp",
+    "subAddress": "Địa chỉ giao hàng mặc định"
+  },
+  "mobile": {
+    "catCompanions": "{{count}} bé mèo đồng hành",
+    "editAccount": "Chỉnh sửa tài khoản",
+    "catsTitle": "Hồ sơ bé mèo đã đăng ký",
+    "catsSubtitle": "Theo dõi chỉ thị sinh học sức khoẻ",
+    "catsAdd": "Thêm bé mèo",
+    "catsManage": "Quản lý hồ sơ & Chỉ số chuẩn",
+    "catsEmpty": "Chưa có bé mèo nào trong tài khoản. Thêm bé đầu tiên để bắt đầu theo dõi.",
+    "catNoScan": "Chưa quét lần nào",
+    "groupMonitoring": "Cài đặt Theo dõi & Phần cứng",
+    "groupData": "Dữ liệu & Hồ sơ Thú y",
+    "groupSupport": "Hỗ trợ & Cộng đồng",
+    "rows": {
+      "reminders": {
+        "title": "Lịch nhắc nhở Quét",
+        "note": "Đặt tần suất quét màu cát định kỳ"
+      },
+      "notifications": {
+        "title": "Thông báo & Cảnh báo",
+        "note": "Chọn kênh nhận tin và loại cảnh báo"
+      },
+      "device": {
+        "title": "Khay cát & CleanBox IoT"
+      },
+      "export": {
+        "title": "Xuất Hồ sơ Sức khỏe",
+        "note": "Báo cáo PDF gửi bác sĩ thú y"
+      },
+      "clinic": {
+        "title": "Phòng khám Thú y liên kết"
+      },
+      "security": {
+        "title": "Bảo mật & Sao lưu dữ liệu",
+        "note": "Mật khẩu, xác thực 2 lớp, thiết bị đăng nhập"
+      },
+      "privacy": {
+        "title": "Quyền riêng tư tài khoản",
+        "note": "Đồng ý xử lý dữ liệu & nhật ký truy cập"
+      },
+      "language": {
+        "title": "Ngôn ngữ hiển thị",
+        "note": "Tiếng Việt / English"
+      },
+      "guides": {
+        "title": "Hỏi đáp & Video hướng dẫn",
+        "note": "Video chỉ dẫn đọc màu hạt cát"
+      },
+      "hotline": {
+        "title": "Hotline & Trợ lý Điều dưỡng Thú y",
+        "note": "Tổng đài hỗ trợ người nuôi"
+      },
+      "contact": {
+        "title": "Liên hệ CatCheck",
+        "note": "Gửi câu hỏi hoặc phản ánh dịch vụ"
+      }
+    },
+    "call": "Gọi",
+    "disclaimerTitle": "Lưu ý theo dõi, không chẩn đoán",
+    "disclaimerBody": "CATCHECK cung cấp tính năng theo dõi xu hướng hoá sinh qua màu cát vệ sinh thông minh. Các chỉ số chỉ mang tính chất phát hiện sớm để phòng bệnh, không thay thế cho xét nghiệm nước tiểu hay kết luận chẩn đoán lâm sàng của bác sĩ thú y.",
+    "legalTerms": "Điều khoản sử dụng",
+    "legalPrivacy": "Chính sách quyền riêng tư",
+    "legalSafety": "Tiêu chuẩn an toàn",
+    "versionLine": "CATCHECK phiên bản {{version}} • Thiết kế vì tình yêu thương mèo cưng.",
+    "logout": "Đăng xuất",
+    "exportAction": "Xuất"
+  },
+  "notifications": {
+    "intro": "Chọn kênh nhận cảnh báo, loại thông báo và giờ im lặng. Thay đổi được lưu ngay.",
+    "alertChannelLegend": "Cảnh báo kết quả cần chú ý",
+    "alertChannelNote": "Loại cảnh báo này không tắt được — bạn chỉ chọn kênh nhận.",
+    "alertChannels": {
+      "PUSH_AND_INAPP": {
+        "title": "Đẩy về máy và trong ứng dụng",
+        "body": "Nhận ngay cả khi bạn chưa mở CatCheck"
+      },
+      "INAPP_ONLY": {
+        "title": "Chỉ trong ứng dụng",
+        "body": "Chỉ hiện ở trung tâm thông báo khi bạn mở CatCheck"
+      }
+    },
+    "typesLegend": "Loại thông báo khác",
+    "toggles": {
+      "creditAlertsEnabled": {
+        "title": "Lượt quét sắp hết hạn",
+        "body": "Nhắc trước khi lượt quét trong gói hết hiệu lực"
+      },
+      "reportReadyEnabled": {
+        "title": "Hồ sơ PDF đã sẵn sàng",
+        "body": "Báo khi bản xuất hồ sơ tải về được"
+      },
+      "normalResultEnabled": {
+        "title": "Kết quả bình thường",
+        "body": "Mặc định tắt — chỉ bật nếu bạn muốn nhận cả lần quét không có gì bất thường"
+      },
+      "imageRetentionWarningEnabled": {
+        "title": "Ảnh sắp đến hạn xoá",
+        "body": "Mặc định tắt — mọi ảnh đều tự xoá sau 14 ngày"
+      }
+    },
+    "quietHoursLegend": "Giờ im lặng",
+    "quietHours": {
+      "title": "Không làm phiền",
+      "range": "Từ {{start}} đến {{end}} theo múi giờ tài khoản",
+      "quietHoursStart": "Bắt đầu",
+      "quietHoursEnd": "Kết thúc"
+    },
+    "saving": "Đang lưu…",
+    "saved": "Đã lưu",
+    "saveFailed": "Lưu thất bại, vui lòng thử lại.",
+    "unavailable": "Máy chủ chưa mở tuỳ chọn thông báo. Khối này sẽ hoạt động ngay khi endpoint được bật."
+  },
+  "profile": {
+    "intro": "Thông tin định danh của chủ nuôi. Email dùng để đăng nhập và nhận cảnh báo.",
+    "sectionBasic": "Thông tin cơ bản",
+    "sectionEmail": "Email đăng nhập",
+    "sectionIdentities": "Tài khoản liên kết",
+    "fullName": "Họ và tên",
+    "fullNamePlaceholder": "Nguyễn Văn A",
+    "phone": "Số điện thoại",
+    "phonePlaceholder": "09xx xxx xxx",
+    "phoneHelp": "Dùng cho cảnh báo khẩn cấp. Để trống nếu bạn không muốn cung cấp.",
+    "timezone": "Múi giờ",
+    "save": "Lưu thay đổi",
+    "saved": "Đã lưu thay đổi.",
+    "saveFailed": "Không lưu được, vui lòng thử lại.",
+    "emailCurrent": "Email hiện tại",
+    "emailVerified": "Đã xác thực",
+    "emailUnverified": "Chưa xác thực",
+    "emailChangeCta": "Đổi email",
+    "emailChangeHelp": "Đổi email cần xác thực OTP gửi tới địa chỉ mới.",
+    "emailNew": "Email mới",
+    "emailNewPlaceholder": "ban@vidu.com",
+    "emailChangeSubmit": "Gửi mã xác thực",
+    "emailChangeSent": "Đã gửi mã tới {{email}}. Nhập mã để hoàn tất.",
+    "emailOtp": "Mã xác thực",
+    "emailOtpSubmit": "Xác nhận đổi email",
+    "emailChanged": "Đã đổi email thành công.",
+    "cancel": "Huỷ",
+    "identityLocal": "Đăng nhập bằng mật khẩu",
+    "identityGoogle": "Google",
+    "identityLastUsed": "Dùng gần nhất: {{at}}",
+    "identityUnlink": "Gỡ liên kết",
+    "identityEmpty": "Chưa liên kết tài khoản bên ngoài nào.",
+    "validation": {
+      "fullNameRequired": "Vui lòng nhập họ tên.",
+      "fullNameMax": "Họ tên tối đa 120 ký tự.",
+      "phoneInvalid": "Số điện thoại không hợp lệ.",
+      "emailInvalid": "Email không hợp lệ."
+    }
+  },
+  "security": {
+    "intro": "Mật khẩu, xác thực hai lớp và danh sách thiết bị đang đăng nhập.",
+    "sectionPassword": "Đổi mật khẩu",
+    "sectionMfa": "Xác thực hai lớp (TOTP)",
+    "sectionSessions": "Thiết bị đang đăng nhập",
+    "currentPassword": "Mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới",
+    "confirmPassword": "Nhập lại mật khẩu mới",
+    "changePasswordSubmit": "Đổi mật khẩu",
+    "changePasswordNote": "Đổi mật khẩu sẽ đăng xuất mọi thiết bị khác.",
+    "changePasswordDone": "Đã đổi mật khẩu. Các thiết bị khác đã bị đăng xuất.",
+    "changePasswordFailed": "Đổi mật khẩu thất bại. Kiểm tra lại mật khẩu hiện tại.",
+    "mfaStatusNone": "Chưa bật",
+    "mfaStatusPending": "Đang chờ xác nhận",
+    "mfaStatusActive": "Đang bật",
+    "mfaStatusLocked": "Tạm khoá",
+    "mfaEnableCta": "Bật xác thực hai lớp",
+    "mfaDisableCta": "Tắt xác thực hai lớp",
+    "mfaBody": "Thêm một lớp mã 6 số từ ứng dụng xác thực mỗi khi đăng nhập.",
+    "mfaSecretLabel": "Mã bí mật (nhập thủ công nếu không quét được)",
+    "mfaCodeLabel": "Mã 6 số từ ứng dụng xác thực",
+    "mfaConfirmCta": "Xác nhận bật",
+    "mfaRecoveryTitle": "Mã khôi phục",
+    "mfaRecoveryBody": "Lưu các mã này ở nơi an toàn. Mỗi mã dùng được một lần.",
+    "mfaRecoveryRemaining": "Còn {{count}} mã khôi phục chưa dùng.",
+    "mfaRecoveryRegenerate": "Tạo lại mã khôi phục",
+    "mfaFailed": "Thao tác không thành công. Kiểm tra lại mã và thử lại.",
+    "sessionCurrent": "Thiết bị này",
+    "sessionLastSeen": "Hoạt động gần nhất: {{at}}",
+    "sessionUnknownDevice": "Thiết bị không rõ",
+    "sessionRevoke": "Đăng xuất",
+    "sessionRevokeAll": "Đăng xuất mọi thiết bị khác",
+    "sessionEmpty": "Không có phiên nào khác.",
+    "sessionLimitNote": "Tối đa 5 phiên cùng lúc. Chạm trần thì lần đăng nhập mới sẽ bị từ chối."
+  },
+  "language": {
+    "intro": "Ngôn ngữ áp dụng cho giao diện và nội dung thông báo gửi tới bạn.",
+    "optionVi": "Tiếng Việt",
+    "optionViNote": "Ngôn ngữ mặc định của CatCheck",
+    "optionEn": "English",
+    "optionEnNote": "Bản dịch đang hoàn thiện — một số nội dung vẫn hiển thị tiếng Việt",
+    "current": "Đang dùng",
+    "saveFailed": "Không lưu được ngôn ngữ lên tài khoản, vui lòng thử lại.",
+    "savedLocalOnly": "Đã đổi ngôn ngữ trên thiết bị này."
+  },
+  "install": {
+    "lead": "Thêm CatCheck vào màn hình chính để mở nhanh như một ứng dụng: chạy toàn màn hình, có biểu tượng riêng, không phải gõ lại địa chỉ.",
+    "standaloneTitle": "Bạn đang mở ở chế độ ứng dụng",
+    "standaloneBody": "Cửa sổ này đang chạy toàn màn hình, nghĩa là CatCheck đã có lối tắt trên thiết bị bạn đang dùng. Trên thiết bị khác thì vẫn cần thêm lại.",
+    "promptTitle": "Cài trực tiếp trên trình duyệt này",
+    "promptBody": "Trình duyệt vừa báo là nó cài được CatCheck. Bấm nút bên dưới rồi xác nhận ở hộp thoại của trình duyệt.",
+    "promptCta": "Thêm CatCheck vào máy",
+    "promptAccepted": "Trình duyệt đã nhận yêu cầu. Kiểm tra màn hình chính hoặc danh sách ứng dụng của thiết bị.",
+    "promptDismissed": "Bạn đã đóng hộp thoại. Có thể cài lại bất cứ lúc nào, hoặc làm thủ công theo hướng dẫn bên dưới.",
+    "promptUnavailableTitle": "Trình duyệt này chưa mời cài đặt",
+    "promptUnavailableBody": "Nút cài tự động chỉ hiện ở một số trình duyệt và chỉ sau khi bạn dùng trang một lúc. Safari trên iPhone và iPad thì không bao giờ hiện nút đó. Cách thủ công bên dưới luôn dùng được.",
+    "manualTitle": "Cách thêm thủ công",
+    "iosTitle": "iPhone / iPad — Safari",
+    "iosStep1": "Mở CatCheck bằng Safari. Trình duyệt khác trên iOS không thêm được vào màn hình chính.",
+    "iosStep2": "Chạm nút Chia sẻ ở thanh công cụ — hình vuông có mũi tên hướng lên.",
+    "iosStep3": "Kéo danh sách xuống và chọn “Thêm vào MH chính” (Add to Home Screen).",
+    "iosStep4": "Đặt tên rồi chạm “Thêm”. Biểu tượng CatCheck xuất hiện trên màn hình chính.",
+    "androidTitle": "Android — Chrome",
+    "androidStep1": "Chạm nút ba chấm ở góc trên bên phải, cạnh thanh địa chỉ.",
+    "androidStep2": "Chọn “Cài đặt ứng dụng”, hoặc “Thêm vào Màn hình chính” nếu không thấy mục đầu.",
+    "androidStep3": "Xác nhận ở hộp thoại hiện ra.",
+    "desktopTitle": "Máy tính — Chrome / Edge",
+    "desktopStep1": "Bấm biểu tượng cài đặt ở cuối thanh địa chỉ, hoặc mở menu trình duyệt và chọn mục cài CatCheck.",
+    "notesTitle": "Vài điều nên biết trước khi thêm",
+    "note1": "Đây chỉ là lối tắt chạy toàn màn hình. Tài khoản, dữ liệu và quyền camera giữ nguyên như khi mở bằng trình duyệt.",
+    "note2": "CatCheck vẫn cần mạng để gửi ảnh quét và tải kết quả — thêm vào màn hình chính không làm app chạy ngoại tuyến.",
+    "note3": "Muốn gỡ thì xoá biểu tượng khỏi màn hình chính như một ứng dụng bình thường."
+  }
+}

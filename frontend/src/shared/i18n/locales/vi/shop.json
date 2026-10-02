@@ -1,0 +1,169 @@
+{
+  "policyBar": {
+    "text": "Chính sách Bác sĩ Thú y & ISFM khuyên dùng: Đổi trả miễn phí 30 ngày nếu mèo không quen cát",
+    "stock": "Kho TP.HCM & Hà Nội sẵn hàng hóa tốc"
+  },
+  "hero": {
+    "badge": "CÔNG NGHỆ Y SINH THẾ HỆ MỚI",
+    "savingBadge": "Tiết kiệm 20%",
+    "titleLine1": "Cát chỉ thị sức khỏe",
+    "titleLine2": "CATCHECK SmartSand Pro™",
+    "body": "Nhận biết sớm 7 bệnh lý tiết niệu nguy hiểm (sỏi bàng quang, viêm niệu đạo, nhiễm trùng thận, độ toan/kiềm nước tiểu) chỉ qua 1 lần mèo đi vệ sinh tại nhà.",
+    "perkSpoon": "Tặng muỗng xúc đo quang phổ",
+    "perkFreeship": "Freeship đơn từ 300.000đ",
+    "ctaPrimary": "Sở hữu Combo Chăm Sóc Sớm",
+    "ctaSecondary": "Xem Bảng Chỉ Thị pH",
+    "imageCaption": "Quang phổ 4 cấp độ",
+    "imageAccuracy": "Chính xác 99.4%"
+  },
+  "filters": {
+    "all": "Tất cả sản phẩm",
+    "trial": "Gói dùng thử 1 tháng",
+    "subscription": "Gói định kỳ 3 tháng",
+    "byFeature": "Lọc tính năng",
+    "byPrice": "Giá tăng dần"
+  },
+  "product": {
+    "addToCart": "Thêm giỏ",
+    "buyNow": "Mua ngay",
+    "subscribe": "Đăng ký kỳ",
+    "reviewCount": "({{count}} đánh giá)",
+    "addToCartLong": "Thêm vào giỏ",
+    "saveForLater": "Lưu vào yêu thích"
+  },
+  "advisor": {
+    "title": "Cần tư vấn chọn loại cát theo độ tuổi mèo?",
+    "body": "Mèo con dưới 6 tháng hoặc mèo già có nguy cơ sỏi thận cao cần chỉ số nhạy sinh học riêng.",
+    "cta": "Chat với Bác Sĩ Thú Y"
+  },
+  "cartPanel": {
+    "title": "Giỏ hàng của bạn",
+    "count": "{{count}} món",
+    "empty": "Giỏ hàng của bạn đang trống.",
+    "voucherLabel": "Mã khuyến mãi đã áp dụng",
+    "voucherRemove": "Gỡ",
+    "subtotalLabel": "Tổng tiền hàng:",
+    "discountLabel": "Mã giảm giá ({{code}}):",
+    "shippingLabel": "Phí giao hàng:",
+    "totalLabel": "Tạm tính:",
+    "vatNote": "(Đã gồm VAT)",
+    "checkout": "Tiến hành Thanh toán an toàn",
+    "trustSsl": "Bảo mật SSL 256-bit",
+    "trustRefund": "Hoàn tiền nếu lỗi",
+    "removeItem": "Xoá khỏi giỏ",
+    "increase": "Tăng số lượng",
+    "decrease": "Giảm số lượng"
+  },
+  "deliveryCommitment": {
+    "title": "Cam kết giao hàng CATCHECK"
+  },
+  "commitment": {
+    "eyebrow": "TIÊU CHUẨN AN TOÀN Y SINH HỌC FELINE",
+    "title": "Cam Kết Chính Hãng & An Toàn Tuyệt Đối Cho Bé Mèo",
+    "subtitle": "Mỗi mẻ cát CATCHECK được kiểm định nghiêm ngặt qua 4 giai đoạn sinh hóa trước khi đến tay người nuôi.",
+    "items": {
+      "dust": {
+        "title": "100% Không Bụi Mịn",
+        "body": "Công nghệ sấy thăng hoa và lọc 5 lớp giúp loại bỏ 99.9% bụi silicat, bảo vệ đường hô hấp và mắt của mèo mẫn cảm."
+      },
+      "nontoxic": {
+        "title": "Không Độc Hại Khi Liếm",
+        "body": "100% tinh bột đậu nành & bắp hữu cơ, phẩm màu chỉ thị sinh học thực phẩm an toàn tuyệt đối nếu mèo nuốt phải khi chải lông."
+      },
+      "isfm": {
+        "title": "Chuẩn Thú Y ISFM",
+        "body": "Được bảo trợ bởi Hiệp hội Y học Mèo Quốc Tế (ISFM) về khả năng phản ứng nhạy với các tinh thể Canxi Oxalate và Struvite."
+      },
+      "biodegradable": {
+        "title": "Tự Phân Hủy Sinh Học",
+        "body": "Hạt hữu cơ tan hoàn toàn trong nước, dễ dàng xả trực tiếp vào bồn cầu mà không gây tắc nghẽn, thân thiện môi trường sống."
+      }
+    }
+  },
+  "detail": {
+    "backToShop": "Cửa hàng Cát",
+    "galleryZoom": "Phóng to quang phổ",
+    "galleryCaptionLine1": "Chi tiết Sản phẩm",
+    "galleryCaptionLine2": "Cát Chỉ Thị Y Sinh",
+    "faqCta": "Xem câu hỏi thường gặp",
+    "chatCta": "Chat trực tiếp với Bác sĩ",
+    "quantity": "Số lượng",
+    "addToCart": "Thêm vào giỏ",
+    "buyNow": "Mua ngay & Giao 2H",
+    "buyNowShort": "Mua ngay",
+    "purchaseModeTitle": "Hình thức mua hàng",
+    "purchaseModeNote": "Tự động giao & tiết kiệm",
+    "packSizeTitle": "Kích thước & Công thức",
+    "packSizeGuide": "Hướng dẫn chọn size",
+    "specTableTitle": "Tiêu chuẩn công thức",
+    "comparisonTitle": "So sánh các gói sản phẩm",
+    "stepsTitle": "Hướng dẫn quy trình 4 bước đơn giản",
+    "writeReview": "Viết đánh giá"
+  },
+  "cartPage": {
+    "title": "Giỏ hàng",
+    "continueShopping": "Tiếp tục mua sắm",
+    "emptyCta": "Khám phá cửa hàng",
+    "count": "{{count}} món",
+    "clearAll": "Xóa tất cả",
+    "empty": "Giỏ hàng đang trống.",
+    "addressChange": "Thay đổi",
+    "catSyncTitle": "Đồng bộ hồ sơ mèo cưng",
+    "catSyncBody": "Đơn hàng tự động đồng bộ & hiệu chuẩn dải màu thử nghiệm cho bé {{catName}} ({{breedName}}).",
+    "giftBadge": "Quà tặng độc quyền",
+    "giftRibbon": "TẶNG",
+    "voucherSectionTitle": "Mã ưu đãi / Voucher",
+    "voucherSeeAll": "Xem tất cả ({{count}})",
+    "voucherAppliedNote": "Đã giảm {{amount}} cho chu kỳ chăm sóc",
+    "voucherSwap": "Đổi mã",
+    "voucherNone": "Chưa áp dụng mã nào cho đơn này.",
+    "paymentTitle": "Phương thức thanh toán",
+    "paymentSsl": "Bảo mật SSL",
+    "paymentRecommended": "Khuyến dùng",
+    "paymentLegend": "Chọn phương thức thanh toán",
+    "summaryTitle": "Tóm tắt thanh toán",
+    "subtotalLine": "Tạm tính ({{count}} món)",
+    "shippingLine": "Phí vận chuyển hỏa tốc",
+    "savingsLabel": "Tiết kiệm tổng cộng",
+    "totalLabel": "Tổng thanh toán",
+    "vatNote": "Đã bao gồm VAT",
+    "proceed": "Tiến hành Thanh toán",
+    "giftQty": "SL: {{count}}"
+  },
+  "checkout": {
+    "title": "Thanh toán",
+    "summaryTitle": "Tóm tắt đơn hàng",
+    "placeOrder": "Đặt hàng",
+    "qty": "x{{count}}",
+    "back": "Quay lại giỏ hàng",
+    "mockNotice": "Luồng thanh toán ở đây là bản dựng giao diện theo thiết kế — chưa nối cổng thanh toán thật.",
+    "addressLabel": "Giao tới",
+    "paymentMethodLabel": "Thanh toán qua",
+    "edit": "Sửa"
+  },
+  "order": {
+    "successTitle": "Đặt hàng thành công!",
+    "invoiceCta": "Tải hóa đơn VAT (.PDF)",
+    "dashboardCta": "Về Dashboard",
+    "codeLabel": "MÃ ĐƠN HÀNG",
+    "placedLabel": "THỜI GIAN ĐẶT",
+    "methodLabel": "PHƯƠNG THỨC",
+    "etaLabel": "DỰ KIẾN GIAO HÀNG",
+    "trackingTitle": "Tiến trình giao hàng trực tiếp",
+    "callDriver": "Gọi tài xế",
+    "messageDriver": "Nhắn tin",
+    "vehicleLabel": "Phương tiện:",
+    "coolingLabel": "Thùng bảo ôn:",
+    "departedLabel": "Xuất phát lúc:",
+    "destinationLabel": "Điểm đến",
+    "itemsTitle": "Kiện hàng chi tiết ({{count}} mặt hàng)",
+    "subtotalLabel": "Tạm tính giỏ hàng:",
+    "shippingLabel": "Phí vận chuyển hỏa tốc 2H:",
+    "totalLabel": "Tổng cộng đã thanh toán:",
+    "recipientTitle": "Thông tin nhận hàng",
+    "recipientLabel": "Người nhận:",
+    "addressLabel": "Địa chỉ giao hàng:",
+    "giftBadge": "Free Gift",
+    "mapPlaceholder": "Bản đồ theo dõi tài xế (bản dựng giao diện)"
+  }
+}

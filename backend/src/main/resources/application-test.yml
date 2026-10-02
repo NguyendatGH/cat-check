@@ -1,0 +1,40 @@
+# Profile "test": dùng khi chạy test tích hợp (@SpringBootTest) với Testcontainers.
+#
+# Ở M0 CHƯA có test tích hợp nào cần Spring ApplicationContext thật (ModularityTests dùng
+# ApplicationModules.of(...) chỉ quét bytecode tĩnh, ArchUnit cũng vậy - cả hai không khởi
+# động Spring context nên không đọc profile này). File này dựng sẵn cho M1+ khi có
+# @SpringBootTest thật: khi đó nên dùng Testcontainers JDBC URL động qua
+# @ServiceConnection/@DynamicPropertySource (org.testcontainers:testcontainers-postgresql) thay
+# vì hardcode url/username/password ở đây - giá trị dưới chỉ là fallback an toàn để context
+# không lỗi cấu hình nếu lỡ load profile này mà chưa gắn Testcontainers.
+
+# Bí mật giả CHỈ DÙNG CHO PROFILE test — không phải giá trị thật, không dùng lại ở môi trường
+# khác. Các bí mật này đọc qua @Value("${TEN_BIEN:}") (không có @ConfigurationProperties,
+# xem javadoc ActivationPepperProperties) nên fail-fast lúc khởi động nếu thiếu — phát hiện qua
+# ApplicationContextSmokeTest, trước đó KHÔNG ai chạy context thật với profile test nên gap
+# này chưa lộ. Sinh bằng `python3 -c "import base64, os; print(base64.b64encode(os.urandom(32)))"`
+# (PII key, đúng 32 byte AES-256) hoặc chuỗi bất kỳ >= 32 byte (pepper HMAC-SHA256).
+ACTIVATION_PEPPER: "test-only-dummy-activation-pepper-do-not-use-in-prod-32b+"
+RECOVERY_CODE_PEPPER: "test-only-dummy-recovery-pepper-do-not-use-in-prod-32b+"
+OTP_PEPPER: "test-only-dummy-otp-pepper-value-do-not-use-in-prod-32bytes+"
+APP_PII_ENCRYPTION_KEYS: "v1:CloKO4ynWhcsVst049R7CP4bTplnynDtCGsSiFIOUgU="
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/catcheck_test
+    username: catcheck_test
+    password: catcheck_test
+    driver-class-name: org.postgresql.Driver
+
+  mail:
+    # Mailpit giả - trong test tích hợp thật (M1+) nên trỏ vào container Mailpit của
+    # Testcontainers, cổng SMTP lấy động qua @DynamicPropertySource, không hardcode.
+    host: localhost
+    port: 1025
+
+  flyway:
+    clean-disabled: false
+
+logging:
+  level:
+    com.catcheck: DEBUG

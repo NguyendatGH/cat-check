@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: catcheck
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  # spring.jackson.serialization.write-dates-as-timestamps đã bị xoá: Jackson 3.1.5
+  # (tools.jackson.databind.SerializationFeature) không còn hằng WRITE_DATES_AS_TIMESTAMPS —
+  # nhóm tính năng ngày/giờ đã dời khỏi SerializationFeature dùng chung. Property này khiến
+  # ApplicationContext không khởi động được (ConversionFailedException lúc bind
+  # spring.jackson.serialization). Xác nhận qua javap trực tiếp trên jackson-databind:3.1.5:
+  # KHÔNG còn hằng nào chứa "timestamp". Ngày giờ (java.time.*) mặc định serialize dạng
+  # ISO-8601 qua JsonMapper.Builder, không cần bật cờ này nữa.
+  jackson:
+    time-zone: UTC
+    default-property-inclusion: non_null
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  session:
+    store-type: jdbc
+    jdbc:
+      # Bảng SPRING_SESSION/SPRING_SESSION_ATTRIBUTES đã tạo ở migration V3 - KHONG để
+      # spring-session tự tạo lại schema lúc khởi động.
+      initialize-schema: never
+
+  # spring.modulith.events.jdbc.use-legacy-structure=true là BẮT BUỘC: bảng event_publication
+  # (migration V4) chỉ có 6 cột theo yêu cầu nhiệm vụ M0 (cấu trúc "legacy"/schema v1 của
+  # spring-modulith-events-jdbc:2.1.1), không có 3 cột mới (status, completion_attempts,
+  # last_resubmission_date) của schema v2 mặc định. Đã xác nhận tên property này bằng cách giải
+  # nén jar spring-modulith-events-jdbc:2.1.1 (META-INF/spring-configuration-metadata.json).
+  modulith:
+    events:
+      jdbc:
+        schema-initialization:
+          enabled: false
+        use-legacy-structure: true
+
+  sql:
+    init:
+      mode: never
+
+server:
+  port: 8080
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        # Mặc định tối thiểu (health, info) - profile local mở rộng thêm, staging/prod giữ
+        # nguyên mức tối thiểu này (xem application-prod.yml).
+        include: health,info
+
+catcheck:
+  i18n:
+    default-locale: vi
+    supported-locales: vi,en
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

@@ -1,0 +1,71 @@
+{
+  "version": "v1",
+  "questions": [
+    {
+      "key": "litterType",
+      "type": "SINGLE",
+      "required": true,
+      "sortOrder": 1,
+      "labelKey": "survey.questions.litterType.label",
+      "options": [
+        { "code": "CATCHECK_SMART", "labelKey": "survey.questions.litterType.options.CATCHECK_SMART" },
+        { "code": "BENTONITE", "labelKey": "survey.questions.litterType.options.BENTONITE" },
+        { "code": "TOFU_WOOD", "labelKey": "survey.questions.litterType.options.TOFU_WOOD" },
+        { "code": "SILICA", "labelKey": "survey.questions.litterType.options.SILICA" }
+      ]
+    },
+    {
+      "key": "urinaryHistory",
+      "type": "SINGLE",
+      "required": true,
+      "sortOrder": 2,
+      "labelKey": "survey.questions.urinaryHistory.label",
+      "options": [
+        { "code": "NONE", "labelKey": "survey.questions.urinaryHistory.options.NONE" },
+        { "code": "CYSTITIS_OR_STONES", "labelKey": "survey.questions.urinaryHistory.options.CYSTITIS_OR_STONES" },
+        { "code": "UNKNOWN", "labelKey": "survey.questions.urinaryHistory.options.UNKNOWN" }
+      ]
+    },
+    {
+      "key": "dietType",
+      "type": "SINGLE",
+      "required": true,
+      "sortOrder": 3,
+      "labelKey": "survey.questions.dietType.label",
+      "options": [
+        { "code": "DRY", "labelKey": "survey.questions.dietType.options.DRY" },
+        { "code": "WET", "labelKey": "survey.questions.dietType.options.WET" },
+        { "code": "MIXED", "labelKey": "survey.questions.dietType.options.MIXED" },
+        { "code": "RAW", "labelKey": "survey.questions.dietType.options.RAW" }
+      ]
+    },
+    {
+      "key": "urinationFrequency",
+      "type": "SINGLE",
+      "required": true,
+      "sortOrder": 4,
+      "labelKey": "survey.questions.urinationFrequency.label",
+      "options": [
+        { "code": "1_2_PER_DAY", "labelKey": "survey.questions.urinationFrequency.options.1_2_PER_DAY" },
+        { "code": "3_4_PER_DAY", "labelKey": "survey.questions.urinationFrequency.options.3_4_PER_DAY" },
+        { "code": "MORE_THAN_5", "labelKey": "survey.questions.urinationFrequency.options.MORE_THAN_5" },
+        { "code": "UNKNOWN", "labelKey": "survey.questions.urinationFrequency.options.UNKNOWN" }
+      ]
+    },
+    {
+      "key": "symptoms",
+      "type": "MULTI",
+      "required": true,
+      "sortOrder": 5,
+      "labelKey": "survey.questions.symptoms.label",
+      "options": [
+        { "code": "NONE", "labelKey": "survey.questions.symptoms.options.NONE" },
+        { "code": "STRAINING", "labelKey": "survey.questions.symptoms.options.STRAINING" },
+        { "code": "CRYING", "labelKey": "survey.questions.symptoms.options.CRYING" },
+        { "code": "FREQUENT_LITTER", "labelKey": "survey.questions.symptoms.options.FREQUENT_LITTER" },
+        { "code": "BLOOD_VISIBLE", "labelKey": "survey.questions.symptoms.options.BLOOD_VISIBLE" },
+        { "code": "LETHARGY", "labelKey": "survey.questions.symptoms.options.LETHARGY" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "pages": {
+    "reassignCat": {
+      "title": "Gán lại mèo cho lượt chụp"
+    },
+    "result": {
+      "title": "Kết quả phân tích"
+    },
+    "scan": {
+      "title": "Chụp cát"
+    },
+    "scanDetail": {
+      "title": "Chi tiết lượt chụp"
+    },
+    "selectCat": {
+      "title": "Chọn mèo để chụp"
+    }
+  },
+  "phBands": {
+    "disclaimer": {
+      "short": "Đây là kết quả quan sát tại nhà, không phải chẩn đoán y khoa. Nếu bạn thấy lo lắng về bé, hãy hỏi ý kiến bác sĩ thú y."
+    }
+  },
+  "selectCat": {
+    "heading": "Kết quả quét này của bé mèo nào?",
+    "description": "Việc chỉ định chính xác hồ sơ giúp theo dõi diễn biến pH nước tiểu và phát hiện sớm bất thường đường tiết niệu của từng bé mèo.",
+    "privacyNoteTitle": "Chính xác & tôn trọng quyền riêng tư",
+    "privacyNoteBody": "CatCheck không tự động đoán bé mèo. Vui lòng xác nhận bé mèo của mẫu cát này.",
+    "primaryLabel": "Mèo chính",
+    "secondaryLabel": "Mèo phụ",
+    "sharedOptionTitle": "Chưa rõ / Dùng chung khay",
+    "sharedOptionDescription": "Lưu vào nhật ký chung mà không gắn vào chỉ số riêng của bé mèo nào.",
+    "confirmCtaNamed": "Xác nhận & tiếp tục với {{name}}",
+    "confirmCtaShared": "Xác nhận & tiếp tục (dùng chung khay)",
+    "confirmCtaGeneric": "Xác nhận",
+    "cancel": "Huỷ",
+    "emptyTitle": "Chưa có hồ sơ mèo nào",
+    "emptyDescription": "Thêm hồ sơ mèo trước khi bắt đầu quét.",
+    "goAddCat": "Thêm hồ sơ mèo",
+    "loadError": "Không tải được danh sách mèo. Vui lòng thử lại.",
+    "addAnotherCat": "Thêm bé mèo khác",
+    "multiCatTipTitle": "Nhiều mèo dùng chung khay cát?",
+    "multiCatTipBody": "Các bác sĩ thú y khuyến nghị quy tắc N+1 khay cát cho gia đình nuôi nhiều mèo.",
+    "sexFemale": "Cái",
+    "sexMale": "Đực",
+    "sexUnknown": "Chưa rõ giới tính",
+    "ageYears": "{{count}} tuổi",
+    "ageMonthsShort": "{{count}} tháng",
+    "weight": "{{value}} kg",
+    "lastScanAt": "Quét gần nhất: {{date}}",
+    "noScanYet": "Chưa có lượt quét nào"
+  },
+  "capture": {
+    "guide": "Chụp cận cảnh vùng cát đã đổi màu, đủ sáng và lấy nét rõ.",
+    "retake": "Chụp lại",
+    "camera": "Chụp ảnh",
+    "gallery": "Chọn từ thư viện",
+    "submit": "Phân tích ảnh này",
+    "submitting": "Đang phân tích…",
+    "creditNote": "Mỗi lần phân tích dùng 1 lượt quét trong gói của bạn.",
+    "missingCatTitle": "Chưa chọn mèo",
+    "missingCatDescription": "Vui lòng quay lại bước chọn mèo trước khi chụp.",
+    "goSelectCat": "Chọn mèo",
+    "uploadError": "Gửi ảnh thất bại. Vui lòng thử lại.",
+    "busyError": "Hệ thống đang bận, vui lòng thử lại sau ít phút.",
+    "frameHint": "Căn chỉnh các hạt đổi màu vào khung quét",
+    "albumCta": "Album ảnh",
+    "tipsCta": "Mẹo quét",
+    "tipsClose": "Đóng mẹo quét",
+    "emptyFrame": "Khung quét đang trống"
+  },
+  "analyzing": {
+    "text": "Đang phân tích màu sắc và ước lượng pH…"
+  },
+  "result": {
+    "matchLabel": "Khớp",
+    "saveCta": "Lưu vào lịch sử",
+    "viewAnalysisCta": "Xem phân tích chi tiết",
+    "reassignCta": "Gán lại cho mèo khác",
+    "disputeCta": "Kết quả này không chính xác",
+    "backHome": "Về trang chủ",
+    "imageAlt": "Ảnh vùng cát đã chụp",
+    "vetNoteTitle": "Màu hạt ghi nhận",
+    "inconclusive": {
+      "title": "Chưa đủ dữ liệu để ước lượng pH",
+      "description": "Ảnh chưa đạt yêu cầu chất lượng nên hệ thống không thể ước lượng pH lần này. Lượt quét đã được ghi nhận nhưng KHÔNG bị trừ vào gói của bạn.",
+      "retryCta": "Chụp lại"
+    },
+    "phHeading": "Nồng độ pH {{value}}",
+    "grainColorName": "Mã màu {{hex}}",
+    "scale": {
+      "acidSide": "Axit (<{{value}})",
+      "alkalineSide": "Kiềm (>{{value}})",
+      "marker": "pH {{value}}",
+      "rangeBetween": "pH {{min}} – {{max}}",
+      "rangeBelow": "pH < {{max}}",
+      "rangeAbove": "pH > {{min}}",
+      "unavailable": "Chưa có thang đo tham chiếu."
+    },
+    "advice": {
+      "title": "Bạn nên làm gì?",
+      "routineTitle": "Theo dõi đều đặn",
+      "routineBody": "Quét lại sau vài ngày để CatCheck so sánh với chính chỉ số thường ngày của bé.",
+      "waterTitle": "Nhắc nhở uống nước",
+      "waterBody": "Tiếp tục duy trì nguồn nước sạch hoặc vòi phun nước để giữ cân bằng hệ tiết niệu.",
+      "watchTitle": "Điểm cần theo dõi",
+      "qualityTitle": "Chất lượng ảnh lần này"
+    }
+  },
+  "retry": {
+    "blurry": "Ảnh bị mờ — hãy giữ yên máy và chụp lại ở nơi đủ sáng.",
+    "generic": "Không đọc được màu hạt chỉ thị — hãy chụp cận cảnh hơn vùng cát đã đổi màu."
+  },
+  "quality": {
+    "BLURRY": "Ảnh bị mờ — hãy giữ yên máy khi chụp.",
+    "TOO_DARK": "Ảnh quá tối — hãy chụp ở nơi đủ sáng.",
+    "TOO_BRIGHT": "Ảnh quá sáng — tránh chụp ngược sáng hoặc dùng đèn flash trực tiếp.",
+    "OVEREXPOSED": "Ảnh bị cháy sáng ở vùng hạt chỉ thị.",
+    "UNDEREXPOSED_PATCH": "Một phần ảnh bị thiếu sáng.",
+    "UNEVEN_LIGHTING": "Ánh sáng không đều giữa các góc ảnh.",
+    "CARD_NOT_FOUND": "Không tìm thấy thẻ màu tham chiếu trong khung hình — độ chính xác sẽ thấp hơn.",
+    "CALIBRATION_UNAVAILABLE": "Không đủ vùng cát nền để hiệu chỉnh màu.",
+    "LOW_GRANULE_COVERAGE": "Vùng hạt chỉ thị trong khung hình còn ít.",
+    "NO_INDICATOR_GRAINS": "Không nhận diện được hạt chỉ thị đổi màu trong ảnh.",
+    "FEW_BLOBS": "Số lượng hạt chỉ thị nhận diện được còn ít.",
+    "MIXED_COLORS": "Màu hạt chỉ thị không đồng nhất trong ảnh.",
+    "OUT_OF_CHART_RANGE": "Màu đo được nằm ngoài dải bảng màu tham chiếu."
+  },
+  "rule": {
+    "REPEATED_OUT_OF_RANGE": {
+      "message": "pH lặp lại ngoài khoảng tham chiếu nhiều lần gần đây."
+    },
+    "BASELINE_DEVIATION": {
+      "message": "pH lệch đáng kể so với mức nền thường thấy của bé."
+    },
+    "MONOTONIC_TREND": {
+      "message": "pH đang dịch chuyển liên tục theo một chiều."
+    },
+    "LOW_QUALITY_STREAK": {
+      "message": "Nhiều lần quét gần đây có độ tin cậy thấp — cân nhắc chụp lại theo hướng dẫn."
+    },
+    "URGENT_CLINICAL_SIGN": {
+      "message": "Có dấu hiệu lâm sàng khẩn cấp do bạn khai báo."
+    }
+  },
+  "reassignCat": {
+    "heading": "Gán lại kết quả này cho mèo nào?",
+    "description": "Bạn có thể gán lại trong vòng 24 giờ, tối đa 3 lần cho mỗi lượt quét.",
+    "confirmCtaNamed": "Gán lại cho {{name}}",
+    "confirmCtaShared": "Chuyển sang dùng chung khay",
+    "cancel": "Huỷ",
+    "success": "Đã gán lại lượt quét.",
+    "limitReached": "Đã hết lượt gán lại cho lần quét này (tối đa 3 lần/24 giờ)."
+  },
+  "dispute": {
+    "title": "Kết quả này không chính xác?",
+    "notePlaceholder": "Mô tả ngắn gọn điều bạn thấy chưa đúng (không bắt buộc)",
+    "submit": "Gửi phản hồi",
+    "cancel": "Huỷ",
+    "success": "Đã ghi nhận phản hồi — lượt quét này sẽ không tính vào biểu đồ xu hướng.",
+    "clear": "Gỡ đánh dấu tranh chấp",
+    "note": {
+      "tooLong": "Ghi chú tối đa 500 ký tự."
+    }
+  },
+  "scanDetail": {
+    "analysisTitle": "Phân tích chi tiết",
+    "qualityTitle": "Cờ chất lượng",
+    "disputedBadge": "Đã đánh dấu tranh chấp",
+    "deleteCta": "Xoá lượt quét này",
+    "deleteConfirm": "Xoá lượt quét này? Ảnh gốc sẽ bị xoá vĩnh viễn.",
+    "labLabel": "Toạ độ màu (Lab)",
+    "deltaEMinLabel": "ΔE nhỏ nhất",
+    "chartLabel": "Bảng màu tham chiếu",
+    "chartValue": "{{code}} (phiên bản {{version}})",
+    "engineLabel": "Phiên bản thuật toán"
+  },
+  "web": {
+    "labBadge": "AI LAB DIAGNOSTIC V3.4",
+    "spectrometerReady": "Quang phổ kế sẵn sàng",
+    "pageTitle": "Kiểm tra Sức khỏe qua Màu Cát CATCHECK",
+    "lastCheckLabel": "Lần kiểm tra gần nhất",
+    "lastCheckValue": "3 ngày trước (pH 6.7)",
+    "certLabel": "Chứng chỉ thú y",
+    "certValue": "Tiêu chuẩn ISO/Vet-17025",
+    "catSectionLabel": "HỒ SƠ BÉ MÈO THỰC HIỆN XÉT NGHIỆM",
+    "viewportTitle": "Khung ảnh Quang phổ AI",
+    "liveCamera": "Camera trực tiếp",
+    "uploadNew": "Tải ảnh mới",
+    "marker1Title": "Điểm đo pH #01",
+    "marker1Detail": "RGB #8FE3AA • pH 6.82",
+    "marker2Title": "Điểm đối chiếu #02",
+    "marker2Detail": "Độ ẩm: 88% • Ổn định",
+    "detectionTag": "AI đã nhận diện 482 điểm hạt quang phổ (Độ tin cậy: 99.4%)",
+    "calibrationTitle": "Cân chỉnh Ánh sáng Môi trường (Medical Calibration)",
+    "autoWhiteBalance": "Tự động cân bằng trắng AI",
+    "brightness": "Độ sáng",
+    "brightnessValue": "+12%",
+    "contrast": "Độ tương phản",
+    "contrastValue": "Chuẩn",
+    "colorTemp": "Nhiệt độ màu",
+    "colorTempValue": "5400K",
+    "analyzeCta": "Phân tích quang phổ hạt cát bằng AI",
+    "analyzeProgress": "Quét quang phổ hoàn tất 100% trong 0.8s",
+    "algorithm": "Thuật toán SmartSand-Bio v4",
+    "tipsTitle": "Mẹo chụp màu cát chuẩn lâm sàng",
+    "tip1": "Chụp dưới ánh sáng trắng tự nhiên, tránh bóng che khuất.",
+    "tip2": "Chụp trong vòng 5-15 phút sau khi bé đi vệ sinh để màu không đổi.",
+    "overallLabel": "ĐÁNH GIÁ TỔNG QUÁT",
+    "spectrumTitle": "Thang đo Quang phổ & Độ kiềm/axit (pH Spectrum)",
+    "spectrumSubtitle": "Phản xạ bước sóng hạt phát hiện đổi màu SmartSand Bio-Cat",
+    "spectrumScaleBadge": "Thang đo lâm sàng 5.0 - 9.0",
+    "pathologyTitle": "Phân tích Bệnh lý Niệu khoa Mèo (Pathology Screening)",
+    "pathologyBadge": "Mô hình AI phân tích màu",
+    "vetAdviceTitle": "Lời khuyên từ Bác sĩ Thú y Đối tác (BS. Lan Phương)",
+    "vetAdviceBadge": "Phản hồi tức thì",
+    "saveToHistory": "Lưu vào Lịch sử Y tế",
+    "exportPdf": "Xuất phiếu PDF",
+    "askVet": "Hỏi Bác sĩ",
+    "trendStripTitle": "Xu hướng pH 14 ngày gần nhất",
+    "trendStripBadge": "Chỉ số dao động an toàn (+0.1/-0.2)",
+    "resultHeadline": "KẾT QUẢ: {{label}}",
+    "phReading": "{{value}} pH",
+    "referenceRange": "Ngưỡng chuẩn ({{range}})",
+    "awaitingTitle": "Chưa có kết quả phân tích",
+    "awaitingBody": "Chụp hoặc tải ảnh vùng cát đã đổi màu rồi bấm phân tích để xem kết quả hiển thị tại đây."
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "pages": {
+    "list": {
+      "title": "Thông báo"
+    }
+  },
+  "inbox": {
+    "lead": "Nơi gom lại những gì CatCheck đã báo cho bạn trong ứng dụng.",
+    "tabAll": "Tất cả",
+    "tabUnread": "Chưa đọc",
+    "unreadBadge": "Chưa đọc",
+    "groupToday": "Hôm nay",
+    "groupYesterday": "Hôm qua",
+    "noApiTitle": "Hộp thư chưa kết nối máy chủ",
+    "noApiBody": "Bảng dữ liệu thông báo đã có trong cơ sở dữ liệu, nhưng máy chủ chưa mở đường đọc cho ứng dụng. Khi có, thông báo sẽ hiện ở đây gom theo từng ngày, mục chưa đọc nằm trên cùng.",
+    "noApiHonesty": "Trang này không dựng thông báo mẫu — danh sách trống là trống thật.",
+    "kindsTitle": "Những loại thông báo sẽ về đây",
+    "kindsLead": "Bốn nhóm dưới đây là các loại thông báo trong ứng dụng mà CatCheck dự kiến gửi.",
+    "kinds": {
+      "healthFlag": {
+        "title": "Kết quả cần chú ý",
+        "body": "Khi một bé có kết quả lệch khỏi khoảng tham chiếu lặp lại nhiều lần."
+      },
+      "reminder": {
+        "title": "Đến lịch quét",
+        "body": "Khi lịch theo dõi bạn đặt cho một bé tới hạn."
+      },
+      "credit": {
+        "title": "Lượt quét sắp hết hạn",
+        "body": "Khi số lượt quét còn lại trong gói của bạn sắp hết hiệu lực."
+      },
+      "export": {
+        "title": "Báo cáo PDF đã xong",
+        "body": "Khi hồ sơ bạn yêu cầu xuất đã sẵn sàng để tải về."
+      }
+    },
+    "settingsCta": "Tuỳ chỉnh thông báo",
+    "remindersCta": "Xem lịch nhắc"
+  }
+}

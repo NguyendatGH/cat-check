@@ -1,0 +1,71 @@
+# Profile "local": chạy trên máy dev, DB thật qua Docker Compose (docker-compose.yml ở gốc
+# repo, ngoài phạm vi backend/). Giá trị dưới đây KHÔNG nhạy cảm (chỉ dùng cho container local
+# của riêng máy dev) nên để thẳng trong file, không cần .env cho các giá trị này. Nếu sau này
+# cần secret cục bộ thật (vd API key bên thứ ba dùng thử), đặt trong backend/.env (không commit,
+# xem .gitignore ở gốc repo) và tham chiếu bằng ${VAR_NAME} ở đây.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/catcheck
+    username: catcheck
+    # Bug thật đã sửa: mật khẩu ở đây (trước là "catcheck") không khớp
+    # POSTGRES_PASSWORD ở docker-compose.yml gốc repo ("catcheck_local_only") — làm đúng theo
+    # README "Chạy dev nhanh" sẽ bị FATAL password authentication failed ngay bước đầu. Xác nhận
+    # bằng cách chạy thật cả hai file (docker compose up -d postgres + mvnw spring-boot:run).
+    password: catcheck_local_only
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    # V13__notification.sql được viết SAU khi V14/V15 đã chạy trên DB dev này, nên Flyway coi
+    # nó là migration "out of order" và validate sẽ đỏ với:
+    #   Detected resolved migration not applied to database: 13
+    # Bật cờ CHỈ ở profile local. CI/staging/prod chạy DB từ đầu nên thứ tự tự nhiên là
+    # V12 -> V13 -> V14, không cần cờ này — cố tình KHÔNG đặt ở application.yml.
+    out-of-order: true
+
+  mail:
+    host: localhost
+    port: 1025
+    username:
+    password:
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+catcheck:
+  storage:
+    local:
+      # Bug thật đã sửa: `MediaProperties.urlSigningKey` mặc định là chuỗi RỖNG, mà
+      # `Mac.init(new SecretKeySpec("".getBytes(), "HmacSHA256"))` ném InvalidKeyException
+      # ("Empty key") — bị bắt rồi bọc thành `STORAGE_IO_ERROR`. Hậu quả: ảnh GHI THÀNH CÔNG
+      # xuống đĩa nhưng bước ký URL trả về luôn 500, nên MỌI luồng ảnh hỏng: upload avatar mèo,
+      # avatar user, xem ảnh scan, ảnh trong bản export. Xác nhận thật: PUT /cats/{id}/avatar
+      # trả 500 STORAGE_IO_ERROR trong khi file .png đã nằm trong backend/data/media/.
+      # Giá trị dưới đây CHỈ dùng cho máy dev (không TLS, dữ liệu vứt đi) — cùng tiền lệ với
+      # `spring.datasource.password` ở trên. Staging/prod PHẢI truyền qua biến môi trường.
+      url-signing-key: catcheck_local_dev_url_signing_key_only
+  notification:
+    # Bug thật đã sửa: catcheck.notification.email-sink mặc định là "file" (ghi
+    # target/dev-mail/*.txt) ở MỌI profile trừ khi override — nên README "xem mail gửi ra ở dev:
+    # http://localhost:8025" (Mailpit) trước đây KHÔNG BAO GIỜ nhận được gì khi chạy local (đã
+    # xác nhận thật: gọi /auth/otp/request, Mailpit API trả total=0, mail nằm ở
+    # target/dev-mail thay vào đó). Bật "smtp" ở đây để khớp đúng README.
+    email-sink: smtp
+
+logging:
+  level:
+    com.catcheck: DEBUG
+    org.springframework.modulith: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Mở rộng hơn prod để debug lúc phát triển - KHÔNG dùng cấu hình này ở staging/prod.
+        include: health,info,env,beans,mappings,loggers,flyway
+  endpoint:
+    health:
+      show-details: always

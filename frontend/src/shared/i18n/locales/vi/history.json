@@ -1,0 +1,101 @@
+{
+  "pages": {
+    "catHistory": {
+      "title": "Lịch sử theo dõi"
+    }
+  },
+  "filters": {
+    "ALL": "Tất cả",
+    "ABNORMAL": "Bất thường",
+    "DISPUTED": "Đã tranh chấp",
+    "allWithCount": "Tất cả ({{count}})"
+  },
+  "monthGroup": {
+    "label": "Tháng {{month}}, {{year}}",
+    "count": "Đã ghi {{count}} lần"
+  },
+  "timestamp": {
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua"
+  },
+  "item": {
+    "disputedBadge": "Đã tranh chấp",
+    "detailLink": "Xem chi tiết",
+    "confidence": "Độ tin cậy {{value}}%",
+    "nearBoundary": "Gần ngưỡng",
+    "hasNote": "Có ghi chú",
+    "phSummary": "{{label}} • pH {{value}}",
+    "phUnknown": "{{label}} • chưa có pH"
+  },
+  "spectrum": {
+    "title": "Phổ pH gần đây",
+    "average": "Trung bình {{value}}",
+    "averageWithBand": "Trung bình {{value}} • {{label}}",
+    "monthTitle": "Phổ pH tháng {{month}}",
+    "bandRange": "{{label}} ({{min}} – {{max}})",
+    "bandBelow": "{{label}} (dưới {{max}})",
+    "bandAbove": "{{label}} (trên {{min}})",
+    "empty": "Chưa đủ dữ liệu để dựng phổ pH."
+  },
+  "export": {
+    "title": "Cần chia sẻ hồ sơ với phòng khám thú y?",
+    "description": "Xuất nhật ký các lần quét gần đây thành báo cáo PDF chuẩn thú y.",
+    "cta": "Xuất báo cáo sức khoẻ PDF"
+  },
+  "state": {
+    "emptyTitle": "Chưa có lượt quét nào",
+    "emptyDescription": "Bắt đầu quét lần đầu để theo dõi chỉ số pH của bé.",
+    "emptyCta": "Quét ngay",
+    "loadError": "Không tải được lịch sử. Vui lòng thử lại.",
+    "loadMore": "Tải thêm"
+  },
+  "web": {
+    "eyebrow": "LỊCH SỬ SỨC KHOẺ",
+    "title": "Dòng thời gian Y tế & Quét chỉ thị sinh học",
+    "subtitle": "Toàn bộ lần quét chỉ thị màu cát, gom nhóm theo tháng và lọc theo loại bản ghi.",
+    "subtitleNamed": "Toàn bộ lần quét chỉ thị màu cát của {{name}}, gom nhóm theo tháng và lọc theo loại bản ghi.",
+    "unknownCat": "Chưa chọn bé mèo",
+    "valueUnavailable": "—",
+    "filterLabel": "Bộ lọc bản ghi",
+    "kpiTotal": "TỔNG LƯỢT QUÉT",
+    "kpiTotalFoot": "Tính trên toàn bộ kỳ theo dõi của bé.",
+    "kpiMedian": "ĐỘ PH TRUNG VỊ",
+    "kpiMedianFoot": "Trung vị các lần quét có kết luận.",
+    "kpiRange": "KHOẢNG PH GHI NHẬN",
+    "kpiRangeValue": "{{min}} – {{max}}",
+    "kpiRangeFoot": "Giá trị thấp nhất và cao nhất đã đo.",
+    "kpiLowConf": "ĐỘ TIN CẬY THẤP",
+    "kpiLowConfFoot": "Kèm {{count}} lượt không đủ điều kiện kết luận.",
+    "timelineTitle": "Dòng thời gian quét chỉ thị sinh học",
+    "timelineSubtitle": "Mỗi mốc là một lần quét màu hạt cát đã lưu trong hồ sơ.",
+    "recordCount": "{{count}} bản ghi",
+    "phValue": "pH {{value}}",
+    "confidence": "Độ tin cậy {{value}}%",
+    "nearBoundary": "Gần ngưỡng",
+    "hasNote": "Có ghi chú",
+    "tipTitle": "Bao lâu nên quét một lần?",
+    "tipBody": "2-3 ngày/lần giúp phát hiện sớm thay đổi pH trước khi xuất hiện dấu hiệu khó chịu."
+  },
+  "sharedTray": {
+    "lead": "Những lần quét bạn chọn “Chưa rõ / Dùng chung khay” được giữ riêng ở đây.",
+    "bannerTitle": "Vì sao những lần quét này nằm riêng?",
+    "bannerBody": "Nhà nuôi nhiều bé thường dùng chung một khay, nên CatCheck không biết bé nào vừa đi. Kết quả ở đây không vào lịch sử của bé nào và không được dùng để so với mức thường ngày của bé nào.",
+    "countLabel": "Đã ghi {{count}} lần",
+    "assignCta": "Gán cho một bé",
+    "assignNote": "Nhớ ra bé nào vừa dùng khay? Bạn có thể gán lại trong thời gian cho phép sau khi quét; quá hạn thì kết quả ở lại mục này.",
+    "emptyTitle": "Chưa có ghi nhận nào ở khay chung",
+    "emptyDescription": "Khi bạn chọn “Chưa rõ / Dùng chung khay” lúc quét, kết quả sẽ xuất hiện tại đây.",
+    "loadError": "Không tải được nhật ký khay chung. Vui lòng thử lại."
+  },
+  "switcher": {
+    "changeCat": "Đổi bé",
+    "ariaLabel": "Bé mèo đang xem",
+    "statusWithBand": "Chỉ số pH gần nhất: {{label}}",
+    "statusNone": "Chưa có dữ liệu pH",
+    "ageLabel": "{{months}} tháng tuổi"
+  },
+  "tip": {
+    "title": "Bao lâu nên quét một lần?",
+    "body": "2-3 ngày/lần giúp phát hiện sớm thay đổi pH trước khi xuất hiện dấu hiệu khó chịu."
+  }
+}

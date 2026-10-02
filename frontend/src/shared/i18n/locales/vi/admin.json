@@ -1,0 +1,350 @@
+{
+  "nav": {
+    "activationCodes": "Mã kích hoạt",
+    "auditLog": "Nhật ký kiểm toán",
+    "content": "Quản lý nội dung",
+    "dashboard": "Tổng quan",
+    "label": "Quản trị",
+    "packages": "Gói dịch vụ",
+    "phColorChart": "Bảng màu pH",
+    "users": "Người dùng"
+  },
+  "actions": {
+    "cancel": "Huỷ",
+    "close": "Đóng",
+    "edit": "Sửa",
+    "open": "Mở"
+  },
+  "feedback": {
+    "empty": "Chưa có dữ liệu nào.",
+    "errorWithCode": "{{code}} — {{message}}",
+    "loading": "Đang tải…",
+    "saved": "Đã lưu.",
+    "unknownError": "Không gọi được máy chủ."
+  },
+  "pager": {
+    "next": "Trang sau",
+    "previous": "Trang trước",
+    "summary": "Trang {{page}}/{{totalPages}} · {{totalElements}} bản ghi"
+  },
+  "reason": {
+    "help": "Bắt buộc, tối thiểu {{min}} ký tự. Lý do được ghi kèm vào nhật ký kiểm toán.",
+    "label": "Lý do thao tác",
+    "placeholder": "Vì sao bạn thực hiện thay đổi này?",
+    "tooShort": "Lý do phải dài tối thiểu {{min}} ký tự và không được chỉ có khoảng trắng."
+  },
+  "noApi": {
+    "body": "Màn này đã dựng khung nhưng backend chưa có endpoint tương ứng. Không hiển thị dữ liệu giả, không tự gọi endpoint khác thay thế.",
+    "capabilityRule": "Mọi endpoint /api/v1/admin/** phải được đăng ký trong bảng ADMIN_CAPABILITIES kèm vai trò, cờ step-up và cờ lý do (p17 §17.3.8 AD9). Việc thêm endpoint thuộc backend, giao diện không tự mở quyền.",
+    "endpointsLabel": "Endpoint còn thiếu",
+    "specOwner": "Mục spec sở hữu nhóm endpoint này: {{section}}.",
+    "title": "Chưa có API"
+  },
+  "pages": {
+    "activationCodes": {
+      "description": "Sinh lô mã, tra cứu theo tiền tố và vô hiệu hoá mã đã in hỏng.",
+      "noApiNote": "Không thể tạm dựng bằng dữ liệu phía giao diện: trong cơ sở dữ liệu chỉ có hash của mã, nên việc tra cứu và tải CSV bắt buộc phải do máy chủ thực hiện (CSV chỉ tải được đúng một lần).",
+      "title": "Mã kích hoạt"
+    },
+    "auditLog": {
+      "description": "Tra cứu nhật ký kiểm toán của các thao tác quản trị.",
+      "noApiNote": "Phạm vi xem tự thu hẹp theo vai trò ngay tại máy chủ (DPO xem toàn bộ, vai trò hỗ trợ chỉ xem việc mình đã làm), nên không có cách nào dựng đúng ở phía giao diện.",
+      "title": "Nhật ký kiểm toán"
+    },
+    "broadcast": {
+      "description": "Bật chế độ bảo trì và gửi thông báo toàn hệ thống.",
+      "noApiNote": "Mẫu thông báo sự cố quyền riêng tư có hạn luật định 72 giờ, nên nút bấm chỉ có ý nghĩa khi đã nối máy chủ thật.",
+      "title": "Thông báo hệ thống"
+    },
+    "communityReports": {
+      "title": "Báo cáo cộng đồng"
+    },
+    "content": {
+      "description": "Soạn, gửi duyệt, công bố và gỡ nội dung chăm sóc.",
+      "title": "Quản lý nội dung"
+    },
+    "dashboard": {
+      "description": "Điểm vào khu vực quản trị và tình trạng kết nối hiện tại.",
+      "noApiNote": "Số liệu vận hành thật (lượt quét, người dùng hoạt động, tỉ lệ lỗi) nằm ở endpoint riêng và chưa có backend. Không dựng biểu đồ bằng số bịa.",
+      "title": "Bảng quản trị"
+    },
+    "jobs": {
+      "description": "Theo dõi lượt chạy của các tác vụ nền và kích hoạt lại khi cần.",
+      "noApiNote": "Endpoint /admin/system-status đang có chỉ trả tình trạng kết nối cơ sở dữ liệu, không chứa dữ liệu lượt chạy tác vụ.",
+      "title": "Tác vụ hệ thống"
+    },
+    "meSecurity": {
+      "description": "Xác thực hai lớp và thiết bị đăng nhập của chính tài khoản quản trị này.",
+      "title": "Bảo mật tài khoản quản trị"
+    },
+    "outbox": {
+      "description": "Hàng đợi email và thông báo đẩy, lọc theo bản ghi gửi hỏng.",
+      "noApiNote": "Nội dung hàng đợi chứa dữ liệu liên hệ của người dùng nên bắt buộc đi qua endpoint có kiểm soát vai trò và ghi nhật ký kiểm toán.",
+      "title": "Hộp thư gửi đi"
+    },
+    "packages": {
+      "description": "Cấu hình gói dịch vụ: số credit, thời hạn, số hồ sơ mèo tối đa.",
+      "noApiNote": "Sửa gói yêu cầu If-Match và bước xác thực bổ sung ở máy chủ, nên không có bản dựng tạm nào hợp lệ ở phía giao diện.",
+      "title": "Gói dịch vụ"
+    },
+    "phColorChart": {
+      "description": "Bảng màu hiệu chuẩn và các dải phân loại pH.",
+      "title": "Bảng màu pH"
+    },
+    "places": {
+      "title": "Địa điểm"
+    },
+    "privacyRequests": {
+      "description": "Hàng chờ yêu cầu của chủ thể dữ liệu kèm đếm ngược thời hạn.",
+      "noApiNote": "Endpoint /api/v1/privacy/requests đang có là của người dùng cuối: nó chỉ trả yêu cầu của chính tài khoản đang đăng nhập, không phải hàng chờ toàn hệ thống. Dùng nó ở màn này sẽ hiển thị sai sự thật.",
+      "title": "Yêu cầu về quyền riêng tư"
+    },
+    "privacyRetention": {
+      "description": "Danh mục dữ liệu đang lưu và các mục đích xử lý đã công bố.",
+      "noApiNote": "Hai bảng phía trên là danh mục chỉ đọc. Phần sửa được thời hạn lưu trữ và lịch chạy dọn dữ liệu nằm ở nhóm endpoint quản trị riêng, hiện chưa có backend.",
+      "title": "Chính sách lưu trữ dữ liệu"
+    },
+    "setup2fa": {
+      "description": "Bật xác thực hai lớp trước khi vào khu vực quản trị.",
+      "title": "Thiết lập xác thực 2 lớp"
+    },
+    "staff": {
+      "description": "Cấp và gỡ vai trò quản trị, duyệt yêu cầu đặt lại xác thực hai lớp.",
+      "noApiNote": "Vai trò quản trị cấp cao và DPO không được cấp qua API theo thiết kế — chỉ qua seed hoặc công cụ dòng lệnh. Yêu cầu đặt lại xác thực hai lớp cần người thứ hai duyệt.",
+      "title": "Nhân sự quản trị"
+    },
+    "userDetail": {
+      "description": "Hồ sơ một người dùng: trạng thái, gói, mèo, lượt quét, credit.",
+      "noApiNote": "Email và số điện thoại được máy chủ che sẵn và chỉ mở tạm qua endpoint riêng có lý do bắt buộc, tự che lại sau 15 phút. Giao diện không được tự ghép hay đoán các trường này.",
+      "subjectId": "ID: {{id}}",
+      "title": "Chi tiết người dùng"
+    },
+    "users": {
+      "description": "Tìm, lọc và xử lý tài khoản người dùng.",
+      "noApiNote": "Danh sách người dùng phải do máy chủ trả về với dữ liệu đã che sẵn; không có nguồn nào khác ở phía giao diện để dựng tạm.",
+      "title": "Danh sách người dùng"
+    }
+  },
+  "dashboard": {
+    "checkedAt": "Kiểm tra lúc {{at}}",
+    "dbDown": "Không kết nối được cơ sở dữ liệu",
+    "dbUp": "Cơ sở dữ liệu phản hồi",
+    "linkContent": "Quản lý nội dung",
+    "linkMeSecurity": "Bảo mật tài khoản quản trị",
+    "linkPhColorChart": "Bảng màu pH",
+    "linkRetention": "Chính sách lưu trữ dữ liệu",
+    "specContent": "L40–L45",
+    "specMeSecurity": "B13–B17 · A14–A16",
+    "specPhColorChart": "L27–L32 · L36 · L37",
+    "specRetention": "C5 · C1",
+    "statusDescription": "Endpoint này chỉ báo máy chủ còn nói chuyện được với cơ sở dữ liệu. Nó không thay thế trang kiểm tra sức khoẻ hạ tầng.",
+    "statusTitle": "Tình trạng kết nối",
+    "wiredDescription": "Những màn đã nối endpoint thật và dùng được ngay.",
+    "wiredTitle": "Khu vực đã nối API"
+  },
+  "retention": {
+    "colCategory": "Nhóm dữ liệu",
+    "colCode": "Mã",
+    "colCrossBorder": "Chuyển ra nước ngoài",
+    "colLegalBasis": "Căn cứ pháp lý",
+    "colMandatory": "Bắt buộc",
+    "colPhase": "Giai đoạn",
+    "colPolicy": "Mã chính sách lưu trữ",
+    "colPurposeLabel": "Mục đích",
+    "colRecipient": "Bên nhận",
+    "colSensitive": "Nhạy cảm",
+    "colSensitivity": "Mức nhạy cảm",
+    "colStorage": "Nơi lưu",
+    "colWithdrawEffect": "Hệ quả khi rút",
+    "crossBorderNo": "Không",
+    "crossBorderYes": "Có",
+    "flagNo": "Không",
+    "flagYes": "Có",
+    "inventoryDescription": "Danh mục toàn cục, lấy trực tiếp từ bảng kiểm kê dữ liệu của máy chủ. Không chứa dữ liệu của bất kỳ người dùng nào.",
+    "inventoryTitle": "Dữ liệu hệ thống đang lưu",
+    "purposesDescription": "Danh mục mục đích xử lý mà người dùng được hỏi đồng ý. Nhãn đã dịch theo ngôn ngữ đang chọn.",
+    "purposesTitle": "Mục đích xử lý dữ liệu"
+  },
+  "meSecurity": {
+    "activatedAt": "Bật từ {{at}}",
+    "codeLabel": "Mã 6 số từ ứng dụng xác thực",
+    "confirmCta": "Xác nhận bật",
+    "currentSession": "Phiên hiện tại",
+    "disableCta": "Tắt xác thực hai lớp",
+    "enableCta": "Bật xác thực hai lớp",
+    "lastSeen": "Hoạt động gần nhất {{at}}",
+    "recoveryBody": "Lưu ngay vào nơi an toàn. Mỗi mã chỉ dùng được một lần và sẽ không hiện lại.",
+    "recoveryRemaining": "Còn {{count}} mã khôi phục chưa dùng.",
+    "recoveryTitle": "Mã khôi phục",
+    "regenerateCta": "Tạo lại mã khôi phục",
+    "revokeAllCta": "Thu hồi mọi phiên khác",
+    "revokeCta": "Thu hồi",
+    "secretLabel": "Khoá bí mật",
+    "sessionsDescription": "Các phiên đang mở của tài khoản này.",
+    "sessionsTitle": "Thiết bị đăng nhập",
+    "totpActive": "Đang bật",
+    "totpDescription": "Dùng ứng dụng xác thực sinh mã 6 số theo thời gian.",
+    "totpGateNote": "Tài khoản quản trị chưa bật xác thực hai lớp sẽ bị chặn ở mọi endpoint quản trị, kể cả endpoint chỉ đọc. Ngoại lệ duy nhất là nhóm endpoint tự bật xác thực hai lớp cho chính mình.",
+    "totpInactive": "Chưa bật",
+    "totpTitle": "Xác thực hai lớp",
+    "unknownDevice": "Thiết bị không rõ"
+  },
+  "setup2fa": {
+    "codeLabel": "Mã 6 số từ ứng dụng xác thực",
+    "confirmCta": "Xác nhận và bật",
+    "doneBody": "Tài khoản đã đủ điều kiện vào khu vực quản trị.",
+    "doneTitle": "Đã bật xác thực hai lớp",
+    "goToAdmin": "Vào khu vực quản trị",
+    "intro": "Khu vực quản trị bắt buộc có xác thực hai lớp. Bấm bắt đầu để lấy khoá bí mật.",
+    "recoveryBody": "Lưu ngay vào nơi an toàn. Mỗi mã chỉ dùng được một lần và sẽ không hiện lại.",
+    "recoveryTitle": "Mã khôi phục",
+    "secretLabel": "Khoá bí mật",
+    "startCta": "Bắt đầu thiết lập",
+    "step1": "Mở ứng dụng xác thực trên điện thoại.",
+    "step2": "Thêm tài khoản mới bằng khoá bí mật bên dưới.",
+    "step3": "Nhập mã 6 số đang hiện để xác nhận.",
+    "title": "Thiết lập xác thực 2 lớp"
+  },
+  "content": {
+    "archive": "Gỡ khỏi hiển thị",
+    "category": {
+      "DIET": "Chế độ ăn",
+      "GENERAL": "Chung",
+      "HYDRATION": "Uống nước",
+      "LITTER": "Cát vệ sinh",
+      "SCAN_HOWTO": "Hướng dẫn quét"
+    },
+    "claim": {
+      "CERTIFICATION": "Chứng nhận",
+      "MEDICAL": "Y khoa",
+      "NONE": "Không có tuyên bố",
+      "PERFORMANCE": "Hiệu năng",
+      "SERVICE_COMMITMENT": "Cam kết dịch vụ",
+      "STATISTIC": "Số liệu thống kê"
+    },
+    "colActions": "Thao tác",
+    "colClaim": "Loại tuyên bố",
+    "colKind": "Dạng bài",
+    "colLocale": "Ngôn ngữ",
+    "colStatus": "Trạng thái",
+    "colTitle": "Tiêu đề",
+    "colUpdatedAt": "Cập nhật",
+    "createCta": "Tạo bản nháp",
+    "createDescription": "Slug và ngôn ngữ không sửa được sau khi tạo.",
+    "createSubmit": "Tạo bản nháp",
+    "createTitle": "Bài mới",
+    "editorSubtitle": "{{slug}} · {{locale}}",
+    "editorTitle": "Soạn: {{title}}",
+    "fieldBody": "Nội dung (Markdown)",
+    "fieldCategory": "Chuyên mục",
+    "fieldClaimType": "Loại tuyên bố",
+    "fieldKind": "Dạng bài",
+    "fieldLocale": "Ngôn ngữ",
+    "fieldSlug": "Slug",
+    "fieldSlugHelp": "Chữ thường, nối bằng dấu gạch ngang.",
+    "fieldSource": "Nguồn tham chiếu",
+    "fieldSourceHelp": "Bắt buộc khi bài có tuyên bố khác \"Không có tuyên bố\".",
+    "fieldSummary": "Tóm tắt",
+    "fieldTitle": "Tiêu đề",
+    "filterAll": "Tất cả",
+    "filterLocale": "Ngôn ngữ",
+    "filterStatus": "Trạng thái",
+    "kind": {
+      "ARTICLE": "Bài viết",
+      "FAQ": "Hỏi đáp",
+      "TIP": "Mẹo"
+    },
+    "listDescription": "Mọi trạng thái, mới cập nhật trước.",
+    "listTitle": "Danh sách nội dung",
+    "localeEn": "Tiếng Anh",
+    "localeVi": "Tiếng Việt",
+    "publishBody": "Máy chủ từ chối nếu bài có tuyên bố mà thiếu nguồn, hoặc nếu người soạn tự duyệt bài của chính mình.",
+    "publishCta": "Công bố",
+    "publishTitle": "Công bố bài",
+    "saveDraft": "Lưu bản nháp",
+    "sourceMissingShort": "Thiếu nguồn",
+    "sourceRequired": "Bài có tuyên bố thì bắt buộc có nguồn tham chiếu.",
+    "status": {
+      "ARCHIVED": "Đã gỡ",
+      "DRAFT": "Nháp",
+      "IN_REVIEW": "Chờ duyệt",
+      "PUBLISHED": "Đã công bố"
+    },
+    "submitReview": "Gửi duyệt"
+  },
+  "chart": {
+    "addPoint": "Thêm mức",
+    "colBatch": "Lô sản xuất",
+    "colCode": "Mã bảng",
+    "colDisplayHex": "Hex hiển thị",
+    "colHexSrgb": "Hex sRGB",
+    "colLabA": "Lab a*",
+    "colLabB": "Lab b*",
+    "colLabL": "Lab L*",
+    "colName": "Tên bảng",
+    "colNameEn": "Tên hiển thị (EN)",
+    "colNameVi": "Tên hiển thị (VI)",
+    "colPh": "Giá trị pH",
+    "colProductLine": "Dòng sản phẩm",
+    "colRemove": "Xoá mức",
+    "colSource": "Nguồn",
+    "colStatus": "Trạng thái",
+    "colTolerance": "Dung sai ΔE",
+    "createCta": "Tạo bản nháp",
+    "createDescription": "Bản nháp mới luôn bắt đầu ở trạng thái nháp và chưa ảnh hưởng tới kết quả quét.",
+    "createSubmit": "Tạo bản nháp",
+    "createTitle": "Bảng màu mới",
+    "detailOf": "{{code}} — phiên bản {{version}}",
+    "detailSubtitle": "Trạng thái: {{status}} · Nguồn: {{source}}",
+    "detailTitle": "Chi tiết bảng màu",
+    "fieldBatch": "Lô sản xuất",
+    "fieldCode": "Mã bảng",
+    "fieldCodeHelp": "Định danh ngắn, không trùng với bảng khác.",
+    "fieldName": "Tên bảng",
+    "fieldProductLine": "Dòng sản phẩm",
+    "filterStatus": "Trạng thái",
+    "invalidHex": "Mã màu chưa đúng dạng #RRGGBB",
+    "listDescription": "Mọi trạng thái. Chỉ bản nháp mới sửa được.",
+    "listTitle": "Danh sách bảng màu",
+    "placeholder": "Bảng tạm, chưa hiệu chuẩn thật",
+    "pointsCount": "{{count}} mức trong bảng",
+    "pointsIncomplete": "Còn dòng chưa đủ dữ liệu. Mỗi mức cần đủ năm số, hex hiển thị dạng #RRGGBB và tên hiển thị tiếng Việt.",
+    "pointsTitle": "Các mức pH của bảng",
+    "publishBody": "Bản nháp sẽ thành bản đang dùng, bản đang dùng trước đó chuyển sang lưu trữ. Máy chủ từ chối nếu bảng còn thiếu mức hoặc thiếu dải phân loại.",
+    "publishCta": "Công bố bảng màu",
+    "publishTitle": "Công bố",
+    "readOnlyNote": "Bảng này không ở trạng thái nháp nên chỉ xem được. Sửa bản đang dùng sẽ bị máy chủ từ chối.",
+    "resetPoints": "Khôi phục theo máy chủ",
+    "saveMeta": "Lưu thông tin bảng",
+    "savePoints": "Lưu toàn bộ mức",
+    "status": {
+      "ACTIVE": "Đang dùng",
+      "ARCHIVED": "Lưu trữ",
+      "DRAFT": "Nháp"
+    },
+    "tabBands": "Dải phân loại",
+    "tabCharts": "Bảng màu",
+    "versionLabel": "Phiên bản {{version}}"
+  },
+  "band": {
+    "colAlert": "Sinh cảnh báo",
+    "colCode": "Mã dải",
+    "colIcon": "Icon",
+    "colLabel": "Nhãn hiển thị",
+    "colRange": "Khoảng pH",
+    "colSeverity": "Mức độ",
+    "colToken": "Token màu",
+    "description": "Nhãn, mô tả và icon của từng dải. Khoảng pH do máy chủ giữ.",
+    "editorTitle": "Sửa dải {{code}}",
+    "fieldDescription": "Mô tả",
+    "fieldIcon": "Tên icon",
+    "fieldIconHelp": "Tên icon dạng gạch nối, ví dụ check-circle.",
+    "fieldLabel": "Nhãn hiển thị",
+    "fieldTriggersAlert": "Dải này sinh cảnh báo cho người dùng",
+    "localeNote": "Đang sửa bản {{locale}}. Máy chủ trả nhãn đã dịch theo ngôn ngữ đang chọn, nên chỉ ghi lại đúng bản ngôn ngữ này.",
+    "rangeValue": "{{min}} … {{max}}",
+    "saveCta": "Lưu dải phân loại",
+    "thresholdLocked": "Khoảng pH không sửa được ở màn này: đổi ngưỡng bắt buộc đi kèm bước xác thực bổ sung, lớp đó chưa được nối ở máy chủ.",
+    "title": "Dải phân loại pH"
+  }
+}

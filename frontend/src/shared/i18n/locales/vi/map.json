@@ -1,0 +1,130 @@
+{
+  "page": {
+    "title": "Bản đồ Chăm sóc Mèo",
+    "subtitle": "Tìm phòng khám thú y và cơ sở cấp cứu mèo quanh khu vực bạn chọn.",
+    "clinicTitle": "Chi tiết Phòng khám"
+  },
+  "preview": {
+    "map": "Ảnh bản đồ tĩnh trong bản dựng giao diện — chưa nối dịch vụ bản đồ, các điểm ghim là dữ liệu mẫu.",
+    "booking": "Bản xem trước giao diện — phần đặt lịch chưa nối hệ thống của phòng khám.",
+    "location": "Khu vực do bạn chọn thủ công. Ứng dụng không đọc vị trí thiết bị ở màn này."
+  },
+  "network": {
+    "title": "Mạng Lưới Thú Y Tiêu Chuẩn Vàng ISFM",
+    "partners": "{{count}} Đối Tác Đạt Chuẩn",
+    "body": "Đồng bộ kết quả đổi màu cát CATCHECK tới hồ sơ theo dõi lâm sàng của cơ sở đối tác.",
+    "areaChip": "Khu vực: {{area}}",
+    "changeArea": "Đổi khu vực"
+  },
+  "search": {
+    "placeholder": "Nhập phường, quận hoặc tên phòng khám…",
+    "advanced": "Bộ lọc nâng cao",
+    "label": "Tìm theo khu vực"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "clinic": "Phòng khám Thú y",
+    "emergency": "Cấp cứu 24/7",
+    "isfm": "ISFM Gold",
+    "lab": "Trạm mẫu CATCHECK"
+  },
+  "map": {
+    "alt": "Ảnh bản đồ minh hoạ khu vực TP. Hồ Chí Minh",
+    "nearbyBanner": "{{count}} chuyên khoa mèo gần khu vực đã chọn",
+    "scanning": "Đang xem khu vực",
+    "scanResult": "{{count}} cơ sở đạt chuẩn",
+    "zoomIn": "Phóng to bản đồ",
+    "zoomOut": "Thu nhỏ bản đồ",
+    "layers": "Đổi lớp bản đồ",
+    "recenter": "Về giữa khu vực đã chọn",
+    "pinLabel": "Chọn {{name}} trên bản đồ"
+  },
+  "list": {
+    "featuredBadge": "NỔI BẬT • FEATURED",
+    "save": "Lưu phòng khám",
+    "saved": "Đã lưu phòng khám",
+    "specialtiesLabel": "Chuyên khoa & Trang thiết bị",
+    "nearbyTitle": "Phòng khám lân cận khác",
+    "nearbySeeAll": "Xem tất cả {{count}} phòng khám lân cận",
+    "distance": "Cách {{km}} km",
+    "kmUnit": "km",
+    "distanceFromYou": "{{km}} km từ khu vực bạn chọn",
+    "reviewCount": "({{count}} đánh giá)",
+    "reviewCountSen": "({{count}} đánh giá từ Sen)",
+    "visitCount": "{{count}} lượt khám đã ghi nhận",
+    "leadDoctorLabel": "Bác sĩ phụ trách",
+    "ratingLabel": "Đánh giá thực tế",
+    "empty": "Không có cơ sở nào khớp bộ lọc này trong khu vực đang chọn."
+  },
+  "actions": {
+    "call": "Gọi phòng khám",
+    "callShort": "Gọi",
+    "directions": "Chỉ đường",
+    "save": "Lưu",
+    "book": "Đặt lịch",
+    "urgentAdvice": "Tư vấn khẩn",
+    "detail": "Chi tiết",
+    "share": "Chia sẻ phòng khám",
+    "backToMap": "Bản đồ Thú y"
+  },
+  "quickServices": {
+    "title": "Hỗ trợ nhanh"
+  },
+  "clinic": {
+    "photoCount": "{{current}}/{{total}} Ảnh",
+    "moreAngles": "+{{count}} Góc cơ sở",
+    "locationTitle": "Vị trí & Lịch làm việc",
+    "viewOnMap": "Xem bản đồ",
+    "regularHours": "Giờ khám thường",
+    "emergencyHotline": "Hotline cấp cứu",
+    "addressLabel": "Địa chỉ",
+    "hoursLabel": "Giờ làm việc",
+    "servicesTitle": "Chuyên khoa Tiết niệu Mèo",
+    "servicesBadge": "Lab đạt chuẩn",
+    "doctorsTitle": "Đội ngũ Bác sĩ Chuyên khoa",
+    "doctorsBadge": "ISFM Feline Specialist",
+    "pricingTitle": "Bảng giá Dịch vụ & Ưu đãi CATCHECK",
+    "pricingSubtitle": "Minh bạch chi phí dịch vụ — trợ giá trực tiếp cho người dùng ứng dụng.",
+    "pricingBadge": "Tiết kiệm tới {{percent}}%",
+    "pricingNotice": "Giá niêm yết của cơ sở, chỉ để tham khảo. Ứng dụng không thu hộ khoản nào.",
+    "reviewsTitle": "Đánh giá từ người nuôi mèo",
+    "reviewsTitleWeb": "Đánh giá Thực tế từ các Sen",
+    "reviewsBadge": "100% lượt khám có thật",
+    "reviewsSeeAll": "Xem tất cả {{count}}",
+    "verifiedPatient": "Bệnh nhân CATCHECK đã xác thực",
+    "bookCta": "Đặt lịch khám",
+    "sharePdfCta": "Chia sẻ Báo cáo PDF",
+    "notFound": "Không tìm thấy phòng khám này. Đang hiển thị cơ sở đầu tiên trong danh sách mẫu."
+  },
+  "telehealth": {
+    "eyebrow": "KẾT NỐI KHÁM TỪ XA CATCHECK",
+    "instant": "Tức thì",
+    "title": "Chia sẻ Trực tiếp Hồ sơ Sức khỏe",
+    "body": "Gửi xu hướng pH 30 ngày và nhật ký quan sát của bé mèo tới bàn tiếp nhận của phòng khám trước khi bạn tới nơi.",
+    "secure": "API Thú y mã hoá an toàn",
+    "cta": "Truyền dữ liệu nhật ký"
+  },
+  "booking": {
+    "title": "Đặt lịch Khám Chuyên sâu",
+    "liveSync": "Live Sync",
+    "subtitle": "Đồng bộ tự động dữ liệu chỉ số cát vào hồ sơ theo dõi của phòng khám.",
+    "catLabel": "Bé mèo cần thăm khám",
+    "catSynced": "Đã đồng bộ Bio-Kit C10",
+    "attachTitle": "Tự động đính kèm: Nhật ký quét cát 30 ngày gần nhất",
+    "attachBody": "Bao gồm biểu đồ pH tăng đột biến ngày 24-26/10 và tần suất vào khay.",
+    "serviceLabel": "Dịch vụ ưu tiên",
+    "doctorLabel": "Bác sĩ tiếp nhận",
+    "dayLabel": "Chọn ngày khám trong tuần",
+    "today": "Hôm nay",
+    "slotsLeft": "Còn {{count}} slot",
+    "slotsNone": "Hết slot",
+    "timeLabel": "Khung giờ rảnh ngày {{date}}",
+    "noteLabel": "Ghi chú triệu chứng lâm sàng",
+    "notePlaceholder": "Mô tả biểu hiện bạn quan sát được ở bé mèo…",
+    "voucher": "Voucher CATCHECK Care",
+    "total": "Tổng chi phí tạm tính",
+    "submit": "Xác nhận Đặt lịch & Gửi Hồ sơ Cát",
+    "emergency": "Cấp cứu: {{phone}}",
+    "chat": "Chat với Trợ lý Bác sĩ"
+  }
+}

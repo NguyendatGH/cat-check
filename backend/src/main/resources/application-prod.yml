@@ -1,0 +1,37 @@
+# Profile "prod": CHỈ biến môi trường, KHÔNG secret nào trong image (đúng nguyên tắc ở
+# CLAUDE.md/p18). Thiếu biến bắt buộc => app KHÔNG khởi động (fail-fast), không có giá trị mặc
+# định nào cho các trường nhạy cảm.
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+logging:
+  level:
+    root: WARN
+    com.catcheck: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Chỉ health,info ở prod - đúng yêu cầu nhiệm vụ M0, KHÔNG mở rộng thêm.
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

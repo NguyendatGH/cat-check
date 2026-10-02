@@ -1,0 +1,94 @@
+{
+  "pages": {
+    "activate": {
+      "title": "Kích hoạt mã credit"
+    },
+    "credits": {
+      "title": "Credit của bạn"
+    }
+  },
+  "errors": {
+    "generic": "Đã có lỗi xảy ra, vui lòng thử lại."
+  },
+  "activateCta": "Nhập mã kích hoạt",
+  "tabs": {
+    "overview": "Tổng quan",
+    "ledger": "Lịch sử giao dịch"
+  },
+  "packages": {
+    "MINI": "CATCHECK Mini – Trial",
+    "DAILY": "CATCHECK Daily",
+    "PLUS": "CATCHECK Plus",
+    "MULTI": "CATCHECK Multi",
+    "CARE_BOX": "CATCHECK Care Box"
+  },
+  "balance": {
+    "availableLabel": "Credit khả dụng",
+    "unit": "credit",
+    "trialRemaining": "Còn {{count}} lượt dùng thử",
+    "nearestExpiring": "{{amount}} credit sắp hết hạn — {{remaining}}",
+    "errorTitle": "Không tải được số dư credit"
+  },
+  "batch": {
+    "sectionTitle": "Chi tiết từng lô",
+    "emptyTitle": "Chưa có lô credit nào",
+    "emptyDescription": "Kích hoạt mã in trên bao cát để nhận credit cho lần quét tiếp theo.",
+    "remainingOfTotal": "Còn {{remaining}}/{{total}} credit",
+    "activatedAt": "Kích hoạt ngày {{date}}",
+    "expired": "Đã hết hạn",
+    "remainingDaysHours": "Còn {{days}} ngày {{hours}} giờ",
+    "remainingHours": "Còn {{hours}} giờ",
+    "remainingSoon": "Sắp hết hạn"
+  },
+  "ledger": {
+    "sectionTitle": "Lịch sử giao dịch",
+    "emptyTitle": "Chưa có giao dịch nào",
+    "emptyDescription": "Lịch sử cấp/trừ credit của bạn sẽ hiện ở đây.",
+    "errorTitle": "Không tải được lịch sử giao dịch",
+    "loadMore": "Tải thêm",
+    "types": {
+      "GRANT": "Kích hoạt gói",
+      "CONSUME": "Trừ khi lưu kết quả quét",
+      "EXPIRE": "Hết hạn lô credit",
+      "REFUND": "Hoàn credit",
+      "ADJUST": "Điều chỉnh bởi quản trị viên"
+    }
+  },
+  "entitlement": {
+    "sectionTitle": "Quyền tính năng hiện tại",
+    "currentPackage": "Gói cao nhất từng kích hoạt: {{name}}",
+    "noPackage": "Bạn chưa kích hoạt gói nào — đang dùng lượt quét thử.",
+    "errorTitle": "Không tải được thông tin quyền tính năng",
+    "features": {
+      "history": "Xem lịch sử quét",
+      "trend": "Xem biểu đồ xu hướng",
+      "reminder": "Đặt lịch nhắc quét",
+      "export": "Xuất hồ sơ PDF",
+      "storeImage": "Lưu ảnh gốc"
+    }
+  },
+  "activate": {
+    "subtitle": "Nhập mã in trên bao cát CatCheck để nhận thêm credit.",
+    "inputLabel": "Mã kích hoạt",
+    "inputPlaceholder": "CC-PLUS-XXXXXXXXXX",
+    "formatHint": "In trên bao bì, dạng CC-<GÓI>-<10 ký tự>.",
+    "required": "Vui lòng nhập mã kích hoạt.",
+    "invalidFormat": "Mã kích hoạt chưa đúng định dạng.",
+    "checking": "Đang kiểm tra...",
+    "submit": "Kích hoạt",
+    "errors": {
+      "malformed": "Mã kích hoạt chưa đúng định dạng. Kiểm tra lại mã in trên bao bì.",
+      "invalid": "Mã kích hoạt không đúng. Kiểm tra lại mã in trên bao bì.",
+      "alreadyUsed": "Mã này đã được sử dụng.",
+      "expired": "Mã đã hết hạn kích hoạt."
+    },
+    "success": {
+      "title": "Kích hoạt thành công!",
+      "packageLabel": "Gói",
+      "creditsLabel": "Credit nhận được",
+      "creditsValue": "+{{credits}} credit",
+      "expiresLabel": "Hạn dùng",
+      "continue": "Về trang Credit"
+    }
+  }
+}

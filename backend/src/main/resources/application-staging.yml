@@ -1,0 +1,32 @@
+# Profile "staging": mọi giá trị nhạy cảm và theo môi trường đều qua biến môi trường (không
+# giá trị mặc định nhạy cảm nào được hardcode ở đây). Không có "::" default cho
+# username/password/DB - thiếu biến là phải fail-fast, không âm thầm dùng giá trị rỗng.
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:true}
+
+logging:
+  level:
+    com.catcheck: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

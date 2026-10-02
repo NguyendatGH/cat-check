@@ -1,0 +1,34 @@
+{
+  "network": {
+    "generic": "Đã có lỗi xảy ra, vui lòng thử lại.",
+    "offline": "Không có kết nối mạng."
+  },
+  "validation": {
+    "generic": "Giá trị không hợp lệ.",
+    "required": "Trường này là bắt buộc.",
+    "tooBig": "Giá trị quá lớn.",
+    "tooSmall": "Giá trị quá nhỏ."
+  },
+  "notFound": {
+    "lead": "Đường dẫn bạn vừa mở không tồn tại, đã được đổi tên, hoặc liên kết cũ đã hết hiệu lực.",
+    "pathLabel": "Đường dẫn vừa mở",
+    "homeCta": "Về trang chủ",
+    "backCta": "Quay lại trang trước",
+    "shortcutsTitle": "Có thể bạn đang tìm",
+    "shortcutCats": "Hồ sơ các bé mèo",
+    "shortcutHistory": "Lịch sử theo dõi",
+    "shortcutScan": "Quét màu cát"
+  },
+  "offlinePage": {
+    "lead": "Thiết bị của bạn đang không có kết nối mạng.",
+    "body": "Giao diện CatCheck được lưu sẵn trên máy nên vẫn mở được khi mất mạng. Nhưng mọi thứ lấy từ máy chủ — lần quét mới, lịch sử, nhắc lịch, hồ sơ của bé — đều cần mạng mới tải hoặc gửi đi được.",
+    "statusOnline": "Mạng đã trở lại. Hãy tải lại trang để tiếp tục.",
+    "statusOffline": "Đang ngoại tuyến — chưa kết nối được máy chủ.",
+    "retryCta": "Tải lại trang",
+    "homeCta": "Về trang chủ",
+    "tipsTitle": "Trong lúc chờ mạng",
+    "tip1": "Kiểm tra Wi-Fi hoặc dữ liệu di động, rồi bấm Tải lại trang.",
+    "tip2": "Ảnh bạn vừa chụp chưa được gửi đi và CatCheck chưa giữ hàng chờ ngoại tuyến — hãy quét lại sau khi có mạng.",
+    "tip3": "Nếu đã thêm CatCheck vào màn hình chính, mở lại từ biểu tượng đó cũng cho kết quả như trang này."
+  }
+}

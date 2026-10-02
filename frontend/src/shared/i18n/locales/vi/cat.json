@@ -1,0 +1,478 @@
+{
+  "pages": {
+    "detail": {
+      "title": "Hồ sơ mèo"
+    },
+    "edit": {
+      "title": "Sửa hồ sơ mèo"
+    },
+    "list": {
+      "title": "Danh sách mèo"
+    },
+    "new": {
+      "title": "Thêm mèo mới"
+    }
+  },
+  "errors": {
+    "generic": "Đã có lỗi xảy ra, vui lòng thử lại.",
+    "limitReached": "Đã đạt giới hạn số hồ sơ mèo của gói hiện tại ({{max}} mèo)."
+  },
+  "list": {
+    "filterActive": "Đang theo dõi",
+    "filterArchived": "Đã lưu trữ",
+    "createCta": "Thêm mèo mới",
+    "emptyActiveTitle": "Chưa có hồ sơ mèo nào",
+    "emptyActiveDescription": "Thêm hồ sơ đầu tiên để bắt đầu theo dõi sức khoẻ qua cát vệ sinh.",
+    "emptyArchivedTitle": "Chưa có mèo nào được lưu trữ",
+    "emptyArchivedDescription": "Mèo đã lưu trữ (đã mất/đã cho đi) sẽ hiện ở đây, dữ liệu và biểu đồ vẫn xem được.",
+    "errorTitle": "Không tải được danh sách mèo",
+    "ariaList": "Danh sách mèo"
+  },
+  "form": {
+    "avatarSection": "Ảnh đại diện",
+    "name": {
+      "label": "Tên bé mèo",
+      "placeholder": "VD: Luna, Bánh Bao...",
+      "required": "Vui lòng nhập tên bé mèo.",
+      "tooLong": "Tên tối đa 60 ký tự."
+    },
+    "breed": {
+      "label": "Giống mèo",
+      "placeholder": "Chọn giống mèo",
+      "searchPlaceholder": "Tìm giống mèo...",
+      "loading": "Đang tải danh sách giống...",
+      "empty": "Không tìm thấy giống phù hợp",
+      "required": "Vui lòng chọn giống mèo."
+    },
+    "breedOther": {
+      "label": "Giống khác (nếu không có trong danh sách)",
+      "placeholder": "VD: Mèo lai, không rõ giống..."
+    },
+    "coatColor": {
+      "label": "Màu lông",
+      "placeholder": "VD: Vàng, tam thể, đen trắng..."
+    },
+    "sex": {
+      "label": "Giới tính",
+      "male": "Đực",
+      "female": "Cái",
+      "unknown": "Chưa rõ",
+      "required": "Vui lòng chọn giới tính."
+    },
+    "neutered": {
+      "label": "Đã triệt sản / thiến"
+    },
+    "ageMode": {
+      "label": "Cách nhập tuổi",
+      "birthDate": "Biết ngày sinh",
+      "approx": "Chỉ biết tuổi ước lượng"
+    },
+    "birthDate": {
+      "label": "Ngày sinh",
+      "hint": "Không bắt buộc chính xác — có thể ước lượng.",
+      "required": "Vui lòng nhập ngày sinh.",
+      "invalid": "Ngày sinh không hợp lệ.",
+      "future": "Ngày sinh không được ở tương lai."
+    },
+    "approxAgeMonths": {
+      "label": "Tuổi ước lượng (tháng)",
+      "placeholder": "VD: 18",
+      "required": "Vui lòng nhập tuổi ước lượng.",
+      "invalid": "Tuổi ước lượng phải từ 0 đến 360 tháng."
+    },
+    "weight": {
+      "label": "Cân nặng (kg)",
+      "placeholder": "VD: 4.2",
+      "invalid": "Cân nặng phải trong khoảng 0–30 kg."
+    },
+    "notes": {
+      "label": "Ghi chú chung",
+      "placeholder": "Thông tin thêm về bé (không bắt buộc)"
+    },
+    "submit": "Lưu hồ sơ",
+    "saving": "Đang lưu...",
+    "createSuccess": "Đã tạo hồ sơ {{name}}.",
+    "updateSuccess": "Đã cập nhật hồ sơ {{name}}."
+  },
+  "avatar": {
+    "add": "Thêm ảnh đại diện",
+    "change": "Đổi ảnh đại diện",
+    "remove": "Gỡ ảnh đại diện",
+    "hint": "JPEG, PNG hoặc WebP, tối đa 5MB.",
+    "invalidType": "Chỉ nhận ảnh JPEG, PNG hoặc WebP.",
+    "tooLarge": "Ảnh vượt quá 5MB."
+  },
+  "status": {
+    "active": "Đang theo dõi",
+    "archived": "Đã lưu trữ",
+    "primary": "Mèo mặc định"
+  },
+  "detail": {
+    "tabs": {
+      "overview": "Tổng quan",
+      "notes": "Ghi chú",
+      "history": "Lịch sử sức khoẻ"
+    },
+    "publicCode": "Mã hồ sơ: {{code}}",
+    "ageFieldLabel": "Tuổi",
+    "ageLabel": "{{months}} tháng tuổi",
+    "weightLabel": "{{weight}} kg",
+    "weightUpdatedAt": "Cập nhật cân nặng lúc {{date}}",
+    "sexLabel": "Giới tính",
+    "neuteredLabel": "Triệt sản",
+    "neuteredYes": "Đã triệt sản",
+    "neuteredNo": "Chưa triệt sản",
+    "neuteredUnknown": "Chưa rõ triệt sản",
+    "breedLabel": "Giống",
+    "coatColorLabel": "Màu lông",
+    "notesLabel": "Ghi chú chung",
+    "notFoundTitle": "Không tìm thấy hồ sơ mèo",
+    "notFoundDescription": "Hồ sơ có thể đã bị xoá hoặc không thuộc tài khoản của bạn.",
+    "errorTitle": "Không tải được hồ sơ mèo",
+    "birthChip": "Sinh: {{date}}",
+    "codeChip": "Mã số: {{code}}",
+    "identityUnknown": "Chưa rõ"
+  },
+  "actions": {
+    "edit": "Sửa hồ sơ",
+    "setPrimary": "Đặt làm mèo mặc định",
+    "archive": "Đánh dấu đã mất / đã cho đi",
+    "unarchive": "Đưa trở lại theo dõi",
+    "delete": "Xoá hồ sơ",
+    "reportSigns": "Báo cáo dấu hiệu bất thường",
+    "updateSurvey": "Cập nhật khảo sát",
+    "addNote": "Thêm ghi chú",
+    "moreActions": "Thao tác khác"
+  },
+  "confirm": {
+    "delete": {
+      "title": "Xoá hồ sơ {{name}}?",
+      "description": "Hồ sơ sẽ được xoá mềm — lịch sử quét vẫn được giữ lại nhưng hồ sơ sẽ không còn hiển thị. Thao tác này không thể tự hoàn tác.",
+      "confirm": "Xoá hồ sơ",
+      "cancel": "Không xoá",
+      "alreadyDeleted": "Hồ sơ đã bị xoá trước đó."
+    },
+    "archive": {
+      "title": "Đánh dấu {{name}} đã mất / đã cho đi?",
+      "description": "Dữ liệu và biểu đồ của bé vẫn xem được, chỉ ẩn khỏi danh sách chọn khi quét. Bạn có thể đưa trở lại theo dõi bất cứ lúc nào.",
+      "confirm": "Đánh dấu lưu trữ",
+      "cancel": "Không, giữ theo dõi"
+    },
+    "unarchive": {
+      "title": "Đưa {{name}} trở lại theo dõi?",
+      "description": "Mèo sẽ xuất hiện lại trong danh sách chọn khi quét.",
+      "confirm": "Đưa trở lại theo dõi",
+      "cancel": "Để sau"
+    },
+    "setPrimary": {
+      "title": "Đặt {{name}} làm mèo mặc định?",
+      "description": "Mèo mặc định sẽ được chọn sẵn ở màn hình chụp và bảng điều khiển.",
+      "confirm": "Đặt làm mặc định",
+      "cancel": "Để sau",
+      "alreadyPrimary": "Mèo này đã là mèo mặc định.",
+      "requiresActive": "Chỉ mèo đang theo dõi mới đặt làm mặc định được."
+    },
+    "removeAvatar": {
+      "title": "Gỡ ảnh đại diện?",
+      "description": "Bạn có thể thêm ảnh khác bất cứ lúc nào.",
+      "confirm": "Gỡ ảnh",
+      "cancel": "Giữ ảnh"
+    }
+  },
+  "notes": {
+    "emptyTitle": "Chưa có ghi chú nào",
+    "emptyDescription": "Ghi lại quan sát hằng ngày về bé — đổi thức ăn, đổi cát, đi khám... để mang theo khi cần.",
+    "errorTitle": "Không tải được ghi chú",
+    "addTitle": "Thêm ghi chú",
+    "editTitle": "Sửa ghi chú",
+    "deleteTitle": "Xoá ghi chú này?",
+    "deleteDescription": "Ghi chú sẽ được xoá mềm, không hiển thị lại trong nhật ký.",
+    "deleteConfirm": "Xoá ghi chú",
+    "deleteCancel": "Không xoá",
+    "editAction": "Sửa",
+    "deleteAction": "Xoá",
+    "types": {
+      "GENERAL": "Ghi chú chung",
+      "DIET_CHANGE": "Đổi thức ăn",
+      "SYMPTOM": "Quan sát bất thường",
+      "VET_VISIT": "Đi khám thú y",
+      "LITTER_CHANGE": "Đổi loại cát"
+    },
+    "form": {
+      "noteType": {
+        "label": "Loại ghi chú",
+        "required": "Vui lòng chọn loại ghi chú."
+      },
+      "body": {
+        "label": "Nội dung",
+        "placeholder": "Bé có biểu hiện/thay đổi gì hôm nay?",
+        "required": "Vui lòng nhập nội dung ghi chú.",
+        "tooLong": "Nội dung tối đa 2000 ký tự."
+      },
+      "occurredOn": {
+        "label": "Ngày xảy ra (không bắt buộc)",
+        "invalid": "Ngày không hợp lệ.",
+        "future": "Ngày không được ở tương lai."
+      },
+      "submit": "Lưu ghi chú",
+      "saving": "Đang lưu..."
+    }
+  },
+  "survey": {
+    "title": "Khảo sát sức khoẻ",
+    "subtitle": "Giúp cá nhân hoá cảnh báo và lịch nhắc quét cho {{catName}}.",
+    "notSubmittedTitle": "Chưa có bản khảo sát nào",
+    "notSubmittedDescription": "Trả lời 5 câu hỏi ngắn để cá nhân hoá theo dõi cho bé.",
+    "skippedLabel": "Đã bỏ qua khảo sát",
+    "lastSubmittedAt": "Cập nhật lần cuối: {{date}}",
+    "startCta": "Bắt đầu khảo sát",
+    "updateCta": "Cập nhật khảo sát",
+    "submit": "Lưu khảo sát",
+    "saving": "Đang lưu...",
+    "cancel": "Huỷ",
+    "errorTitle": "Không tải được bản khảo sát",
+    "questions": {
+      "litterType": {
+        "label": "Loại cát vệ sinh đang dùng ở nhà",
+        "options": {
+          "CATCHECK_SMART": "Cát thông minh CatCheck",
+          "CLAY": "Cát sét (bentonite)",
+          "TOFU": "Cát đậu nành (tofu)",
+          "SILICA": "Cát silica",
+          "OTHER": "Loại khác"
+        }
+      },
+      "urinaryHistory": {
+        "label": "Bé có tiền sử vấn đề tiết niệu không?",
+        "options": {
+          "NONE": "Chưa từng có vấn đề tiết niệu",
+          "PAST": "Từng có, nay đã ổn định",
+          "CURRENT": "Đang có vấn đề tiết niệu"
+        }
+      },
+      "dietType": {
+        "label": "Chế độ ăn uống chính",
+        "hint": "Ảnh hưởng đến độ pH nước tiểu",
+        "options": {
+          "DRY": "Hạt khô",
+          "WET": "Pate - thức ăn ướt",
+          "MIXED": "Kết hợp cả hai",
+          "RAW": "Thịt tươi tự nhiên"
+        }
+      },
+      "urinationFrequency": {
+        "label": "Tần suất đi vệ sinh mỗi ngày",
+        "options": {
+          "LT_1_PER_DAY": "Dưới 1 lần/ngày",
+          "1_2_PER_DAY": "1–2 lần/ngày",
+          "GT_2_PER_DAY": "Trên 2 lần/ngày",
+          "UNKNOWN": "Chưa để ý / chưa rõ"
+        }
+      },
+      "symptoms": {
+        "label": "Dấu hiệu bất thường gần đây (nếu có)",
+        "hint": "Có thể chọn nhiều — chọn \"Không có\" nếu bé hoàn toàn bình thường.",
+        "options": {
+          "NONE": "Không có dấu hiệu bất thường",
+          "STRAINING": "Rặn nhiều nhưng ra rất ít",
+          "NO_URINE": "Vào khay nhiều lần mà không ra nước tiểu",
+          "CRYING": "Kêu đau khi đi vệ sinh",
+          "BLOOD_VISIBLE": "Thấy màu đỏ hoặc hồng trong nước tiểu",
+          "LETHARGY_ANOREXIA": "Bỏ ăn, nằm li bì",
+          "EXCESSIVE_LICKING": "Liếm vùng kín bất thường"
+        }
+      }
+    }
+  },
+  "clinicalSigns": {
+    "title": "Báo cáo dấu hiệu bất thường",
+    "subtitle": "Ghi lại ngay khi bạn thấy bé có biểu hiện lạ — không cần chờ tới lần quét kế tiếp.",
+    "cta": "Báo cáo dấu hiệu bất thường",
+    "signs": {
+      "STRAINING": "Rặn nhiều nhưng ra rất ít",
+      "NO_URINE": "Vào khay nhiều lần mà không ra nước tiểu",
+      "CRYING": "Kêu đau",
+      "BLOOD_VISIBLE": "Thấy màu đỏ hoặc hồng",
+      "LETHARGY_ANOREXIA": "Bỏ ăn, nằm li bì",
+      "EXCESSIVE_LICKING": "Liếm bất thường"
+    },
+    "form": {
+      "signs": {
+        "label": "Bé đang có dấu hiệu nào?",
+        "required": "Vui lòng chọn ít nhất một dấu hiệu."
+      },
+      "note": {
+        "label": "Mô tả thêm (không bắt buộc)",
+        "placeholder": "VD: bắt đầu từ tối qua, kèm theo...",
+        "tooLong": "Nội dung tối đa 2000 ký tự."
+      },
+      "acknowledge": "Tôi đã đọc cảnh báo ở trên",
+      "acknowledgeRequired": "Vui lòng xác nhận bạn đã đọc cảnh báo trước khi gửi.",
+      "submit": "Gửi báo cáo",
+      "saving": "Đang gửi...",
+      "cancel": "Huỷ"
+    },
+    "result": {
+      "triggeredTitle": "Đã ghi nhận — vui lòng liên hệ thú y ngay",
+      "triggeredDescription": "Dấu hiệu bạn chọn trùng với nhóm cảnh báo khẩn. Đừng chờ theo dõi thêm — hãy đưa bé đến cơ sở thú y gần nhất.",
+      "okTitle": "Đã ghi nhận báo cáo",
+      "okDescription": "Cảm ơn bạn đã ghi lại. Hãy tiếp tục theo dõi bé trong 24–48 giờ tới.",
+      "close": "Đóng"
+    }
+  },
+  "disclaimer": {
+    "short": "Đây là kết quả quan sát tại nhà, không phải chẩn đoán y khoa. Nếu bạn thấy lo lắng về bé, hãy hỏi ý kiến bác sĩ thú y.",
+    "emergencyCollapsedTitle": "Dấu hiệu cần đi thú y ngay — xem chi tiết",
+    "emergency": {
+      "title": "⚠️ Những dấu hiệu cần đi thú y NGAY — đừng chờ theo dõi thêm",
+      "intro": "Hãy đưa bé đến cơ sở thú y ngay lập tức nếu bạn thấy:",
+      "points": [
+        "Bé rặn nhiều nhưng không ra nước tiểu, hoặc chỉ ra vài giọt",
+        "Bé kêu, gào, tỏ ra đau khi đi vệ sinh",
+        "Bé ra vào khay liên tục mà khay vẫn khô",
+        "Nước tiểu có máu",
+        "Bé bỏ ăn, nôn, nằm li bì, bụng căng cứng"
+      ],
+      "outro": "Tắc nghẽn đường tiểu là tình trạng cấp cứu và có thể nguy hiểm đến tính mạng trong vòng 24–48 giờ. Trong những trường hợp này, đừng dùng CatCheck để chờ theo dõi thêm — hãy gọi cho phòng khám thú y gần nhất."
+    }
+  },
+  "web": {
+    "hub": {
+      "eyebrow": "MULTI-CAT HEALTH SUITE",
+      "sync": "Đồng bộ thiết bị Bio-Kit: 3 phút trước",
+      "title": "Quản lý Đàn Mèo & Chuyển đổi Theo dõi Sức khỏe",
+      "intro": "Hệ thống AI nhận diện quang phổ hạt cát Bio-Indicator riêng biệt cho từng thành viên trong gia đình mèo. Theo dõi pH nước tiểu, phát hiện sớm nguy cơ sỏi và nhiễm trùng đường tiết niệu (FLUTD).",
+      "quickScan": "Quét nhanh khay cát cho bé đang chọn",
+      "addCat": "+ Thêm hồ sơ bé mèo mới",
+      "selected": "Đang chọn",
+      "standby": "Chế độ chờ",
+      "weight": "Cân nặng",
+      "lastScan": "Lần quét gần nhất",
+      "linkedTray": "Khay cát liên kết",
+      "scanFor": "Quét cát riêng cho {{name}}",
+      "viewRecord": "Xem chi tiết bệnh án",
+      "switchTo": "Chuyển sang theo dõi {{name}}",
+      "addTitle": "Đăng ký thêm bé mèo mới",
+      "addBody": "Gia đình bạn vừa đón thêm thành viên? Tạo hồ sơ để mở khóa mô hình phân tích sinh hóa cát AI độc quyền theo từng thể trạng.",
+      "addNow": "Thêm ngay",
+      "addPerk": "Miễn phí phân tích quang phổ AI",
+      "tableTitle": "Bảng Tổng Hợp So Sánh Sức Khỏe Đàn Mèo",
+      "tableIntro": "Đối chiếu các chỉ số sinh hóa và lâm sàng định kỳ nhằm phát hiện sớm biến động chéo trong đàn",
+      "exportPdf": "Xuất Báo Cáo PDF cho Thú Y",
+      "filterMetric": "Lọc chỉ số",
+      "colCat": "BÉ MÈO",
+      "colAge": "GIỐNG & TUỔI",
+      "colBody": "CÂN NẶNG & THỂ TRẠNG",
+      "colPh": "PH NƯỚC TIỂU TB TUẦN",
+      "colRisk": "NGUY CƠ FLUTD",
+      "colVet": "LỊCH THÚ Y KẾ TIẾP",
+      "colDoctor": "BÁC SĨ PHỤ TRÁCH",
+      "phShort": "pH",
+      "phWithValue": "{{value}} pH",
+      "weightKg": "{{value}} kg",
+      "lastScanNone": "Chưa có lần quét",
+      "lastScanAt": "Lần quét gần nhất: {{date}}",
+      "phAxisAcid": "Toan",
+      "phAxisAlkaline": "Kiềm",
+      "guideEyebrow": "QUY TẮC N+1",
+      "guideKicker": "Gợi ý cho nhà nuôi từ 2 bé trở lên",
+      "guideTitle": "Phân tách khay cát & nhận diện bé vừa dùng khay",
+      "guideIntro": "Nuôi nhiều bé thì khó biết hạt cát đổi màu là của bé nào. Ba cách sắp xếp dưới đây giúp mỗi lần quét gắn đúng hồ sơ:",
+      "guideStep1Title": "Mỗi bé một khay riêng",
+      "guideStep1Body": "Đặt khay ở các góc yên tĩnh khác nhau và ghi tên bé lên khay. Đây là cách cho kết quả rõ ràng nhất khi quét.",
+      "guideStep2Title": "Tách khay tạm khi thấy màu lạ",
+      "guideStep2Body": "Khi một lần quét cho màu khác thường, tách riêng khay của bé nghi ngờ trong 24 giờ để các lần quét sau chỉ thuộc về một bé.",
+      "guideStep3Title": "Tự xác nhận nhanh lúc quét",
+      "guideStep3Body": "Thấy bé nào vừa rời khay thì chọn đúng tên bé ngay khi quét. Chưa chắc thì chọn “Chưa rõ / Dùng chung khay” — kết quả sẽ được giữ riêng, không trộn vào lịch sử của bé nào.",
+      "guideNote": "Nhà có 3 bé: bố trí 4 khay cát riêng biệt, đặt ở các góc yên tĩnh khác nhau."
+    },
+    "profile": {
+      "eyebrow": "HỒ SƠ THÚ CƯNG",
+      "verified": "Hồ sơ đã xác thực ISFM Gold Standard",
+      "exportPdf": "Xuất bệnh án PDF",
+      "vaccineTitle": "Phòng bệnh & Ký sinh",
+      "vaccineName": "Vaccine phòng 4 bệnh Feline (RCPCh)",
+      "vaccineNote": "Hiệu lực bảo hộ cao",
+      "vaccineNext": "Nhắc lại trước: {{date}}",
+      "dewormName": "Tẩy giun sán & Nhỏ gáy nội ngoại",
+      "dewormNote": "Selamectin Spot-on",
+      "accessTitle": "QUYỀN GIÁM SÁT LÂM SÀNG",
+      "accessBody": "Hồ sơ được chia sẻ thời gian thực cho Bệnh viện PetCare và 1 thành viên gia đình (Anh Quân - Chủ hộ).",
+      "accessManage": "Quản lý quyền",
+      "bloodType": "Nhóm máu",
+      "allergy": "Tiền sử dị ứng",
+      "doctorLabel": "BÁC SĨ PHỤ TRÁCH",
+      "flutdRisk": "NGUY CƠ FLUTD",
+      "flutdNote": "Dựa trên 14 lần scan cát gần nhất",
+      "crystals": "SỎI & CẶN BÀNG QUANG",
+      "crystalsNote": "Phổ phản ứng âm tính",
+      "voiding": "THỂ TÍCH BÃI TIỂU",
+      "voidingNote": "Tiêu chuẩn: 35-50 ml",
+      "spectrumTitle": "Thang chỉ thị Màu Cát & pH Niệu CATCHECK",
+      "spectrumSub": "Biomarker Colorimetric Spectrum & Theo dõi sớm qua chỉ số pH",
+      "spectrumAcid": "pH 5.0 (Toan tính)",
+      "spectrumIdeal": "pH 6.2 - 6.8 (Khoảng Lý Tưởng)",
+      "spectrumAlkaline": "pH 7.5+ (Kiềm tính)",
+      "spectrumRiskOxalate": "Nguy cơ Canxi Oxalat",
+      "spectrumRiskStruvite": "Nguy cơ Tinh thể Struvite",
+      "timelineTitle": "Dòng thời gian Y tế & Quét chỉ thị sinh học",
+      "timelineAll": "Xem toàn bộ lịch sử",
+      "nutritionTitle": "Chế độ Dinh Dưỡng & Thói Quen Uống Nước",
+      "nutritionUpdate": "Cập nhật thực đơn",
+      "hydrationLabel": "LƯỢNG NƯỚC NẠP MỖI NGÀY",
+      "dietLabel": "KHẨU PHẦN & DƯỢC LIỆU",
+      "phWithName": "{{name}}: pH {{value}}",
+      "inRange30d": "TỈ LỆ TRONG NGƯỠNG (30 NGÀY)",
+      "scanCount30d": "{{count}} lần quét trong 30 ngày",
+      "inRangeNote": "Tính trên các lần quét kết luận được trong 30 ngày",
+      "lastScanAt": "Lần quét gần nhất: {{date}}",
+      "lastScanNone": "Chưa có lần quét nào",
+      "phUnknown": "{{name}}: chưa có dữ liệu pH",
+      "doctorEmptyTitle": "Chưa ghi nhận bác sĩ phụ trách",
+      "doctorEmptyBody": "Hồ sơ chưa gắn với phòng khám nào. Khi có, thông tin liên hệ sẽ hiện ở đây.",
+      "sexAndAge": "Giới tính & Tuổi",
+      "weightLabel": "Cân nặng",
+      "bornAt": "Sinh {{date}}",
+      "weightUpdatedAt": "Cập nhật {{date}}",
+      "timelineAllCount": "Xem toàn bộ lịch sử ({{count}} bản ghi)",
+      "crystalsValue": "Không ghi nhận sắc tố kiềm bất thường",
+      "phValueShort": "pH {{value}}",
+      "timelineScanTitle": "Quét chỉ thị màu cát",
+      "timelineScanSubtitle": "{{label}} • pH {{value}}",
+      "timelineScanSubtitleNoPh": "{{label}}",
+      "timelineEmpty": "Chưa có lần quét hay ghi chú nào trong hồ sơ của bé.",
+      "timelineNoteFrom": "Ghi chú của chủ nuôi"
+    }
+  },
+  "overview": {
+    "biomarkerEyebrow": "TRẠNG THÁI CHỈ THỊ SINH HỌC NƯỚC TIỂU",
+    "biomarkerStable": "Nền tảng ổn định",
+    "biomarkerWatch": "Cần theo dõi thêm",
+    "biomarkerNoDataTitle": "Chưa có lần quét nào",
+    "biomarkerNoDataBody": "Quét lần đầu để CatCheck bắt đầu ghi nhận màu hạt cát của bé.",
+    "biomarkerBody": "Ghi nhận từ {{count}} lần quét trong 30 ngày gần nhất. Đây là quan sát màu hạt cát tại nhà, không thay thế ý kiến bác sĩ thú y.",
+    "biomarkerCurrent": "Phạm vi hiện tại: pH {{value}}",
+    "bandRange": "{{label}} ({{min}} – {{max}})",
+    "bandBelow": "{{label}} (dưới {{max}})",
+    "bandAbove": "{{label}} (trên {{min}})",
+    "statScanTotal": "Tổng số lần quét",
+    "statScanTotalUnit": "lần",
+    "statScanTotalFoot": "{{count}} lần trong 30 ngày",
+    "statInRange": "Tỉ lệ trong ngưỡng",
+    "statInRangeFoot": "Tính trên 30 ngày gần nhất",
+    "statMedian": "Độ pH trung vị",
+    "statMedianFoot": "Khoảng ghi nhận: {{min}} – {{max}}",
+    "statMedianFootEmpty": "Chưa đủ lần quét để tính khoảng",
+    "statReminder": "Lần nhắc tiếp theo",
+    "statReminderNone": "Chưa đặt",
+    "statReminderFoot": "Nhắc lịch quét định kỳ sẽ bật ở bản cập nhật sau.",
+    "recentTitle": "Lần quét gần đây",
+    "recentCount": "{{shown}} / {{total}} lần",
+    "recentAll": "Xem toàn bộ lịch sử ({{count}} lần ghi)",
+    "recentAllShort": "Xem toàn bộ lịch sử",
+    "recentEmpty": "Chưa có lần quét nào được ghi lại cho bé.",
+    "recentError": "Không tải được lần quét gần đây.",
+    "scanCta": "Bắt đầu quét mới cho {{name}}",
+    "editCta": "Chỉnh sửa hồ sơ & Ghi chú sức khoẻ"
+  }
+}
