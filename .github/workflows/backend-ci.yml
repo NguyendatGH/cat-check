@@ -40,7 +40,7 @@ jobs:
           cache: maven
 
       - name: Cache ~/.m2/repository
-        uses: actions/cache@v4.2.0 # TODO owner xác nhận version (chưa có trong BOM đã pin)
+        uses: actions/cache@v6.1.0 # TODO owner xác nhận version (chưa có trong BOM đã pin)
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
@@ -101,7 +101,7 @@ jobs:
           cache: maven
 
       - name: Cache ~/.m2/repository
-        uses: actions/cache@v4.2.0 # TODO owner xác nhận version
+        uses: actions/cache@v6.1.0 # TODO owner xác nhận version
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
