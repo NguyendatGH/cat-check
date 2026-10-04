@@ -16,7 +16,7 @@ jobs:
       # PHẢI ở đầu job: `docker compose --profile full up` sẽ pull postgres/mailpit
       # và build backend/frontend (build kéo base image từ Docker Hub).
       - name: Docker Hub login
-        uses: docker/login-action@v3.3.0 # TODO owner xác nhận version
+        uses: docker/login-action@v4.6.0 # TODO owner xác nhận version
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
