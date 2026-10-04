@@ -33,7 +33,7 @@ jobs:
       # đang dùng). Khi có migration "contract" (xoá cột cũ) ở mốc sau, cần
       # tách lại thành 2 bước deploy riêng.
       - name: Pull image mới + up -d trên VPS
-        uses: appleboy/ssh-action@v1.2.0 # TODO owner xác nhận version (chưa có trong BOM)
+        uses: appleboy/ssh-action@v1.2.5 # TODO owner xác nhận version (chưa có trong BOM)
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -46,7 +46,7 @@ jobs:
 
       # Health check sau deploy — KHÔNG tự rollback ở MVP, chỉ cảnh báo.
       - name: Health check — GET /actuator/health (retry tối đa 60s)
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
