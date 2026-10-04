@@ -1,17 +1,11 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeft, Banknote, CreditCard, Info, Lock, MapPin, QrCode } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { MoMoGlyph } from "@/shared/assets/icons/MoMoGlyph";
-import {
-  MOCK_DELIVERY_ADDRESS,
-  MOCK_ORDER,
-  MOCK_PAYMENT_METHODS,
-  MOCK_SHIPPING_LABEL,
-  MOCK_VOUCHER,
-  formatVnd,
-  type MockPaymentMethodId,
-} from "./mockData";
+import { createShopOrder } from "@/features/shop";
+import { MOCK_PAYMENT_METHODS, MOCK_VOUCHER, formatVnd, type MockPaymentMethodId } from "./mockData";
 import { useCartTotals, useShopCart } from "./useShopCart";
 
 /**
@@ -38,6 +32,11 @@ export function CheckoutPage() {
   const voucherApplied = useShopCart((s) => s.voucherApplied);
   const paymentMethodId = useShopCart((s) => s.paymentMethodId);
   const totals = useCartTotals();
+  const [placing, setPlacing] = useState(false);
+  const [error, setError] = useState(false);
+  const [receiverName, setReceiverName] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
 
   const method = MOCK_PAYMENT_METHODS.find((m) => m.id === paymentMethodId) ?? MOCK_PAYMENT_METHODS[0];
   const MethodIcon = PAYMENT_ICONS[method.id];
@@ -72,13 +71,42 @@ export function CheckoutPage() {
                 {t("checkout.edit")}
               </Link>
             </div>
-            <p className="pt-2.5 text-[14px] font-semibold text-text-primary">
-              {MOCK_DELIVERY_ADDRESS.receiverName}
-              <span className="pl-2 text-[13px] font-normal text-text-tertiary">
-                {MOCK_DELIVERY_ADDRESS.phoneMasked}
-              </span>
-            </p>
-            <p className="pt-1 text-[13px] leading-relaxed text-text-secondary">{MOCK_DELIVERY_ADDRESS.line}</p>
+            <div className="grid gap-3 pt-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-small font-semibold text-text-secondary">
+                {t("checkout.receiverName")}
+                <input
+                  className="h-10 rounded-lg bg-background-alt px-3 font-normal text-text-primary"
+                  value={receiverName}
+                  onChange={(event) => {
+                    setReceiverName(event.target.value);
+                  }}
+                  required
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-small font-semibold text-text-secondary">
+                {t("checkout.receiverPhone")}
+                <input
+                  className="h-10 rounded-lg bg-background-alt px-3 font-normal text-text-primary"
+                  value={receiverPhone}
+                  onChange={(event) => {
+                    setReceiverPhone(event.target.value);
+                  }}
+                  required
+                  inputMode="tel"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-small font-semibold text-text-secondary sm:col-span-2">
+                {t("checkout.shippingAddress")}
+                <textarea
+                  className="min-h-20 rounded-lg bg-background-alt px-3 py-2 font-normal text-text-primary"
+                  value={shippingAddress}
+                  onChange={(event) => {
+                    setShippingAddress(event.target.value);
+                  }}
+                  required
+                />
+              </label>
+            </div>
           </section>
 
           <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
@@ -130,7 +158,7 @@ export function CheckoutPage() {
             ) : null}
             <div className="flex justify-between gap-4">
               <dt className="text-text-secondary">{t("cartPanel.shippingLabel")}</dt>
-              <dd className="font-semibold text-success-text">{MOCK_SHIPPING_LABEL}</dd>
+              <dd className="font-semibold text-success-text">{t("checkout.serverShipping")}</dd>
             </div>
           </dl>
 
@@ -144,13 +172,33 @@ export function CheckoutPage() {
 
           <button
             type="button"
-            disabled={lines.length === 0}
-            onClick={() => { void navigate(`/orders/${MOCK_ORDER.code.replace("#", "")}`); }}
+            disabled={
+              lines.length === 0 || placing || !receiverName.trim() || !receiverPhone.trim() || !shippingAddress.trim()
+            }
+            onClick={() => {
+              setPlacing(true);
+              setError(false);
+              void createShopOrder({
+                paymentMethod:
+                  paymentMethodId === "cod" ? "COD" : paymentMethodId === "momo" ? "MOMO" : "BANK_TRANSFER",
+                receiverName: receiverName.trim(),
+                receiverPhone: receiverPhone.trim(),
+                shippingAddress: shippingAddress.trim(),
+              })
+                .then((order) => navigate(`/orders/${order.id}`))
+                .catch(() => {
+                  setError(true);
+                })
+                .finally(() => {
+                  setPlacing(false);
+                });
+            }}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary-dark px-4 py-3.5 text-[14px] font-bold text-white shadow-brand-md hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Lock size={15} aria-hidden="true" />
-            {t("checkout.placeOrder")}
+            {placing ? t("checkout.placing") : t("checkout.placeOrder")}
           </button>
+          {error ? <p className="pt-2 text-center text-[12px] text-danger-text">{t("checkout.error")}</p> : null}
         </section>
       </div>
     </div>

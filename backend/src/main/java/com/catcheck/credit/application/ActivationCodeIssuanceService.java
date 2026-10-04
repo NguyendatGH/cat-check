@@ -36,8 +36,15 @@ public class ActivationCodeIssuanceService {
 
     private static final Logger log = LoggerFactory.getLogger(ActivationCodeIssuanceService.class);
 
-    /** Chặn một lệnh phát hành quá lớn làm cạn bảng trong một transaction. */
-    public static final int MAX_CODES_PER_BATCH = 10_000;
+    /**
+     * Trần mã mỗi lô — <b>50 000, lấy đúng từ p8 L20</b> (<i>"≤ 50 000/lần ⇒
+     * {@code 422 ACTIVATION_BATCH_TOO_LARGE}"</i>) và p14 §14.3.2 mục 4.
+     *
+     * <p>Bản trước đặt 10 000 "để chặn một lệnh phát hành quá lớn" — một con số tự đặt, trong
+     * khi p8 sở hữu danh mục endpoint và đã chốt 50 000. Nâng được vì {@link #issue} đã chuyển
+     * sang {@code insertAll} (một JDBC batch) thay vì 1 lệnh INSERT/mã.</p>
+     */
+    public static final int MAX_CODES_PER_BATCH = 50_000;
 
     private final ActivationCodePort codePort;
     private final PackagePlanPort packagePlanPort;
@@ -93,15 +100,24 @@ public class ActivationCodeIssuanceService {
         Instant validUntil = issuedAt.plus(validForDays, ChronoUnit.DAYS);
         String codePrefix = ActivationCodeFormat.codePrefixOf(packageCode);
 
+        // Chống trùng TRONG LÔ bằng chính tập hash sắp ghi: UNIQUE(code_hash) ở DB vẫn là lưới
+        // cuối, nhưng để nó bắt nghĩa là cả transaction 50 000 dòng bị huỷ vì một lần trùng
+        // ngẫu nhiên. Sinh lại ngay tại đây rẻ hơn nhiều.
+        java.util.Set<String> hashes = new java.util.HashSet<>(quantity * 2);
         java.util.List<String> rawCodes = new java.util.ArrayList<>(quantity);
-        for (int i = 0; i < quantity; i++) {
+        java.util.List<ActivationCode> rows = new java.util.ArrayList<>(quantity);
+        while (rows.size() < quantity) {
             String raw = ActivationCodeFormat.generate(packageCode, secureRandom);
             ActivationCodeHasher.HashedActivationCode hashed = codeHasher.hash(raw);
-            codePort.insert(new ActivationCode(
+            if (!hashes.add(hashed.hex())) {
+                continue;
+            }
+            rows.add(new ActivationCode(
                     uuidV7.generate(), hashed.hex(), hashed.pepperVersion(), codePrefix, packageCode,
                     productionBatch, issuedAt, validUntil, ActivationCodeStatus.ISSUED, null, null));
             rawCodes.add(raw);
         }
+        codePort.insertAll(rows);
 
         // Log KHÔNG chứa mã thô lẫn mã băm — chỉ số lượng và mã gói.
         log.info("Phát hành {} mã gói {}, lô sản xuất {}", quantity, packageCode, productionBatch);

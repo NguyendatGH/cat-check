@@ -14,6 +14,7 @@ import com.catcheck.privacy.application.ConsentCurrentState;
 import com.catcheck.privacy.application.ConsentGrant;
 import com.catcheck.privacy.application.ConsentService;
 import com.catcheck.privacy.application.DsarService;
+import com.catcheck.privacy.application.export.DataExportJobService;
 import com.catcheck.privacy.application.RequestEvidence;
 import com.catcheck.privacy.domain.ConsentMethod;
 import com.catcheck.privacy.domain.ConsentRecord;
@@ -33,6 +34,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,6 +43,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Clock;
@@ -68,6 +72,7 @@ public class PrivacyController {
 
     private final ConsentService consentService;
     private final DsarService dsarService;
+    private final DataExportJobService dataExportJobService;
     private final DataInventoryItemPort dataInventoryItemPort;
     private final PolicyVersionPort policyVersionPort;
     private final Clock clock;
@@ -75,12 +80,14 @@ public class PrivacyController {
     public PrivacyController(
             ConsentService consentService,
             DsarService dsarService,
+            DataExportJobService dataExportJobService,
             DataInventoryItemPort dataInventoryItemPort,
             PolicyVersionPort policyVersionPort,
             Clock clock
     ) {
         this.consentService = consentService;
         this.dsarService = dsarService;
+        this.dataExportJobService = dataExportJobService;
         this.dataInventoryItemPort = dataInventoryItemPort;
         this.policyVersionPort = policyVersionPort;
         this.clock = clock;
@@ -233,15 +240,16 @@ public class PrivacyController {
                     Tạo dsar_request(ACCESS_EXPORT) trả 202. Giới hạn 1 yêu cầu/24 giờ \
                     (429 DSAR_EXPORT_RATE_LIMITED); bắt buộc step-up re-auth \
                     (403 DSAR_IDENTITY_VERIFICATION_REQUIRED). SLA phản hồi 02 ngày làm việc, \
-                    thực hiện 10 ngày (p15 §15.4.1). Gói ZIP dựng bởi DataExportJob (p12) — \
-                    ở M1 chưa có job nên download sẽ trả 409 DSAR_EXPORT_NOT_READY.""")
+                    thực hiện 10 ngày (p15 §15.4.1). DataExportJob tạo ZIP bất đồng bộ, có \
+                    thể theo dõi trạng thái tại C7.""")
     @PostMapping("/export")
     public ResponseEntity<ExportStatusView> createExportRequest(
             @CurrentUser SecurityPrincipal user,
             HttpServletRequest httpRequest
     ) {
         DsarRequest request = dsarService.createExportRequest(user.userId(), evidence(httpRequest));
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(PrivacyDtoMapper.toExportStatus(request));
+        String downloadToken = dataExportJobService.enqueue(request.id(), evidence(httpRequest));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(PrivacyDtoMapper.toExportStatus(request, downloadToken));
     }
 
     /** C7 — trạng thái gói xuất DSAR theo publicRef. */
@@ -260,24 +268,28 @@ public class PrivacyController {
     }
 
     /**
-     * C8 — tải gói ZIP: link MỘT LẦN, 72 giờ, yêu cầu đăng nhập. Ở M1 chưa có
-     * DataExportJob nên gói chưa bao giờ sẵn sàng — luôn 409 DSAR_EXPORT_NOT_READY.
+     * C8 — tải gói ZIP: link MỘT LẦN, 72 giờ, yêu cầu đăng nhập.
      */
     @Operation(
             operationId = "downloadExport",
             summary = "Tải gói xuất dữ liệu (một lần, 72 giờ)",
             description = """
-                    Link tải một lần, hết hạn sau 72 giờ, yêu cầu đăng nhập (p15 §15.4.5). Ở M1 \
-                    chưa có DataExportJob ⇒ gói chưa sẵn sàng, trả 409 DSAR_EXPORT_NOT_READY. \
-                    Khi có job: chưa COMPLETED ⇒ 409; quá 72 giờ ⇒ 410 DSAR_EXPORT_EXPIRED; đã \
+                    Link tải một lần, hết hạn sau 72 giờ, yêu cầu đăng nhập (p15 §15.4.5). \
+                    Job chưa COMPLETED ⇒ 409; quá 72 giờ ⇒ 410 DSAR_EXPORT_EXPIRED; đã \
                     tải ⇒ 410 DSAR_EXPORT_ALREADY_DOWNLOADED.""")
     @GetMapping("/export/{publicRef}/download")
-    public ResponseEntity<Void> downloadExport(
+    public ResponseEntity<InputStreamResource> downloadExport(
             @CurrentUser SecurityPrincipal user,
-            @PathVariable("publicRef") String publicRef
+            @PathVariable("publicRef") String publicRef,
+            @RequestHeader(name = "X-DSAR-Download-Token", required = false) String downloadToken,
+            HttpServletRequest request
     ) {
-        dsarService.markDownloaded(user.userId(), publicRef);
-        return ResponseEntity.noContent().build();
+        var download = dataExportJobService.openDownload(user.userId(), publicRef, downloadToken, evidence(request));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + download.filename() + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, private")
+                .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                .body(new InputStreamResource(download.stream()));
     }
 
     /** C9 — yêu cầu xoá tài khoản ⇒ DELETION_REQUESTED, ân hạn 7 ngày (TD-05). */

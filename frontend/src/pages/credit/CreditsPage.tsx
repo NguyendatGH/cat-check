@@ -20,6 +20,7 @@ import {
   useCreditBalance,
   useCreditLedger,
   useEntitlement,
+  usePackageCatalog,
 } from "@/features/credit";
 
 /**
@@ -40,6 +41,11 @@ export function CreditsPage() {
   const balanceQuery = useCreditBalance();
   const ledgerQuery = useCreditLedger();
   const entitlementQuery = useEntitlement();
+  // F3 — danh mục gói THẬT. Tên gói hiển thị ở mọi nơi trong trang lấy từ đây, không còn
+  // bảng `credit.json: packages.*` cứng (xem `usePackageCatalog`).
+  const packagesQuery = usePackageCatalog();
+  const planName = (code: string | null): string =>
+    (code ? packagesQuery.data?.find((plan) => plan.code === code)?.name : undefined) ?? code ?? "";
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:max-w-none">
@@ -49,7 +55,9 @@ export function CreditsPage() {
           type="button"
           size="sm"
           leftIcon={<Plus className="size-4" aria-hidden="true" />}
-          onClick={() => { void navigate("/credits/activate"); }}
+          onClick={() => {
+            void navigate("/credits/activate");
+          }}
         >
           {t("activateCta")}
         </Button>
@@ -69,7 +77,9 @@ export function CreditsPage() {
               ) : balanceQuery.isError ? (
                 <ErrorState
                   title={t("balance.errorTitle")}
-                  onRetry={() => { void balanceQuery.refetch(); }}
+                  onRetry={() => {
+                    void balanceQuery.refetch();
+                  }}
                   retryLabel={t("actions.retry", { ns: "common" })}
                 />
               ) : (
@@ -102,20 +112,60 @@ export function CreditsPage() {
                 {entitlementQuery.isPending ? (
                   <SkeletonLoader shape="text" />
                 ) : entitlementQuery.isError ? (
-                  <ErrorState title={t("entitlement.errorTitle")} onRetry={() => { void entitlementQuery.refetch(); }} />
+                  <ErrorState
+                    title={t("entitlement.errorTitle")}
+                    onRetry={() => {
+                      void entitlementQuery.refetch();
+                    }}
+                  />
                 ) : (
                   <div className="flex flex-col gap-3">
                     <p className="text-caption text-text-secondary">
                       {entitlementQuery.data.currentPackage
-                        ? t("entitlement.currentPackage", {
-                            name: t(`packages.${entitlementQuery.data.currentPackage}`, {
-                              defaultValue: entitlementQuery.data.currentPackage,
-                            }),
-                          })
+                        ? t("entitlement.currentPackage", { name: planName(entitlementQuery.data.currentPackage) })
                         : t("entitlement.noPackage")}
                     </p>
                     <EntitlementFeatureList entitlement={entitlementQuery.data} />
                   </div>
+                )}
+              </Card>
+
+              {/* Danh mục gói — F3 `GET /reference/packages`. KHÔNG có trường giá trong
+                  response (thanh toán là Phase 3) nên trang không hiển thị giá. */}
+              <h2 className="pt-2 text-h3 font-semibold text-text-primary">{t("catalog.sectionTitle")}</h2>
+              <Card>
+                {packagesQuery.isPending ? (
+                  <SkeletonLoader shape="text" />
+                ) : packagesQuery.isError ? (
+                  <ErrorState
+                    title={t("catalog.errorTitle")}
+                    onRetry={() => {
+                      void packagesQuery.refetch();
+                    }}
+                    retryLabel={t("actions.retry", { ns: "common" })}
+                  />
+                ) : packagesQuery.data.length === 0 ? (
+                  <EmptyState title={t("catalog.emptyTitle")} description={t("catalog.emptyDescription")} />
+                ) : (
+                  <ul className="flex flex-col divide-y divide-border">
+                    {packagesQuery.data.map((plan) => (
+                      <li key={plan.code} className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0">
+                        <span className="text-caption font-semibold text-text-primary">{plan.name}</span>
+                        <span className="text-caption text-text-secondary">
+                          {t("catalog.credits", { count: plan.creditAmount })}
+                          {" · "}
+                          {t("catalog.validity", { days: plan.creditValidityDays })}
+                          {" · "}
+                          {t("catalog.weight", { value: plan.weightKg })}
+                        </span>
+                        <span className="text-small text-text-tertiary">
+                          {plan.maxCatProfiles === null
+                            ? t("catalog.catsUnlimited")
+                            : t("catalog.catsLimit", { count: plan.maxCatProfiles })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </Card>
             </div>
@@ -129,7 +179,9 @@ export function CreditsPage() {
             ) : ledgerQuery.isError ? (
               <ErrorState
                 title={t("ledger.errorTitle")}
-                onRetry={() => { void ledgerQuery.refetch(); }}
+                onRetry={() => {
+                  void ledgerQuery.refetch();
+                }}
                 retryLabel={t("actions.retry", { ns: "common" })}
               />
             ) : ledgerQuery.data.pages[0]?.entries.length === 0 ? (
@@ -137,9 +189,11 @@ export function CreditsPage() {
             ) : (
               <>
                 <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-                  {ledgerQuery.data.pages.flatMap((page) => page.entries).map((entry) => (
-                    <LedgerEntryRow key={entry.id} entry={entry} />
-                  ))}
+                  {ledgerQuery.data.pages
+                    .flatMap((page) => page.entries)
+                    .map((entry) => (
+                      <LedgerEntryRow key={entry.id} entry={entry} />
+                    ))}
                 </div>
                 {ledgerQuery.hasNextPage ? (
                   <Button
@@ -147,7 +201,9 @@ export function CreditsPage() {
                     variant="tertiary"
                     className="lg:mx-auto lg:w-[360px]"
                     loading={ledgerQuery.isFetchingNextPage}
-                    onClick={() => { void ledgerQuery.fetchNextPage(); }}
+                    onClick={() => {
+                      void ledgerQuery.fetchNextPage();
+                    }}
                   >
                     {t("ledger.loadMore")}
                   </Button>

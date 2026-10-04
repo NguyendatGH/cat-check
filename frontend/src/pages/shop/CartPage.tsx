@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import {
@@ -46,7 +47,8 @@ import { useCartTotals, useShopCart } from "./useShopCart";
  * này — ở web giỏ hàng là cột phải của trang Cửa hàng (`CartPanel`), nên từ `lg` trang này
  * trải thành 2 cột: nội dung đơn bên trái, khối thanh toán dính bên phải.
  *
- * Toàn bộ dữ liệu là mock (`mockData.ts`) — module Shop chưa có API backend nào.
+ * Cart được hydrate từ Shop API; địa chỉ giao hàng/voucher vẫn là phần chưa có resource riêng
+ * trong spec hiện tại.
  * Padding ngang ở `lg` do `AppLayout` cấp, nên ở đây là `lg:px-0`.
  */
 
@@ -81,8 +83,13 @@ export function CartPage() {
   const removeVoucher = useShopCart((s) => s.removeVoucher);
   const setPaymentMethod = useShopCart((s) => s.setPaymentMethod);
   const clearAll = useShopCart((s) => s.clearAll);
+  const hydrateCart = useShopCart((s) => s.hydrate);
   const totals = useCartTotals();
   const isEmpty = lines.length === 0;
+
+  useEffect(() => {
+    void hydrateCart();
+  }, [hydrateCart]);
 
   const goCheckout = () => {
     void navigate("/checkout");
@@ -134,9 +141,7 @@ export function CartPage() {
                 {t("cartPage.addressChange")}
               </button>
             </div>
-            <p className="pl-13 pt-1.5 text-[13px] leading-relaxed text-text-secondary">
-              {MOCK_DELIVERY_ADDRESS.line}
-            </p>
+            <p className="pl-13 pt-1.5 text-[13px] leading-relaxed text-text-secondary">{MOCK_DELIVERY_ADDRESS.line}</p>
             <p className="ml-13 mt-3 inline-flex items-center gap-1.5 rounded-full bg-warning-bg px-3 py-1.5 text-[12px] font-semibold text-warning-text">
               <Zap size={13} aria-hidden="true" />
               {MOCK_DELIVERY_ADDRESS.speedBadge}
@@ -189,16 +194,10 @@ export function CartPage() {
                     <p
                       className={cn(
                         "inline-flex w-fit items-center gap-1.5 rounded-lg px-2.5 py-1 text-[12px] font-semibold",
-                        line.isGift
-                          ? "bg-success-bg text-success-text"
-                          : "bg-chip-bg text-primary-dark",
+                        line.isGift ? "bg-success-bg text-success-text" : "bg-chip-bg text-primary-dark",
                       )}
                     >
-                      {line.isGift ? (
-                        <Gift size={13} aria-hidden="true" />
-                      ) : (
-                        <RefreshCw size={13} aria-hidden="true" />
-                      )}
+                      {line.isGift ? <Gift size={13} aria-hidden="true" /> : <RefreshCw size={13} aria-hidden="true" />}
                       {line.isGift ? t("cartPage.giftBadge") : MOCK_VOUCHER.note}
                     </p>
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
@@ -224,7 +223,9 @@ export function CartPage() {
                           <button
                             type="button"
                             aria-label={t("cartPanel.decrease")}
-                            onClick={() => { decrease(line.id); }}
+                            onClick={() => {
+                              decrease(line.id);
+                            }}
                             className="flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-background-alt"
                           >
                             <Minus size={14} aria-hidden="true" />
@@ -235,7 +236,9 @@ export function CartPage() {
                           <button
                             type="button"
                             aria-label={t("cartPanel.increase")}
-                            onClick={() => { increase(line.id); }}
+                            onClick={() => {
+                              increase(line.id);
+                            }}
                             className="flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-background-alt"
                           >
                             <Plus size={14} aria-hidden="true" />
@@ -248,7 +251,9 @@ export function CartPage() {
                     <button
                       type="button"
                       aria-label={t("cartPanel.removeItem")}
-                      onClick={() => { remove(line.id); }}
+                      onClick={() => {
+                        remove(line.id);
+                      }}
                       className="absolute right-3 top-3 flex size-6 items-center justify-center rounded-md text-text-tertiary hover:bg-background-alt hover:text-danger"
                     >
                       <X size={15} aria-hidden="true" />
@@ -330,7 +335,9 @@ export function CartPage() {
                       name="payment-method"
                       value={method.id}
                       checked={selected}
-                      onChange={() => { setPaymentMethod(method.id); }}
+                      onChange={() => {
+                        setPaymentMethod(method.id);
+                      }}
                       className="sr-only"
                     />
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary-dark">
@@ -371,9 +378,7 @@ export function CartPage() {
               </div>
               {voucherApplied ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-text-secondary">
-                    {t("cartPanel.discountLabel", { code: MOCK_VOUCHER.code })}
-                  </dt>
+                  <dt className="text-text-secondary">{t("cartPanel.discountLabel", { code: MOCK_VOUCHER.code })}</dt>
                   <dd className="font-semibold text-success-text">-{formatVnd(totals.discount)}</dd>
                 </div>
               ) : null}
@@ -391,9 +396,7 @@ export function CartPage() {
                   </span>
                 ) : null}
               </span>
-              <span className="text-[24px] font-bold leading-none text-primary-dark">
-                {formatVnd(totals.total)}
-              </span>
+              <span className="text-[24px] font-bold leading-none text-primary-dark">{formatVnd(totals.total)}</span>
             </div>
             <button
               type="button"
@@ -414,12 +417,7 @@ export function CartPage() {
                   key={item.key}
                   className="flex flex-col items-center gap-1.5 rounded-2xl bg-surface p-3 text-center shadow-brand-md"
                 >
-                  <span
-                    className={cn(
-                      "flex size-9 items-center justify-center rounded-full",
-                      TRUST_TONES[item.key],
-                    )}
-                  >
+                  <span className={cn("flex size-9 items-center justify-center rounded-full", TRUST_TONES[item.key])}>
                     <Icon size={17} aria-hidden="true" />
                   </span>
                   <span className="text-[12px] font-bold leading-tight text-text-primary">{item.title}</span>

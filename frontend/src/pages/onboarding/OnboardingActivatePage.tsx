@@ -93,12 +93,22 @@ export function OnboardingActivatePage() {
       <OnboardingShell
         step={4}
         title={t("activate.title")}
-        onBack={() => { void navigate("/onboarding/disclaimer"); }}
+        onBack={() => {
+          void navigate("/onboarding/disclaimer");
+        }}
         onStepClick={(step) => {
-          if (step === 1) { void navigate("/onboarding/cat"); }
-          if (step === 2) { void navigate("/onboarding/health-survey"); }
-          if (step === 3) { void navigate("/onboarding/disclaimer"); }
-          if (step === 4) { void navigate("/onboarding/activate"); }
+          if (step === 1) {
+            void navigate("/onboarding/cat");
+          }
+          if (step === 2) {
+            void navigate("/onboarding/health-survey");
+          }
+          if (step === 3) {
+            void navigate("/onboarding/disclaimer");
+          }
+          if (step === 4) {
+            void navigate("/onboarding/activate");
+          }
         }}
         footer={
           <Button type="button" size="lg" className="w-full" onClick={onContinueAfterSuccess}>
@@ -139,12 +149,22 @@ export function OnboardingActivatePage() {
       step={4}
       title={t("activate.title")}
       subtitle={t("activate.subtitle")}
-      onBack={() => { void navigate("/onboarding/disclaimer"); }}
+      onBack={() => {
+        void navigate("/onboarding/disclaimer");
+      }}
       onStepClick={(step) => {
-        if (step === 1) { void navigate("/onboarding/cat"); }
-        if (step === 2) { void navigate("/onboarding/health-survey"); }
-        if (step === 3) { void navigate("/onboarding/disclaimer"); }
-        if (step === 4) { void navigate("/onboarding/activate"); }
+        if (step === 1) {
+          void navigate("/onboarding/cat");
+        }
+        if (step === 2) {
+          void navigate("/onboarding/health-survey");
+        }
+        if (step === 3) {
+          void navigate("/onboarding/disclaimer");
+        }
+        if (step === 4) {
+          void navigate("/onboarding/activate");
+        }
       }}
       footer={
         <div className="flex flex-col gap-3">

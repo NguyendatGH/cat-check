@@ -71,6 +71,7 @@ agent-skills/
 context/
 build/
 asset/
-.github/
 .claude/
 deployment/
+docs/
+design/

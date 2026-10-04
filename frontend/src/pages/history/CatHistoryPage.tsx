@@ -76,7 +76,9 @@ export function CatHistoryPage() {
   const medianBand = summary?.median != null ? findBandForPh(bands ?? [], summary.median) : null;
   const catMeta = [
     cat?.ageMonths != null ? t("switcher.ageLabel", { months: cat.ageMonths }) : null,
-    cat ? t(`form.sex.${cat.sex === "MALE" ? "male" : cat.sex === "FEMALE" ? "female" : "unknown"}`, { ns: "cat" }) : null,
+    cat
+      ? t(`form.sex.${cat.sex === "MALE" ? "male" : cat.sex === "FEMALE" ? "female" : "unknown"}`, { ns: "cat" })
+      : null,
   ]
     .filter(Boolean)
     .join(" • ");
@@ -155,7 +157,12 @@ export function CatHistoryPage() {
             title={t("state.emptyTitle")}
             description={t("state.emptyDescription")}
             action={
-              <Button variant="primary" onClick={() => { void navigate("/scan/select-cat"); }}>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  void navigate("/scan/select-cat");
+                }}
+              >
                 {t("state.emptyCta")}
               </Button>
             }

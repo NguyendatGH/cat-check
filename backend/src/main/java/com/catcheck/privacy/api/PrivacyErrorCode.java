@@ -54,6 +54,9 @@ public enum PrivacyErrorCode implements ErrorCode {
     /** 404 — {@code publicRef} không tồn tại hoặc không thuộc user (p8 §8.2.5: tài nguyên của người khác trả 404). */
     DSAR_NOT_FOUND("dsar-not-found", HttpStatus.NOT_FOUND),
 
+    /** 404 — cấu hình retention không tồn tại. */
+    RETENTION_POLICY_NOT_FOUND("retention-policy-not-found", HttpStatus.NOT_FOUND),
+
     /**
      * 403 — chưa xác minh OTP trước khi xuất/xoá (p15 REQ-DSAR-04). Tham số:
      * {@code challengeId}, {@code email} (đã che).

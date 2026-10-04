@@ -66,12 +66,56 @@ const BREEDS: BreedListResponse = {
  * Mock lệch hợp đồng thật thì MSW xanh mà chạy thật đỏ — đúng loại lỗi mock sinh ra.
  */
 const phBandList: PhBandListResponse = [
-  { code: "LOW", phMax: 6.0, severity: "WATCH", label: "Thấp rõ rệt (thiên axit)", colorToken: "color-ph-abnormal", sortOrder: 1 },
-  { code: "SLIGHTLY_LOW", phMin: 6.0, phMax: 6.3, severity: "ATTENTION", label: "Hơi thấp (thiên axit)", colorToken: "color-ph-mild", sortOrder: 2 },
-  { code: "IN_RANGE", phMin: 6.3, phMax: 6.6, severity: "NORMAL", label: "Trong khoảng tham chiếu", colorToken: "color-ph-normal", sortOrder: 3 },
-  { code: "SLIGHTLY_HIGH", phMin: 6.6, phMax: 7.0, severity: "ATTENTION", label: "Hơi cao (thiên kiềm)", colorToken: "color-ph-mild", sortOrder: 4 },
-  { code: "HIGH", phMin: 7.0, severity: "WATCH", label: "Cao rõ rệt (thiên kiềm)", colorToken: "color-ph-abnormal", sortOrder: 5 },
-  { code: "INCONCLUSIVE", severity: "NEUTRAL", label: "Chưa đủ dữ liệu để kết luận", colorToken: "color-ph-unknown", sortOrder: 6 },
+  {
+    code: "LOW",
+    phMax: 6.0,
+    severity: "WATCH",
+    label: "Thấp rõ rệt (thiên axit)",
+    colorToken: "color-ph-abnormal",
+    sortOrder: 1,
+  },
+  {
+    code: "SLIGHTLY_LOW",
+    phMin: 6.0,
+    phMax: 6.3,
+    severity: "ATTENTION",
+    label: "Hơi thấp (thiên axit)",
+    colorToken: "color-ph-mild",
+    sortOrder: 2,
+  },
+  {
+    code: "IN_RANGE",
+    phMin: 6.3,
+    phMax: 6.6,
+    severity: "NORMAL",
+    label: "Trong khoảng tham chiếu",
+    colorToken: "color-ph-normal",
+    sortOrder: 3,
+  },
+  {
+    code: "SLIGHTLY_HIGH",
+    phMin: 6.6,
+    phMax: 7.0,
+    severity: "ATTENTION",
+    label: "Hơi cao (thiên kiềm)",
+    colorToken: "color-ph-mild",
+    sortOrder: 4,
+  },
+  {
+    code: "HIGH",
+    phMin: 7.0,
+    severity: "WATCH",
+    label: "Cao rõ rệt (thiên kiềm)",
+    colorToken: "color-ph-abnormal",
+    sortOrder: 5,
+  },
+  {
+    code: "INCONCLUSIVE",
+    severity: "NEUTRAL",
+    label: "Chưa đủ dữ liệu để kết luận",
+    colorToken: "color-ph-unknown",
+    sortOrder: 6,
+  },
 ];
 
 interface MockActivationCode {
@@ -89,12 +133,54 @@ interface MockActivationCode {
  * bỏ qua checksum, chỉ tra cứu registry.
  */
 const ACTIVATION_CODES: MockActivationCode[] = [
-  { code: "CCPLUS7K3M9QX2RT", packageCode: "PLUS", packageName: "CATCHECK Plus", creditAmount: 10, validityDays: 7, status: "ACTIVE" },
-  { code: "CCMINI3K9QX2RTWM", packageCode: "MINI", packageName: "CATCHECK Mini – Trial", creditAmount: 3, validityDays: 7, status: "ACTIVE" },
-  { code: "CCDAILY8K3M9QX2A", packageCode: "DAILY", packageName: "CATCHECK Daily", creditAmount: 8, validityDays: 7, status: "ACTIVE" },
-  { code: "CCMULTI6K3M9QX2BC", packageCode: "MULTI", packageName: "CATCHECK Multi", creditAmount: 16, validityDays: 7, status: "ACTIVE" },
-  { code: "CCPLUS000000000U", packageCode: "PLUS", packageName: "CATCHECK Plus", creditAmount: 10, validityDays: 7, status: "REDEEMED" },
-  { code: "CCPLUS000000000E", packageCode: "PLUS", packageName: "CATCHECK Plus", creditAmount: 10, validityDays: 7, status: "EXPIRED" },
+  {
+    code: "CCPLUS7K3M9QX2RT",
+    packageCode: "PLUS",
+    packageName: "CATCHECK Plus",
+    creditAmount: 10,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCMINI3K9QX2RTWM",
+    packageCode: "MINI",
+    packageName: "CATCHECK Mini – Trial",
+    creditAmount: 3,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCDAILY8K3M9QX2A",
+    packageCode: "DAILY",
+    packageName: "CATCHECK Daily",
+    creditAmount: 8,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCMULTI6K3M9QX2BC",
+    packageCode: "MULTI",
+    packageName: "CATCHECK Multi",
+    creditAmount: 16,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCPLUS000000000U",
+    packageCode: "PLUS",
+    packageName: "CATCHECK Plus",
+    creditAmount: 10,
+    validityDays: 7,
+    status: "REDEEMED",
+  },
+  {
+    code: "CCPLUS000000000E",
+    packageCode: "PLUS",
+    packageName: "CATCHECK Plus",
+    creditAmount: 10,
+    validityDays: 7,
+    status: "EXPIRED",
+  },
 ];
 
 const ACTIVATION_CODE_REGEX = /^CC[A-Z0-9]+[0-9A-HJKMNP-TV-Z]{10}$/;
@@ -123,9 +209,7 @@ function makeCat(draft: CatProfileDraft, id: string): CreatedCat {
   const ageMonths = birthDate
     ? Math.max(
         0,
-        Math.floor(
-          (Date.now() - new Date(`${birthDate}T00:00:00`).getTime()) / (1000 * 60 * 60 * 24 * 30.44),
-        ),
+        Math.floor((Date.now() - new Date(`${birthDate}T00:00:00`).getTime()) / (1000 * 60 * 60 * 24 * 30.44)),
       )
     : null;
   return {
@@ -272,18 +356,20 @@ export const handlers = [
   http.get("/api/v1/cats/:catId/summary", async ({ params }) => {
     await delay(200);
     const id = String(params.catId);
-    const cat = createdCats.get(id) ?? makeCat(
-      {
-        name: "Luna",
-        breedCode: "BRITISH_SHORTHAIR",
-        sex: "FEMALE",
-        neutered: true,
-        birthDate: "2024-03-14",
-        weightKg: "4.2",
-        avatarFile: null,
-      },
-      id,
-    );
+    const cat =
+      createdCats.get(id) ??
+      makeCat(
+        {
+          name: "Luna",
+          breedCode: "BRITISH_SHORTHAIR",
+          sex: "FEMALE",
+          neutered: true,
+          birthDate: "2024-03-14",
+          weightKg: "4.2",
+          avatarFile: null,
+        },
+        id,
+      );
     // Khớp response thật của D12 (xem CatSummary) — tài khoản mock chưa có lần quét nào.
     const summary: CatSummary = {
       catId: cat.id,
@@ -297,6 +383,5 @@ export const handlers = [
     return HttpResponse.json(summary);
   }),
 ];
-
 
 export const worker = setupWorker(...handlers);

@@ -4,8 +4,7 @@ import com.catcheck.export.api.ExportErrorCode;
 import com.catcheck.export.domain.ExportJob;
 import com.catcheck.export.domain.ExportStatus;
 import com.catcheck.export.domain.port.ExportJobRepository;
-import com.catcheck.media.api.ImageStorage;
-import com.catcheck.media.api.StorageKey;
+import com.catcheck.export.domain.port.ReportStorage;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.error.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -19,12 +18,12 @@ import java.util.UUID;
 public class ExportQueryService {
 
     private final ExportJobRepository jobRepository;
-    private final ImageStorage imageStorage;
+    private final ReportStorage reportStorage;
     private final Clock clock;
 
-    public ExportQueryService(ExportJobRepository jobRepository, ImageStorage imageStorage, Clock clock) {
+    public ExportQueryService(ExportJobRepository jobRepository, ReportStorage reportStorage, Clock clock) {
         this.jobRepository = jobRepository;
-        this.imageStorage = imageStorage;
+        this.reportStorage = reportStorage;
         this.clock = clock;
     }
 
@@ -52,7 +51,7 @@ public class ExportQueryService {
             jobRepository.save(job);
             throw new ConflictException(ExportErrorCode.EXPORT_EXPIRED);
         }
-        InputStream stream = imageStorage.open(StorageKey.parse(job.getFileRef()))
+        InputStream stream = reportStorage.open(job.getFileRef())
                 .orElseThrow(() -> new ConflictException(ExportErrorCode.EXPORT_EXPIRED));
         job.recordDownload(clock.instant());
         jobRepository.save(job);

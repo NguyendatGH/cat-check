@@ -1,5 +1,6 @@
 package com.catcheck.privacy.application;
 
+import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.privacy.api.PrivacyErrorCode;
 import com.catcheck.privacy.domain.ConsentMethod;
 import com.catcheck.privacy.domain.ConsentPurpose;
@@ -39,9 +40,18 @@ import java.util.UUID;
 @Service
 public class ConsentService {
 
+    /**
+     * Mã purpose trong {@code consent_purpose} (p15 §15.3.2). Chuỗi chứ không hằng của
+     * {@code notification.domain}: bảng {@code consent_purpose} thuộc {@code privacy}, nên giá
+     * trị là của module này — và {@code notification.domain} không nằm trong named interface
+     * {@code notification::api} nên không import được.
+     */
+    private static final String HEALTH_REMINDER_PUSH = "HEALTH_REMINDER_PUSH";
+
     private final ConsentPurposePort purposePort;
     private final ConsentRecordPort recordPort;
     private final PolicyVersionPort policyPort;
+    private final NotificationGateway notificationGateway;
     private final UuidV7 uuidV7;
     private final Clock clock;
 
@@ -49,12 +59,14 @@ public class ConsentService {
             ConsentPurposePort purposePort,
             ConsentRecordPort recordPort,
             PolicyVersionPort policyPort,
+            NotificationGateway notificationGateway,
             UuidV7 uuidV7,
             Clock clock
     ) {
         this.purposePort = purposePort;
         this.recordPort = recordPort;
         this.policyPort = policyPort;
+        this.notificationGateway = notificationGateway;
         this.uuidV7 = uuidV7;
         this.clock = clock;
     }
@@ -130,6 +142,7 @@ public class ConsentService {
                 } else if (latest.status() == ConsentStatus.GRANTED) {
                     recordPort.append(buildRecord(userId, purpose, ConsentStatus.WITHDRAWN,
                             latest, policy, method, surface, locale, evidence, now));
+                    applyWithdrawEffect(userId, purpose.code());
                 }
                 // DENIED/WITHDRAWN → tắt lại: idempotent, không ghi dòng mới.
             }
@@ -156,6 +169,23 @@ public class ConsentService {
                     .orElseThrow(() -> new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "policyVersion"));
             recordPort.append(buildRecord(userId, purpose, ConsentStatus.WITHDRAWN, latest,
                     policy, ConsentMethod.WEB_TOGGLE, surface, locale, evidence, clock.instant()));
+            applyWithdrawEffect(userId, purposeCode);
+        }
+    }
+
+    /**
+     * Hậu quả kỹ thuật của một lần rút consent — p15 §15.3.5 bảng "tác động khi rút".
+     *
+     * <p>Hiện mới có một mục: {@code HEALTH_REMINDER_PUSH} ⇒ thu hồi mọi
+     * {@code push_subscription} NGAY (p12 §12.3.9), không chờ job dọn hằng tuần. Chạy trong
+     * cùng transaction với dòng {@code WITHDRAWN} vừa ghi, nên không có khoảnh khắc nào mà
+     * "đã ghi rút" nhưng thiết bị vẫn còn nhận được push.</p>
+     *
+     * <p>Các purpose còn lại chưa có tác động kỹ thuật tự động nào — xem handoff H15.90.</p>
+     */
+    private void applyWithdrawEffect(UUID userId, String purposeCode) {
+        if (HEALTH_REMINDER_PUSH.equals(purposeCode)) {
+            notificationGateway.revokePushOnConsentWithdrawal(userId);
         }
     }
 

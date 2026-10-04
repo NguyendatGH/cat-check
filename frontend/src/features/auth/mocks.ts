@@ -276,7 +276,8 @@ export const handlers = [
     await delay(200);
     return HttpResponse.json({
       secretBase32: "JBSWY3DPEHPK3PXP",
-      otpauthUri: "otpauth://totp/CatCheck:mock.user@catcheck.vn?secret=JBSWY3DPEHPK3PXP&issuer=CatCheck&algorithm=SHA1&digits=6&period=30",
+      otpauthUri:
+        "otpauth://totp/CatCheck:mock.user@catcheck.vn?secret=JBSWY3DPEHPK3PXP&issuer=CatCheck&algorithm=SHA1&digits=6&period=30",
       expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
       digits: 6,
       periodSeconds: 30,

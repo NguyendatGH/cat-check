@@ -90,7 +90,8 @@ export interface MockPlace {
   kind: MockPlaceKind;
   address: string;
   area: string;
-  distanceKm: number;
+  /** Khoảng cách chỉ có với fixture cũ; API không cung cấp vị trí của người dùng để tính. */
+  distanceKm?: number;
   rating: number;
   reviewCount: number;
   /** Số lượt khám đã ghi nhận (mockup gốc ghi "310 ca điều trị" — xem ghi chú copy ở đầu file). */
@@ -108,6 +109,8 @@ export interface MockPlace {
   phone: string;
   pin: MockMapPin;
   featured: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export const DESIGN_MOCK_PLACES: MockPlace[] = [
@@ -176,8 +179,7 @@ export const DESIGN_MOCK_PLACES: MockPlace[] = [
     badges: ["Cấp Cứu Xuyên Đêm 24/7"],
     leadDoctor: "BS. Trần Quốc Huy",
     amenity: "Băng ca và lồng oxy trực sẵn",
-    summary:
-      "Nhận ca bí tiểu, tắc niệu đạo và sốc nhiệt ngoài giờ hành chính; có bác sĩ nội trú túc trực suốt đêm.",
+    summary: "Nhận ca bí tiểu, tắc niệu đạo và sốc nhiệt ngoài giờ hành chính; có bác sĩ nội trú túc trực suốt đêm.",
     specialties: ["Hồi sức bí tiểu", "Lồng oxy", "Truyền dịch cấp"],
     phone: "1900 8899",
     pin: { leftPct: 29.8, topPct: 32, tone: "emergency", label: "PetPro 24/7" },
@@ -200,8 +202,7 @@ export const DESIGN_MOCK_PLACES: MockPlace[] = [
     badges: ["ISFM Cat-Friendly Gold", "Trạm mẫu CATCHECK"],
     leadDoctor: "BS. Lan Anh",
     amenity: "Lab xét nghiệm nước tiểu tại chỗ",
-    summary:
-      "Trạm nhận mẫu hạt chỉ thị CATCHECK, trả kết quả soi cặn nước tiểu trong 15 phút ngay tại quầy.",
+    summary: "Trạm nhận mẫu hạt chỉ thị CATCHECK, trả kết quả soi cặn nước tiểu trong 15 phút ngay tại quầy.",
     specialties: ["Chuyên khoa Tiết niệu", "Siêu âm thận bàng quang", "Xét nghiệm nước tiểu tại chỗ 15 phút"],
     certification: "Chứng nhận Vàng Thân thiện với Mèo (ISFM Gold)",
     phone: "1900 6886",
@@ -323,6 +324,8 @@ export interface MockClinicDetail {
   moreAngles: number;
   highlights: { id: string; icon: "kidney" | "mute"; title: string; body: string }[];
   hours: string;
+  /** Bản rút gọn cho hàng "Giờ khám thường" của bản mobile (một dòng, như Figma `1:2371`). */
+  hoursShort: string;
   emergencyHours: string;
   mapAreaLabel: string;
   services: MockClinicService[];
@@ -366,6 +369,7 @@ export const DESIGN_MOCK_CLINIC_DETAIL: MockClinicDetail = {
     },
   ],
   hours: "08:00 - 20:30 (Thứ 2 - Chủ Nhật) • Trực cấp cứu 24/7 qua đường dây nóng",
+  hoursShort: "Thứ 2 - CN: 08:00 - 20:30",
   emergencyHours: "24 Giờ / 7 Ngày",
   mapAreaLabel: "Khu Y tế Thảo Điền",
   services: [

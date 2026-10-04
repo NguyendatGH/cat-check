@@ -12,8 +12,8 @@ import com.catcheck.identity.domain.RateLimitRule;
 import com.catcheck.identity.domain.port.EmailOtpRepository;
 import com.catcheck.identity.domain.port.OtpCodeHasher;
 import com.catcheck.identity.domain.port.RateLimiter;
-import com.catcheck.notification.api.EmailMessage;
-import com.catcheck.notification.api.EmailSender;
+import com.catcheck.notification.api.NotificationGateway;
+import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.RateLimitedException;
 import org.springframework.stereotype.Service;
@@ -47,7 +47,7 @@ public class OtpService {
     private final OtpCodeGenerator codeGenerator;
     private final AuthPolicy policy;
     private final RateLimiter rateLimiter;
-    private final EmailSender emailSender;
+    private final NotificationGateway notificationGateway;
     private final AuditLogService auditLogService;
     private final Clock clock;
 
@@ -56,7 +56,7 @@ public class OtpService {
                       OtpCodeGenerator codeGenerator,
                       AuthPolicy policy,
                       RateLimiter rateLimiter,
-                      EmailSender emailSender,
+                      NotificationGateway notificationGateway,
                       AuditLogService auditLogService,
                       Clock clock) {
         this.otpRepository = otpRepository;
@@ -64,7 +64,7 @@ public class OtpService {
         this.codeGenerator = codeGenerator;
         this.policy = policy;
         this.rateLimiter = rateLimiter;
-        this.emailSender = emailSender;
+        this.notificationGateway = notificationGateway;
         this.auditLogService = auditLogService;
         this.clock = clock;
     }
@@ -91,9 +91,10 @@ public class OtpService {
         int pepperVersion = codeHasher.currentPepperVersion();
         String code = codeGenerator.generate();
         Instant expiresAt = now.plus(policy.otpTtl());
+        UUID challengeId = UUID.randomUUID();
 
         otpRepository.insert(new EmailOtpChallenge(
-                UUID.randomUUID(),
+                challengeId,
                 userId,
                 email,
                 codeHasher.hash(pepperVersion, purpose, email, code),
@@ -109,7 +110,7 @@ public class OtpService {
                 null,
                 now));
 
-        deliver(email, purpose, code, context);
+        deliver(email, purpose, code, challengeId);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(userId)
@@ -200,26 +201,47 @@ public class OtpService {
     }
 
     /**
-     * Gui email. <b>Khong nem loi</b>: p11 §11.2.1 — mailer treo khong duoc lam chet luong
-     * dang ky. Challenge da ghi DB roi nen ma van ton tai va nguoi dung goi "gui lai" duoc.
+     * Xep email OTP vao {@code email_outbox} (p12 §12.4: API chi INSERT roi tra {@code 202},
+     * KHONG goi SMTP trong request thread). {@code SendEmailOutboxJob} day di sau, toi da 30 giay.
+     *
+     * <p><b>Doi so voi ban truoc:</b> truoc day goi thang {@code EmailSender.send(...)} — dong
+     * bo, nuot loi, khong retry. Hop dong API khong doi ({@code POST /auth/otp/request} van tra
+     * {@code 202 Accepted} kem {@code otpExpiresAt}); cai doi la mot lan SMTP that bai gio co
+     * backoff 1m/5m/30m/2h/12h thay vi mat han.</p>
+     *
+     * <p><b>Cho p12 mo ta khong khop p11 — da chon p11:</b> p12 §12.4 yeu cau
+     * {@code email_outbox.payload} "KHONG chua ma OTP tho — job doc ma tu {@code email_otp} luc
+     * render". Khong lam duoc: p11 §11.2.1 (part SO HUU mien ma hoa) chot {@code email_otp} chi
+     * luu {@code code_hash} HMAC-SHA256 co pepper, mot chieu, co y de "ma tho khong ton tai o
+     * dau". Mot trong hai yeu cau phai nhuong; da giu p11 (bao mat o trang thai nghi) va dat ma
+     * vao {@code payload}, keo theo hai bu tru: {@code JdbcEmailOutboxRepository.markSent} xoa
+     * {@code payload} ngay sau khi gui, va ma van het han sau 5 phut. <b>Can p12 §12.4 sua lai
+     * cau nay.</b></p>
+     *
+     * <p><b>Thieu ma template cho 5 trong 7 {@code OtpPurpose}:</b> p12 §12.2.2 chi dinh nghia
+     * {@code AUTH_OTP_REGISTER} va {@code AUTH_OTP_RESET_PASSWORD}; nhom
+     * {@code AUTH_SECURITY_*} (§12.2.4) khong co ma nao cho OTP cua {@code EMAIL_CHANGE},
+     * {@code LOGIN_STEPUP}, {@code DSAR_VERIFY}, {@code ACCOUNT_DELETE_CONFIRM},
+     * {@code DATA_EXPORT_CONFIRM}. Tam dung {@code AUTH_OTP_REGISTER} cho nam truong hop do
+     * (noi dung "Ma xac thuc cua ban la ..." van dung ngu canh) va <b>khong</b> tu dat ma moi —
+     * p12 §12.2.2 ghi ro Part 12 la noi duy nhat dinh nghia gia tri {@code template_code}.</p>
      */
-    private void deliver(String email, OtpPurpose purpose, String code, AuthRequestContext context) {
-        try {
-            emailSender.send(EmailMessage.of(
-                    email,
-                    "catcheck.auth.otp." + purpose.name(),
-                    "vi",
-                    Map.of(
-                            "code", code,
-                            "expiresInMinutes", String.valueOf(policy.otpTtl().toMinutes()))));
-        } catch (RuntimeException ex) {
-            auditLogService.record(AuditEvent.builder()
-                    .action("AUTH_OTP_DELIVERY_FAILED")
-                    .error()
-                    .meta("purpose", purpose.name())
-                    .requestId(context.requestId())
-                    .build());
-        }
+    private void deliver(String email, OtpPurpose purpose, String code, UUID challengeId) {
+        notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
+                email,
+                templateCodeFor(purpose),
+                "vi",
+                Map.of(
+                        "code", code,
+                        "purpose", purpose.name(),
+                        "expiresInMinutes", String.valueOf(policy.otpTtl().toMinutes())),
+                // Mot challenge = mot email. Challenge moi co id moi nen "gui lai" khong bi
+                // uq_email_outbox_dedupe chan.
+                "AUTH_OTP:" + challengeId));
+    }
+
+    private String templateCodeFor(OtpPurpose purpose) {
+        return purpose == OtpPurpose.PASSWORD_RESET ? "AUTH_OTP_RESET_PASSWORD" : "AUTH_OTP_REGISTER";
     }
 
     private void auditDenied(EmailOtpChallenge challenge, OtpPurpose purpose, String reason,

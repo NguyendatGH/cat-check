@@ -8,15 +8,8 @@ package com.catcheck.credit.domain;
  * (scan / activation / job / admin) nên không có bảng đích cố định (p4 §4.9.3, vòng lặp 2).
  * Đổi lại mất ràng buộc tham chiếu, bù bằng index partial {@code (ref_type, ref_id)} và test.</p>
  *
- * <p><b>Khiếm khuyết hợp đồng đã biết (chưa sửa):</b> type này là tham số của
- * {@code credit.api.CreditConsumption.CreditConsumeCommand} nên về hợp đồng nó thuộc bề mặt công
- * khai "api", nhưng KHÔNG THỂ đánh dấu {@code @NamedInterface} thẳng ở đây — R8 (ArchUnit) cấm mọi
- * annotation {@code org.springframework..} trong {@code ..domain..}, không có ngoại lệ cho
- * annotation thuần metadata như {@code NamedInterface}. Dời enum sang {@code credit.api} thì vi
- * phạm R1 ngược lại vì {@code credit.domain.LedgerEntry} (domain) đang dùng type này. Cách sửa
- * đúng là tách type API riêng ở {@code credit.api} + converter ở tầng application — CHƯA làm vì
- * đụng vào hợp đồng {@code CreditConsumption} mà {@code scan} (A6) đã tiêu thụ. Ghi nhận trong
- * {@code ModularityTests} là vi phạm đã biết, xem docs/handovers.</p>
+ * <p>This enum stays internal. Cross-module callers use
+ * {@code CreditConsumption.ReferenceType}, mapped by the application service.</p>
  */
 public enum CreditLedgerRefType {
 

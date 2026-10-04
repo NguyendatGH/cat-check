@@ -1,6 +1,6 @@
 package com.catcheck.identity.api;
 
-import com.catcheck.identity.UserRegisteredEvent;
+import com.catcheck.privacy.spi.RegistrationConsentEvent;
 import com.catcheck.identity.api.dto.LoginRequest;
 import com.catcheck.identity.api.dto.OtpRequestRequest;
 import com.catcheck.identity.api.dto.OtpVerifyRequest;
@@ -262,6 +262,10 @@ public class AuthController {
                                           HttpServletRequest httpRequest) {
         UUID userId = requireUserId(principal);
         mfaService.verifyForLogin(userId, request.code(), context(httpRequest));
+        // p11 §11.12.1: mfaLevel la THUOC TINH PHIEN. Truoc ban sua nay no chi la mot chuoi
+        // trong JSON tra ve, nen khong co cach nao biet phien da qua TOTP hay chua va bo gac
+        // /api/v1/admin/** (p8 §8.4.12) khong the ton tai.
+        sessionGateway.markMfaTotpVerified();
         return Map.of("mfaLevel", "TOTP");
     }
 
@@ -274,6 +278,7 @@ public class AuthController {
         UUID userId = requireUserId(principal);
         MfaService.RecoveryResult result = mfaService.verifyRecovery(
                 userId, request.recoveryCode(), context(httpRequest));
+        sessionGateway.markMfaTotpVerified();
         return Map.of(
                 "mfaLevel", "TOTP",
                 "enrollmentRequired", result.enrollmentRequired(),
@@ -332,15 +337,15 @@ public class AuthController {
 
     /* ---------- Helpers ---------- */
 
-    /** Chuyen {@code RegisterRequest.ConsentGrant} (api.dto) sang {@code UserRegisteredEvent.ConsentGrant}
+    /** Chuyen {@code RegisterRequest.ConsentGrant} (api.dto) sang {@code RegistrationConsentEvent.ConsentGrant}
      * (api) — application layer khong nhan thang DTO request (quy uoc chung cua controller nay). */
-    private static List<UserRegisteredEvent.ConsentGrant> mapConsents(
+    private static List<RegistrationConsentEvent.ConsentGrant> mapConsents(
             List<RegisterRequest.ConsentGrant> consents) {
         if (consents == null) {
             return List.of();
         }
         return consents.stream()
-                .map(c -> new UserRegisteredEvent.ConsentGrant(c.purposeCode(), c.granted()))
+                .map(c -> new RegistrationConsentEvent.ConsentGrant(c.purposeCode(), c.granted()))
                 .toList();
     }
 

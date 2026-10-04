@@ -15,8 +15,20 @@ interface CookieRow {
  * chưa có phân tích hành vi/quảng cáo — bảng dưới phản ánh đúng thực tế Phase 1.
  */
 const COOKIE_ROWS: CookieRow[] = [
-  { name: "__Host-CATCHECK_SESSION", purposeKey: "session", group: "essential", duration: "cookies.duration.session", party: "CatCheck" },
-  { name: "XSRF-TOKEN", purposeKey: "csrf", group: "essential", duration: "cookies.duration.session", party: "CatCheck" },
+  {
+    name: "__Host-CATCHECK_SESSION",
+    purposeKey: "session",
+    group: "essential",
+    duration: "cookies.duration.session",
+    party: "CatCheck",
+  },
+  {
+    name: "XSRF-TOKEN",
+    purposeKey: "csrf",
+    group: "essential",
+    duration: "cookies.duration.session",
+    party: "CatCheck",
+  },
 ];
 
 function CookieTable() {

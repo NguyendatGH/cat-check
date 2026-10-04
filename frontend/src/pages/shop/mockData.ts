@@ -402,13 +402,21 @@ export const MOCK_PRODUCT_DETAIL = {
       body: "Kết quả tự động cập nhật vào bệnh án của bé, sẵn sàng chia sẻ trực tiếp với bác sĩ thú y khi cần.",
     },
   ],
-  comparisonHeaders: ["Quyền lợi & Tính năng", "Mua lẻ 1 Túi (6L)", "Gói Định Kỳ 3 Tháng (Khuyên dùng)", "CleanBox Combo"],
+  comparisonHeaders: [
+    "Quyền lợi & Tính năng",
+    "Mua lẻ 1 Túi (6L)",
+    "Gói Định Kỳ 3 Tháng (Khuyên dùng)",
+    "CleanBox Combo",
+  ],
   comparisonRows: [
     { label: "Giá mỗi túi 6L tương đương", values: ["245.000đ", "216.000đ (Tiết kiệm 25%)", "230.000đ"] },
     { label: "Tặng kèm Muỗng đo quang phổ chuẩn", values: ["—", "yes", "yes"] },
     { label: "Voucher khám thú y liên kết 100K", values: ["—", "yes", "—"] },
     { label: "Tự động nhắc đổi cát trên App", values: ["yes", "yes", "yes"] },
-    { label: "Hỗ trợ Bác sĩ Thú y phân tích miễn phí", values: ["1 lần / tháng", "Không giới hạn 24/7", "3 lần / quý"] },
+    {
+      label: "Hỗ trợ Bác sĩ Thú y phân tích miễn phí",
+      values: ["1 lần / tháng", "Không giới hạn 24/7", "3 lần / quý"],
+    },
   ],
   reviewsEyebrow: "TRẢI NGHIỆM THỰC TẾ TỪ CỘNG ĐỒNG SEN",
   reviewsTitle: "Đánh giá & Ảnh quét thực tế (1.420)",

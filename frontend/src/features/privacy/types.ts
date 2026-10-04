@@ -102,6 +102,31 @@ export interface ExportStatusView {
   /** Hạn 72 giờ của link tải một lần (p15 §15.4.5); `null` khi gói chưa dựng xong. */
   resultExpiresAt: string | null;
   completedAt: string | null;
+  /** Chỉ có trong response C6; token bearer 256-bit, giữ ở sessionStorage tới lần tải đầu. */
+  downloadToken?: string | null;
+}
+
+/**
+ * B13 — một dòng "ai đã truy cập dữ liệu của tôi" (`GET /account/privacy/access-log`,
+ * p15 §15.4). Tên trường theo đúng cột `audit_log` lọc theo `subject_user_id`
+ * (V15__ops.sql K0) — `actor_type`/`actor_role`/`action`/`result`/`occurred_at`.
+ *
+ * ⚠️ **Backend hôm nay trả `{"items": []}` CỐ ĐỊNH** —
+ * `AccountController#accessLog` còn là `Map.of("items", List.of())`, chờ W3 nối
+ * `AuditLogService.queryBySubject(userId)`. UI vì vậy luôn ở trạng thái rỗng; KHÔNG dựng
+ * dòng mẫu nào để lấp chỗ.
+ *
+ * Audit log không bao giờ chứa PII thô (p4 §4.6.4) nên không có tên/email ở đây, và client
+ * cũng không được log lại nội dung dòng nào.
+ */
+export interface AccessLogEntryView {
+  occurredAt: string;
+  /** `USER` | `ADMIN` | `DPO` | `SYSTEM` | `JOB`. */
+  actorType: string;
+  actorRole: string | null;
+  action: string;
+  /** `SUCCESS` | `DENIED` | `ERROR`. */
+  result: string;
 }
 
 /** Phương thức step-up re-auth mà `SessionService#reauthenticate` chấp nhận thật. */

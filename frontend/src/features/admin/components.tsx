@@ -29,12 +29,8 @@ export function AdminPageHeader({ title, description, specRef, actions }: AdminP
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
         <h1 className="text-h2 font-bold text-text-primary">{title}</h1>
-        {description !== undefined ? (
-          <p className="pt-1 text-body text-text-secondary">{description}</p>
-        ) : null}
-        {specRef !== undefined ? (
-          <p className="pt-1 font-mono text-small text-text-tertiary">{specRef}</p>
-        ) : null}
+        {description !== undefined ? <p className="pt-1 text-body text-text-secondary">{description}</p> : null}
+        {specRef !== undefined ? <p className="pt-1 font-mono text-small text-text-tertiary">{specRef}</p> : null}
       </div>
       {actions !== undefined ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
     </header>
@@ -56,9 +52,7 @@ export function AdminSection({ title, description, actions, children, className 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-h3 font-bold text-text-primary">{title}</h2>
-          {description !== undefined ? (
-            <p className="pt-0.5 text-caption text-text-secondary">{description}</p>
-          ) : null}
+          {description !== undefined ? <p className="pt-0.5 text-caption text-text-secondary">{description}</p> : null}
         </div>
         {actions !== undefined ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
       </div>
@@ -131,9 +125,7 @@ export function MissingApiNotice({ specSection, endpoints, note }: MissingApiNot
             </li>
           ))}
         </ul>
-        <p className="pt-3 text-small text-text-tertiary">
-          {t("noApi.specOwner", { section: specSection })}
-        </p>
+        <p className="pt-3 text-small text-text-tertiary">{t("noApi.specOwner", { section: specSection })}</p>
       </div>
 
       {note !== undefined ? <p className="text-caption text-text-secondary">{note}</p> : null}
@@ -223,7 +215,9 @@ export function ReasonField({ value, onChange, showError = false, disabled = fal
         )}
       />
       <p id={describedBy} className={cn("text-small", invalid ? "text-danger-text" : "text-text-tertiary")}>
-        {invalid ? t("reason.tooShort", { min: ADMIN_REASON_MIN_LENGTH }) : t("reason.help", { min: ADMIN_REASON_MIN_LENGTH })}
+        {invalid
+          ? t("reason.tooShort", { min: ADMIN_REASON_MIN_LENGTH })
+          : t("reason.help", { min: ADMIN_REASON_MIN_LENGTH })}
       </p>
     </div>
   );

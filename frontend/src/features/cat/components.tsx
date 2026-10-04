@@ -1,29 +1,8 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import type {
-  FieldErrors,
-  UseFormRegister,
-  UseFormSetValue,
-  UseFormWatch,
-} from "react-hook-form";
+import type { FieldErrors, UseFormRegister, UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import {
-  AlertTriangle,
-  Camera,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Trash2,
-} from "lucide-react";
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Input,
-} from "@/shared/ui";
+import { AlertTriangle, Camera, Check, ChevronDown, ChevronUp, Search, Trash2 } from "lucide-react";
+import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogTitle, Input } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { CLINICAL_SIGNS, type CatBreed, type ClinicalSign } from "@/entities/cat";
 import type { CatFormSchemaValues } from "./schemas";
@@ -180,7 +159,9 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
           type="button"
           variant="tertiary"
           className={cn("w-full justify-between", error && "border-danger")}
-          onClick={() => { setOpen(true); }}
+          onClick={() => {
+            setOpen(true);
+          }}
         >
           <span className={cn("truncate text-left", !selected && "text-text-tertiary")}>
             {selected ? selected.name : t("form.breed.placeholder")}
@@ -197,7 +178,9 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
             <input
               type="search"
               value={query}
-              onChange={(event) => { setQuery(event.target.value); }}
+              onChange={(event) => {
+                setQuery(event.target.value);
+              }}
               placeholder={t("form.breed.searchPlaceholder")}
               aria-label={t("form.breed.searchPlaceholder")}
               className="min-h-11 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-body text-text-primary placeholder:text-text-tertiary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
@@ -227,13 +210,9 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
             aria-label={t("form.breed.label")}
           >
             {loading ? (
-              <li className="px-3 py-6 text-center text-body text-text-tertiary">
-                {t("form.breed.loading")}
-              </li>
+              <li className="px-3 py-6 text-center text-body text-text-tertiary">{t("form.breed.loading")}</li>
             ) : filtered.length === 0 ? (
-              <li className="px-3 py-6 text-center text-body text-text-tertiary">
-                {t("form.breed.empty")}
-              </li>
+              <li className="px-3 py-6 text-center text-body text-text-tertiary">{t("form.breed.empty")}</li>
             ) : (
               filtered.map((breed) => {
                 const isSelected = breed.code === value;
@@ -297,7 +276,9 @@ export function OptionCard({ name, value, checked, onChange, type = "radio", tit
         value={value}
         checked={checked}
         disabled={disabled}
-        onChange={() => { onChange(value); }}
+        onChange={() => {
+          onChange(value);
+        }}
         className="peer sr-only"
       />
       <span
@@ -359,7 +340,12 @@ export function CatFormFields({
       />
 
       <div>
-        <Input label={t("form.name.label")} placeholder={t("form.name.placeholder")} autoComplete="off" {...register("name")} />
+        <Input
+          label={t("form.name.label")}
+          placeholder={t("form.name.placeholder")}
+          autoComplete="off"
+          {...register("name")}
+        />
         <FieldError message={errors.name?.message} />
       </div>
 
@@ -367,7 +353,9 @@ export function CatFormFields({
         breeds={breeds}
         loading={breedsLoading}
         value={watch("breedCode")}
-        onChange={(code) => { setValue("breedCode", code, { shouldValidate: true }); }}
+        onChange={(code) => {
+          setValue("breedCode", code, { shouldValidate: true });
+        }}
         error={errors.breedCode?.message ? t(errors.breedCode.message) : undefined}
       />
 
@@ -394,7 +382,9 @@ export function CatFormFields({
               name="sex"
               value={value}
               checked={sex === value}
-              onChange={(v) => { setValue("sex", v, { shouldValidate: true }); }}
+              onChange={(v) => {
+                setValue("sex", v, { shouldValidate: true });
+              }}
               title={t(`form.sex.${value === "MALE" ? "male" : value === "FEMALE" ? "female" : "unknown"}`)}
             />
           ))}
@@ -406,7 +396,9 @@ export function CatFormFields({
         <input
           type="checkbox"
           checked={watch("neutered")}
-          onChange={(event) => { setValue("neutered", event.target.checked); }}
+          onChange={(event) => {
+            setValue("neutered", event.target.checked);
+          }}
           className="size-5 shrink-0 accent-primary"
         />
         <span className="text-body text-text-primary">{t("form.neutered.label")}</span>
@@ -419,14 +411,18 @@ export function CatFormFields({
             name="ageMode"
             value="birthDate"
             checked={ageMode === "birthDate"}
-            onChange={() => { setValue("ageMode", "birthDate", { shouldValidate: true }); }}
+            onChange={() => {
+              setValue("ageMode", "birthDate", { shouldValidate: true });
+            }}
             title={t("form.ageMode.birthDate")}
           />
           <OptionCard
             name="ageMode"
             value="approx"
             checked={ageMode === "approx"}
-            onChange={() => { setValue("ageMode", "approx", { shouldValidate: true }); }}
+            onChange={() => {
+              setValue("ageMode", "approx", { shouldValidate: true });
+            }}
             title={t("form.ageMode.approx")}
           />
         </div>
@@ -553,7 +549,13 @@ export function ConfirmDialog({
           >
             {confirmLabel}
           </Button>
-          <Button type="button" variant="tertiary" onClick={() => { onOpenChange(false); }}>
+          <Button
+            type="button"
+            variant="tertiary"
+            onClick={() => {
+              onOpenChange(false);
+            }}
+          >
             {cancelLabel}
           </Button>
         </div>
@@ -622,7 +624,9 @@ export function EmergencyDisclaimerBanner({ forceExpanded = false, className }: 
     >
       <button
         type="button"
-        onClick={() => { setManuallyExpanded((v) => !v); }}
+        onClick={() => {
+          setManuallyExpanded((v) => !v);
+        }}
         disabled={forceExpanded}
         className={cn(
           "flex w-full min-h-11 items-center justify-between gap-2 text-left",
@@ -672,9 +676,7 @@ export function ClinicalSignPicker({ value, onChange, error }: ClinicalSignPicke
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-body font-semibold text-text-primary">
-        {t("clinicalSigns.form.signs.label")}
-      </legend>
+      <legend className="text-body font-semibold text-text-primary">{t("clinicalSigns.form.signs.label")}</legend>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {CLINICAL_SIGNS.map((sign) => (
           <label
@@ -687,7 +689,9 @@ export function ClinicalSignPicker({ value, onChange, error }: ClinicalSignPicke
             <input
               type="checkbox"
               checked={value.includes(sign)}
-              onChange={() => { toggle(sign); }}
+              onChange={() => {
+                toggle(sign);
+              }}
               className="peer sr-only"
             />
             <span

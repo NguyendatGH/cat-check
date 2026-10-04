@@ -11,6 +11,7 @@ import {
 } from "@/features/scan";
 import { isApiError } from "@/shared/api/errors";
 import { usePhBands } from "@/entities/ph-bands";
+import { useCat } from "@/features/history";
 import { WebCapturePanel, WebResultPanel, WebScanHeader } from "./webPanels";
 
 /**
@@ -24,7 +25,10 @@ export function ScanPage() {
     useScanCaptureStore();
   const submitScan = useSubmitScan();
   const { data: bands } = usePhBands();
-  const resultScanId = submitScan.isSuccess ? submitScan.data.scanId : null;
+  // Hồ sơ mèo THẬT đang được chọn — thay cho hằng `WEB_DEMO_CAT` của bản dựng Figma.
+  // Khay dùng chung (`SHARED_UNKNOWN`) không có `selectedCatId` nên hook tự tắt.
+  const { data: selectedCat } = useCat(assignment === "SHARED_UNKNOWN" ? undefined : (selectedCatId ?? undefined));
+  const resultScanId = submitScan.isSuccess ? (submitScan.data.scanId ?? null) : null;
 
   useEffect(() => {
     if (resultScanId) {
@@ -38,7 +42,12 @@ export function ScanPage() {
         title={t("capture.missingCatTitle")}
         description={t("capture.missingCatDescription")}
         action={
-          <Button variant="primary" onClick={() => { void navigate("/scan/select-cat"); }}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              void navigate("/scan/select-cat");
+            }}
+          >
             {t("capture.goSelectCat")}
           </Button>
         }
@@ -50,7 +59,7 @@ export function ScanPage() {
     return <AnalyzingState text={t("analyzing.text")} />;
   }
 
-  if (submitScan.isSuccess && submitScan.data.scanId === null) {
+  if (submitScan.isSuccess && resultScanId === null) {
     return (
       <InconclusiveNotice
         title={t("result.inconclusive.title")}
@@ -102,6 +111,9 @@ export function ScanPage() {
               onPickFile={setFile}
               onSubmit={handleSubmit}
               submitDisabled={!file}
+              catName={selectedCat?.name}
+              catMeta={selectedCat?.breedName ?? selectedCat?.breedOther}
+              catAvatarUrl={selectedCat?.avatarUrl}
             />
           </div>
           <div className="col-span-7">
@@ -112,24 +124,24 @@ export function ScanPage() {
 
       {/* Mobile (< lg): giữ nguyên luồng chụp cũ. */}
       <div className="flex flex-col gap-4 p-4 lg:hidden">
-      <CaptureTrigger
-        previewUrl={previewUrl}
-        onFileSelected={setFile}
-        guideText={t("capture.guide")}
-        retakeLabel={t("capture.retake")}
-        cameraLabel={t("capture.camera")}
-        chooseFromGalleryLabel={t("capture.gallery")}
-        disabled={submitScan.isPending}
-      />
-      {submitError ? (
-        <p role="alert" className="text-caption text-danger-text">
-          {submitError}
-        </p>
-      ) : null}
-      <p className="text-caption text-text-tertiary">{t("capture.creditNote")}</p>
-      <Button variant="primary" disabled={!file} onClick={handleSubmit}>
-        {t("capture.submit")}
-      </Button>
+        <CaptureTrigger
+          previewUrl={previewUrl}
+          onFileSelected={setFile}
+          guideText={t("capture.guide")}
+          retakeLabel={t("capture.retake")}
+          cameraLabel={t("capture.camera")}
+          chooseFromGalleryLabel={t("capture.gallery")}
+          disabled={submitScan.isPending}
+        />
+        {submitError ? (
+          <p role="alert" className="text-caption text-danger-text">
+            {submitError}
+          </p>
+        ) : null}
+        <p className="text-caption text-text-tertiary">{t("capture.creditNote")}</p>
+        <Button variant="primary" disabled={!file} onClick={handleSubmit}>
+          {t("capture.submit")}
+        </Button>
       </div>
     </>
   );

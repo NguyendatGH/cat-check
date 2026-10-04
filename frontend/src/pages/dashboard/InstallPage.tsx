@@ -90,14 +90,10 @@ export function InstallPage() {
           <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md">
             <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
               <Download size={18} className="text-primary-dark" aria-hidden="true" />
-              {deferredPrompt
-                ? t("settings:install.promptTitle")
-                : t("settings:install.promptUnavailableTitle")}
+              {deferredPrompt ? t("settings:install.promptTitle") : t("settings:install.promptUnavailableTitle")}
             </h2>
             <p className="text-caption leading-relaxed text-text-secondary">
-              {deferredPrompt
-                ? t("settings:install.promptBody")
-                : t("settings:install.promptUnavailableBody")}
+              {deferredPrompt ? t("settings:install.promptBody") : t("settings:install.promptUnavailableBody")}
             </p>
             {deferredPrompt ? (
               <Button type="button" size="md" className="self-start" onClick={handleInstall}>
@@ -110,9 +106,7 @@ export function InstallPage() {
                 className="flex items-start gap-2 rounded-xl bg-background-alt px-3 py-2 text-caption text-text-secondary"
               >
                 <Check size={15} className="mt-0.5 shrink-0 text-success-text" aria-hidden="true" />
-                {outcome === "accepted"
-                  ? t("settings:install.promptAccepted")
-                  : t("settings:install.promptDismissed")}
+                {outcome === "accepted" ? t("settings:install.promptAccepted") : t("settings:install.promptDismissed")}
               </p>
             ) : null}
           </section>
@@ -168,9 +162,7 @@ export function InstallPage() {
                 <Check size={17} aria-hidden="true" />
                 {t("settings:install.standaloneTitle")}
               </h2>
-              <p className="text-caption leading-relaxed text-success-text">
-                {t("settings:install.standaloneBody")}
-              </p>
+              <p className="text-caption leading-relaxed text-success-text">{t("settings:install.standaloneBody")}</p>
             </section>
           ) : null}
 

@@ -292,4 +292,14 @@ public class IdentityErrorCodeConfiguration {
     ErrorCode consentPurposeUnknown() {
         return IdentityErrorCode.CONSENT_PURPOSE_UNKNOWN;
     }
+
+    @Bean
+    ErrorCode adminTotpRequired() {
+        return IdentityErrorCode.ADMIN_TOTP_REQUIRED;
+    }
+
+    @Bean
+    ErrorCode adminCannotModifySelf() {
+        return IdentityErrorCode.ADMIN_CANNOT_MODIFY_SELF;
+    }
 }

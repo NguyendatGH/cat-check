@@ -51,6 +51,20 @@ class ExportJobRepositoryAdapter implements ExportJobRepository {
         return jpaRepository.existsByDocumentCode(documentCode);
     }
 
+    private static final List<ExportStatus> ACTIVE_STATUSES =
+            List.of(ExportStatus.QUEUED, ExportStatus.RUNNING);
+
+    @Override
+    public List<ExportJob> findStaleActive(Instant cutoff, int limit) {
+        return jpaRepository.findByStatusInAndRequestedAtLessThanOrderByRequestedAtAsc(
+                ACTIVE_STATUSES, cutoff, org.springframework.data.domain.Limit.of(limit));
+    }
+
+    @Override
+    public long countStaleActive(Instant cutoff) {
+        return jpaRepository.countByStatusInAndRequestedAtLessThan(ACTIVE_STATUSES, cutoff);
+    }
+
     @Override
     public Page findByUser(UUID userId, String cursor, int limit) {
         int fetchSize = Math.min(limit + 1, 100);

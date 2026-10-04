@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
-import { UserPlus } from "lucide-react";
+import { Check, ShieldCheck, UserPlus } from "lucide-react";
 import { Button, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
-import { CatCard } from "@/entities/cat";
-import { SharedTrayOption, useActiveCatsForCapture, useScanCaptureStore } from "@/features/scan";
+import { usePhBands } from "@/entities/ph-bands";
+import {
+  MultiCatTip,
+  SelectCatOption,
+  SharedTrayOption,
+  useActiveCatsForCapture,
+  useScanCaptureStore,
+} from "@/features/scan";
 
 /** `/scan/select-cat` (TaskLayout) — bước chọn mèo TRƯỚC khi mở camera (xem `features/scan/store.ts`
  * để biết vì sao thứ tự này khác mockup gốc). */
@@ -12,6 +18,7 @@ export function SelectCatPage() {
   const { t } = useTranslation(["scan", "common"]);
   const navigate = useNavigate();
   const { data: cats, isPending, isError, refetch } = useActiveCatsForCapture();
+  const { data: bands } = usePhBands();
   const setSelectedCat = useScanCaptureStore((s) => s.setSelectedCat);
   const setSharedUnknown = useScanCaptureStore((s) => s.setSharedUnknown);
 
@@ -56,7 +63,12 @@ export function SelectCatPage() {
         title={t("selectCat.emptyTitle")}
         description={t("selectCat.emptyDescription")}
         action={
-          <Button variant="primary" onClick={() => { void navigate("/cats/new"); }}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              void navigate("/cats/new");
+            }}
+          >
             {t("selectCat.goAddCat")}
           </Button>
         }
@@ -72,27 +84,33 @@ export function SelectCatPage() {
         : t("selectCat.confirmCtaGeneric");
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-28">
+    <div className="flex flex-col gap-4 p-4 pb-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-h2 font-bold text-text-primary">{t("selectCat.heading")}</h1>
         <p className="text-caption text-text-secondary">{t("selectCat.description")}</p>
       </div>
 
-      <div className="flex items-start gap-2 rounded-lg border border-border bg-background-alt p-3 text-caption text-text-secondary">
-        <span className="font-semibold text-text-primary">{t("selectCat.privacyNoteTitle")}: </span>
-        <span>{t("selectCat.privacyNoteBody")}</span>
+      {/* Ghi chú riêng tư (mockup `05`): chấm tròn xanh + tiêu đề trên, nội dung dưới. */}
+      <div className="flex items-start gap-3 rounded-xl bg-chip-bg p-4">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white">
+          <ShieldCheck className="size-4" aria-hidden="true" />
+        </span>
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-caption font-bold text-primary-dark">{t("selectCat.privacyNoteTitle")}</span>
+          <span className="text-caption leading-snug text-text-secondary">{t("selectCat.privacyNoteBody")}</span>
+        </span>
       </div>
 
       <div className="flex flex-col gap-3">
         {cats.map((cat) => (
-          <CatCard
+          <SelectCatOption
             key={cat.id}
             cat={cat}
+            bands={bands ?? []}
             selected={selection !== "SHARED" && selection?.id === cat.id}
-            onSelect={(c) => {
-              setSelection({ id: c.id, name: c.name });
+            onSelect={() => {
+              setSelection({ id: cat.id, name: cat.name });
             }}
-            primaryLabel={t("selectCat.primaryLabel")}
           />
         ))}
         <SharedTrayOption
@@ -103,11 +121,41 @@ export function SelectCatPage() {
             setSelection("SHARED");
           }}
         />
+        <button
+          type="button"
+          onClick={() => {
+            void navigate("/cats/new");
+          }}
+          className="flex min-h-[var(--touch-target-min)] w-full items-center justify-center gap-2 rounded-2xl bg-surface p-3 text-caption font-bold text-primary-dark"
+        >
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-info">
+            <UserPlus className="size-4" aria-hidden="true" />
+          </span>
+          {t("selectCat.addAnotherCat")}
+        </button>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-surface p-4">
-        <Button variant="primary" className="w-full" disabled={!selection} onClick={handleConfirm}>
+      <MultiCatTip />
+
+      <div className="flex flex-col gap-1">
+        <Button
+          variant="primary"
+          size="lg"
+          className="w-full"
+          disabled={!selection}
+          leftIcon={<Check className="size-4" aria-hidden="true" />}
+          onClick={handleConfirm}
+        >
           {confirmLabel}
+        </Button>
+        <Button
+          variant="tertiary"
+          className="w-full border-transparent"
+          onClick={() => {
+            void navigate(-1);
+          }}
+        >
+          {t("selectCat.cancel")}
         </Button>
       </div>
     </div>

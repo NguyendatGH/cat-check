@@ -10,20 +10,23 @@ import { findBandForPh, PhBadge, phTokenStyle, usePhBands, type PhBand } from "@
 import { useCat } from "@/features/history";
 import {
   DistributionBar,
+  FEATURE_NOT_IN_PLAN,
   PhTrendChart,
   RangeSegmentedControl,
+  toTrendPoints,
+  useCatTrends,
   useDistributionBuckets,
-  useTrendSeries,
-  useTrendSummary,
   type TrendRange,
 } from "@/features/trends";
 import { WebTrendsScreen } from "./webTrends";
-import { FEATURE_NOT_IN_PLAN, useCatTrends } from "./catTrendsApi";
 import { isApiError } from "@/shared/api";
 
 /**
- * `/cats/:catId/trends` — xu hướng pH tự dựng từ E2/E3 (mockup `08`, bỏ "AI Pattern Insights"
- * ngoài phạm vi MVP — xem `features/trends/README.md`).
+ * `/cats/:catId/trends` — xu hướng pH từ D13 `GET /cats/{catId}/trends` (mockup `08`, bỏ
+ * "AI Pattern Insights" ngoài phạm vi MVP — xem `features/trends/README.md`).
+ *
+ * Mobile và desktop dùng CHUNG một query: trước W1-E mobile tự tổng hợp từ `GET /scans` còn
+ * desktop gọi D13, nên hai bố cục của cùng một màn hiện số khác nhau.
  */
 export function CatTrendsPage() {
   const { t } = useTranslation(["trends", "common"]);
@@ -33,12 +36,10 @@ export function CatTrendsPage() {
 
   const { data: cat } = useCat(catId);
   const { data: bands } = usePhBands();
-  const { data: series, isPending, isError, refetch } = useTrendSeries(catId, range);
-  const { data: summary } = useTrendSummary(catId, range);
-  const buckets = useDistributionBuckets(summary);
-
-  // Bản desktop dùng D13 thật (bản mobile vẫn tự dựng chuỗi từ E2 — xem `catTrendsApi.ts`).
   const webTrends = useCatTrends(catId, range);
+  const { isPending, isError, refetch } = webTrends;
+  const summary = webTrends.data?.stats;
+  const buckets = useDistributionBuckets(webTrends.data?.points);
   // 403 duy nhất mà D13 trả là FEATURE_NOT_IN_PLAN (GET nên không dính CSRF; chưa đăng nhập
   // thì rơi vào guard trước khi tới đây). Nhận diện theo `errorCode`, nhưng vẫn coi mọi 403
   // là "khoá gói" để không rơi vào màn lỗi trắng nếu body đổi hình dạng.
@@ -52,9 +53,17 @@ export function CatTrendsPage() {
   const referenceBand = allBands.find((b) => b.severity === "NORMAL");
   const referenceStyle = phTokenStyle(referenceBand?.colorToken ?? "color-ph-unknown");
 
-  const points = series?.points ?? [];
+  const points = toTrendPoints(webTrends.data?.points);
   const latest = points.length ? points[points.length - 1] : null;
-  const latestBand = findBandForPh(allBands, latest?.phValue);
+  /**
+   * Ưu tiên `classification` BACKEND đã gán cho chính lần quét đó; chỉ suy lại từ con số pH khi
+   * mã lạ. `findBandForPh` so `band.phMin === null` nhưng API BỎ HẲN key ở dải mở (`LOW`/`HIGH`)
+   * nên `undefined !== null` ⇒ hai dải đó không bao giờ khớp và badge rơi về mã thô (VD pH 7.20
+   * hiện ra chữ `SLIGHTLY_HIGH`). Tra theo `code` không dính bẫy này.
+   */
+  const bandByCode = (code: string | undefined): PhBand | undefined =>
+    code === undefined ? undefined : allBands.find((b) => b.code === code);
+  const latestBand = bandByCode(latest?.classification) ?? findBandForPh(allBands, latest?.phValue);
   const average = points.length ? points.reduce((sum, p) => sum + p.phValue, 0) / points.length : null;
   const dash = t("web.valueUnavailable");
 
@@ -93,6 +102,16 @@ export function CatTrendsPage() {
         <SkeletonLoader shape="card" className="h-24" />
       </div>
     );
+  } else if (webLocked) {
+    // Gói hiện tại không có entitlement `trend` — nói thẳng thay vì màn lỗi trắng.
+    mobileContent = (
+      <div className="flex flex-col gap-3 p-4">
+        <ErrorState title={t("upsell.title", { ns: "common" })} description={t("web.lockedNote")} />
+        <Link to="/credits" className={cn(buttonVariants({ variant: "primary" }), "w-full")}>
+          {t("web.lockedCta")}
+        </Link>
+      </div>
+    );
   } else if (isError) {
     mobileContent = (
       <ErrorState
@@ -106,11 +125,16 @@ export function CatTrendsPage() {
   } else {
     mobileContent = (
       <div className="flex flex-col gap-4 p-4">
+        {/* Mockup `08`: tiêu đề 2 dòng bên trái, pill trạng thái bên phải. Tên bé mèo tách
+            xuống dòng phụ — nhồi vào `h1` thì tiêu đề bị ép còn ~45% bề ngang và vỡ 4 dòng. */}
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-h2 font-bold text-text-primary">
-            {cat?.name ? `${t("pages.catTrends.title")} · ${cat.name}` : t("pages.catTrends.title")}
-          </h1>
-          {latestBand ? <PhBadge band={latestBand} className="mt-1 shrink-0" /> : null}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-h2 font-bold text-text-primary">{t("pages.catTrends.title")}</h1>
+            {cat?.name ? <p className="pt-0.5 text-caption text-text-secondary">{cat.name}</p> : null}
+          </div>
+          {/* Pill bị kẹp ở ~45% bề ngang (nhãn dải do API trả có thể rất dài) và tự xuống dòng
+              BÊN TRONG pill, đúng như mockup — không đẩy tiêu đề vỡ dòng. */}
+          {latestBand ? <PhBadge band={latestBand} className="mt-1 max-w-[45%] shrink-0 text-left" /> : null}
         </div>
 
         <RangeSegmentedControl
@@ -131,9 +155,7 @@ export function CatTrendsPage() {
               </div>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-h3 font-bold text-primary">
-                {average !== null ? average.toFixed(1) : dash}
-              </p>
+              <p className="text-h3 font-bold text-primary">{average !== null ? average.toFixed(1) : dash}</p>
               <p className="text-small font-semibold text-text-secondary">{t("chart.averageLabel")}</p>
             </div>
           </div>
@@ -167,10 +189,7 @@ export function CatTrendsPage() {
             <div className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-border pt-3">
               {referenceBand ? (
                 <span className="inline-flex items-center gap-1.5 text-small text-text-secondary">
-                  <span
-                    aria-hidden="true"
-                    className={cn("size-2.5 shrink-0 rounded-sm", referenceStyle.solid)}
-                  />
+                  <span aria-hidden="true" className={cn("size-2.5 shrink-0 rounded-sm", referenceStyle.solid)} />
                   {referenceLegend()}
                 </span>
               ) : null}
@@ -220,10 +239,7 @@ export function CatTrendsPage() {
           >
             {t("export.cta")}
           </Button>
-          <Link
-            to="/reminders"
-            className={cn(buttonVariants({ variant: "tertiary" }), "w-full bg-surface")}
-          >
+          <Link to="/reminders" className={cn(buttonVariants({ variant: "tertiary" }), "w-full bg-surface")}>
             <CalendarPlus className="size-4" aria-hidden="true" />
             {t("actions.scheduleCheck")}
           </Link>

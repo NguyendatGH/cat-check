@@ -41,12 +41,16 @@ export interface ExportSectionHeadingProps {
 }
 
 export function ExportSectionHeading({ index, title, hint, action, className }: ExportSectionHeadingProps) {
+  const trailing =
+    action ?? (hint ? <span className="text-[11px] font-semibold text-primary-dark">{hint}</span> : null);
   return (
-    <div className={cn("flex flex-wrap items-baseline justify-between gap-2", className)}>
-      <h2 className="text-caption font-bold uppercase tracking-[0.4px] text-text-primary">
+    // KHÔNG `flex-wrap`: mockup `10` luôn đặt chữ phụ/hành động CÙNG HÀNG với tiêu đề (tiêu đề
+    // tự xuống dòng bên trong). Cho phép wrap thì "Chọn tất cả (4)" rơi xuống dòng riêng.
+    <div className={cn("flex items-baseline justify-between gap-3", className)}>
+      <h2 className="min-w-0 text-caption font-bold uppercase tracking-[0.4px] text-text-primary">
         {[index, title].filter(Boolean).join(" ")}
       </h2>
-      {action ?? (hint ? <span className="text-[11px] font-semibold text-primary-dark">{hint}</span> : null)}
+      {trailing ? <span className="shrink-0 text-right">{trailing}</span> : null}
     </div>
   );
 }
@@ -62,7 +66,14 @@ export interface CatPickerStepProps {
   className?: string;
 }
 
-export function CatPickerStep({ cats, selectedCatId, onSelect, primaryLabel, secondaryLabel, className }: CatPickerStepProps) {
+export function CatPickerStep({
+  cats,
+  selectedCatId,
+  onSelect,
+  primaryLabel,
+  secondaryLabel,
+  className,
+}: CatPickerStepProps) {
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {cats.map((cat) => (
@@ -242,10 +253,7 @@ export interface ReportPreviewThumbnailProps {
 export function ReportPreviewThumbnail({ watermark, className }: ReportPreviewThumbnailProps) {
   return (
     <div
-      className={cn(
-        "mx-auto flex h-[196px] w-[146px] flex-col gap-2 rounded-lg bg-surface p-3 shadow-sm",
-        className,
-      )}
+      className={cn("mx-auto flex h-[196px] w-[146px] flex-col gap-2 rounded-lg bg-surface p-3 shadow-sm", className)}
     >
       <div className="flex items-center justify-between">
         <span className="h-1.5 w-12 rounded-full bg-primary-dark" />

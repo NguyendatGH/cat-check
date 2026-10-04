@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import {
@@ -23,14 +24,13 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { listCommunityPosts, type CommunityPostApi } from "@/features/community";
 import {
   DESIGN_MOCK_COMMUNITY_RULES,
   DESIGN_MOCK_COMPOSER_TAGS,
-  DESIGN_MOCK_MOBILE_POSTS,
   DESIGN_MOCK_RAIL_MARK,
   DESIGN_MOCK_SAFETY_NOTICE,
   DESIGN_MOCK_WEB_HEADER,
-  DESIGN_MOCK_WEB_POSTS,
   DESIGN_MOCK_WEEKLY_TOPICS,
   type MockAuthor,
   type MockBodySegment,
@@ -52,15 +52,15 @@ import {
  *
  * KHÔNG tự thêm padding ngang ở `lg` — `AppLayout` đã cấp hộp nội dung 944px kèm padding.
  *
- * DỮ LIỆU: 100% mock, xem `mockData.ts` (module Cộng đồng là Phase 2 theo p4 — chưa có bảng
- * `post`/`comment`, chưa có API). Không có hook query nào ở đây.
+ * DỮ LIỆU bài viết lấy từ Community API; `mockData.ts` chỉ còn cung cấp nội dung phụ cho
+ * rail và style của frame Figma.
  */
 
 /* --------------------------------- mảnh dùng chung --------------------------------- */
 
 const PH_CHIP_TONE: Record<MockTone, string> = {
   primary: "bg-chip-bg text-primary-dark",
-  secondary: "bg-secondary/30 text-secondary-text-on",
+  secondary: "bg-secondary text-secondary-text-on",
   success: "bg-success-bg text-success-text",
   danger: "bg-danger-bg text-danger-text",
   neutral: "bg-background-alt text-text-secondary",
@@ -68,16 +68,16 @@ const PH_CHIP_TONE: Record<MockTone, string> = {
 
 const BADGE_TONE: Record<MockTone, string> = {
   primary: "bg-chip-bg text-primary-dark",
-  secondary: "bg-secondary/35 text-secondary-text-on",
+  secondary: "bg-secondary text-secondary-text-on",
   success: "bg-success-bg text-success-text",
   danger: "bg-danger-bg text-danger-text",
   neutral: "bg-background-alt text-text-secondary",
 };
 
 const AVATAR_TONE: Record<MockTone, string> = {
-  primary: "bg-chip-bg text-primary-dark",
-  secondary: "bg-secondary/40 text-secondary-text-on",
-  success: "bg-success-strong/40 text-success-text",
+  primary: "bg-info text-primary-dark",
+  secondary: "bg-secondary text-secondary-text-on",
+  success: "bg-verified-bright text-verified-deep",
   danger: "bg-danger-bg text-danger-text",
   neutral: "bg-background-alt text-text-secondary",
 };
@@ -106,7 +106,7 @@ function BodyText({ segments, className }: { segments: readonly MockBodySegment[
 function PhScale({ gauge }: { gauge: MockPhGauge }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="relative h-2 rounded-full bg-gradient-to-r from-secondary via-success to-primary">
+      <div className="relative h-3 rounded-full bg-gradient-to-r from-secondary via-success to-primary">
         <span
           className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-primary-darker shadow-xs"
           style={{ left: `${String(gauge.markerPercent)}%` }}
@@ -145,7 +145,13 @@ function MobilePostCard({ post }: { post: MockMobilePost }) {
   return (
     <article className="rounded-2xl bg-surface p-4 shadow-brand-md">
       <div className="flex items-start gap-3">
-        <img src={post.author.avatarUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+        {post.author.avatarUrl ? (
+          <img src={post.author.avatarUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-chip-bg text-[15px] font-bold text-primary-dark">
+            {post.author.name.slice(0, 1).toUpperCase()}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-bold leading-tight text-text-primary">
             {post.author.name}
@@ -173,7 +179,7 @@ function MobilePostCard({ post }: { post: MockMobilePost }) {
         <div className="relative mt-3 overflow-hidden rounded-xl">
           <img src={post.photoUrl} alt="" className="aspect-[326/224] w-full object-cover" />
           {post.photoCaption ? (
-            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-primary-darker/80 px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-2.5 py-1 text-[11px] font-semibold text-text-primary">
               <span className="size-1.5 rounded-full bg-secondary" aria-hidden="true" />
               {post.photoCaption}
             </span>
@@ -182,20 +188,20 @@ function MobilePostCard({ post }: { post: MockMobilePost }) {
       ) : null}
 
       {post.indicatorStrip ? (
-        <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-background-alt px-3 py-2">
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background-alt px-3 py-2">
           <span className="flex min-w-0 items-center gap-2 text-[12px] font-semibold text-primary-dark">
             <TrendingUp size={13} className="shrink-0" aria-hidden="true" />
             <span className="truncate">{post.indicatorStrip.label}</span>
           </span>
-          <span className="shrink-0 rounded-full bg-primary-dark px-2.5 py-1 text-[11px] font-bold text-white">
+          <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-white">
             {post.indicatorStrip.value}
           </span>
         </div>
       ) : null}
 
       {post.expertNote ? (
-        <div className="mt-3 flex gap-2.5 rounded-xl bg-deco-backdrop/70 p-3">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white">
+        <div className="mt-3 flex gap-2.5 rounded-xl bg-background-alt p-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-white">
             <Stethoscope size={13} aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
@@ -207,9 +213,9 @@ function MobilePostCard({ post }: { post: MockMobilePost }) {
       ) : null}
 
       {post.tipNote ? (
-        <div className="mt-3 flex gap-2.5 rounded-xl bg-background-alt p-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-primary-dark">
-            <ScanLine size={14} aria-hidden="true" />
+        <div className="mt-3 flex gap-2.5 rounded-xl border border-border/60 bg-background-alt p-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-primary-dark">
+            <ScanLine size={18} aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[12px] font-bold text-text-primary">{post.tipNote.title}</p>
@@ -245,9 +251,42 @@ function MobilePostCard({ post }: { post: MockMobilePost }) {
 
 const MOBILE_TABS = ["all", "qa", "tips"] as const;
 
-function MobileFeed() {
+function toMobilePost(post: CommunityPostApi): MockMobilePost {
+  return {
+    id: post.id,
+    author: { name: post.authorName || "Thành viên CATCHECK", avatarUrl: "", meta: post.category },
+    body: [{ kind: "text", value: post.body }],
+    photoUrl: post.imageUrl ?? undefined,
+    likeCount: post.likeCount,
+    commentCount: post.commentCount,
+    saveCount: post.bookmarked ? 1 : 0,
+  };
+}
+
+function toWebPost(post: CommunityPostApi): MockWebPost {
+  return {
+    id: post.id,
+    author: { name: post.authorName || "Thành viên CATCHECK", avatarUrl: "", meta: post.category },
+    avatarInitial: (post.authorName || "C").slice(0, 1).toUpperCase(),
+    avatarTone: "primary",
+    title: post.title,
+    body: post.body,
+    photos: post.imageUrl ? [{ url: post.imageUrl, caption: "Ảnh đính kèm" }] : [],
+    likeCount: post.likeCount,
+    commentCount: post.commentCount,
+    hasShare: true,
+    saveLabel: post.bookmarked ? "Đã lưu" : "Lưu bài viết",
+  };
+}
+
+function MobileFeed({ posts }: { posts: CommunityPostApi[] }) {
   const { t } = useTranslation("community");
   const [tab, setTab] = useState<(typeof MOBILE_TABS)[number]>("all");
+  const visiblePosts = posts.filter((post) => {
+    if (tab === "qa") return post.category === "QA";
+    if (tab === "tips") return post.category === "TIP" || post.category === "EXPERIENCE";
+    return true;
+  });
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
@@ -261,32 +300,41 @@ function MobileFeed() {
         </div>
       </section>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {MOBILE_TABS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => {
-              setTab(key);
-            }}
-            aria-pressed={tab === key}
-            className={cn(
-              "shrink-0 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-colors",
-              tab === key ? "bg-primary-dark text-white" : "bg-surface text-text-secondary hover:bg-background-alt",
-            )}
-          >
-            {t(`mobile.tabs.${key}`)}
-          </button>
-        ))}
+      <div className="relative -mx-4">
+        <div className="flex gap-2 overflow-x-auto px-4 pb-1 pr-10">
+          {MOBILE_TABS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                setTab(key);
+              }}
+              aria-pressed={tab === key}
+              className={cn(
+                "shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors",
+                tab === key ? "bg-primary text-white" : "bg-deco-backdrop text-primary-dark hover:bg-chip-bg",
+              )}
+            >
+              {t(`mobile.tabs.${key}`)}
+            </button>
+          ))}
+        </div>
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent"
+        />
       </div>
 
-      {DESIGN_MOCK_MOBILE_POSTS.map((post) => (
-        <MobilePostCard key={post.id} post={post} />
+      {visiblePosts.map((post) => (
+        <MobilePostCard key={post.id} post={toMobilePost(post)} />
       ))}
+      {visiblePosts.length === 0 ? (
+        <p className="rounded-xl bg-surface p-4 text-center text-[13px] text-text-secondary shadow-xs">{t("api.empty")}</p>
+      ) : null}
 
       <Link
         to="/community/new"
-        className="fixed bottom-[76px] right-4 z-[var(--z-dropdown)] flex items-center gap-2 rounded-full bg-primary-dark px-5 py-3.5 text-[14px] font-bold text-white shadow-brand-xl"
+        className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-4 z-[var(--z-dropdown)] flex items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-[14px] font-bold text-white shadow-brand-xl"
       >
         <Plus size={16} aria-hidden="true" />
         {t("mobile.composeFab")}
@@ -323,9 +371,7 @@ function WebComposer() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pl-12 pt-3">
-        <span className="text-[10px] font-bold tracking-[0.5px] text-text-tertiary">
-          {t("web.composer.tagsLabel")}
-        </span>
+        <span className="text-[10px] font-bold tracking-[0.5px] text-text-tertiary">{t("web.composer.tagsLabel")}</span>
         {DESIGN_MOCK_COMPOSER_TAGS.map((tag) => (
           <span key={tag} className="rounded-full bg-chip-bg px-2.5 py-1 text-[11px] font-semibold text-primary-dark">
             {tag}
@@ -410,10 +456,10 @@ function WebPostCard({ post }: { post: MockWebPost }) {
       <p className="pt-2 text-[13px] leading-relaxed text-text-secondary">{post.body}</p>
 
       {post.gauge ? (
-        <div className="grid gap-4 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid gap-2 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="relative overflow-hidden rounded-xl">
             <img src={post.photos[0].url} alt="" className="aspect-[283/212] w-full object-cover" />
-            <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-primary-darker/80 px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-primary-darker/85 px-2.5 py-1 text-[11px] font-semibold text-white">
               <span className="size-1.5 rounded-full bg-success-strong" aria-hidden="true" />
               {post.photos[0].caption}
             </span>
@@ -445,7 +491,7 @@ function WebPostCard({ post }: { post: MockWebPost }) {
       ) : null}
 
       {!post.gauge && post.photos.length > 0 ? (
-        <div className="grid gap-3 pt-4 sm:grid-cols-2">
+        <div className="grid gap-2 pt-4 sm:grid-cols-2">
           {post.photos.map((photo) => (
             <div key={photo.url} className="relative overflow-hidden rounded-xl">
               <img src={photo.url} alt="" className="aspect-[283/159] w-full object-cover" />
@@ -458,15 +504,15 @@ function WebPostCard({ post }: { post: MockWebPost }) {
       ) : null}
 
       {post.vetReply ? (
-        <div className="mt-4 rounded-xl border-l-4 border-primary bg-deco-backdrop/60 p-4">
+        <div className="mt-4 rounded-xl bg-deco-backdrop p-4">
           <div className="flex items-start gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-white">
               <ShieldCheck size={14} aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[13px] font-bold text-primary-dark">{post.vetReply.name}</span>
-                <span className="rounded-full bg-chip-bg px-2 py-0.5 text-[10px] font-bold text-primary-dark">
+                <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
                   {post.vetReply.badge}
                 </span>
               </div>
@@ -493,8 +539,8 @@ function WebPostCard({ post }: { post: MockWebPost }) {
 
       {post.tipNote ? (
         <div className="mt-4 flex gap-3 rounded-xl bg-background-alt p-4">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-primary-dark">
-            <Lightbulb size={15} aria-hidden="true" />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark">
+            <Lightbulb size={18} aria-hidden="true" />
           </span>
           <p className="text-[13px] leading-relaxed text-text-secondary">
             <span className="font-bold text-text-primary">{post.tipNote.title}</span> {post.tipNote.body}
@@ -534,7 +580,7 @@ function WebRail() {
         <img src={DESIGN_MOCK_RAIL_MARK} alt="" className="h-8 w-12 object-contain" />
       </div>
 
-      <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
+      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
         <h2 className="flex items-center gap-2 text-[14px] font-bold text-text-primary">
           <TrendingUp size={15} className="text-primary" aria-hidden="true" />
           {t("web.rail.topicsTitle")}
@@ -552,13 +598,13 @@ function WebRail() {
         </ul>
       </section>
 
-      <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
+      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
         <h2 className="flex items-center gap-2 text-[14px] font-bold text-text-primary">
           <ShieldCheck size={15} className="text-primary" aria-hidden="true" />
           {t("web.rail.rulesTitle")}
         </h2>
         <p className="pt-2 text-[11px] leading-relaxed text-text-secondary">{DESIGN_MOCK_COMMUNITY_RULES.intro}</p>
-        <p className="mt-3 flex gap-2 rounded-lg bg-danger-bg p-3 text-[11px] font-semibold leading-relaxed text-danger-text">
+        <p className="mt-3 flex gap-2 rounded-lg bg-danger-bg/40 p-3 text-[11px] font-semibold leading-relaxed text-danger-text">
           <Siren size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
           {DESIGN_MOCK_COMMUNITY_RULES.alert}
         </p>
@@ -575,27 +621,31 @@ function WebRail() {
   );
 }
 
-function WebFeed() {
+function WebFeed({ posts }: { posts: CommunityPostApi[] }) {
   const { t } = useTranslation("community");
   const [tab, setTab] = useState<(typeof WEB_TABS)[number]["key"]>("all");
+  const visiblePosts = posts.filter((post) => {
+    if (tab === "all") return true;
+    if (tab === "vetQa") return post.category === "QA";
+    if (tab === "clinicReview") return post.category === "EXPERIENCE";
+    return post.category === "TIP";
+  });
 
   return (
     <div className="flex flex-col gap-5">
-      <section className="flex items-start gap-6 rounded-2xl bg-surface p-6 shadow-brand-lg">
+      <section className="flex items-center gap-6 rounded-2xl bg-surface p-6 shadow-brand-lg">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-full bg-chip-bg px-3 py-1 text-[11px] font-bold text-primary-dark">
+            <span className="flex items-center gap-1.5 rounded-full bg-info px-3 py-1 text-[11px] font-bold text-primary-dark">
               <Users size={12} aria-hidden="true" />
               {DESIGN_MOCK_WEB_HEADER.memberBadge}
             </span>
-            <span className="flex items-center gap-1.5 rounded-full bg-success-bg px-3 py-1 text-[11px] font-bold text-success-text">
+            <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-secondary-text-on">
               <BadgeCheck size={12} aria-hidden="true" />
               {DESIGN_MOCK_WEB_HEADER.sponsorBadge}
             </span>
           </div>
-          <h1 className="pt-3 text-[28px] font-bold leading-tight text-primary-dark">
-            {DESIGN_MOCK_WEB_HEADER.title}
-          </h1>
+          <h1 className="pt-3 text-[28px] font-bold leading-tight text-primary-dark">{DESIGN_MOCK_WEB_HEADER.title}</h1>
           <p className="max-w-[520px] pt-2 text-[13px] leading-relaxed text-text-secondary">
             {DESIGN_MOCK_WEB_HEADER.subtitle}
           </p>
@@ -619,8 +669,8 @@ function WebFeed() {
             }}
             aria-pressed={tab === key}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-semibold transition-colors",
-              tab === key ? "bg-primary-dark text-white" : "bg-surface text-text-secondary hover:bg-background-alt",
+              "flex items-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-semibold transition-colors",
+              tab === key ? "bg-primary text-white" : "bg-surface text-text-secondary hover:bg-background-alt",
             )}
           >
             <Icon size={13} aria-hidden="true" />
@@ -632,9 +682,10 @@ function WebFeed() {
       <div className="flex items-start gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           <WebComposer />
-          {DESIGN_MOCK_WEB_POSTS.map((post) => (
-            <WebPostCard key={post.id} post={post} />
+          {visiblePosts.map((post) => (
+            <WebPostCard key={post.id} post={toWebPost(post)} />
           ))}
+          {visiblePosts.length === 0 ? <p className="rounded-xl bg-surface p-4 text-center text-[13px] text-text-secondary">{t("api.empty")}</p> : null}
         </div>
         <div className="sticky top-6 w-[296px] shrink-0">
           <WebRail />
@@ -645,13 +696,29 @@ function WebFeed() {
 }
 
 export function CommunityFeedPage() {
+  const { t } = useTranslation("community");
+  const postsQuery = useQuery({
+    queryKey: ["community", "posts"],
+    queryFn: () => listCommunityPosts({ size: 20 }),
+    staleTime: 30_000,
+  });
+  const posts = postsQuery.data?.items ?? [];
+
+  if (postsQuery.isPending) {
+    return <div className="p-6 text-sm text-text-secondary">{t("api.loading")}</div>;
+  }
+
+  if (postsQuery.isError) {
+    return <div className="p-6 text-sm text-danger-text">{t("api.error")}</div>;
+  }
+
   return (
     <>
       <div className="lg:hidden">
-        <MobileFeed />
+        <MobileFeed posts={posts} />
       </div>
       <div className="hidden lg:block">
-        <WebFeed />
+        <WebFeed posts={posts} />
       </div>
     </>
   );

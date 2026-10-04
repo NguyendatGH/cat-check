@@ -246,7 +246,7 @@ export const DESIGN_MOCK_WEB_POSTS: MockWebPost[] = [
       lowLabel: "Acid (5.5)",
       idealLabel: "Lý tưởng (6.3)",
       highLabel: "Kiềm (7.5+)",
-      markerPercent: 78,
+      markerPercent: 72,
       statusLabel: "Cần chú ý",
       statusTone: "secondary",
     },
@@ -352,8 +352,7 @@ export const DESIGN_MOCK_WEEKLY_TOPICS = [
 
 /** Cột phải bảng tin web — "Quy Chuẩn Cộng Đồng ISFM". */
 export const DESIGN_MOCK_COMMUNITY_RULES = {
-  intro:
-    "Cộng đồng tuân thủ hướng dẫn Y khoa Feline thân thiện từ Hiệp hội Y học Mèo Quốc tế (ISFM):",
+  intro: "Cộng đồng tuân thủ hướng dẫn Y khoa Feline thân thiện từ Hiệp hội Y học Mèo Quốc tế (ISFM):",
   alert:
     "Cảnh báo khẩn cấp: Thảo luận online và chỉ thị màu hạt cát không thay thế việc khám cấp cứu. Nếu mèo bị bí tiểu hoàn toàn quá 12h, hãy đến trạm thú y ngay lập tức!",
   items: [
@@ -380,6 +379,8 @@ export const DESIGN_MOCK_THREAD = {
   },
   verifiedBadge: "Đã được Bác sĩ Thú y ISFM tham vấn",
   tags: ["#FLUTD", "#DoiMauCat", "#NuocTieuKiem", "#pH7.2", "#SmartSand_Bio"],
+  /** Figma tô vàng đúng nhãn này trong hàng nhãn bệnh lý (#FDCF52), các nhãn còn lại nền xanh nhạt. */
+  highlightTag: "#NuocTieuKiem",
   title: "Hạt cát chuyển xanh nhạt sau 1 ngày có phải viêm bàng quang hay do thức ăn mới?",
   body: "Chào bác sĩ và cộng đồng CATCHECK. Em đổi cát chỉ thị SmartSand Bio hôm qua cho bé Miu. Sáng nay kiểm tra khay thì phát hiện vùng cát chuyển màu xanh nhạt. Ứng dụng AI quét ra kết quả pH 7.2 (Kiềm nhẹ). Bé vẫn ăn uống bình thường nhưng sáng nay đi tiểu ngồi lâu hơn 30 giây. Bác sĩ xem giúp em có nguy cơ sỏi Struvite hay viêm bàng quang FIC không ạ?",
   photo: {
@@ -401,7 +402,7 @@ export const DESIGN_MOCK_THREAD = {
       lowLabel: "pH 5.5 (Axit)",
       idealLabel: "6.4 (Lý tưởng)",
       highLabel: "pH 8.5 (Kiềm cao)",
-      markerPercent: 72,
+      markerPercent: 68,
       statusLabel: "Cảnh báo kiềm nhẹ",
       statusTone: "secondary" as MockTone,
     } satisfies MockPhGauge,
@@ -561,7 +562,7 @@ export const DESIGN_MOCK_COMMENTS: MockComment[] = [
       avatarUrl: avatarHoangNamBo,
       /** Figma: "Đã từng trị sỏi Struvite" → bỏ ngôn ngữ xử lý bệnh, chuyển sang theo dõi. */
       roleBadge: "Đã từng theo dõi sỏi Struvite",
-      roleBadgeTone: "success",
+      roleBadgeTone: "secondary",
       meta: "2 giờ trước • Đã kiểm chứng bởi Bio-Kit",
     },
     body: "Bé Bơ nhà mình đợt trước cũng y chang bé Miu, đổi hạt sang dòng nhiều đạm cá hồi là cát CATCHECK báo ngay pH 7.4. Mình vội cho uống thêm nước bằng ống tiêm và đổi bát nước sang dạng đài gốm chảy tuần hoàn. 2 ngày sau cát về lại màu vàng chanh (pH 6.4) luôn. Mẹ Miu bình tĩnh làm theo lời bác sĩ Phương dặn nhé!",

@@ -37,9 +37,7 @@ export function AuthLayout() {
           <img src={webLogo} alt={t("pages.login.title")} className="h-20 w-[120px] object-contain" />
           <div className="flex items-center gap-1">
             <img src={headerShield} alt="" className="h-[15px] w-3" />
-            <span className="text-[12px] font-bold tracking-[0.3px] text-text-secondary">
-              {t("web.headerTagline")}
-            </span>
+            <span className="text-[12px] font-bold tracking-[0.3px] text-text-secondary">{t("web.headerTagline")}</span>
           </div>
         </div>
       </header>

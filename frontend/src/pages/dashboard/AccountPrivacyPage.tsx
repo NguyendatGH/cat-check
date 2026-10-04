@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import {
@@ -33,6 +33,7 @@ import { cn } from "@/shared/lib/cn";
 import { useSessionStore } from "@/entities/user";
 import {
   DELETION_GRACE_DAYS,
+  useAccessLog,
   useCancelAccountDeletion,
   useConsentHistory,
   useConsentPurposes,
@@ -49,6 +50,7 @@ import {
   useRequestStepUpOtp,
   useSetRestriction,
   useVerifyStepUpOtp,
+  type AccessLogEntryView,
   type ConsentStatus,
   type DataInventoryView,
   type DsarRequestView,
@@ -473,6 +475,7 @@ export function AccountPrivacyPage() {
   const history = useConsentHistory();
   const inventory = useDataInventory();
   const requests = useDsarRequests();
+  const accessLog = useAccessLog();
 
   const recordConsents = useRecordConsents();
   const createExport = useCreateExportRequest();
@@ -489,7 +492,22 @@ export function AccountPrivacyPage() {
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteEmail, setDeleteEmail] = useState("");
+  const [, setExportTokenVersion] = useState(0);
   const pendingActionRef = useRef<(() => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    const marker = "#dsar-download?";
+    const fragment = window.location.hash;
+    if (!fragment.startsWith(marker)) return;
+    const params = new URLSearchParams(fragment.slice(marker.length));
+    const publicRef = params.get("publicRef");
+    const token = params.get("token");
+    if (publicRef && token && token.length <= 128) {
+      sessionStorage.setItem(`catcheck:dsar-download:${publicRef}`, token);
+      setExportTokenVersion((version) => version + 1);
+    }
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+  }, []);
 
   /**
    * Chạy một thao tác cần step-up. Không mở hộp thoại trước: phiên có thể đã step-up trong
@@ -528,6 +546,9 @@ export function AccountPrivacyPage() {
   const openRestrict = openRequest("RESTRICT");
   const latestExport = (requests.data ?? []).find((item) => item.requestType === "ACCESS_EXPORT") ?? null;
   const exportStatus = useExportStatus(latestExport?.publicRef ?? null);
+  const exportDownloadToken = latestExport === null
+    ? null
+    : sessionStorage.getItem(`catcheck:dsar-download:${latestExport.publicRef}`);
 
   const eraseDeadline = openErase
     ? new Date(new Date(openErase.receivedAt).getTime() + DELETION_GRACE_DAYS * 86_400_000)
@@ -842,9 +863,11 @@ export function AccountPrivacyPage() {
                   size="sm"
                   className="self-start"
                   loading={downloadExport.isPending}
+                  disabled={exportStatus.data?.status !== "COMPLETED" || exportDownloadToken === null}
                   onClick={() => {
                     dispatch("DATA_EXPORT_DOWNLOAD", async () => {
-                      await downloadExport.mutateAsync(latestExport.publicRef);
+                      if (exportDownloadToken === null) return;
+                      await downloadExport.mutateAsync({ publicRef: latestExport.publicRef, downloadToken: exportDownloadToken });
                     });
                   }}
                 >
@@ -886,6 +909,50 @@ export function AccountPrivacyPage() {
 
             <MissingApiNote title={t("privacyCenter.restriction.title")}>
               {t("privacyCenter.restriction.derivedNote")}
+            </MissingApiNote>
+          </section>
+
+          {/* ---------- Nhật ký truy cập (B13) ---------- */}
+          <section className={CARD}>
+            <h2 className={SECTION_TITLE}>
+              <History size={18} className="text-primary-dark" aria-hidden="true" />
+              {t("privacyCenter.accessLog.title")}
+            </h2>
+            <p className="text-caption text-text-secondary">{t("privacyCenter.accessLog.intro")}</p>
+
+            {accessLog.isPending ? (
+              <SkeletonLoader className="h-20 w-full" />
+            ) : accessLog.isError ? (
+              <InlineError message={t("privacyCenter.loadError")} />
+            ) : accessLog.data.length === 0 ? (
+              <p className="text-caption text-text-tertiary">{t("privacyCenter.accessLog.empty")}</p>
+            ) : (
+              <ul className="flex flex-col">
+                {accessLog.data.map((entry: AccessLogEntryView, index) => (
+                  <li
+                    key={`${entry.occurredAt}-${String(index)}`}
+                    className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border py-3 last:border-b-0 last:pb-0"
+                  >
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-caption font-semibold text-text-primary">{entry.action}</span>
+                      <span className="text-small text-text-tertiary">
+                        {t("privacyCenter.accessLog.actor", {
+                          actor: entry.actorRole ?? entry.actorType,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-caption text-text-secondary">{entry.result}</span>
+                      <span className="text-small text-text-tertiary">{formatDateTime(entry.occurredAt)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Endpoint có thật nhưng hiện trả mảng rỗng cố định — nói thẳng, không dựng dòng mẫu. */}
+            <MissingApiNote title={t("privacyCenter.accessLog.title")}>
+              {t("privacyCenter.accessLog.pendingNote")}
             </MissingApiNote>
           </section>
 

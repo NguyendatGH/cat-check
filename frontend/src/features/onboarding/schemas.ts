@@ -17,11 +17,7 @@ function isValidDateString(value: string): boolean {
 }
 
 export const catProfileSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "cat.name.required")
-    .max(CAT_NAME_MAX, "cat.name.tooLong"),
+  name: z.string().trim().min(1, "cat.name.required").max(CAT_NAME_MAX, "cat.name.tooLong"),
   breedCode: z.string().min(1, "cat.breed.required"),
   // string (không phải z.enum của CatSex) có chủ đích: `OptionCard` dùng chung cho cả field
   // này lẫn các field lựa chọn dạng text khác trong luồng onboarding, `onChange` của nó nhận
@@ -31,10 +27,7 @@ export const catProfileSchema = z.object({
   birthDate: z
     .string()
     .refine((value) => !value || isValidDateString(value), "cat.birthDate.invalid")
-    .refine(
-      (value) => !value || new Date(`${value}T00:00:00`).getTime() <= Date.now(),
-      "cat.birthDate.future",
-    ),
+    .refine((value) => !value || new Date(`${value}T00:00:00`).getTime() <= Date.now(), "cat.birthDate.future"),
   weightKg: z.string().refine((value) => {
     if (!value) return true;
     const n = Number(value);

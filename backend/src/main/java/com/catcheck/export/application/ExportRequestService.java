@@ -10,7 +10,6 @@ import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.error.NotFoundException;
 import com.catcheck.shared.id.UuidV7;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,8 +35,7 @@ public class ExportRequestService {
     private final SubjectSnapshotPort subjectSnapshotPort;
     private final ScanHistoryQuery scanHistoryQuery;
     private final DocumentCodeGenerator documentCodeGenerator;
-    private final ExportGenerationService generationService;
-    private final ThreadPoolTaskExecutor exportExecutor;
+    private final ExportJobDispatcher dispatcher;
     private final UuidV7 uuidV7;
     private final Clock clock;
 
@@ -46,16 +44,14 @@ public class ExportRequestService {
             SubjectSnapshotPort subjectSnapshotPort,
             ScanHistoryQuery scanHistoryQuery,
             DocumentCodeGenerator documentCodeGenerator,
-            ExportGenerationService generationService,
-            ThreadPoolTaskExecutor exportExecutor,
+            ExportJobDispatcher dispatcher,
             UuidV7 uuidV7,
             Clock clock) {
         this.jobRepository = jobRepository;
         this.subjectSnapshotPort = subjectSnapshotPort;
         this.scanHistoryQuery = scanHistoryQuery;
         this.documentCodeGenerator = documentCodeGenerator;
-        this.generationService = generationService;
-        this.exportExecutor = exportExecutor;
+        this.dispatcher = dispatcher;
         this.uuidV7 = uuidV7;
         this.clock = clock;
     }
@@ -99,8 +95,10 @@ public class ExportRequestService {
             throw new ConflictException(ExportErrorCode.EXPORT_JOB_IN_PROGRESS);
         }
 
-        UUID jobId = job.getId();
-        exportExecutor.execute(() -> generationService.generate(jobId));
+        // H15.76: hẹn SAU COMMIT, không submit thẳng. Submit trong transaction thì worker đọc
+        // export_job trước khi INSERT được commit, không thấy dòng nào, bỏ chạy — và dòng kẹt
+        // QUEUED khoá mọi lần export sau bằng 409 (p4 G1 I25).
+        dispatcher.dispatchAfterCommit(job.getId());
 
         return job;
     }

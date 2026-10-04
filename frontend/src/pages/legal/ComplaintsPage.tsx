@@ -73,7 +73,10 @@ export function ComplaintsPage() {
                 <p className="text-caption text-text-secondary">
                   {t("complaints.successDescription", { publicRef: createRequest.data.publicRef })}
                 </p>
-                <Link to="/legal/contact" className="mt-2 inline-block text-caption font-semibold text-primary hover:underline">
+                <Link
+                  to="/legal/contact"
+                  className="mt-2 inline-block text-caption font-semibold text-primary hover:underline"
+                >
                   {t("complaints.emailDpoLink")}
                 </Link>
               </div>
@@ -84,13 +87,26 @@ export function ComplaintsPage() {
                     {error}
                   </p>
                 ) : null}
-                <Button type="button" className="lg:self-start" loading={createRequest.isPending} onClick={() => { void handleSubmit(); }}>
+                <Button
+                  type="button"
+                  className="lg:self-start"
+                  loading={createRequest.isPending}
+                  onClick={() => {
+                    void handleSubmit();
+                  }}
+                >
                   {t("complaints.openTicketCta")}
                 </Button>
               </div>
             )
           ) : (
-            <Button type="button" className="lg:self-start" onClick={() => { void navigate("/auth/login?next=%2Flegal%2Fcomplaints"); }}>
+            <Button
+              type="button"
+              className="lg:self-start"
+              onClick={() => {
+                void navigate("/auth/login?next=%2Flegal%2Fcomplaints");
+              }}
+            >
               {t("complaints.loginCta")}
             </Button>
           )}

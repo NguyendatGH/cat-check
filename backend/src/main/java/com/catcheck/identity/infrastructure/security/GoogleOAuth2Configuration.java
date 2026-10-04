@@ -40,6 +40,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @ConditionalOnClass(name = "org.springframework.security.oauth2.client.registration.ClientRegistrationRepository")
 public class GoogleOAuth2Configuration {
 
+    private final OAuth2LoginSuccessHandler oauth2LoginSuccessHandler;
+
+    public GoogleOAuth2Configuration(OAuth2LoginSuccessHandler oauth2LoginSuccessHandler) {
+        this.oauth2LoginSuccessHandler = oauth2LoginSuccessHandler;
+    }
+
     @Bean
     @Order(2)
     public SecurityFilterChain oauth2FilterChain(HttpSecurity http) throws Exception {
@@ -47,7 +53,9 @@ public class GoogleOAuth2Configuration {
                 .securityMatcher("/oauth2/**", "/login/oauth2/**")
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
                 .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/oauth2/authorization/google"));
+                        .loginPage("/oauth2/authorization/google")
+                        .successHandler(oauth2LoginSuccessHandler)
+                        .failureHandler(oauth2LoginSuccessHandler));
         return http.build();
     }
 }

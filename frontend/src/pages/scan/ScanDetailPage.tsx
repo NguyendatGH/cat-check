@@ -5,6 +5,7 @@ import { Badge, Button, Card, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { usePhBands } from "@/entities/ph-bands";
 import {
+  ScanAdviceCard,
   ScanResultSummary,
   useClearScanDispute,
   useDeleteScan,
@@ -13,8 +14,17 @@ import {
   useScanAnalysis,
 } from "@/features/scan";
 
+/**
+ * BE lược MỌI field `null` khỏi JSON (`GET /scans/{id}/analysis` của lượt quét seed chỉ có
+ * `calibrationMethod`/`chartCode`/…), nên các toạ độ vắng mặt là `undefined` chứ không phải
+ * `null` — so sánh `=== null` để lọt và `.toFixed()` làm trắng cả trang. Dùng `Number.isFinite`.
+ */
+function isFiniteNumber(v: number | null | undefined): v is number {
+  return typeof v === "number" && Number.isFinite(v);
+}
+
 function formatLabCoordinates(l: number | null, a: number | null, b: number | null): string {
-  if (l === null || a === null || b === null) return "—";
+  if (!isFiniteNumber(l) || !isFiniteNumber(a) || !isFiniteNumber(b)) return "—";
   return `${l.toFixed(1)} / ${a.toFixed(1)} / ${b.toFixed(1)}`;
 }
 
@@ -69,6 +79,10 @@ export function ScanDetailPage() {
 
       <ScanResultSummary result={result} bands={bands ?? []} matchLabel={t("result.matchLabel")} />
 
+      {/* Cùng khối "Bạn nên làm gì?" với `/scan/result/:id` để hai màn đọc giống nhau; phần
+          riêng của màn này (phân tích kỹ thuật, tranh chấp, xoá) nằm bên dưới. */}
+      <ScanAdviceCard result={result} />
+
       <DisclaimerBanner variant="short" />
 
       {analysis ? (
@@ -78,7 +92,7 @@ export function ScanDetailPage() {
             <dt>{t("scanDetail.labLabel")}</dt>
             <dd>{formatLabCoordinates(analysis.labL, analysis.labA, analysis.labB)}</dd>
             <dt>{t("scanDetail.deltaEMinLabel")}</dt>
-            <dd>{analysis.deltaEMin !== null ? analysis.deltaEMin.toFixed(2) : "—"}</dd>
+            <dd>{isFiniteNumber(analysis.deltaEMin) ? analysis.deltaEMin.toFixed(2) : "—"}</dd>
             <dt>{t("scanDetail.chartLabel")}</dt>
             <dd>
               {analysis.chartCode
@@ -120,13 +134,22 @@ export function ScanDetailPage() {
                 onClick={() => {
                   dispute.mutate(
                     { note: noteDraft || undefined },
-                    { onSuccess: () => { setShowDisputeForm(false); } },
+                    {
+                      onSuccess: () => {
+                        setShowDisputeForm(false);
+                      },
+                    },
                   );
                 }}
               >
                 {t("dispute.submit")}
               </Button>
-              <Button variant="tertiary" onClick={() => { setShowDisputeForm(false); }}>
+              <Button
+                variant="tertiary"
+                onClick={() => {
+                  setShowDisputeForm(false);
+                }}
+              >
                 {t("dispute.cancel")}
               </Button>
             </div>

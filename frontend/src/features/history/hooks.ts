@@ -44,8 +44,21 @@ export function useScanHistory(
   });
 }
 
-export function useScanSummary(catId: string | undefined, from?: string, to?: string): UseQueryResult<ScanSummary> {
+/**
+ * E3 `GET /scans/summary`.
+ *
+ * `enabled` giống {@link useScanHistory}: endpoint yêu cầu đăng nhập, mà Dashboard mở được ở
+ * chế độ KHÁCH — gọi khi chưa đăng nhập là 403 chắc chắn, vừa bẩn console vừa làm bộ quét
+ * e2e đỏ. Bỏ sót cờ này là lý do Dashboard phải đếm số bản ghi ĐÃ TẢI thay vì tổng thật.
+ */
+export function useScanSummary(
+  catId: string | undefined,
+  from?: string,
+  to?: string,
+  enabled = true,
+): UseQueryResult<ScanSummary> {
   return useQuery({
+    enabled,
     queryKey: historyKeys.summary(catId, from, to),
     queryFn: () => fetchScanSummary({ catId, from, to }),
   });

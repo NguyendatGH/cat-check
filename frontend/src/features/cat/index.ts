@@ -59,10 +59,7 @@ export {
 } from "./hooks";
 export { apiFetch, apiUploadAvatar } from "./api";
 export { handlers, worker } from "./mocks";
-export {
-  EMPTY_CAT_FORM_DRAFT,
-  MANUAL_CLINICAL_SIGN_SOURCE,
-} from "./types";
+export { EMPTY_CAT_FORM_DRAFT, MANUAL_CLINICAL_SIGN_SOURCE } from "./types";
 export type {
   CatAgeMode,
   CatFormDraft,

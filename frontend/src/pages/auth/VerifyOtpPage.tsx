@@ -86,7 +86,12 @@ export function VerifyOtpPage() {
         title={t("verifyOtp.missingDraft.title")}
         description={t("verifyOtp.missingDraft.description")}
         action={
-          <Button type="button" onClick={() => { void navigate("/auth/register"); }}>
+          <Button
+            type="button"
+            onClick={() => {
+              void navigate("/auth/register");
+            }}
+          >
             {t("verifyOtp.missingDraft.cta")}
           </Button>
         }
@@ -165,9 +170,7 @@ export function VerifyOtpPage() {
                 <span className="text-[11px] font-bold uppercase tracking-[1.1px] text-nav-inactive">
                   {t("web.otp.encryptionBadge")}
                 </span>
-                <span className="text-[20px] font-bold leading-7 text-text-primary">
-                  {t("web.otp.inboxTitle")}
-                </span>
+                <span className="text-[20px] font-bold leading-7 text-text-primary">{t("web.otp.inboxTitle")}</span>
               </span>
             </div>
             <span className="flex items-center gap-1.5 rounded-full bg-secondary-light/50 px-3 py-1.5">
@@ -191,7 +194,9 @@ export function VerifyOtpPage() {
               </span>
               <Link
                 to="/auth/register"
-                onClick={() => { reset(); }}
+                onClick={() => {
+                  reset();
+                }}
                 className="ml-2 flex items-center gap-1 text-[12px] font-bold tracking-[0.3px] text-secondary-text-on"
               >
                 <img src={pencil} alt="" className="size-3" />
@@ -200,90 +205,96 @@ export function VerifyOtpPage() {
             </div>
           </div>
 
-      <header className="flex flex-col items-center gap-1 pt-2 text-center lg:hidden">
-        <div className="relative mb-2 flex size-20 items-center justify-center rounded-full bg-primary-dark/10">
-          <div className="flex size-14 items-center justify-center rounded-full bg-primary-dark text-white shadow-[0px_8px_20px_-4px_rgba(13,54,154,0.35)]">
-            <MailCheck size={24} aria-hidden="true" />
+          <header className="flex flex-col items-center gap-1 pt-2 text-center lg:hidden">
+            <div className="relative mb-2 flex size-20 items-center justify-center rounded-full bg-primary-dark/10">
+              <div className="flex size-14 items-center justify-center rounded-full bg-primary-dark text-white shadow-[0px_8px_20px_-4px_rgba(13,54,154,0.35)]">
+                <MailCheck size={24} aria-hidden="true" />
+              </div>
+              <span className="absolute right-0 top-0 flex size-6 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
+                <Lock size={12} aria-hidden="true" strokeWidth={2.5} />
+              </span>
+            </div>
+            <h1 className="text-h2 font-bold text-text-primary">{t("verifyOtp.title")}</h1>
+            <p className="max-w-[310px] text-caption leading-[21px] text-text-secondary">{t("verifyOtp.subtitle")}</p>
+            <p className="text-caption font-bold text-text-primary">{maskEmail(pendingRegistration.email)}</p>
+            <Link
+              to="/auth/register"
+              onClick={() => {
+                reset();
+              }}
+              className="mt-1.5 flex items-center gap-1.5 rounded-full bg-deco-backdrop px-3 py-1 text-caption font-semibold text-primary-dark hover:bg-chip-bg"
+            >
+              <Pencil size={12} aria-hidden="true" />
+              {t("verifyOtp.changeEmail")}
+            </Link>
+          </header>
+
+          <div className="relative flex flex-col gap-3">
+            <span className="hidden text-[14px] font-bold tracking-[0.2px] text-text-primary lg:block">
+              {t("web.otp.otpLabel")}
+            </span>
+            <OtpCodeInput value={code} onChange={setCode} error={error ?? undefined} disabled={isBusy} focusOnMount />
           </div>
-          <span className="absolute right-0 top-0 flex size-6 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
-            <Lock size={12} aria-hidden="true" strokeWidth={2.5} />
-          </span>
-        </div>
-        <h1 className="text-h2 font-bold text-text-primary">{t("verifyOtp.title")}</h1>
-        <p className="max-w-[310px] text-caption leading-[21px] text-text-secondary">
-          {t("verifyOtp.subtitle")}
-        </p>
-        <p className="text-caption font-bold text-text-primary">{maskEmail(pendingRegistration.email)}</p>
-        <Link
-          to="/auth/register"
-          onClick={() => { reset(); }}
-          className="mt-1.5 flex items-center gap-1.5 rounded-full bg-deco-backdrop px-3 py-1 text-caption font-semibold text-primary-dark hover:bg-chip-bg"
-        >
-          <Pencil size={12} aria-hidden="true" />
-          {t("verifyOtp.changeEmail")}
-        </Link>
-      </header>
 
-      <div className="relative flex flex-col gap-3">
-        <span className="hidden text-[14px] font-bold tracking-[0.2px] text-text-primary lg:block">
-          {t("web.otp.otpLabel")}
-        </span>
-        <OtpCodeInput value={code} onChange={setCode} error={error ?? undefined} disabled={isBusy} focusOnMount />
-      </div>
+          <div className="relative flex flex-col items-center gap-1.5 lg:flex-row lg:justify-between lg:gap-3">
+            <ResendCountdown
+              key={resendKey}
+              seconds={resendSeconds}
+              onResend={() => {
+                void handleResend();
+              }}
+              disabled={requestOtp.isPending}
+            />
+            <p className="text-[11px] tracking-[0.2px] text-text-tertiary lg:text-[12px]">
+              {t("verifyOtp.checkSpamNote")}
+            </p>
+          </div>
 
-      <div className="relative flex flex-col items-center gap-1.5 lg:flex-row lg:justify-between lg:gap-3">
-        <ResendCountdown
-          key={resendKey}
-          seconds={resendSeconds}
-          onResend={() => { void handleResend(); }}
-          disabled={requestOtp.isPending}
-        />
-        <p className="text-[11px] tracking-[0.2px] text-text-tertiary lg:text-[12px]">{t("verifyOtp.checkSpamNote")}</p>
-      </div>
+          {/* Mẹo bảo mật: bản mobile. Web dùng khối "Clinical Security Notice" bên dưới CTA. */}
+          <div className="flex items-start gap-3 rounded-xl bg-background-alt p-4 lg:hidden">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
+              <ShieldCheck size={16} aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-caption font-bold text-text-primary">{t("verifyOtp.securityTipTitle")}</p>
+              <p className="pt-0.5 text-[11px] leading-[18px] tracking-[0.2px] text-text-secondary">
+                {t("verifyOtp.securityTip")}
+              </p>
+            </div>
+          </div>
 
-      {/* Mẹo bảo mật: bản mobile. Web dùng khối "Clinical Security Notice" bên dưới CTA. */}
-      <div className="flex items-start gap-3 rounded-xl bg-background-alt p-4 lg:hidden">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
-          <ShieldCheck size={16} aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-caption font-bold text-text-primary">{t("verifyOtp.securityTipTitle")}</p>
-          <p className="pt-0.5 text-[11px] leading-[18px] tracking-[0.2px] text-text-secondary">
-            {t("verifyOtp.securityTip")}
+          <Button
+            type="button"
+            size="lg"
+            className="relative gap-2 rounded-2xl lg:h-14 lg:rounded-xl"
+            loading={isBusy}
+            disabled={code.length !== 6 || isBusy}
+            onClick={() => {
+              void handleSubmit();
+            }}
+          >
+            <span className="lg:hidden">{t("verifyOtp.submit")}</span>
+            <span className="hidden lg:inline">{t("web.otp.submit")}</span>
+            <ArrowRight size={18} aria-hidden="true" />
+          </Button>
+
+          {/* Ghi chú bảo mật — chỉ web (Figma 16:8545) */}
+          <div className="relative hidden gap-3 rounded-xl bg-deco-backdrop p-4 lg:flex">
+            <img src={infoIcon} alt="" className="h-[18.667px] w-[16.667px] shrink-0" />
+            <div className="flex flex-col gap-1">
+              <p className="text-[14px] leading-5 text-text-secondary">{t("web.otp.noticeBody")}</p>
+              <p className="text-[11px] font-semibold tracking-[0.4px] text-nav-inactive">
+                {t("web.otp.noticeFooter")}
+              </p>
+            </div>
+          </div>
+
+          <p className="relative text-center text-caption text-text-secondary lg:hidden">
+            {t("verifyOtp.supportPrompt")}{" "}
+            <Link to="/legal/contact" className="font-semibold text-primary hover:underline">
+              {t("verifyOtp.supportLink")}
+            </Link>
           </p>
-        </div>
-      </div>
-
-      <Button
-        type="button"
-        size="lg"
-        className="relative gap-2 rounded-2xl lg:h-14 lg:rounded-xl"
-        loading={isBusy}
-        disabled={code.length !== 6 || isBusy}
-        onClick={() => { void handleSubmit(); }}
-      >
-        <span className="lg:hidden">{t("verifyOtp.submit")}</span>
-        <span className="hidden lg:inline">{t("web.otp.submit")}</span>
-        <ArrowRight size={18} aria-hidden="true" />
-      </Button>
-
-      {/* Ghi chú bảo mật — chỉ web (Figma 16:8545) */}
-      <div className="relative hidden gap-3 rounded-xl bg-deco-backdrop p-4 lg:flex">
-        <img src={infoIcon} alt="" className="h-[18.667px] w-[16.667px] shrink-0" />
-        <div className="flex flex-col gap-1">
-          <p className="text-[14px] leading-5 text-text-secondary">{t("web.otp.noticeBody")}</p>
-          <p className="text-[11px] font-semibold tracking-[0.4px] text-nav-inactive">
-            {t("web.otp.noticeFooter")}
-          </p>
-        </div>
-      </div>
-
-      <p className="relative text-center text-caption text-text-secondary lg:hidden">
-        {t("verifyOtp.supportPrompt")}{" "}
-        <Link to="/legal/contact" className="font-semibold text-primary hover:underline">
-          {t("verifyOtp.supportLink")}
-        </Link>
-      </p>
         </div>
 
         {/* ══ Cột phải CHỈ CÓ Ở WEB (Figma 16:8553) ══ */}
@@ -307,9 +318,7 @@ export function VerifyOtpPage() {
               <img src={otpCat} alt="" className="size-16 shrink-0 rounded-full object-cover shadow-xs" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[18px] font-bold leading-6 text-text-primary">
-                    {OTP_PREVIEW_MOCK.catName}
-                  </span>
+                  <span className="text-[18px] font-bold leading-6 text-text-primary">{OTP_PREVIEW_MOCK.catName}</span>
                   <span className="rounded bg-chip-bg px-2 py-0.5 text-[11px] font-bold text-primary-dark">
                     {OTP_PREVIEW_MOCK.sexBadge}
                   </span>
@@ -364,10 +373,7 @@ export function VerifyOtpPage() {
                 <span className="text-[14px] leading-5 text-text-secondary">{t("web.otp.supportBody")}</span>
               </span>
             </div>
-            <Link
-              to="/legal/contact"
-              className="flex items-center gap-1 rounded-lg bg-surface px-3.5 py-2 shadow-xs"
-            >
+            <Link to="/legal/contact" className="flex items-center gap-1 rounded-lg bg-surface px-3.5 py-2 shadow-xs">
               <img src={phoneIcon} alt="" className="size-3" />
               <span className="text-[12px] font-bold tracking-[0.3px] text-primary-dark">
                 {t("web.otp.supportPhone")}
@@ -382,9 +388,7 @@ export function VerifyOtpPage() {
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-2">
             <img src={certIso} alt="" className="h-[15.75px] w-[16.5px]" />
-            <span className="text-[11px] font-semibold tracking-[0.4px] text-nav-inactive">
-              {t("web.otp.certIso")}
-            </span>
+            <span className="text-[11px] font-semibold tracking-[0.4px] text-nav-inactive">{t("web.otp.certIso")}</span>
           </span>
           <span className="flex items-center gap-2">
             <img src={certIsfm} alt="" className="h-[14.25px] w-[10.5px]" />
@@ -393,9 +397,7 @@ export function VerifyOtpPage() {
             </span>
           </span>
         </div>
-        <span className="text-[12px] font-bold tracking-[0.3px] text-text-secondary">
-          {t("web.otp.copyright")}
-        </span>
+        <span className="text-[12px] font-bold tracking-[0.3px] text-text-secondary">{t("web.otp.copyright")}</span>
       </div>
     </div>
   );

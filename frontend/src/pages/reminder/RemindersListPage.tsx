@@ -44,14 +44,8 @@ export function RemindersListPage() {
   const reminders = remindersQuery.data?.items ?? [];
 
   const catItems = catsQuery.data?.items;
-  const catById = useMemo(
-    () => new Map((catItems ?? []).map((cat) => [cat.id, cat] as const)),
-    [catItems],
-  );
-  const catNameById = useMemo(
-    () => new Map((catItems ?? []).map((cat) => [cat.id, cat.name] as const)),
-    [catItems],
-  );
+  const catById = useMemo(() => new Map((catItems ?? []).map((cat) => [cat.id, cat] as const)), [catItems]);
+  const catNameById = useMemo(() => new Map((catItems ?? []).map((cat) => [cat.id, cat.name] as const)), [catItems]);
 
   /** Bật/tắt bằng merge-patch tối thiểu: chỉ gửi `active`, mọi field khác giữ nguyên. */
   const handleToggle = (reminder: Reminder) => {
@@ -119,8 +113,7 @@ export function RemindersListPage() {
           const due = dueState(reminder.nextRunAt);
           const cat = reminder.catId === undefined ? undefined : catById.get(reminder.catId);
           const displayName =
-            cat?.name ??
-            (reminder.catId === undefined ? t("list.accountWide") : t("list.unknownCat"));
+            cat?.name ?? (reminder.catId === undefined ? t("list.accountWide") : t("list.unknownCat"));
 
           /* Frame 09 gắn chip giống mèo cạnh tên. Mèo chưa khai giống (hoặc lịch cấp tài
              khoản, không gắn mèo) thì rơi về loại lịch — vẫn là dữ liệu thật, không bịa giống. */
@@ -137,11 +130,7 @@ export function RemindersListPage() {
                       <p className="truncate text-h3 font-bold text-text-primary">{displayName}</p>
                       {overdue ? <NeedScanChip /> : <BreedChip label={chipLabel} />}
                     </div>
-                    <ReminderStatusLine
-                      reminder={reminder}
-                      due={due}
-                      schedule={scheduleLabel(reminder)}
-                    />
+                    <ReminderStatusLine reminder={reminder} due={due} schedule={scheduleLabel(reminder)} />
                   </div>
                   <Switch
                     checked={reminder.active}
@@ -161,9 +150,7 @@ export function RemindersListPage() {
                       <Bell size={16} aria-hidden="true" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-small text-text-secondary">
-                        {t("list.nextRunLabel")}
-                      </span>
+                      <span className="block text-small text-text-secondary">{t("list.nextRunLabel")}</span>
                       <span className="block truncate text-body font-bold text-text-primary">
                         {formatDateTime(reminder.nextRunAt)}
                       </span>
@@ -177,9 +164,7 @@ export function RemindersListPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-caption font-bold text-danger-text">
                       <CalendarX2 size={14} className="shrink-0" aria-hidden="true" />
-                      {due.days === 0
-                        ? t("list.overdueToday")
-                        : t("list.overdueDays", { days: due.days })}
+                      {due.days === 0 ? t("list.overdueToday") : t("list.overdueDays", { days: due.days })}
                     </span>
                     <Link
                       to="/scan"
@@ -228,11 +213,7 @@ export function RemindersListPage() {
 
       {/* Mobile (< lg) — frame `09`: danh sách + khối chỉnh lịch + 2 nút ở chân màn. */}
       <div className="flex flex-col gap-4 lg:hidden">
-        <PageHeader
-          title={t("pages.list.title")}
-          subtitle={t("list.subtitle")}
-          action={newLink}
-        />
+        <PageHeader title={t("pages.list.title")} subtitle={t("list.subtitle")} action={newLink} />
         <h2 className="text-body font-bold text-text-primary">{t("list.sectionCats")}</h2>
         {mobileContent}
         {locked ? null : <ReminderQuickPlan reminders={reminders} catNameById={catNameById} />}

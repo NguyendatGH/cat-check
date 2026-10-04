@@ -5,15 +5,16 @@ import { cn } from "@/shared/lib/cn";
 /** Tabs — bọc @radix-ui/react-tabs. */
 export const Tabs = RadixTabs.Root;
 
-export const TabsList = forwardRef<ComponentRef<typeof RadixTabs.List>, ComponentPropsWithoutRef<typeof RadixTabs.List>>(
-  ({ className, ...props }, ref) => (
-    <RadixTabs.List
-      ref={ref}
-      className={cn("inline-flex items-center gap-1 rounded-lg bg-background-alt p-1", className)}
-      {...props}
-    />
-  ),
-);
+export const TabsList = forwardRef<
+  ComponentRef<typeof RadixTabs.List>,
+  ComponentPropsWithoutRef<typeof RadixTabs.List>
+>(({ className, ...props }, ref) => (
+  <RadixTabs.List
+    ref={ref}
+    className={cn("inline-flex items-center gap-1 rounded-lg bg-background-alt p-1", className)}
+    {...props}
+  />
+));
 TabsList.displayName = "TabsList";
 
 export const TabsTrigger = forwardRef<

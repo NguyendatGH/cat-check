@@ -23,12 +23,54 @@ interface MockActivationCode {
 
 /** Bao gồm ví dụ `CC-PLUS-7K3M9QX2RT` của p5 §5.9 để demo khớp tài liệu. */
 const ACTIVATION_CODES: MockActivationCode[] = [
-  { code: "CCPLUS7K3M9QX2RT", packageCode: "PLUS", packageName: "CATCHECK Plus", creditAmount: 10, validityDays: 7, status: "ACTIVE" },
-  { code: "CCMINI3K9QX2RTWM", packageCode: "MINI", packageName: "CATCHECK Mini – Trial", creditAmount: 3, validityDays: 7, status: "ACTIVE" },
-  { code: "CCDAILY8K3M9QX2A", packageCode: "DAILY", packageName: "CATCHECK Daily", creditAmount: 8, validityDays: 7, status: "ACTIVE" },
-  { code: "CCMULTI6K3M9QX2BC", packageCode: "MULTI", packageName: "CATCHECK Multi", creditAmount: 16, validityDays: 7, status: "ACTIVE" },
-  { code: "CCPLUS000000000U", packageCode: "PLUS", packageName: "CATCHECK Plus", creditAmount: 10, validityDays: 7, status: "REDEEMED" },
-  { code: "CCPLUS000000000E", packageCode: "PLUS", packageName: "CATCHECK Plus", creditAmount: 10, validityDays: 7, status: "EXPIRED" },
+  {
+    code: "CCPLUS7K3M9QX2RT",
+    packageCode: "PLUS",
+    packageName: "CATCHECK Plus",
+    creditAmount: 10,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCMINI3K9QX2RTWM",
+    packageCode: "MINI",
+    packageName: "CATCHECK Mini – Trial",
+    creditAmount: 3,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCDAILY8K3M9QX2A",
+    packageCode: "DAILY",
+    packageName: "CATCHECK Daily",
+    creditAmount: 8,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCMULTI6K3M9QX2BC",
+    packageCode: "MULTI",
+    packageName: "CATCHECK Multi",
+    creditAmount: 16,
+    validityDays: 7,
+    status: "ACTIVE",
+  },
+  {
+    code: "CCPLUS000000000U",
+    packageCode: "PLUS",
+    packageName: "CATCHECK Plus",
+    creditAmount: 10,
+    validityDays: 7,
+    status: "REDEEMED",
+  },
+  {
+    code: "CCPLUS000000000E",
+    packageCode: "PLUS",
+    packageName: "CATCHECK Plus",
+    creditAmount: 10,
+    validityDays: 7,
+    status: "EXPIRED",
+  },
 ];
 
 const ACTIVATION_CODE_REGEX = /^CC[A-Z0-9]+[0-9A-HJKMNP-TV-Z]{10}$/;
@@ -72,11 +114,39 @@ const state: { batches: CreditBatch[]; ledger: LedgerEntry[]; entitlement: Entit
 };
 
 const PLAN_FEATURES: Record<string, Partial<Entitlement>> = {
-  MINI: { maxCatProfiles: 1, hasHistory: false, hasTrend: false, hasReminder: false, hasExport: false, storeImage: false },
-  DAILY: { maxCatProfiles: 1, hasHistory: true, hasTrend: false, hasReminder: false, hasExport: false, storeImage: true },
+  MINI: {
+    maxCatProfiles: 1,
+    hasHistory: false,
+    hasTrend: false,
+    hasReminder: false,
+    hasExport: false,
+    storeImage: false,
+  },
+  DAILY: {
+    maxCatProfiles: 1,
+    hasHistory: true,
+    hasTrend: false,
+    hasReminder: false,
+    hasExport: false,
+    storeImage: true,
+  },
   PLUS: { maxCatProfiles: 1, hasHistory: true, hasTrend: true, hasReminder: true, hasExport: true, storeImage: true },
-  MULTI: { maxCatProfiles: null, hasHistory: true, hasTrend: true, hasReminder: true, hasExport: true, storeImage: true },
-  CARE_BOX: { maxCatProfiles: null, hasHistory: true, hasTrend: true, hasReminder: true, hasExport: true, storeImage: true },
+  MULTI: {
+    maxCatProfiles: null,
+    hasHistory: true,
+    hasTrend: true,
+    hasReminder: true,
+    hasExport: true,
+    storeImage: true,
+  },
+  CARE_BOX: {
+    maxCatProfiles: null,
+    hasHistory: true,
+    hasTrend: true,
+    hasReminder: true,
+    hasExport: true,
+    storeImage: true,
+  },
 };
 
 function availableBalance(): number {
@@ -93,9 +163,14 @@ export const handlers = [
     const code = (body.code ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
     if (!ACTIVATION_CODE_REGEX.test(code)) {
-      return problem(400, "ACTIVATION_CODE_MALFORMED", "Mã kích hoạt chưa đúng định dạng. Kiểm tra lại mã in trên bao bì (dạng CC-PLUS-XXXXXXXXXX).", {
-        expectedFormat: "CC-<PKG>-<10 ký tự>",
-      });
+      return problem(
+        400,
+        "ACTIVATION_CODE_MALFORMED",
+        "Mã kích hoạt chưa đúng định dạng. Kiểm tra lại mã in trên bao bì (dạng CC-PLUS-XXXXXXXXXX).",
+        {
+          expectedFormat: "CC-<PKG>-<10 ký tự>",
+        },
+      );
     }
     const found = ACTIVATION_CODES.find((c) => c.code === code);
     if (!found) {

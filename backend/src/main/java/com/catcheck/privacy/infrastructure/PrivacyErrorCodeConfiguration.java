@@ -53,6 +53,11 @@ public class PrivacyErrorCodeConfiguration {
     }
 
     @Bean
+    ErrorCode retentionPolicyNotFound() {
+        return PrivacyErrorCode.RETENTION_POLICY_NOT_FOUND;
+    }
+
+    @Bean
     ErrorCode dsarIdentityVerificationRequired() {
         return PrivacyErrorCode.DSAR_IDENTITY_VERIFICATION_REQUIRED;
     }

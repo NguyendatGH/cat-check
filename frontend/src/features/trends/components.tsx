@@ -82,10 +82,7 @@ export interface RangeSegmentedControlProps {
 export function RangeSegmentedControl({ value, onChange, labels, className }: RangeSegmentedControlProps) {
   const options: TrendRange[] = ["7D", "30D", "90D"];
   return (
-    <div
-      className={cn("flex w-full items-center gap-1 rounded-xl bg-background-alt p-1", className)}
-      role="tablist"
-    >
+    <div className={cn("flex w-full items-center gap-1 rounded-xl bg-background-alt p-1", className)} role="tablist">
       {options.map((option) => (
         <button
           key={option}
@@ -170,9 +167,7 @@ export function PhTrendChart({
     );
   }
 
-  const data = points
-    .map((p) => ({ x: new Date(p.date).getTime(), ph: p.phValue }))
-    .sort((a, b) => a.x - b.x);
+  const data = points.map((p) => ({ x: new Date(p.date).getTime(), ph: p.phValue })).sort((a, b) => a.x - b.x);
   const last = data[data.length - 1];
   const phValues = data.map((d) => d.ph);
   const boundaries = phBandBoundaries(bands);
@@ -183,9 +178,7 @@ export function PhTrendChart({
   const domainMin = Math.floor((lo - pad) * 10) / 10;
   const domainMax = Math.ceil((hi + pad) * 10) / 10;
 
-  const yTicks = [
-    ...new Set([domainMin, ...boundaries.filter((b) => b > domainMin && b < domainMax), domainMax]),
-  ];
+  const yTicks = [...new Set([domainMin, ...boundaries.filter((b) => b > domainMin && b < domainMax), domainMax])];
   const xTicks = pickTicks(
     data.map((d) => d.x),
     5,
@@ -228,9 +221,7 @@ export function PhTrendChart({
             scale="time"
             domain={xDomain}
             ticks={xTicks}
-            tickFormatter={(value: number) =>
-              value === last.x ? todayLabel : format(new Date(value), dateFormat)
-            }
+            tickFormatter={(value: number) => (value === last.x ? todayLabel : format(new Date(value), dateFormat))}
             tickLine={false}
             axisLine={{ stroke: "var(--color-border)" }}
             stroke="var(--color-text-tertiary)"
@@ -331,11 +322,7 @@ export function DistributionBar({
           const band = bands.find((b) => b.code === bucket.classification);
           const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
           return (
-            <span
-              key={bucket.classification}
-              style={{ width: `${String(bucket.percent)}%` }}
-              className={style.solid}
-            />
+            <span key={bucket.classification} style={{ width: `${String(bucket.percent)}%` }} className={style.solid} />
           );
         })}
       </div>
@@ -347,10 +334,7 @@ export function DistributionBar({
           const description = plainDescription(band?.description);
           return (
             <li key={bucket.classification} className="flex items-start gap-2.5 py-2.5">
-              <span
-                aria-hidden="true"
-                className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", style.solid)}
-              />
+              <span aria-hidden="true" className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", style.solid)} />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-caption font-bold text-text-primary">
                   {band?.label ?? bucket.classification}

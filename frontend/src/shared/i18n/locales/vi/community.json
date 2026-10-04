@@ -36,15 +36,19 @@
     "comment": "Bình luận",
     "share": "Chia sẻ",
     "save": "Lưu bài viết",
+    "bookmark": "Lưu bài viết",
     "moreOptions": "Tuỳ chọn bài viết",
     "openThread": "Mở thảo luận"
   },
   "detail": {
+    "backToFeed": "Quay lại cộng đồng",
     "breadcrumbRoot": "Cộng đồng y khoa",
     "savePost": "Lưu bài viết",
     "sharePost": "Chia sẻ",
     "pinnedByVet": "Ghim bởi bác sĩ",
     "commentsTitle": "Thảo luận từ cộng đồng Sen",
+    "noComments": "Chưa có bình luận nào.",
+    "commentSend": "Gửi",
     "sortLabel": "Sắp xếp:",
     "commentPlaceholder": "Chia sẻ kinh nghiệm hoặc đặt câu hỏi với BS. Lan Phương và các sen khác…",
     "commentAttachPhoto": "Ảnh khay cát",
@@ -60,7 +64,7 @@
   "newPost": {
     "title": "Đăng thảo luận mới",
     "subtitle": "Mô tả màu hạt cát và chỉ số pH bạn quan sát được để cộng đồng và bác sĩ dễ hỗ trợ.",
-    "phase2Notice": "Cộng đồng đang trong giai đoạn hoàn thiện. Bài viết chưa được gửi đi — đây là bản xem trước giao diện.",
+    "phase2Notice": "Bài viết sẽ được hiển thị sau khi hệ thống xác nhận nội dung và quyền truy cập của tài khoản.",
     "titleLabel": "Tiêu đề thảo luận",
     "titlePlaceholder": "Ví dụ: Hạt cát chuyển xanh nhạt sau 1 ngày có phải do thức ăn mới?",
     "bodyLabel": "Nội dung chia sẻ",
@@ -70,6 +74,16 @@
     "attachLabel": "Đính kèm",
     "guidelinesTitle": "Quy Chuẩn Cộng Đồng ISFM",
     "submit": "Đăng thảo luận",
+    "submitting": "Đang gửi…",
     "cancel": "Huỷ bỏ"
+  },
+  "api": {
+    "empty": "Chưa có bài viết nào.",
+    "loading": "Đang tải bảng tin cộng đồng…",
+    "error": "Không thể tải bảng tin cộng đồng. Vui lòng thử lại sau."
+  },
+  "feedback": {
+    "loading": "Đang tải…",
+    "error": "Không thể tải nội dung. Vui lòng thử lại sau."
   }
 }

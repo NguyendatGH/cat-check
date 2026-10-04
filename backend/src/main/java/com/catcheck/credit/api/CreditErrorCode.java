@@ -49,7 +49,37 @@ public enum CreditErrorCode implements ErrorCode {
     FEATURE_NOT_IN_PLAN("feature-not-in-plan", HttpStatus.FORBIDDEN),
 
     /** 403 — quyền tạo mới (scan mới, tạo hồ sơ mèo vượt hạn mức) đã hết hạn cùng credit (p5 R5). */
-    WRITE_ACCESS_EXPIRED("write-access-expired", HttpStatus.FORBIDDEN);
+    WRITE_ACCESS_EXPIRED("write-access-expired", HttpStatus.FORBIDDEN),
+
+    /* --- Quan tri ma kich hoat & goi — L19..L26 (p8 §8.4.12) --- */
+
+    /** 422 — sinh quá {@code max} mã một lần (p8 §8.2.4). Tham số: {@code max}. */
+    ACTIVATION_BATCH_TOO_LARGE("activation-batch-too-large", HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /**
+     * 410 — CSV mã thô đã tải (L22: <i>"một lần duy nhất"</i>) hoặc không còn trong bộ nhớ.
+     *
+     * <p>Một mã cho CẢ HAI tình huống là cố ý: DB chỉ lưu {@code code_hash} (p5 §5.9) nên về
+     * phía người dùng hai trường hợp này giống nhau tuyệt đối — mã thô không còn tồn tại ở đâu
+     * và đường duy nhất là void cả lô rồi sinh lô mới (p14 §14.3.2 mục 4).</p>
+     */
+    ACTIVATION_CSV_ALREADY_DOWNLOADED("activation-csv-already-downloaded", HttpStatus.GONE),
+
+    /**
+     * 409 — {@code productionBatch} đã có mã phát hành trước đó.
+     *
+     * <p>Mã này KHÔNG có trong p8 §8.2.4 vì p8 giả định tồn tại một {@code batchId} riêng, còn
+     * p4 lại không có bảng {@code activation_batch} nào để cấp id đó. Định danh lô vì vậy là
+     * chính {@code production_batch}, và nó phải duy nhất nếu không thì L21/L22/L24 nói về một
+     * tập mã không xác định. Xem handoff H15.98.</p>
+     */
+    ACTIVATION_BATCH_EXISTS("activation-batch-exists", HttpStatus.CONFLICT),
+
+    /** 404 — không có lô nào mang định danh đó. */
+    ACTIVATION_BATCH_NOT_FOUND("activation-batch-not-found", HttpStatus.NOT_FOUND),
+
+    /** 404 — {@code package_plan.code} không tồn tại (L26, và L20 khi chọn gói đã bị xoá). */
+    PACKAGE_PLAN_NOT_FOUND("package-plan-not-found", HttpStatus.NOT_FOUND);
 
     private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
 

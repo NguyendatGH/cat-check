@@ -19,6 +19,16 @@ public interface ExportJobRepository {
 
     boolean existsByDocumentCode(String documentCode);
 
+    /**
+     * Job còn {@code QUEUED}/{@code RUNNING} mà {@code requested_at} đã cũ hơn {@code cutoff} —
+     * nguồn cho {@code ReportPdfTimeoutJob}. Cũ nhất trước, giới hạn {@code limit} dòng
+     * (p12 §12.6.1 quy tắc 3a: job luôn xử lý theo lô có {@code LIMIT}).
+     */
+    List<ExportJob> findStaleActive(java.time.Instant cutoff, int limit);
+
+    /** Đếm job quá hạn — dùng cho chế độ {@code dry_run} (p15 REQ-RET-01). */
+    long countStaleActive(java.time.Instant cutoff);
+
     record Page(List<ExportJob> items, String nextCursor) {
     }
 }

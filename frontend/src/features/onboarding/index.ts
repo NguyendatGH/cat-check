@@ -9,6 +9,7 @@ export {
   OnboardingShell,
   OnboardingStepper,
   OptionCard,
+  PhBandBar,
   QuestionField,
   AvatarUpload,
   BreedPicker,
@@ -20,15 +21,11 @@ export {
   FieldLabel,
 } from "./components";
 export { useOnboardingStore } from "./store";
-export {
-  catProfileSchema,
-  surveySchema,
-  isValidActivationCode,
-  normalizeActivationCode,
-} from "./schemas";
+export { catProfileSchema, surveySchema, isValidActivationCode, normalizeActivationCode } from "./schemas";
 export type { CatProfileFormValues, SurveyFormValues } from "./schemas";
 export {
   useBreeds,
+  useHealthSurveyDefinition,
   usePhBands,
   useCreateCat,
   useUpdateCat,
@@ -41,6 +38,9 @@ export {
 export { apiFetch, apiUploadAvatar } from "./api";
 export { handlers, worker } from "./mocks";
 export type {
+  HealthSurveyDefinition,
+  SurveyQuestionDefinition,
+  SurveyQuestionOption,
   OnboardingStep,
   CatSex,
   CatProfileDraft,
@@ -54,4 +54,4 @@ export type {
   CatSummary,
 } from "./types";
 export { ONBOARDING_STEPS } from "./types";
-export { EMPTY_CAT_DRAFT, EMPTY_SURVEY_ANSWERS } from "./types";
+export { EMPTY_CAT_DRAFT, EMPTY_SURVEY_ANSWERS, SURVEY_QUESTIONNAIRE_VERSION } from "./types";

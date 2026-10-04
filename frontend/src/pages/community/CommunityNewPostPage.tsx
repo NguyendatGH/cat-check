@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Camera, Check, FileText, Info, ScanLine, ShieldCheck } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { createCommunityPost } from "@/features/community";
 import { DESIGN_MOCK_NEW_POST } from "./mockData";
 
 /**
@@ -17,17 +19,38 @@ import { DESIGN_MOCK_NEW_POST } from "./mockData";
  * Route này nằm trong `TaskLayout` (header back + hộp nội dung 944px đã có padding ngang ở
  * MỌI breakpoint) nên trang tuyệt đối KHÔNG tự thêm padding ngang.
  *
- * KHÔNG CÓ BACKEND: module Cộng đồng là Phase 2 (p4 — `post`/`comment` chưa đặc tả, chưa có
- * migration). Form chỉ giữ state cục bộ, nút gửi để `disabled` kèm dải thông báo thay vì
- * giả vờ gửi đi.
+ * Form gửi bài thật qua `POST /api/v1/community/posts`; phần file đính kèm vẫn để dành cho
+ * media upload riêng, không giả lập URL ảnh trong request.
  */
 export function CommunityNewPostPage() {
   const { t } = useTranslation("community");
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [category, setCategory] = useState(DESIGN_MOCK_NEW_POST.categories[0].id);
   const [tags, setTags] = useState<string[]>([]);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
 
   const toggleTag = (tag: string) => {
     setTags((prev) => (prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]));
+  };
+
+  const submit = async () => {
+    if (!title.trim() || !body.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    setSubmitError(false);
+    try {
+      const apiCategory = category === "question" ? "QA" : category === "experience" ? "EXPERIENCE" : "TIP";
+      const post = await createCommunityPost({ category: apiCategory, title: title.trim(), body: body.trim(), tags });
+      await queryClient.invalidateQueries({ queryKey: ["community", "posts"] });
+      await navigate(`/community/posts/${post.id}`);
+    } catch {
+      setSubmitError(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -72,6 +95,10 @@ export function CommunityNewPostPage() {
             <span className="text-[12px] font-bold text-text-primary">{t("newPost.titleLabel")}</span>
             <input
               type="text"
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+              }}
               placeholder={t("newPost.titlePlaceholder")}
               className="h-11 w-full rounded-xl bg-background-alt px-4 text-[13px] text-text-primary outline-none placeholder:text-text-tertiary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
             />
@@ -81,6 +108,10 @@ export function CommunityNewPostPage() {
             <span className="text-[12px] font-bold text-text-primary">{t("newPost.bodyLabel")}</span>
             <textarea
               rows={7}
+              value={body}
+              onChange={(event) => {
+                setBody(event.target.value);
+              }}
               placeholder={t("newPost.bodyPlaceholder")}
               className="w-full resize-none rounded-xl bg-background-alt px-4 py-3 text-[13px] leading-relaxed text-text-primary outline-none placeholder:text-text-tertiary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
             />
@@ -101,9 +132,7 @@ export function CommunityNewPostPage() {
                   aria-pressed={tags.includes(tag)}
                   className={cn(
                     "rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                    tags.includes(tag)
-                      ? "bg-primary text-white"
-                      : "bg-chip-bg text-primary-dark hover:bg-info",
+                    tags.includes(tag) ? "bg-primary text-white" : "bg-chip-bg text-primary-dark hover:bg-info",
                   )}
                 >
                   {tag}
@@ -133,6 +162,9 @@ export function CommunityNewPostPage() {
         </section>
 
         <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-end">
+          {submitError ? (
+            <p role="alert" className="self-center text-[12px] font-medium text-danger-text">{t("api.error")}</p>
+          ) : null}
           <Link
             to="/community"
             className="flex items-center justify-center rounded-xl bg-background-alt px-5 py-3 text-[13px] font-semibold text-text-secondary hover:bg-chip-bg"
@@ -141,10 +173,13 @@ export function CommunityNewPostPage() {
           </Link>
           <button
             type="button"
-            disabled
+            onClick={() => {
+              void submit();
+            }}
+            disabled={!title.trim() || !body.trim() || isSubmitting}
             className="flex items-center justify-center rounded-xl bg-primary-dark px-6 py-3 text-[13px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {t("newPost.submit")}
+            {isSubmitting ? t("newPost.submitting") : t("newPost.submit")}
           </button>
         </div>
       </div>

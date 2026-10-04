@@ -1,70 +1,68 @@
 import { useMemo } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import type { ScanSummary } from "@/entities/scan-result";
-import { fetchAllScansInRange, fetchScanSummary } from "./api";
-import { TREND_RANGE_DAYS, type DistributionBucket, type TrendPoint, type TrendRange } from "./types";
+import { fetchCatTrends } from "./api";
+import type { CatTrendPoint, CatTrendsResponse, DistributionBucket, TrendPoint, TrendRange } from "./types";
+
+/**
+ * Hooks xu hướng pH. MỘT nguồn duy nhất: D13 `GET /cats/{catId}/trends`.
+ *
+ * `useTrendSeries`/`useTrendSummary` cũ (tự tổng hợp từ `GET /scans` + `GET /scans/summary`)
+ * đã bị xoá — chúng tồn tại vì D13 từng là stub 501, và khi D13 chạy thật thì hai đường cho
+ * số khác nhau giữa Trang chủ và màn Xu hướng.
+ */
 
 export const trendsKeys = {
   all: ["trends"] as const,
-  series: (catId: string, range: TrendRange) => [...trendsKeys.all, "series", catId, range] as const,
-  summary: (catId: string, range: TrendRange) => [...trendsKeys.all, "summary", catId, range] as const,
+  byRange: (catId: string, range: TrendRange) => [...trendsKeys.all, catId, range] as const,
 };
 
-function rangeToDates(range: TrendRange): { from: string; to: string } {
-  const to = new Date();
-  const from = new Date(to.getTime() - TREND_RANGE_DAYS[range] * 24 * 60 * 60 * 1000);
-  return { from: from.toISOString(), to: to.toISOString() };
-}
-
-export interface TrendSeriesResult {
-  points: TrendPoint[];
-}
-
-/** Tự dựng chuỗi xu hướng từ E2 (`GET /scans`) — xem `types.ts` vì sao không dùng D13. */
-export function useTrendSeries(catId: string | undefined, range: TrendRange): UseQueryResult<TrendSeriesResult> {
+export function useCatTrends(catId: string | undefined, range: TrendRange): UseQueryResult<CatTrendsResponse> {
   return useQuery({
-    queryKey: trendsKeys.series(catId ?? "", range),
-    queryFn: async () => {
-      if (!catId) throw new Error("catId is required");
-      const { from, to } = rangeToDates(range);
-      const scans = await fetchAllScansInRange(catId, from, to);
-      const sorted = [...scans]
-        .filter((s) => s.phValue !== null)
-        .sort((a, b) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime());
-      const points: TrendPoint[] = sorted.map((s, index) => ({
-        scanId: s.scanId,
-        date: s.capturedAt,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- lọc null ở filter trên
-        phValue: s.phValue!,
-        classification: s.classification,
-        isLatest: index === sorted.length - 1,
-      }));
-      return { points };
-    },
-    enabled: Boolean(catId),
-  });
-}
-
-export function useTrendSummary(catId: string | undefined, range: TrendRange): UseQueryResult<ScanSummary> {
-  return useQuery({
-    queryKey: trendsKeys.summary(catId ?? "", range),
+    queryKey: trendsKeys.byRange(catId ?? "", range),
     queryFn: () => {
       if (!catId) throw new Error("catId is required");
-      const { from, to } = rangeToDates(range);
-      return fetchScanSummary(catId, from, to);
+      return fetchCatTrends(catId, range);
     },
     enabled: Boolean(catId),
+    // 403 FEATURE_NOT_IN_PLAN / 404 không bao giờ tự khỏi khi thử lại — retry chỉ làm màn
+    // "khoá gói" hiện chậm hơn vài giây.
+    retry: false,
   });
 }
 
-/** Suy ra phân bố % theo phân loại từ `ScanSummary.byClassification` (E3) — không gọi thêm API. */
-export function useDistributionBuckets(summary: ScanSummary | undefined): DistributionBucket[] {
+/**
+ * Chuỗi điểm để vẽ: bỏ lần quét `INCONCLUSIVE` (`phValue === null`) và sắp theo thời gian
+ * tăng dần. Điểm cuối được đánh dấu `isLatest` cho chú giải "lần đo gần nhất".
+ */
+export function toTrendPoints(points: CatTrendPoint[] | undefined): TrendPoint[] {
+  const measured = (points ?? [])
+    .filter((p): p is CatTrendPoint & { phValue: number } => p.phValue !== null)
+    .sort((a, b) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime());
+  return measured.map((p, index) => ({
+    date: p.capturedAt,
+    phValue: p.phValue,
+    classification: p.classification,
+    isLatest: index === measured.length - 1,
+  }));
+}
+
+/**
+ * Phân bố % theo phân loại, đếm TỪ CHÍNH `points` của D13 — không gọi thêm
+ * `GET /scans/summary`: hai nguồn đếm trên hai cửa sổ thời gian khác nhau là cách cũ làm
+ * lệch số giữa biểu đồ và thanh phân bố.
+ */
+export function useDistributionBuckets(points: CatTrendPoint[] | undefined): DistributionBucket[] {
   return useMemo(() => {
-    if (!summary || summary.count === 0) return [];
-    return Object.entries(summary.byClassification).map(([classification, count]) => ({
+    const items = points ?? [];
+    if (items.length === 0) return [];
+    const counts = new Map<string, number>();
+    for (const point of items) {
+      counts.set(point.classification, (counts.get(point.classification) ?? 0) + 1);
+    }
+    return [...counts.entries()].map(([classification, count]) => ({
       classification,
       count,
-      percent: Math.round((count / summary.count) * 100),
+      percent: Math.round((count / items.length) * 100),
     }));
-  }, [summary]);
+  }, [points]);
 }

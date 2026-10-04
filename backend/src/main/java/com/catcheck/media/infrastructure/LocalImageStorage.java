@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
@@ -126,6 +127,25 @@ public class LocalImageStorage implements ImageStorage {
         } catch (IOException ex) {
             throw new UncheckedIOException("Không mở được tệp đã lưu: " + key.value(), ex);
         }
+    }
+
+    /**
+     * Mở một tệp được tham chiếu bởi URL HMAC do {@link #presignedUrl} phát ra.
+     * Endpoint media dùng phương thức này thay vì mở tệp trực tiếp để chữ ký và hạn URL
+     * luôn được kiểm tra ở cùng một nơi với lúc ký.
+     */
+    public Optional<StoredMedia> openSigned(StorageKey key, long expiresEpochSecond, String signature) {
+        if (signature == null || signature.isBlank()
+                || expiresEpochSecond < clock.instant().getEpochSecond()) {
+            return Optional.empty();
+        }
+        String expected = sign(key.value(), expiresEpochSecond);
+        if (!MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.US_ASCII),
+                signature.getBytes(StandardCharsets.US_ASCII))) {
+            return Optional.empty();
+        }
+        return open(key).map(content -> new StoredMedia(content, contentTypeFor(key)));
     }
 
     @Override
@@ -318,6 +338,17 @@ public class LocalImageStorage implements ImageStorage {
         };
     }
 
+    private String contentTypeFor(StorageKey key) {
+        String value = key.value().toLowerCase(java.util.Locale.ROOT);
+        if (value.endsWith(".png")) {
+            return "image/png";
+        }
+        if (value.endsWith(".webp")) {
+            return "image/webp";
+        }
+        return "image/jpeg";
+    }
+
     private String sign(String keyValue, long expiresEpochSecond) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
@@ -372,5 +403,9 @@ public class LocalImageStorage implements ImageStorage {
         } catch (IllegalArgumentException ex) {
             return null;
         }
+    }
+
+    /** Nội dung và MIME type của một tệp local đã xác thực URL. */
+    public record StoredMedia(InputStream content, String contentType) {
     }
 }

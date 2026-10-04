@@ -16,9 +16,7 @@
   "dashboard": {
     "addCat": "Thêm mèo",
     "analyzed": "Đã phân tích",
-    "careTipBody": "Bổ sung thêm bát nước hoặc vòi phun giúp bé uống nhiều nước hơn trong ngày.",
     "careTipLabel": "Thói quen chăm sóc trong ngày",
-    "careTipTitle": "Mèo thích uống nước chảy",
     "catMeta": "{{age}} tuổi • {{sex}}",
     "catNoScan": "Chưa có lần quét",
     "catsCount": "{{count}} bé đã đăng ký",
@@ -46,9 +44,9 @@
     "reminderNext": "Nhắc kiểm tra {{when}} cho {{name}}",
     "reminderNextNoCat": "Nhắc kiểm tra {{when}}",
     "reminderTitle": "Lịch kiểm tra tiếp theo",
-    "scaleAcid": "Axit",
-    "scaleAlkaline": "Kiềm",
-    "scaleIdeal": "Lý tưởng ({{min}} – {{max}})",
+    "scaleAcid": "Axit ({{value}})",
+    "scaleAlkaline": "Kiềm ({{value}})",
+    "scaleIdeal": "Lý tưởng ({{min}} - {{max}})",
     "scanHelp": "Hướng dẫn quét cát vệ sinh",
     "sessionOf": "Phiên kiểm tra của {{name}}",
     "startScan": "Bắt đầu quét",
@@ -64,6 +62,7 @@
     "title": "Không đủ quyền truy cập"
   },
   "nav": {
+    "assistant": "Trợ lý AI",
     "cats": "Mèo của tôi",
     "community": "Cộng đồng",
     "dashboard": "Trang chủ",
@@ -139,26 +138,19 @@
     "switcherWatching": "Đang theo dõi",
     "promoLabel": "CÁT CHỈ THỊ PH",
     "promoTitle": "Gói SmartSand Pro",
-    "promoNote": "Còn lại 6 ngày cần thay khay"
+    "promoNote": "Còn lại 6 ngày cần thay khay",
+    "switcherTitle": "{{name}} ({{breed}})",
+    "switcherMeta": "{{age}} tuổi • Đang theo dõi",
+    "switcherEmpty": "Chưa có bé mèo nào",
+    "switcherEmptyCta": "Thêm hồ sơ mèo"
   },
   "dashboardWeb": {
     "addCatNote": "Hỗ trợ nhận diện tự động qua AI",
     "addCatTitle": "Thêm bé mèo mới vào khay cát",
-    "adviceBody": "Mèo triệt sản ít vận động thường giảm 30% nhu cầu tự uống nước. Hãy bổ sung súp thưởng bổ nước hoặc máy lọc nước tuần hoàn để giữ pH luôn trong ngưỡng 6.2 - 6.8.",
-    "adviceLabel": "LỜI KHUYÊN BÁC SĨ FELINE",
-    "adviceLink": "Tìm hiểu thêm về hội chứng FLUTD",
-    "adviceTitle": "Bảo vệ hệ tiết niệu mùa hanh khô",
     "ageYears": "{{years}} tuổi",
-    "aiZone": "Vùng phân tích AI",
     "capturedLabel": "Thời điểm quét",
     "catsEmptyBody": "Thêm bé mèo đầu tiên để bắt đầu theo dõi màu hạt cát.",
     "catsEmptyTitle": "Chưa có hồ sơ mèo nào",
-    "clinicDetail": "Chi tiết phòng khám",
-    "clinicDistance": "Cách bạn {{km}} km • {{area}}",
-    "clinicLabel": "CƠ SỞ ĐỒNG HÀNH",
-    "clinicMap": "Xem trên bản đồ",
-    "clinicOpen": "Đang mở cửa",
-    "clinicRating": "{{rating}} ({{count}} đánh giá)",
     "colAi": "ĐÁNH GIÁ AI",
     "colColor": "MÀU PHẢN ỨNG CÁT",
     "colDetail": "CHI TIẾT",
@@ -174,10 +166,6 @@
     "greeting": "Xin chào, {{name}}!",
     "idealIndex": "Chỉ số lý tưởng",
     "intro": "Chúc bé mèo một ngày bình yên khỏe mạnh. Dữ liệu nước tiểu và hạt cát đổi màu sáng nay hoàn toàn ổn định.",
-    "litterCta": "Đặt giao nhanh 2 giờ",
-    "litterLabel": "KHO CÁT GIA ĐÌNH",
-    "litterNote": "Còn lại {{bags}} túi dự phòng (đủ dùng {{days}} ngày)",
-    "litterTitle": "Cát CATCHECK SmartSand™",
     "logEmpty": "Chưa có bản ghi quét nào.",
     "logTitle": "Nhật ký 5 lần quét gần nhất",
     "logViewAll": "Xem toàn bộ {{count}} bản ghi",
@@ -189,8 +177,8 @@
     "range7": "7 ngày",
     "range90": "90 ngày",
     "safeBand": "Vùng an toàn khuyến nghị (pH {{min}} - {{max}})",
-    "scaleAcid": "Axit",
-    "scaleAlkaline": "Kiềm",
+    "scaleAcid": "pH {{value}} (Axit)",
+    "scaleAlkaline": "pH {{value}} (Kiềm)",
     "scaleSafe": "Vùng chuẩn {{min}} - {{max}}",
     "scanEmptyBody": "Quét khay cát lần đầu để xem chỉ thị màu và chỉ số pH tại đây.",
     "scanEmptyTitle": "Chưa có lần quét nào",
@@ -213,7 +201,31 @@
     "today": "Hôm nay",
     "trendEmpty": "Chưa đủ dữ liệu để vẽ xu hướng cho khoảng thời gian này.",
     "trendLabel": "LONGITUDINAL BIOMARKERS",
-    "trendTitle": "Xu hướng pH 30 ngày qua ({{name}})",
-    "weightKg": "{{value}} kg"
+    "trendTitle": "Xu hướng pH {{days}} ngày qua ({{name}})",
+    "weightKg": "{{value}} kg",
+    "measuredSwatch": "Màu hạt đo được"
+  },
+  "healthFlags": {
+    "countCta": "{{count}} dấu hiệu cần xem",
+    "acknowledge": "Đã hiểu",
+    "acknowledged": "Đã xác nhận",
+    "window": "Khoảng xét: {{from}} – {{to}}",
+    "hasMore": "Còn dấu hiệu cũ hơn chưa hiển thị ở đây.",
+    "emptyTitle": "Không có dấu hiệu nào cần xem",
+    "emptyDescription": "Khi một chuỗi kết quả lệch khỏi khoảng tham chiếu, CatCheck sẽ đánh dấu ở đây.",
+    "loadError": "Không tải được danh sách dấu hiệu theo dõi",
+    "disclaimer": "Dấu hiệu theo dõi chỉ mô tả thay đổi trong chuỗi kết quả quét, không phải chẩn đoán. Hãy hỏi bác sĩ thú y khi bạn thấy bé có biểu hiện bất thường.",
+    "severity": {
+      "INFO": "Thông tin",
+      "ATTENTION": "Cần chú ý",
+      "URGENT": "Cần xử lý ngay"
+    },
+    "rule": {
+      "REPEATED_OUT_OF_RANGE": "Lặp lại ngoài khoảng tham chiếu",
+      "BASELINE_DEVIATION": "Lệch so với mức nền của chính bé",
+      "MONOTONIC_TREND": "Xu hướng dịch chuyển một chiều",
+      "LOW_QUALITY_STREAK": "Chất lượng ảnh quét thấp liên tiếp",
+      "URGENT_CLINICAL_SIGN": "Dấu hiệu bạn đã tự ghi nhận"
+    }
   }
 }

@@ -4,7 +4,7 @@ import { Camera, Check, ChevronDown, ChevronLeft, Search, Trash2 } from "lucide-
 import { Button, Dialog, DialogContent, DialogTitle, DialogTrigger, Input } from "@/shared/ui";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
 import { cn } from "@/shared/lib/cn";
-import { ONBOARDING_STEPS, type Breed, type OnboardingStep } from "./types";
+import { ONBOARDING_STEPS, type Breed, type OnboardingStep, type PhBand } from "./types";
 import { formatActivationCode, normalizeActivationCode } from "./schemas";
 
 /**
@@ -100,11 +100,7 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
                   <span
                     className={cn(
                       "text-center text-small font-medium",
-                      isCurrent
-                        ? "text-text-primary"
-                        : isDone
-                          ? "text-text-secondary"
-                          : "text-text-tertiary",
+                      isCurrent ? "text-text-primary" : isDone ? "text-text-secondary" : "text-text-tertiary",
                     )}
                   >
                     {label}
@@ -114,10 +110,7 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
               {index < total - 1 ? (
                 <li aria-hidden="true" className="mx-1 mt-4 h-0.5 min-w-4 flex-1">
                   <span
-                    className={cn(
-                      "block h-full w-full rounded-full",
-                      step < current ? "bg-primary" : "bg-border",
-                    )}
+                    className={cn("block h-full w-full rounded-full", step < current ? "bg-primary" : "bg-border")}
                   />
                 </li>
               ) : null}
@@ -246,6 +239,31 @@ export function OnboardingShell({
   );
 }
 
+/* ---------------- PhBandBar ---------------- */
+
+/** Màu từng dải pH theo `severity` của `GET /reference/ph-bands` (token `--color-ph-*`). */
+const PH_SEVERITY_BAR: Record<PhBand["severity"], string> = {
+  NORMAL: "bg-[var(--color-ph-normal)]",
+  ATTENTION: "bg-[var(--color-ph-mild)]",
+  WATCH: "bg-[var(--color-ph-abnormal)]",
+  NEUTRAL: "bg-[var(--color-ph-unknown)]",
+};
+
+/**
+ * Thanh dải pH tham chiếu (M1 01d, W1 Web-01c-3/4/5) — một segment cho mỗi band trả về,
+ * KHÔNG hard-code ngưỡng. Rỗng khi API chưa trả dữ liệu.
+ */
+export function PhBandBar({ bands, className }: { bands: PhBand[]; className?: string }) {
+  if (bands.length === 0) return null;
+  return (
+    <div className={cn("flex h-2 overflow-hidden rounded-full", className)} aria-hidden="true">
+      {bands.map((band) => (
+        <span key={band.code} className={cn("h-full flex-1", PH_SEVERITY_BAR[band.severity])} />
+      ))}
+    </div>
+  );
+}
+
 /* ---------------- OptionCard + QuestionField ---------------- */
 
 interface OptionCardProps {
@@ -291,6 +309,9 @@ export function OptionCard({
   meta,
   layout = "row",
 }: OptionCardProps) {
+  // Figma W1 Web-01c-4: lựa chọn KHÔNG có ảnh/icon vẫn có ô chọn (tròn cho radio, vuông cho
+  // checkbox) ở mép trái — thiếu nó thẻ trông như một ô chữ trơn, không ra "đang chọn được".
+  const hasVisual = Boolean(imageUrl ?? icon);
   const leading = imageUrl ? (
     <img src={imageUrl} alt="" className="size-11 shrink-0 rounded-lg object-cover" />
   ) : icon ? (
@@ -302,14 +323,31 @@ export function OptionCard({
     >
       {icon}
     </span>
-  ) : null;
+  ) : (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "mt-0.5 flex size-5 shrink-0 items-center justify-center border-2 transition-colors",
+        type === "radio" ? "rounded-full" : "rounded-md",
+        checked ? "border-white" : "border-border-strong",
+      )}
+    >
+      {checked ? (
+        type === "radio" ? (
+          <span className="size-2.5 rounded-full bg-white" />
+        ) : (
+          <Check className="size-3 text-white" strokeWidth={3} />
+        )
+      ) : null}
+    </span>
+  );
 
   return (
     <label
       className={cn(
-        "relative flex min-h-11 cursor-pointer rounded-xl p-4 shadow-xs transition-colors",
+        "relative flex min-h-11 cursor-pointer rounded-xl border p-4 shadow-xs transition-colors",
         layout === "stack" ? "flex-col gap-3" : "items-start gap-3",
-        checked ? "bg-primary-dark" : "bg-surface hover:bg-background-alt",
+        checked ? "border-primary-dark bg-primary-dark" : "border-border bg-surface hover:bg-background-alt",
         disabled && "cursor-not-allowed opacity-50",
       )}
     >
@@ -319,42 +357,38 @@ export function OptionCard({
         value={value}
         checked={checked}
         disabled={disabled}
-        onChange={() => { onChange(value); }}
+        onChange={() => {
+          onChange(value);
+        }}
         className="sr-only"
       />
       {leading}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-start gap-2">
-          <span className={cn("text-body font-semibold", checked ? "text-white" : "text-text-primary")}>
-            {title}
-          </span>
+        {/* `flex-wrap`: huy hiệu "Khuyến dùng" xuống dòng khi chật, thay vì bóp tiêu đề vỡ 3 dòng. */}
+        <span className="flex flex-wrap items-start gap-x-2 gap-y-1">
+          <span className={cn("text-body font-semibold", checked ? "text-white" : "text-text-primary")}>{title}</span>
           {badge ? (
             <span className="mt-0.5 shrink-0 rounded-full bg-secondary px-2 py-0.5 text-overline font-semibold text-secondary-text-on">
               {badge}
             </span>
           ) : null}
-          {meta !== undefined || checked ? (
+          {meta !== undefined || (checked && hasVisual) ? (
             <span className="ml-auto flex items-start gap-2 pl-1">
               {meta ? (
                 <span
-                  className={cn(
-                    "max-w-28 text-right text-small",
-                    checked ? "text-white/70" : "text-text-tertiary",
-                  )}
+                  className={cn("max-w-28 text-right text-small", checked ? "text-white/70" : "text-text-tertiary")}
                 >
                   {meta}
                 </span>
               ) : null}
-              {checked ? (
+              {checked && hasVisual ? (
                 <Check className="mt-0.5 size-4 shrink-0 text-white" aria-hidden="true" strokeWidth={3} />
               ) : null}
             </span>
           ) : null}
         </span>
         {description ? (
-          <span className={cn("text-caption", checked ? "text-white/80" : "text-text-secondary")}>
-            {description}
-          </span>
+          <span className={cn("text-caption", checked ? "text-white/80" : "text-text-secondary")}>{description}</span>
         ) : null}
       </span>
     </label>
@@ -386,9 +420,7 @@ export function QuestionField({ label, hint, error, children, number, meta }: Qu
             ) : null}
             {label}
           </p>
-          {meta ? (
-            <p className="max-w-28 shrink-0 pt-0.5 text-right text-small text-text-tertiary">{meta}</p>
-          ) : null}
+          {meta ? <p className="max-w-28 shrink-0 pt-0.5 text-right text-small text-text-tertiary">{meta}</p> : null}
         </div>
         {hint ? <p className="text-caption text-text-tertiary">{hint}</p> : null}
       </div>
@@ -509,7 +541,9 @@ export function AvatarUpload({ file, previewUrl, onChange, error }: AvatarUpload
         {file ? (
           <button
             type="button"
-            onClick={() => { onChange(null); }}
+            onClick={() => {
+              onChange(null);
+            }}
             aria-label={t("cat.avatar.remove")}
             className="absolute -left-1 -top-1 flex size-8 items-center justify-center rounded-full bg-surface text-text-secondary shadow-sm transition-colors hover:text-danger-text focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
           >
@@ -606,27 +640,37 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
           {t("cat.breed.label")}
         </FieldLabel>
 
-        {loading ? (
-          <p className="py-2 text-caption text-text-tertiary">{t("cat.breed.loading")}</p>
-        ) : quick.length === 0 ? (
-          <DialogTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "flex h-12 w-full items-center justify-between gap-2 rounded-xl bg-surface px-4 text-body text-text-tertiary shadow-xs focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
-                error && "outline outline-2 outline-danger",
-              )}
-            >
-              <span className="truncate">{t("cat.breed.placeholder")}</span>
-              <ChevronDown className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
-            </button>
-          </DialogTrigger>
-        ) : (
+        {loading ? <p className="py-2 text-caption text-text-tertiary">{t("cat.breed.loading")}</p> : null}
+
+        {/* W1 Web-01c-3: trên desktop giống mèo là MỘT ô chọn cạnh ô tên, không phải hàng chip
+            — hàng chip cuộn ngang bị thân thẻ cột trái cắt cụt, nhìn như lỗi tràn. */}
+        {/* Mở hộp thoại qua `setOpen` chứ KHÔNG phải `DialogTrigger` thứ hai: Radix chỉ giữ một
+            `triggerRef` (cái mount sau cùng) để trả focus lúc đóng — nút này ẩn ở mobile nên
+            focus sẽ rơi về `body`. Trigger duy nhất là link "Tất cả giống" luôn hiển thị. */}
+        {loading ? null : (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(true);
+            }}
+            className={cn(
+              "h-12 w-full items-center justify-between gap-2 rounded-xl bg-surface px-4 text-body shadow-xs focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
+              selected ? "text-text-primary" : "text-text-tertiary",
+              quick.length === 0 ? "flex" : "hidden lg:flex",
+              error && "outline outline-2 outline-danger",
+            )}
+          >
+            <span className="truncate">{selected?.name ?? t("cat.breed.placeholder")}</span>
+            <ChevronDown className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
+          </button>
+        )}
+
+        {loading || quick.length === 0 ? null : (
           <div
             role="group"
             aria-label={t("cat.breed.label")}
             className={cn(
-              "-mx-1 flex gap-2 overflow-x-auto px-1 py-0.5",
+              "-mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 lg:hidden",
               error && "rounded-xl outline outline-2 outline-danger",
             )}
           >
@@ -637,13 +681,13 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
                   key={breed.code}
                   type="button"
                   aria-pressed={isSelected}
-                  onClick={() => { onChange(breed.code); }}
+                  onClick={() => {
+                    onChange(breed.code);
+                  }}
                   className={cn(
                     "flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 text-caption font-semibold transition-colors",
                     "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
-                    isSelected
-                      ? "bg-primary-dark text-white"
-                      : "bg-chip-bg text-text-primary hover:bg-info",
+                    isSelected ? "bg-primary-dark text-white" : "bg-chip-bg text-text-primary hover:bg-info",
                   )}
                 >
                   {isSelected ? <Check className="size-4" aria-hidden="true" strokeWidth={3} /> : null}
@@ -664,7 +708,9 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
             <input
               type="search"
               value={query}
-              onChange={(event) => { setQuery(event.target.value); }}
+              onChange={(event) => {
+                setQuery(event.target.value);
+              }}
               placeholder={t("cat.breed.searchPlaceholder")}
               aria-label={t("cat.breed.searchPlaceholder")}
               className="h-12 w-full rounded-xl bg-surface pl-9 pr-3 text-body text-text-primary shadow-xs placeholder:text-text-tertiary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
@@ -676,13 +722,9 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
             aria-label={t("cat.breed.label")}
           >
             {loading ? (
-              <li className="px-3 py-6 text-center text-body text-text-tertiary">
-                {t("cat.breed.loading")}
-              </li>
+              <li className="px-3 py-6 text-center text-body text-text-tertiary">{t("cat.breed.loading")}</li>
             ) : filtered.length === 0 ? (
-              <li className="px-3 py-6 text-center text-body text-text-tertiary">
-                {t("cat.breed.empty")}
-              </li>
+              <li className="px-3 py-6 text-center text-body text-text-tertiary">{t("cat.breed.empty")}</li>
             ) : (
               filtered.map((breed) => {
                 const isSelected = breed.code === value;
@@ -739,7 +781,9 @@ export function ActivationCodeInput({ value, onChange, error, disabled }: Activa
     <Input
       label={t("activate.inputLabel")}
       value={value}
-      onChange={(event) => { onChange(formatActivationCode(event.target.value)); }}
+      onChange={(event) => {
+        onChange(formatActivationCode(event.target.value));
+      }}
       placeholder={t("activate.inputPlaceholder")}
       helperText={t("activate.formatHint")}
       error={error}
@@ -830,7 +874,9 @@ export function Checkbox({ checked, onChange, label, description, error, disable
           type="checkbox"
           checked={checked}
           disabled={disabled}
-          onChange={(event) => { onChange(event.target.checked); }}
+          onChange={(event) => {
+            onChange(event.target.checked);
+          }}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className="peer sr-only"

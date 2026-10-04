@@ -177,7 +177,11 @@
     "saving": "Đang lưu…",
     "saved": "Đã lưu",
     "saveFailed": "Lưu thất bại, vui lòng thử lại.",
-    "unavailable": "Máy chủ chưa mở tuỳ chọn thông báo. Khối này sẽ hoạt động ngay khi endpoint được bật."
+    "unavailable": "Máy chủ chưa mở tuỳ chọn thông báo. Khối này sẽ hoạt động ngay khi endpoint được bật.",
+    "installLink": {
+      "title": "Cài CatCheck lên màn hình chính",
+      "body": "Bắt buộc với iPhone/iPad nếu muốn nhận thông báo đẩy"
+    }
   },
   "profile": {
     "intro": "Thông tin định danh của chủ nuôi. Email dùng để đăng nhập và nhận cảnh báo.",

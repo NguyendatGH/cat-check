@@ -210,19 +210,12 @@
     "spectrumTitle": "Thang đo Quang phổ & Độ kiềm/axit (pH Spectrum)",
     "spectrumSubtitle": "Phản xạ bước sóng hạt phát hiện đổi màu SmartSand Bio-Cat",
     "spectrumScaleBadge": "Thang đo lâm sàng 5.0 - 9.0",
-    "pathologyTitle": "Phân tích Bệnh lý Niệu khoa Mèo (Pathology Screening)",
-    "pathologyBadge": "Mô hình AI phân tích màu",
-    "vetAdviceTitle": "Lời khuyên từ Bác sĩ Thú y Đối tác (BS. Lan Phương)",
-    "vetAdviceBadge": "Phản hồi tức thì",
-    "saveToHistory": "Lưu vào Lịch sử Y tế",
     "exportPdf": "Xuất phiếu PDF",
-    "askVet": "Hỏi Bác sĩ",
-    "trendStripTitle": "Xu hướng pH 14 ngày gần nhất",
-    "trendStripBadge": "Chỉ số dao động an toàn (+0.1/-0.2)",
-    "resultHeadline": "KẾT QUẢ: {{label}}",
     "phReading": "{{value}} pH",
     "referenceRange": "Ngưỡng chuẩn ({{range}})",
     "awaitingTitle": "Chưa có kết quả phân tích",
-    "awaitingBody": "Chụp hoặc tải ảnh vùng cát đã đổi màu rồi bấm phân tích để xem kết quả hiển thị tại đây."
+    "awaitingBody": "Chụp hoặc tải ảnh vùng cát đã đổi màu rồi bấm phân tích để xem kết quả hiển thị tại đây.",
+    "resultUnknown": "Chưa phân loại được",
+    "valueUnavailable": "—"
   }
 }

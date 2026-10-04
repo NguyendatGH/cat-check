@@ -43,11 +43,7 @@ export function useActiveCatsForCapture(): UseQueryResult<Cat[]> {
 }
 
 /** E1 — phân tích + lưu + trừ credit một bước. Trả `200` cả khi INCONCLUSIVE. */
-export function useSubmitScan(): UseMutationResult<
-  ScanResult,
-  Error,
-  { metadata: SubmitScanMetadata; file: File }
-> {
+export function useSubmitScan(): UseMutationResult<ScanResult, Error, { metadata: SubmitScanMetadata; file: File }> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ metadata, file }) => apiSubmitScan(metadata, file),

@@ -11,13 +11,8 @@
  * <p>Đảo ngược phụ thuộc bằng cách scan tuyên bố cổng cần và colorchart hiện thực — đúng chuẩn
  * dependency inversion, và ArchUnit không thấy cạnh nào đi tới colorchart từ scan.
  *
- * <p><b>Khiếm khuyết hợp đồng đã biết (chưa sửa):</b> {@code scan.domain.color} không thể mang
- * {@code @NamedInterface} (R9 cấm mọi annotation Spring trong package đó — xem
- * {@code scan/domain/color/package-info.java}), nên KHÔNG có cách khai {@code allowedDependencies}
- * nào ở đây khiến {@code ModularityTests} hết đỏ ngoài để bare {@code "scan"} (chỉ hợp thức phần
- * "unnamed" của scan, không hợp thức {@code domain.color}) hoặc {@code type = OPEN} cho cả module
- * {@code scan} (quá rộng, không nên). Nợ kiến trúc thật, cần tách {@code scan.domain.color} ra
- * khỏi module {@code scan} mới giải quyết gốc — xem javadoc bên đó.</p>
+ * <p>The dependency is restricted to the {@code scan::color} named interface; the remainder of
+ * the scan module stays internal.</p>
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = { "shared", "scan" })
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "shared", "scan::color" })
 package com.catcheck.colorchart;

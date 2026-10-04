@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import {
   ArrowRight,
   Award,
@@ -12,6 +13,7 @@ import {
   Droplet,
   HelpCircle,
   Layers,
+  Loader2,
   Leaf,
   Maximize2,
   MessageCircle,
@@ -27,10 +29,11 @@ import {
   Wind,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { getShopProduct } from "@/features/shop";
 import {
   MOCK_COLOR_INDICATORS,
   MOCK_PACK_SIZES,
-  MOCK_PRODUCT_DETAIL as P,
+  MOCK_PRODUCT_DETAIL as MOCK_P,
   MOCK_PURCHASE_MODES,
   MOCK_REVIEWS,
   MOCK_SPEC_TABLE,
@@ -66,16 +69,43 @@ const TONE_STYLES = {
 export function ProductDetailPage() {
   const { t } = useTranslation("shop");
   const navigate = useNavigate();
+  const { productId } = useParams<{ productId: string }>();
+  const productQuery = useQuery({
+    queryKey: ["shop", "product", productId],
+    queryFn: () => getShopProduct(productId ?? ""),
+    enabled: Boolean(productId),
+    staleTime: 60_000,
+  });
   const add = useShopCart((s) => s.add);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   /** Hai lựa chọn chỉ có ở bản mobile — thuần hiển thị, KHÔNG đổi giá đang hiện. */
   const [purchaseMode, setPurchaseMode] = useState<string>(MOCK_PURCHASE_MODES[0].id);
   const [packSize, setPackSize] = useState<string>(MOCK_PACK_SIZES[1].id);
-
+  if (productQuery.isPending) {
+    return (
+      <p className="flex items-center gap-2 px-4 py-6 text-caption text-text-secondary">
+        <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+        {t("checkout.placing")}
+      </p>
+    );
+  }
+  if (productQuery.isError) {
+    return <p className="px-4 py-6 text-caption text-danger-text">{t("checkout.error")}</p>;
+  }
+  const product = productQuery.data;
+  const P = {
+    ...MOCK_P,
+    id: product.id,
+    title: product.name,
+    description: product.description,
+    price: product.priceVnd,
+    compareAtPrice: product.compareAtPriceVnd ?? product.priceVnd,
+    gallery: [product.imageUrl ?? ""],
+  };
   const addToCart = () => {
     add({
-      id: `line-${P.id}`,
+      id: P.id,
       name: P.title,
       subtitle: P.topBadges[0],
       imageUrl: P.gallery[0],
@@ -113,10 +143,6 @@ export function ProductDetailPage() {
               <Maximize2 size={11} aria-hidden="true" />
               {t("detail.galleryZoom")}
             </span>
-            <span className="absolute bottom-3 left-3 rounded-lg bg-surface/90 px-2.5 py-1.5 text-[10px] font-semibold leading-tight text-text-secondary shadow-xs">
-              {t("detail.galleryCaptionLine1")}
-              <span className="block">{t("detail.galleryCaptionLine2")}</span>
-            </span>
           </div>
           {/* Thiết kế có 4 thumbnail và ảnh lớn là phần tử riêng -> bỏ qua `gallery[0]`. */}
           <div className="grid grid-cols-4 gap-2 pt-2">
@@ -124,7 +150,9 @@ export function ProductDetailPage() {
               <button
                 key={src}
                 type="button"
-                onClick={() => { setActiveImage(i + 1); }}
+                onClick={() => {
+                  setActiveImage(i + 1);
+                }}
                 className={cn(
                   "overflow-hidden rounded-xl border-2 transition-colors",
                   i + 1 === activeImage ? "border-primary" : "border-transparent hover:border-border",
@@ -154,7 +182,7 @@ export function ProductDetailPage() {
                 {P.consultBadge}
               </span>
             </div>
-            <div className="flex flex-col gap-2 pt-3 sm:flex-row">
+            <div className="flex flex-col gap-2 pt-3 md:flex-row">
               <button
                 type="button"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-background-alt px-3 py-2.5 text-[12px] font-semibold text-text-primary hover:bg-chip-bg"
@@ -242,7 +270,9 @@ export function ProductDetailPage() {
                       name="purchase-mode"
                       value={mode.id}
                       checked={selected}
-                      onChange={() => { setPurchaseMode(mode.id); }}
+                      onChange={() => {
+                        setPurchaseMode(mode.id);
+                      }}
                       className="sr-only"
                     />
                     <span
@@ -309,15 +339,13 @@ export function ProductDetailPage() {
                       name="pack-size"
                       value={size.id}
                       checked={selected}
-                      onChange={() => { setPackSize(size.id); }}
+                      onChange={() => {
+                        setPackSize(size.id);
+                      }}
                       className="sr-only"
                     />
                     {selected ? (
-                      <CheckCircle2
-                        size={15}
-                        className="absolute right-2.5 top-2.5 text-primary"
-                        aria-hidden="true"
-                      />
+                      <CheckCircle2 size={15} className="absolute right-2.5 top-2.5 text-primary" aria-hidden="true" />
                     ) : null}
                     <span
                       className={cn(
@@ -359,7 +387,9 @@ export function ProductDetailPage() {
               <button
                 type="button"
                 aria-label={t("cartPanel.decrease")}
-                onClick={() => { setQuantity((q) => Math.max(1, q - 1)); }}
+                onClick={() => {
+                  setQuantity((q) => Math.max(1, q - 1));
+                }}
                 className="flex size-6 items-center justify-center rounded text-text-secondary hover:bg-background-alt"
               >
                 <Minus size={13} aria-hidden="true" />
@@ -368,7 +398,9 @@ export function ProductDetailPage() {
               <button
                 type="button"
                 aria-label={t("cartPanel.increase")}
-                onClick={() => { setQuantity((q) => q + 1); }}
+                onClick={() => {
+                  setQuantity((q) => q + 1);
+                }}
                 className="flex size-6 items-center justify-center rounded text-text-secondary hover:bg-background-alt"
               >
                 <Plus size={13} aria-hidden="true" />
@@ -399,7 +431,7 @@ export function ProductDetailPage() {
             <span>{P.subscribeSaving}</span>
           </p>
 
-          <div className="grid grid-cols-2 gap-2 pt-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 pt-3 md:grid-cols-4">
             {P.specs.map((s, i) => {
               const Icon = SPEC_ICONS[i] ?? Droplet;
               return (
@@ -451,14 +483,14 @@ export function ProductDetailPage() {
           {P.steps.map((s, i) => {
             const StepIcon = STEP_ICONS[i] ?? Layers;
             return (
-            <div key={s.no} className="rounded-xl bg-background-alt/60 p-4">
-              <span className="flex items-center justify-between">
-                <span className="text-[22px] font-bold text-border-strong">{s.no}</span>
-                <StepIcon size={16} className="text-primary" aria-hidden="true" />
-              </span>
-              <p className="pt-1 text-[13px] font-bold text-text-primary">{s.title}</p>
-              <p className="pt-1 text-[11px] leading-relaxed text-text-secondary">{s.body}</p>
-            </div>
+              <div key={s.no} className="rounded-xl bg-background-alt/60 p-4">
+                <span className="flex items-center justify-between">
+                  <span className="text-[22px] font-bold text-border-strong">{s.no}</span>
+                  <StepIcon size={16} className="text-primary" aria-hidden="true" />
+                </span>
+                <p className="pt-1 text-[13px] font-bold text-text-primary">{s.title}</p>
+                <p className="pt-1 text-[11px] leading-relaxed text-text-secondary">{s.body}</p>
+              </div>
             );
           })}
         </div>
@@ -493,11 +525,7 @@ export function ProductDetailPage() {
                       key={`${row.label}-${String(i)}`}
                       className={cn("px-3 py-2.5", i === 1 ? "font-semibold text-primary-dark" : "text-text-primary")}
                     >
-                      {v === "yes" ? (
-                        <Check size={15} className="text-success" aria-label="Có" />
-                      ) : (
-                        v
-                      )}
+                      {v === "yes" ? <Check size={15} className="text-success" aria-label="Có" /> : v}
                     </td>
                   ))}
                 </tr>
@@ -606,7 +634,9 @@ export function ProductDetailPage() {
           <button
             type="button"
             aria-label={t("cartPanel.decrease")}
-            onClick={() => { setQuantity((q) => Math.max(1, q - 1)); }}
+            onClick={() => {
+              setQuantity((q) => Math.max(1, q - 1));
+            }}
             className="flex size-7 items-center justify-center rounded-lg text-text-secondary hover:bg-surface"
           >
             <Minus size={15} aria-hidden="true" />
@@ -615,7 +645,9 @@ export function ProductDetailPage() {
           <button
             type="button"
             aria-label={t("cartPanel.increase")}
-            onClick={() => { setQuantity((q) => q + 1); }}
+            onClick={() => {
+              setQuantity((q) => q + 1);
+            }}
             className="flex size-7 items-center justify-center rounded-lg text-text-secondary hover:bg-surface"
           >
             <Plus size={15} aria-hidden="true" />

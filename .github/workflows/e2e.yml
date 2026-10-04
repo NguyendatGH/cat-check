@@ -1,0 +1,104 @@
+name: E2E (Playwright)
+
+on:
+  schedule:
+    - cron: "0 18 * * *" # 18:00 UTC ≈ 01:00 sáng giờ VN (UTC+7) — nightly
+  push:
+    tags: ["v*"] # trước mỗi tag release
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    name: Full stack (compose --profile full) + Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # PHẢI ở đầu job: `docker compose --profile full up` sẽ pull postgres/mailpit
+      # và build backend/frontend (build kéo base image từ Docker Hub).
+      - name: Docker Hub login
+        uses: docker/login-action@v3.3.0 # TODO owner xác nhận version
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v7.0.1
+
+      - name: Chuẩn bị .env tối thiểu cho docker compose --profile full
+        run: cp .env.example .env # M0: giá trị mẫu — đủ để backend start ở CI, KHÔNG dùng cho prod
+
+      - name: Khởi động full stack (postgres, mailpit, backend, frontend)
+        run: docker compose --profile full up -d --build
+
+      - name: Chờ backend healthy (GET /actuator/health, tối đa 60s)
+        run: |
+          for i in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/actuator/health || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "backend UP"
+              exit 0
+            fi
+            echo "chờ backend... ($i/30) status=$status"
+            sleep 2
+          done
+          echo "::error::backend không healthy sau 60s"
+          docker compose logs backend --tail=200
+          exit 1
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24.21.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci (frontend — cần để chạy Playwright)
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Cài browser Playwright (Chromium + WebKit)
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium webkit
+
+      # M0: chưa có test case e2e thật (thuộc p17, agent frontend chỉ dựng khung
+      # playwright.config.ts). Quyết định: thử chạy test thật trước; NẾU Playwright
+      # báo cụ thể "no tests found" (không phải test thật sự fail) thì mới chạy 1
+      # test smoke tối thiểu inline để pipeline vẫn có ý nghĩa thay vì exit lặng lẽ.
+      # Phân biệt bằng nội dung output (không chỉ exit code) để KHÔNG che giấu một
+      # test thật sự fail đằng sau nhánh "không có test".
+      - name: Playwright test (test thật nếu có; smoke test tối thiểu nếu chưa có)
+        working-directory: frontend
+        run: |
+          set +e
+          output=$(npx playwright test --reporter=list 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+          if [ $code -ne 0 ] && echo "$output" | grep -qi "no tests found"; then
+            echo "Không có test case e2e thật ở M0 — chạy 1 smoke test tối thiểu."
+            mkdir -p .ci-smoke-e2e
+            printf '%s\n' \
+              "import { test, expect } from '@playwright/test';" \
+              "" \
+              "test('trang chu co tieu de CatCheck', async ({ page }) => {" \
+              "  await page.goto('/');" \
+              "  await expect(page).toHaveTitle(/CatCheck/);" \
+              "});" \
+              > .ci-smoke-e2e/smoke.spec.ts
+            npx playwright test .ci-smoke-e2e --reporter=list
+          elif [ $code -ne 0 ]; then
+            echo "::error::Playwright test thất bại (không phải do thiếu test case) — xem log ở trên."
+            exit $code
+          fi
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Dừng full stack
+        if: always()
+        run: docker compose --profile full down -v

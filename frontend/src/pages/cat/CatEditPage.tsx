@@ -80,7 +80,9 @@ export function CatEditPage() {
     if (avatarFile) {
       const url = URL.createObjectURL(avatarFile);
       setAvatarPreview(url);
-      return () => { URL.revokeObjectURL(url); };
+      return () => {
+        URL.revokeObjectURL(url);
+      };
     }
     setAvatarPreview(avatarRemoved ? null : (cat?.avatarUrl ?? null));
   }, [avatarFile, avatarRemoved, cat?.avatarUrl]);
@@ -102,7 +104,9 @@ export function CatEditPage() {
     return (
       <ErrorState
         title={t("detail.errorTitle")}
-        onRetry={() => { void refetch(); }}
+        onRetry={() => {
+          void refetch();
+        }}
         retryLabel={t("actions.retry", { ns: "common" })}
       />
     );
@@ -175,11 +179,21 @@ export function CatEditPage() {
           loading={isSaving}
           disabled={isSaving}
           className="sm:min-w-40"
-          onClick={() => { void handleSubmit(onSubmit)(); }}
+          onClick={() => {
+            void handleSubmit(onSubmit)();
+          }}
         >
           {isSaving ? t("form.saving") : t("form.submit")}
         </Button>
-        <Button type="button" variant="tertiary" size="lg" disabled={isSaving} onClick={() => { void navigate(-1); }}>
+        <Button
+          type="button"
+          variant="tertiary"
+          size="lg"
+          disabled={isSaving}
+          onClick={() => {
+            void navigate(-1);
+          }}
+        >
           {t("actions.cancel", { ns: "common" })}
         </Button>
       </div>

@@ -1,6 +1,15 @@
 import { useMutation, useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack/react-query";
 import { apiFetch } from "./api";
-import type { DsarRequestType, DsarRequestView, PageView, PolicyCode, PolicyView, PurposeView } from "./types";
+import type {
+  DsarRequestType,
+  DsarRequestView,
+  PageView,
+  PolicyCode,
+  PolicyVersionListResponse,
+  PolicyVersionSummaryView,
+  PolicyView,
+  PurposeView,
+} from "./types";
 
 /**
  * Hooks react-query cho các trang pháp lý — gọi thẳng `PolicyController`/`PrivacyController`
@@ -14,6 +23,50 @@ export function usePolicyCurrent(policyCode: PolicyCode, locale: "vi" | "en" = "
     queryFn: () => apiFetch<PolicyView>(`/policies/${policyCode}?locale=${locale}`),
     retry: false,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * F9 — `GET /policies/{code}/versions`: TOÀN BỘ phiên bản (kể cả đã hết hiệu lực), mới nhất
+ * trước. Đây là nguồn của màn "Lịch sử phiên bản" — KHÔNG được suy từ C16 (`/policies/{code}`
+ * chỉ trả bản hiện hành, dùng nó thì lịch sử luôn hiện đúng một dòng và sai sự thật).
+ */
+export function usePolicyVersions(
+  policyCode: PolicyCode | undefined,
+  locale: "vi" | "en" = "vi",
+): UseQueryResult<PolicyVersionSummaryView[]> {
+  return useQuery({
+    queryKey: ["legal", "policy-versions", policyCode, locale],
+    queryFn: async () => {
+      if (!policyCode) throw new Error("policyCode is required");
+      const page = await apiFetch<PolicyVersionListResponse>(`/policies/${policyCode}/versions?locale=${locale}`);
+      return page.items;
+    },
+    enabled: policyCode !== undefined,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * F10 — `GET /policies/{code}/versions/{version}`: permalink một phiên bản cụ thể. URL này
+ * phải sống vĩnh viễn (`consent_record.policy_version` trỏ vào đây), nội dung đã publish là
+ * bất biến ⇒ cache lâu ở client, không `retry` khi 404 (phiên bản chưa từng tồn tại).
+ */
+export function usePolicyVersion(
+  policyCode: PolicyCode | undefined,
+  version: string | undefined,
+  locale: "vi" | "en" = "vi",
+): UseQueryResult<PolicyView> {
+  return useQuery({
+    queryKey: ["legal", "policy-version", policyCode, version, locale],
+    queryFn: () => {
+      if (!policyCode || !version) throw new Error("policyCode/version is required");
+      return apiFetch<PolicyView>(`/policies/${policyCode}/versions/${encodeURIComponent(version)}?locale=${locale}`);
+    },
+    enabled: policyCode !== undefined && version !== undefined,
+    retry: false,
+    staleTime: 60 * 60 * 1000,
   });
 }
 

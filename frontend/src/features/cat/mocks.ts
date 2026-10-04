@@ -299,9 +299,13 @@ export const handlers = [
       id: crypto.randomUUID(),
       catId,
       questionnaireVersion: body.questionnaireVersion ?? "v1",
-      answers:
-        body.answers ??
-        { litterType: "", urinaryHistory: "", dietType: "", urinationFrequency: "", symptoms: [] },
+      answers: body.answers ?? {
+        litterType: "",
+        urinaryHistory: "",
+        dietType: "",
+        urinationFrequency: "",
+        symptoms: [],
+      },
       skipped: Boolean(body.skipped),
       submittedAt: body.skipped ? null : nowIso(),
       createdAt: nowIso(),
@@ -321,7 +325,11 @@ export const handlers = [
     await delay(200);
     const catId = String(params.catId);
     if (!cats.has(catId)) return problem(404, "CAT_NOT_FOUND", "Không tìm thấy hồ sơ mèo.");
-    const body = (await request.json()) as { noteType?: CatNote["noteType"]; body?: string; occurredOn?: string | null };
+    const body = (await request.json()) as {
+      noteType?: CatNote["noteType"];
+      body?: string;
+      occurredOn?: string | null;
+    };
     if (!body.body) return problem(400, "VALIDATION_FAILED", "Nội dung ghi chú không được để trống.");
     const note: CatNote = {
       id: crypto.randomUUID(),
@@ -367,7 +375,10 @@ export const handlers = [
     const noteId = String(params.noteId);
     for (const [catId, list] of notes.entries()) {
       if (list.some((n) => n.id === noteId)) {
-        notes.set(catId, list.filter((n) => n.id !== noteId));
+        notes.set(
+          catId,
+          list.filter((n) => n.id !== noteId),
+        );
         return new HttpResponse(null, { status: 204 });
       }
     }

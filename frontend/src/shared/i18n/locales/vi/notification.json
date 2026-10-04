@@ -11,9 +11,15 @@
     "unreadBadge": "Chưa đọc",
     "groupToday": "Hôm nay",
     "groupYesterday": "Hôm qua",
-    "noApiTitle": "Hộp thư chưa kết nối máy chủ",
-    "noApiBody": "Bảng dữ liệu thông báo đã có trong cơ sở dữ liệu, nhưng máy chủ chưa mở đường đọc cho ứng dụng. Khi có, thông báo sẽ hiện ở đây gom theo từng ngày, mục chưa đọc nằm trên cùng.",
-    "noApiHonesty": "Trang này không dựng thông báo mẫu — danh sách trống là trống thật.",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "hide": "Ẩn thông báo này",
+    "loadMore": "Tải thêm",
+    "emptyTitle": "Chưa có thông báo nào",
+    "emptyBody": "Khi CatCheck có điều cần báo — tới lịch quét, lượt quét sắp hết hạn, hồ sơ PDF đã xong — nó sẽ xuất hiện ở đây.",
+    "emptyUnreadTitle": "Bạn đã đọc hết",
+    "emptyUnreadBody": "Không còn thông báo chưa đọc nào trong số đã tải. Chuyển sang tab “Tất cả” để xem lại.",
+    "errorTitle": "Không tải được hộp thư",
+    "errorBody": "Mạng hoặc máy chủ đang trục trặc. Thử lại sau giây lát.",
     "kindsTitle": "Những loại thông báo sẽ về đây",
     "kindsLead": "Bốn nhóm dưới đây là các loại thông báo trong ứng dụng mà CatCheck dự kiến gửi.",
     "kinds": {
@@ -36,5 +42,68 @@
     },
     "settingsCta": "Tuỳ chỉnh thông báo",
     "remindersCta": "Xem lịch nhắc"
+  },
+  "badge": {
+    "unreadAria": "{{count}} thông báo chưa đọc"
+  },
+  "push": {
+    "title": "Thông báo đẩy",
+    "lead": "Nhận báo ngay cả khi bạn chưa mở CatCheck. Thông báo trong ứng dụng vẫn hoạt động bình thường dù bạn không bật mục này.",
+    "saved": "Đã bật thông báo đẩy trên máy này.",
+    "toggle": {
+      "title": "Nhận thông báo đẩy trên máy này",
+      "body": "Trình duyệt sẽ hỏi quyền hiển thị thông báo."
+    },
+    "blocked": {
+      "MISSING_VAPID_KEY": {
+        "title": "Thông báo đẩy chưa được bật cho CatCheck",
+        "body": "Hệ thống chưa cấu hình khoá gửi thông báo đẩy. Bạn vẫn nhận đủ thông báo trong ứng dụng và qua email."
+      },
+      "MISSING_FIREBASE_CONFIG": {
+        "title": "Thông báo đẩy chưa cấu hình xong",
+        "body": "Đã có khoá gửi nhưng còn thiếu thông tin kết nối dịch vụ đẩy. Bạn vẫn nhận đủ thông báo trong ứng dụng và qua email."
+      },
+      "IOS_NEEDS_INSTALL": {
+        "title": "iPhone và iPad cần cài CatCheck trước",
+        "body": "Trên iOS, thông báo đẩy chỉ hoạt động sau khi bạn thêm CatCheck vào Màn hình chính rồi mở lại từ biểu tượng đó.",
+        "cta": "Xem cách thêm vào Màn hình chính"
+      },
+      "UNSUPPORTED_BROWSER": {
+        "title": "Trình duyệt này không hỗ trợ thông báo đẩy",
+        "body": "Hãy thử bằng Chrome, Edge hoặc Safari bản mới. Thông báo trong ứng dụng vẫn hoạt động bình thường."
+      },
+      "PERMISSION_DENIED": {
+        "title": "Bạn đã chặn thông báo của CatCheck",
+        "body": "Trình duyệt chỉ hỏi quyền một lần. Để bật lại, mở phần cài đặt quyền của trang này trong trình duyệt rồi tải lại."
+      }
+    },
+    "clientErrors": {
+      "PERMISSION_DENIED": "Bạn đã từ chối quyền thông báo nên không bật được. Mở cài đặt quyền của trang trong trình duyệt để đổi lại.",
+      "PERMISSION_DISMISSED": "Hộp thoại xin quyền bị đóng. Bật lại công tắc nếu bạn muốn thử lần nữa.",
+      "SDK_UNSUPPORTED": "Máy này không đăng ký nhận đẩy được. Thông báo trong ứng dụng vẫn hoạt động bình thường.",
+      "TIMEOUT": "Quá lâu không nhận được phản hồi từ dịch vụ đẩy. Kiểm tra kết nối rồi thử lại."
+    },
+    "errors": {
+      "PUSH_SUBSCRIPTION_LIMIT": "Bạn đã đăng ký đủ {{max}} thiết bị. Gỡ bớt một thiết bị trong danh sách rồi thử lại.",
+      "CONSENT_REQUIRED": "Cần bật đồng ý “Nhắc nhở sức khoẻ qua thông báo đẩy” ở Trung tâm quyền riêng tư trước.",
+      "PUSH_SUBSCRIPTION_INVALID": "Không lấy được định danh thiết bị. Tải lại trang rồi thử lại.",
+      "GENERIC": "Không lưu được thay đổi. Thử lại sau giây lát."
+    },
+    "platforms": {
+      "WEB": "Trình duyệt",
+      "ANDROID_PWA": "Ứng dụng đã cài (Android)",
+      "IOS_PWA": "Ứng dụng đã cài (iOS)"
+    },
+    "devices": {
+      "legend": "Thiết bị đang nhận",
+      "loading": "Đang tải danh sách thiết bị…",
+      "loadFailed": "Chưa tải được danh sách thiết bị.",
+      "empty": "Chưa có thiết bị nào đăng ký nhận thông báo đẩy.",
+      "unnamed": "Thiết bị không tên",
+      "thisDevice": "Máy này",
+      "lastSeen": "Hoạt động gần nhất {{date}}",
+      "revoke": "Gỡ thiết bị này",
+      "limitNote": "Tối đa {{max}} thiết bị cho mỗi tài khoản."
+    }
   }
 }

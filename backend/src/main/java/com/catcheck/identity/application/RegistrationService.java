@@ -3,7 +3,7 @@ package com.catcheck.identity.application;
 import com.catcheck.audit.api.AuditEvent;
 import com.catcheck.audit.api.AuditLogService;
 import com.catcheck.identity.api.IdentityErrorCode;
-import com.catcheck.identity.UserRegisteredEvent;
+import com.catcheck.privacy.spi.RegistrationConsentEvent;
 import com.catcheck.identity.domain.AppLocale;
 import com.catcheck.identity.domain.EmailAddress;
 import com.catcheck.identity.domain.EmailOtpChallenge;
@@ -92,7 +92,7 @@ public class RegistrationService {
      * @param locale       {@code null} =&gt; {@link AppLocale#VI}
      * @param consents     lua chon consent tho user tick luc dang ky (p15 §15.3.3); ro hoac
      *                     {@code null} khi request khong kem consent nao (vd lan goi lai kem
-     *                     {@code otpTicket} de kich hoat) — khong phat {@link UserRegisteredEvent}
+     *                     {@code otpTicket} de kich hoat) — khong phat {@link RegistrationConsentEvent}
      *                     trong truong hop do
      */
     @Transactional
@@ -101,7 +101,7 @@ public class RegistrationService {
                                        String fullName,
                                        String locale,
                                        String rawOtpTicket,
-                                       List<UserRegisteredEvent.ConsentGrant> consents,
+                                       List<RegistrationConsentEvent.ConsentGrant> consents,
                                        AuthRequestContext context) {
         EmailAddress email = EmailAddress.of(rawEmail);
         Instant now = clock.instant();
@@ -154,9 +154,9 @@ public class RegistrationService {
                 false, passwordHasher.hash(rawPassword), now, null, now, now));
         roleRepository.grant(userId, UserRole.USER, null);
 
-        // Phat UserRegisteredEvent CUNG transaction voi viec tao tai khoan (tien le
+        // Phat RegistrationConsentEvent CUNG transaction voi viec tao tai khoan (tien le
         // scan.api.ScanSavedEvent) de module privacy ghi consent_record — xem javadoc
-        // UserRegisteredEvent ve ly do chon dong bo thay vi publication registry bat dong bo.
+        // RegistrationConsentEvent de privacy ghi bang chung consent mot cach nguyen tu.
         // Rong/null khi request dang ky khong kem consent (vd goi lai kem otpTicket de kich
         // hoat) — khong phat su kien de tranh ConsentService.recordConsents nem loi tren danh
         // sach rong.
@@ -164,7 +164,7 @@ public class RegistrationService {
             // parseLocale (khong phai chuoi tho tu client) — cung gia tri da dung de ghi
             // app_user.locale ben tren, tranh mot locale la lam ConsentService khong tim
             // thay policy_version dang hieu luc roi lam rollback ca dang ky.
-            eventPublisher.publishEvent(new UserRegisteredEvent(
+            eventPublisher.publishEvent(new RegistrationConsentEvent(
                     userId, consents, parseLocale(locale).code(), context.ipAddress(),
                     context.userAgent(), context.requestId(), now));
         }

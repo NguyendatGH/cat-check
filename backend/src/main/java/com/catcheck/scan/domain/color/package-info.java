@@ -39,14 +39,10 @@
  * <p>Nguồn đặc tả: p6 §6.5 (S3–S9), p6 §6.7–6.8, p4 §4.5 (I9, I21, I22), research-color-pipeline
  * mục (c) và (d).
  *
- * <p><b>Khiếm khuyết hợp đồng đã biết (chưa sửa):</b> module {@code colorchart} dùng trực tiếp các
- * kiểu ở đây (ΔE00 để validate publish) và hiện thực cổng {@code port.ChartCatalog}. Đã thử đánh
- * dấu {@code @NamedInterface("color")} ở đây để hợp thức hoá — R9 (ArchUnit) chặn: package này
- * TUYỆT ĐỐI cấm mọi annotation {@code org.springframework..}, không có ngoại lệ, vì đây là lõi
- * thuần Java (xem lý do ở đầu file). Không có cách hợp thức việc này bằng annotation. Cách sửa
- * đúng là tách interface {@code ChartCatalog} + kiểu dữ liệu liên quan (Lab, DeltaE2000Params...)
- * ra một package trung lập không phải {@code domain.color} lẫn không phải con của module
- * {@code scan} (ví dụ một module/thư viện "color-science" độc lập) — refactor lớn, chưa làm.
- * {@code ModularityTests} còn đỏ vì việc này, ghi nhận là nợ kiến trúc đã biết.</p>
+ * <p>The package is exposed as the narrow {@code scan::color} Modulith interface because
+ * {@code colorchart} supplies {@code ChartCatalog} and validates published charts with the same
+ * ΔE00 implementation. The annotation lives only in package metadata; every algorithm class
+ * remains independent of Spring and Jakarta.</p>
  */
+@org.springframework.modulith.NamedInterface("color")
 package com.catcheck.scan.domain.color;

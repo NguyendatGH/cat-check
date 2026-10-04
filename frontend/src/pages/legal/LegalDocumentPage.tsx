@@ -6,14 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api";
 import { usePolicyCurrent } from "./hooks";
 import { extractMarkdownHeadings, renderMarkdown } from "./markdown";
-import {
-  DocumentToc,
-  LEGAL_ASIDE,
-  LEGAL_ASIDE_CARD,
-  LEGAL_COLUMN,
-  LEGAL_SHELL,
-  LEGAL_SPLIT,
-} from "./shell";
+import { DocumentToc, LEGAL_ASIDE, LEGAL_ASIDE_CARD, LEGAL_COLUMN, LEGAL_SHELL, LEGAL_SPLIT } from "./shell";
 import type { PolicyCode } from "./types";
 
 interface LegalDocumentPageProps {
@@ -98,7 +91,12 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
           ) : data.contentUrl ? (
             <p className="text-body text-text-secondary">
               {t("document.hostedExternally")}{" "}
-              <a href={data.contentUrl} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">
+              <a
+                href={data.contentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-primary hover:underline"
+              >
                 {data.contentUrl}
               </a>
             </p>

@@ -38,6 +38,19 @@ public interface AuthenticatedSessionGateway {
      */
     void markReauthenticated(int windowSeconds);
 
+    /**
+     * Nâng {@code mfaLevel} của phiên hiện tại lên {@code TOTP} sau khi A10 (bước 2 đăng nhập)
+     * hoặc A11 (mã khôi phục) xác thực thành công — p11 §11.12.1.
+     *
+     * <p>Không có bước này thì {@code mfaLevel} chỉ là một chuỗi trong JSON trả về cho client
+     * và server không bao giờ biết phiên nào đã qua TOTP, nên bộ gác {@code /api/v1/admin/**}
+     * (p8 §8.4.12) không thể tồn tại.</p>
+     *
+     * <p>Không đổi {@code authenticatedAt}: absolute lifetime vẫn tính từ lần đăng nhập đầu,
+     * đúng như {@link #markReauthenticated}.</p>
+     */
+    void markMfaTotpVerified();
+
     /** {@code userId} tu phien hien tai, hoac rong neu chua dang nhap. */
     Optional<UUID> currentUserId();
 

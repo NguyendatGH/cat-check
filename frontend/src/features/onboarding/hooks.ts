@@ -7,9 +7,11 @@ import type {
   CatSummary,
   CreatedCat,
   CreditBalance,
+  HealthSurveyDefinition,
   PhBandListResponse,
   SurveyAnswers,
 } from "./types";
+import { SURVEY_QUESTIONNAIRE_VERSION } from "./types";
 
 /**
  * Hooks react-query cho onboarding — mọi call đi qua `apiFetch` (features/onboarding/api.ts)
@@ -30,6 +32,22 @@ export function usePhBands(): UseQueryResult<PhBandListResponse> {
     queryKey: ["onboarding", "ph-bands"],
     queryFn: () => apiFetch<PhBandListResponse>("/reference/ph-bands"),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * F6 — định nghĩa bộ câu hỏi khảo sát. Cần phiên đăng nhập (SecurityConfig đặt matcher
+ * `/reference/health-survey/**` TRƯỚC `/reference/**` permitAll), nội dung tĩnh theo version
+ * nên cache dài. Đây là NGUỒN DUY NHẤT của danh sách câu hỏi/lựa chọn — màn khảo sát không
+ * giữ mảng `QUESTION_NAMES` cứng nữa.
+ */
+export function useHealthSurveyDefinition(
+  version: string = SURVEY_QUESTIONNAIRE_VERSION,
+): UseQueryResult<HealthSurveyDefinition> {
+  return useQuery({
+    queryKey: ["onboarding", "health-survey-definition", version],
+    queryFn: () => apiFetch<HealthSurveyDefinition>(`/reference/health-survey/${version}`),
+    staleTime: 30 * 60 * 1000,
   });
 }
 
@@ -68,9 +86,14 @@ export function useUpdateCat(catId: string): UseMutationResult<CreatedCat, Error
   });
 }
 
-export function useUploadAvatar(catId: string): UseMutationResult<{ avatarUrl: string }, Error, File> {
+export function useUploadAvatar(): UseMutationResult<
+  { avatarUrl: string },
+  Error,
+  { catId: string; file: File }
+> {
   return useMutation({
-    mutationFn: (file: File) => apiUploadAvatar(`/cats/${catId}/avatar`, file),
+    mutationFn: ({ catId, file }: { catId: string; file: File }) =>
+      apiUploadAvatar(`/cats/${catId}/avatar`, file),
   });
 }
 
@@ -81,7 +104,7 @@ export function useSubmitSurvey(
     mutationFn: ({ answers, skipped }: { answers: SurveyAnswers; skipped: boolean }) =>
       apiFetch<unknown>(`/cats/${catId}/health-survey`, {
         method: "POST",
-        body: JSON.stringify({ questionnaireVersion: "v1", answers, skipped }),
+        body: JSON.stringify({ questionnaireVersion: SURVEY_QUESTIONNAIRE_VERSION, answers, skipped }),
       }),
   });
 }

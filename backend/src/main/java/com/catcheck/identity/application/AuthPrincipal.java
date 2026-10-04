@@ -1,5 +1,6 @@
 package com.catcheck.identity.application;
 
+import com.catcheck.shared.security.MfaLevel;
 import com.catcheck.shared.security.SecurityPrincipal;
 
 import java.io.Serializable;
@@ -33,16 +34,24 @@ import java.util.UUID;
  * endpoint can dang nhap tra 500 (xem javadoc {@link SecurityPrincipal}).</p>
  *
  * @param reauthenticated cho biết step-up còn hiệu lực hay không (p11 §11.12.4)
+ * @param mfaLevel        đã qua bước TOTP trong phiên này chưa (p11 §11.12.1). Đăng nhập xong
+ *                        luôn là {@link MfaLevel#NONE}; chỉ A10/A11 nâng lên
+ *                        {@link MfaLevel#TOTP}. Đây là thứ mà bộ gác {@code /api/v1/admin/**}
+ *                        đọc — trước bản sửa này {@code mfaLevel} chỉ tồn tại trong JSON trả về
+ *                        của {@code POST /auth/totp/verify} và không được lưu ở đâu cả, nên
+ *                        không có cách nào biết một phiên đã qua TOTP hay chưa.
  */
 public record AuthPrincipal(
         UUID userId,
         String email,
         Set<String> roles,
         Instant authenticatedAt,
-        boolean reauthenticated) implements Serializable, Principal, SecurityPrincipal {
+        boolean reauthenticated,
+        MfaLevel mfaLevel) implements Serializable, Principal, SecurityPrincipal {
 
     public AuthPrincipal {
         roles = roles == null ? Set.of() : Set.copyOf(roles);
+        mfaLevel = mfaLevel == null ? MfaLevel.NONE : mfaLevel;
     }
 
     @Override
@@ -51,10 +60,15 @@ public record AuthPrincipal(
     }
 
     public static AuthPrincipal of(UUID userId, String email, Set<String> roles, Instant now) {
-        return new AuthPrincipal(userId, email, roles, now, false);
+        return new AuthPrincipal(userId, email, roles, now, false, MfaLevel.NONE);
     }
 
     public AuthPrincipal withReauthenticated(boolean value) {
-        return new AuthPrincipal(userId, email, roles, authenticatedAt, value);
+        return new AuthPrincipal(userId, email, roles, authenticatedAt, value, mfaLevel);
+    }
+
+    /** Nâng phiên lên {@link MfaLevel#TOTP} sau khi A10/A11 xác thực thành công. */
+    public AuthPrincipal withMfaLevel(MfaLevel value) {
+        return new AuthPrincipal(userId, email, roles, authenticatedAt, reauthenticated, value);
     }
 }

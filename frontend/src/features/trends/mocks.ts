@@ -1,8 +1,8 @@
 /**
- * MSW handlers + worker cho `features/trends` — độc lập với `features/history/mocks.ts` (mỗi
- * feature tự seed dữ liệu demo cho `GET /scans`/`GET /scans/summary`, không import lẫn nhau —
- * boundaries cấm feature → feature). Khi ghép handler thật (W3), chỉ giữ MỘT bản triển khai cho
- * mỗi endpoint thật.
+ * MSW handlers + worker — fixture DEV, không có file ứng dụng nào import (chỉ dùng khi bật
+ * worker thủ công). Giữ nguyên hai handler `GET /scans` / `GET /scans/summary` vì đó là
+ * endpoint THẬT mà `features/history` vẫn gọi; `features/trends` thì không gọi chúng nữa —
+ * từ W1-E module này chỉ dùng D13 `GET /cats/{catId}/trends`.
  *
  * Endpoint mock (khớp p8 §8.5.4, có lọc `from`/`to` mà `features/history/mocks.ts` không cần):
  *  - GET /api/v1/scans          (E2)

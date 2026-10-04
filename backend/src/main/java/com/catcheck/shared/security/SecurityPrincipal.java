@@ -30,4 +30,15 @@ public interface SecurityPrincipal extends Serializable {
     String email();
 
     Set<String> roles();
+
+    /**
+     * Mức MFA đã đạt trong phiên này (p11 §11.12.1, thuộc tính phiên {@code mfaLevel}).
+     *
+     * <p>{@code default} trả {@link MfaLevel#NONE}: các cài đặt cũ (và principal giả trong test)
+     * không phải khai lại, và mặc định an toàn là "chưa qua TOTP" — bộ gác
+     * {@link AdminAccessGate} sẽ từ chối, chứ không phải cho qua.</p>
+     */
+    default MfaLevel mfaLevel() {
+        return MfaLevel.NONE;
+    }
 }

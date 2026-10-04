@@ -61,6 +61,34 @@ export interface SurveyAnswers {
   symptoms: string[];
 }
 
+/** Version bộ câu hỏi đang dùng — gửi kèm D14 và dùng để tra F6. */
+export const SURVEY_QUESTIONNAIRE_VERSION = "v1";
+
+/**
+ * F6 — `GET /reference/health-survey/{version}` (p8 §8.4.6). Backend trả `labelKey` (khoá
+ * i18n) chứ không trả câu chữ, đúng quy ước `monitoring_rule.message_key` (quyết định #15);
+ * client resolve bằng namespace `onboarding`.
+ */
+export interface SurveyQuestionOption {
+  code: string;
+  labelKey: string;
+}
+
+export interface SurveyQuestionDefinition {
+  key: string;
+  /** `SINGLE` chọn một, `MULTI` chọn nhiều. Giữ `string`: version sau có thể thêm kiểu mới. */
+  type: string;
+  required: boolean;
+  sortOrder: number;
+  labelKey: string;
+  options: SurveyQuestionOption[];
+}
+
+export interface HealthSurveyDefinition {
+  version: string;
+  questions: SurveyQuestionDefinition[];
+}
+
 export const EMPTY_SURVEY_ANSWERS: SurveyAnswers = {
   litterType: "",
   urinaryHistory: "",

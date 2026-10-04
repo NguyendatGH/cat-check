@@ -12,26 +12,20 @@ export {
   LedgerEntryRow,
   formatRemainingSeconds,
 } from "./components";
-export type {
-  ActivationCodeFieldProps,
-  CreditBalanceSummaryProps,
-  CreditBatchCardProps,
-} from "./components";
+export type { ActivationCodeFieldProps, CreditBalanceSummaryProps, CreditBatchCardProps } from "./components";
 export {
   creditKeys,
   entitlementKey,
+  packageCatalogKey,
   useActivateCode,
   useCreditBalance,
   useCreditLedger,
   useEntitlement,
+  usePackageCatalog,
 } from "./hooks";
 export { apiFetch } from "./api";
 export { handlers, worker } from "./mocks";
-export {
-  formatActivationCode,
-  isValidActivationCode,
-  normalizeActivationCode,
-} from "./schemas";
+export { formatActivationCode, isValidActivationCode, normalizeActivationCode } from "./schemas";
 export type {
   ActivationResult,
   CreditBalance,
@@ -42,4 +36,6 @@ export type {
   LedgerEntry,
   LedgerPage,
   PackageCode,
+  PackagePlan,
+  PackagePlanList,
 } from "./types";

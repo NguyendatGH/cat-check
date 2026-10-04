@@ -11,7 +11,10 @@ import {
   NavCommunityIcon,
   NavProfileIcon,
 } from "@/shared/assets/icons/AppIcons";
+import { CatAvatar } from "@/entities/cat";
 import { useSessionStore } from "@/entities/user";
+import { useCatList } from "@/features/cat";
+import { NotificationUnreadBadge } from "@/features/notification";
 import webLogo from "@/shared/assets/images/web-dashboard/logo-lockup.png";
 import iconSearch from "@/shared/assets/icons/web-dashboard/header-search.svg";
 import iconBell from "@/shared/assets/icons/web-dashboard/header-bell.svg";
@@ -26,6 +29,7 @@ import navMap from "@/shared/assets/icons/web-dashboard/nav-map.svg";
 import navCommunity from "@/shared/assets/icons/web-dashboard/nav-community.svg";
 import navShop from "@/shared/assets/icons/web-dashboard/nav-shop.svg";
 import navSettings from "@/shared/assets/icons/web-dashboard/nav-settings.svg";
+import navAssistant from "@/shared/assets/icons/welcome/deco-sparkle.svg";
 import { ROUTE_PATTERNS } from "../router/routes";
 
 /** Bottom nav mobile — GIỮ NGUYÊN 5 mục của Figma 390px (node 1:2242). */
@@ -46,6 +50,7 @@ const DESKTOP_NAV_ITEMS = [
   { to: ROUTE_PATTERNS.map, icon: navMap, labelKey: "nav.vetMap", end: false },
   { to: ROUTE_PATTERNS.community, icon: navCommunity, labelKey: "nav.community", end: false },
   { to: ROUTE_PATTERNS.shop, icon: navShop, labelKey: "nav.shop", end: false },
+  { to: ROUTE_PATTERNS.assistant, icon: navAssistant, labelKey: "nav.assistant", end: false },
   { to: ROUTE_PATTERNS.settings, icon: navSettings, labelKey: "nav.settings", end: false },
 ] as const;
 
@@ -90,6 +95,7 @@ function NavMaskIcon({ src, className }: { src: string; className?: string }) {
 function AppHeader() {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
+  const signedIn = Boolean(useSessionStore((s) => s.user));
   return (
     <header className="sticky top-0 z-[var(--z-sticky-header)] w-full bg-[rgba(250,248,255,0.8)] shadow-[0px_1px_8px_0px_rgba(0,0,0,0.04)] backdrop-blur-md lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
@@ -106,9 +112,10 @@ function AppHeader() {
               void navigate(ROUTE_PATTERNS.notifications);
             }}
             aria-label={t("nav.notifications")}
-            className="flex size-11 items-center justify-center rounded-full text-text-secondary hover:bg-background-alt"
+            className="relative flex size-11 items-center justify-center rounded-full text-text-secondary hover:bg-background-alt"
           >
             <BellIcon size={15} />
+            <NotificationUnreadBadge enabled={signedIn} />
           </button>
           <button
             type="button"
@@ -135,7 +142,7 @@ function BottomNav() {
   const [home, history, scan, community, profile] = MOBILE_NAV_ITEMS;
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-[var(--z-bottom-nav)] mx-auto flex w-full max-w-[480px] rounded-t-2xl bg-[rgba(255,255,255,0.95)] shadow-[0px_-4px_24px_0px_rgba(47,79,178,0.08)] backdrop-blur-md lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-[var(--z-bottom-nav)] mx-auto flex w-full max-w-[480px] rounded-t-2xl bg-[rgba(255,255,255,0.95)] pb-[env(safe-area-inset-bottom)] shadow-[0px_-4px_24px_0px_rgba(47,79,178,0.08)] backdrop-blur-md lg:hidden"
       aria-label={t("nav.mainLabel")}
     >
       <div className="flex h-16 w-full items-center gap-1 px-1">
@@ -198,9 +205,73 @@ function BottomNav() {
  * Bố cục: logo (h 83) · thẻ chuyển mèo (h 72) · Nav 8 mục (mỗi mục 256×44, bước 48) · thẻ
  * khuyến mãi ghim đáy.
  */
-function DesktopAside() {
+/**
+ * Thẻ "bé mèo đang theo dõi" ở đầu sidebar web (Figma 16:7504).
+ *
+ * Bug thật đã sửa: khối này vốn render `user.displayName` — tức TÊN CHỦ NUÔI — dù chính
+ * comment của nó ghi "hồ sơ mèo đang theo dõi". Đúng ý định, sai nguồn dữ liệu, và vì
+ * sidebar có mặt ở MỌI trang web nên sai này hiện khắp bản desktop.
+ *
+ * ponytail: chevron dẫn tới `/cats` (hub đa mèo) chứ KHÔNG mở dropdown chọn mèo. Trần của
+ * lựa chọn này: app không có khái niệm "mèo đang chọn" ở cấp toàn cục — mọi trang lấy
+ * `:catId` từ URL — nên một dropdown sẽ phải tự bịa ra state đó. Nâng cấp khi nào thật sự
+ * cần: thêm selected-cat vào session store rồi đổi link này thành menu.
+ */
+function CatSwitcherCard() {
   const { t } = useTranslation("common");
   const user = useSessionStore((s) => s.user);
+  // Khách chưa đăng nhập: `GET /cats` chắc chắn 403, đừng gọi.
+  const { data } = useCatList("ACTIVE", Boolean(user));
+  const cats = data?.items ?? [];
+  const cat = cats.find((c) => c.isPrimary) ?? cats.at(0);
+
+  if (!cat) {
+    return (
+      <div className="px-4 pb-2">
+        <NavLink
+          to={ROUTE_PATTERNS.catNew}
+          className="flex h-14 items-center gap-2 rounded-xl bg-background-alt px-3 text-caption text-text-secondary hover:bg-chip-bg"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-chip-bg text-h3 font-bold text-primary-dark">
+            +
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-bold text-text-primary">{t("webShell.switcherEmpty")}</span>
+            <span className="block truncate text-[11px] leading-[14px]">{t("webShell.switcherEmptyCta")}</span>
+          </span>
+        </NavLink>
+      </div>
+    );
+  }
+
+  const years = cat.ageMonths == null ? null : Math.round((cat.ageMonths / 12) * 10) / 10;
+
+  return (
+    <div className="px-4 pb-2">
+      <NavLink
+        to={ROUTE_PATTERNS.catsList}
+        className="flex h-14 items-center gap-2 rounded-xl bg-background-alt px-2 hover:bg-chip-bg"
+      >
+        <span className="relative flex size-10 shrink-0 items-center justify-center">
+          <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" className="size-10" />
+          <span className="absolute -bottom-0 -right-0 size-3 rounded-full border-2 border-surface bg-success" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-caption font-bold text-text-primary">
+            {cat.breedName ? t("webShell.switcherTitle", { name: cat.name, breed: cat.breedName }) : cat.name}
+          </span>
+          <span className="block truncate text-[11px] leading-[14px] text-text-secondary">
+            {years == null ? t("webShell.switcherWatching") : t("webShell.switcherMeta", { age: years })}
+          </span>
+        </span>
+        <img src={iconChevron} alt="" className="h-[13.425px] w-[6.75px] shrink-0" />
+      </NavLink>
+    </div>
+  );
+}
+
+function DesktopAside() {
+  const { t } = useTranslation("common");
 
   return (
     <aside
@@ -212,23 +283,7 @@ function DesktopAside() {
       </div>
 
       {/* Thẻ hồ sơ mèo đang theo dõi (16:7504) */}
-      <div className="px-4 pb-2">
-        <div className="flex h-14 items-center gap-2 rounded-xl bg-background-alt px-2">
-          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-chip-bg text-body font-bold text-primary-dark">
-            {(user?.displayName ?? "?").slice(0, 1).toUpperCase()}
-            <span className="absolute -bottom-0 -right-0 size-3 rounded-full border-2 border-surface bg-success" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-caption font-bold text-text-primary">
-              {user?.displayName ?? t("app.name")}
-            </span>
-            <span className="block truncate text-[11px] leading-[14px] text-text-secondary">
-              {t("webShell.switcherWatching")}
-            </span>
-          </span>
-          <img src={iconChevron} alt="" className="h-[13.425px] w-[6.75px] shrink-0" />
-        </div>
-      </div>
+      <CatSwitcherCard />
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4" aria-label={t("nav.mainLabel")}>
         {DESKTOP_NAV_ITEMS.map((item) => (
@@ -301,7 +356,12 @@ function DesktopHeader() {
           className="relative flex size-10 items-center justify-center rounded-xl hover:bg-background-alt"
         >
           <img src={iconBell} alt="" className="h-[16.667px] w-[13.333px]" />
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-danger" />
+          {/*
+            Trước gói này đây là một chấm đỏ CỐ ĐỊNH — luôn sáng kể cả khi hộp thư trống, nên
+            nó không mang thông tin gì. Nay là số chưa đọc thật từ `GET /notifications/unread-count`
+            (G5, partial index của p4 F2), tự ẩn khi bằng 0.
+          */}
+          <NotificationUnreadBadge enabled={Boolean(user)} />
         </button>
 
         {/* Trang chủ xem được ở chế độ khách — khi chưa đăng nhập thì hiện CTA đăng nhập
@@ -353,7 +413,7 @@ export function AppLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader />
         <DesktopHeader />
-        <main className="flex-1 pb-[calc(64px+var(--space-4))] lg:mx-auto lg:w-full lg:max-w-[992px] lg:px-6 lg:py-6 lg:pb-6">
+        <main className="flex-1 pb-[calc(64px+var(--space-4)+env(safe-area-inset-bottom))] lg:mx-auto lg:w-full lg:max-w-[992px] lg:px-6 lg:py-6 lg:pb-6">
           <Outlet />
         </main>
       </div>

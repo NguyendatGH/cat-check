@@ -178,6 +178,27 @@ public class DsarService {
         return saveSelfServiceRequest(userId, type, channel, evidence, clock.instant());
     }
 
+    /**
+     * Tạo DSAR do DPO/Super tiếp nhận thay mặt người dùng (p8 L54). Không tự động đổi
+     * trạng thái tài khoản: các yêu cầu ERASE chỉ là đề xuất cho tới khi DPO duyệt ở
+     * workflow hai người riêng.
+     */
+    @Transactional
+    public DsarRequest createAdminRequest(UUID userId, DsarRequestType type, DsarChannel channel) {
+        if (type == null || channel == null || channel == DsarChannel.SELF_SERVICE) {
+            throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "requestType/channel");
+        }
+        if (type == DsarRequestType.ERASE && dsarPort.existsOpenEraseRequest(userId)) {
+            DsarRequest open = findOpenEraseRequest(userId);
+            throw new BusinessRuleException(
+                    PrivacyErrorCode.DELETION_ALREADY_REQUESTED,
+                    open.publicRef(), open.receivedAt(), open.receivedAt());
+        }
+        return saveRequest(userId, type, channel, clock.instant(), null, null,
+                (type == DsarRequestType.ACCESS_EXPORT || type == DsarRequestType.ERASE)
+                        ? DsarStatus.IDENTITY_PENDING : DsarStatus.RECEIVED);
+    }
+
     /** C14 — yêu cầu của tôi, mới nhất trước (cursor pagination theo p8 §8.1.4). Caller đã clamp limit. */
     public List<DsarRequest> listMine(UUID userId, Instant before, UUID beforeId, int limit) {
         return dsarPort.findByUser(userId, before, beforeId, limit);
@@ -240,6 +261,18 @@ public class DsarService {
     private DsarRequest saveSelfServiceRequest(
             UUID userId, DsarRequestType type, DsarChannel channel, RequestEvidence evidence, Instant now
     ) {
+        return saveRequest(userId, type, channel, now, now, "SESSION", DsarStatus.RECEIVED);
+    }
+
+    private DsarRequest saveRequest(
+            UUID userId,
+            DsarRequestType type,
+            DsarChannel channel,
+            Instant now,
+            Instant identityVerifiedAt,
+            String identityMethod,
+            DsarStatus initialStatus
+    ) {
         UserAccountSnapshot snapshot = userAccountPort.snapshot(userId);
         Set<LocalDate> officialHolidays = holidayCalendarPort.allHolidays().stream()
                 .filter(h -> h.source() == HolidaySource.OFFICIAL)
@@ -254,9 +287,9 @@ public class DsarService {
                 snapshot.email(),
                 type,
                 channel,
-                DsarStatus.RECEIVED,
-                now,
-                "SESSION",
+                initialStatus,
+                identityVerifiedAt,
+                identityMethod,
                 now,
                 ackDueAt,
                 null,

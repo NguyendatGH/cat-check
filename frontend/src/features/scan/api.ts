@@ -1,10 +1,6 @@
 import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
-import {
-  CSRF_COOKIE_NAME,
-  CSRF_HEADER_NAME,
-  IDEMPOTENCY_HEADER_NAME,
-} from "@/shared/config/constants";
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 import type { Cat } from "@/entities/cat";
 import type { ScanResult } from "@/entities/scan-result";
 import type { CatPage, SubmitScanMetadata } from "./types";

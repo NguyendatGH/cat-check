@@ -1,4 +1,5 @@
 import { Cat as CatIcon, Crown } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui";
 import type { Cat } from "./model";
@@ -26,6 +27,13 @@ export interface CatAvatarProps {
 /** Ảnh đại diện mèo — fallback chữ cái đầu tên khi chưa có ảnh (không có ảnh mặc định giả). */
 export function CatAvatar({ src, name, size = "md", className }: CatAvatarProps) {
   const initial = name.trim().charAt(0).toUpperCase();
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [src]);
+
+  const canShowImage = Boolean(src) && !imageFailed;
   return (
     <span
       className={cn(
@@ -34,8 +42,15 @@ export function CatAvatar({ src, name, size = "md", className }: CatAvatarProps)
         className,
       )}
     >
-      {src ? (
-        <img src={src} alt="" className="size-full object-cover" />
+      {canShowImage ? (
+        <img
+          src={src ?? undefined}
+          alt=""
+          className="size-full object-cover"
+          onError={() => {
+            setImageFailed(true);
+          }}
+        />
       ) : initial ? (
         <span aria-hidden="true">{initial}</span>
       ) : (
@@ -71,7 +86,9 @@ export function CatCard({
   return (
     <button
       type="button"
-      onClick={() => { onSelect?.(cat); }}
+      onClick={() => {
+        onSelect?.(cat);
+      }}
       aria-pressed={onSelect ? selected : undefined}
       className={cn(
         "flex min-h-[var(--touch-target-min)] w-full items-center gap-3 rounded-xl border-2 bg-surface p-3 text-left transition-colors",

@@ -10,6 +10,7 @@ import com.catcheck.identity.domain.port.AuthenticatedSessionGateway;
 import com.catcheck.identity.domain.port.AuthenticatedSessionRevoker;
 import com.catcheck.identity.domain.port.DeviceSessionRepository;
 import com.catcheck.identity.infrastructure.ratelimit.RequestIpResolver;
+import com.catcheck.shared.security.MfaLevel;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -161,6 +162,21 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new UsernamePasswordAuthenticationToken(
                 principal.withReauthenticated(true), null, authentication.getAuthorities()));
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
+    }
+
+    @Override
+    public void markMfaTotpVerified() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof AuthPrincipal principal)) {
+            return;
+        }
+        HttpServletRequest request = currentRequest();
+        HttpServletResponse response = currentResponse();
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken(
+                principal.withMfaLevel(MfaLevel.TOTP), null, authentication.getAuthorities()));
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
     }

@@ -1,22 +1,31 @@
 # CatCheck backend
 
-Backend Spring Boot 4.1.1 / JDK 25 cho CatCheck (M0 — khung kiến trúc, chưa có nghiệp vụ thật).
+Backend Spring Boot 4.1.1 / JDK 25 cho CatCheck.
 Xem `spec/04-index.md` ở gốc repo trước khi đọc code — bản đồ tra cứu spec theo mốc/module.
 
 ## Yêu cầu môi trường
 
-- JDK 25 (Temurin) — dùng qua Docker nếu máy chưa có JDK 25 thật (xem mục "Build bằng Docker").
+- JDK 25 (Temurin).
 - Maven 3.9.16 — dùng qua wrapper (`./mvnw`), không cần cài Maven thủ công.
-- Docker + Docker Compose (chạy PostgreSQL 18.6 + Mailpit cho profile `local`).
+- PostgreSQL 18.x chạy native trên máy; Mailpit là tuỳ chọn nếu muốn xem email local.
 
 ## Chạy local (đúng thứ tự p18 §18.2)
 
-```bash
-# ở gốc repo (docker-compose.yml nằm ngoài backend/, do phần khác của dự án quản lý)
-docker compose up -d postgres mailpit
+Profile `local` không cần build Docker. Tạo database/user một lần bằng tài khoản PostgreSQL
+quản trị (nếu máy đã có sẵn thì bỏ qua phần đã tồn tại):
 
-# ở backend/
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```bash
+sudo -u postgres psql -d postgres
+CREATE ROLE catcheck LOGIN PASSWORD 'catcheck_local_only';
+CREATE DATABASE catcheck OWNER catcheck;
+\q
+```
+
+Sau đó chạy backend native:
+
+```bash
+cd backend
+./run-local.sh
 ```
 
 Ứng dụng lắng nghe ở `http://localhost:8080`. Vài endpoint để xác nhận app đã chạy thật với DB:
@@ -28,9 +37,10 @@ docker compose up -d postgres mailpit
   (`api -> application -> domain <- infrastructure`) của module `admin`, xác nhận app nói
   chuyện được với PostgreSQL thật (`SELECT 1` qua JdbcTemplate).
 
-Cấu hình `application-local.yml` trỏ vào `localhost:5432` (DB `catcheck`, user/password
-`catcheck`/`catcheck`) và Mailpit SMTP giả ở `localhost:1025` — khớp với service `postgres` +
-`mailpit` mà `docker compose up -d postgres mailpit` khởi động (cổng expose ra host).
+Cấu hình `application-local.yml` trỏ vào PostgreSQL native ở `localhost:5432` (DB `catcheck`,
+user `catcheck`, password `catcheck_local_only`). Mailpit SMTP ở `localhost:1025` là tuỳ chọn;
+nếu không chạy Mailpit, đổi `catcheck.notification.email-sink` sang `file` để email được ghi vào
+`backend/target/dev-mail/`.
 
 ## Build
 
@@ -40,18 +50,10 @@ Cấu hình `application-local.yml` trỏ vào `localhost:5432` (DB `catcheck`, 
 
 **Lưu ý về JDK:** `pom.xml` khai `<maven.compiler.release>25</maven.compiler.release>` theo
 đúng BOM đã chốt. Nếu máy chỉ có JDK < 25 (ví dụ JDK 21), lệnh trên sẽ báo lỗi kiểu
-`invalid target release: 25` hoặc tương tự — đó là do JDK của máy, KHÔNG phải lỗi trong code.
-Cách xác thực đúng là build qua Docker (mục dưới), image `eclipse-temurin:25-jdk-noble` có
-JDK 25 thật.
+`invalid target release: 25` hoặc tương tự — đó là do JDK của máy, không phải lỗi trong code.
 
-### Build bằng Docker (khuyến nghị để xác thực đúng JDK 25)
-
-```bash
-docker build -f backend/Dockerfile backend
-```
-
-Image runtime dùng `eclipse-temurin:25-jre-noble` (Ubuntu Noble, glibc) — **không phải alpine**,
-vì OpenCV native (bytedeco) cần glibc, chạy trên musl libc (alpine) sẽ SIGSEGV.
+Docker image không thuộc quy trình local của project này. Nếu cần CI/container deployment,
+hãy dùng pipeline triển khai riêng; không dùng Docker để xác thực các tính năng local.
 
 ## Test
 

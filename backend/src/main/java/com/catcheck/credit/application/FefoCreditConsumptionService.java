@@ -90,7 +90,7 @@ public class FefoCreditConsumptionService implements com.catcheck.credit.api.Cre
             // Dựng lại TOÀN BỘ lần trừ, không chỉ dòng mang khoá: khoá UNIQUE một cột nên chỉ dòng
             // đầu mang khoá, và trả `charged` bằng phần của lô đầu sẽ báo nhỏ hơn số thực đã trừ.
             return replay.get().toCharge(creditLedgerPort.findConsumeRowsByRef(
-                    command.refType(), command.refId()));
+                    toDomain(command.refType()), command.refId()));
         }
 
         Instant now = clock.instant();
@@ -118,7 +118,7 @@ public class FefoCreditConsumptionService implements com.catcheck.credit.api.Cre
                     com.catcheck.credit.domain.CreditLedgerType.CONSUME,
                     -deduction.amount(),
                     balanceAfter,
-                    command.refType(),
+                    toDomain(command.refType()),
                     command.refId(),
                     // Dòng ĐẦU mang khoá của bên gọi. Với lần trừ vắt qua nhiều lô thì các
                     // dòng sau để null: một lần trừ là MỘT transaction, nên chạm UNIQUE ở dòng
@@ -134,6 +134,11 @@ public class FefoCreditConsumptionService implements com.catcheck.credit.api.Cre
 
         return new com.catcheck.credit.api.CreditConsumption.CreditCharge(
                 command.credits(), balanceAfter, charged);
+    }
+
+    private static com.catcheck.credit.domain.CreditLedgerRefType toDomain(
+            com.catcheck.credit.api.CreditConsumption.ReferenceType refType) {
+        return com.catcheck.credit.domain.CreditLedgerRefType.valueOf(refType.name());
     }
 
     /**

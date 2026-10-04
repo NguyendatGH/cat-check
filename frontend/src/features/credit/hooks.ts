@@ -9,7 +9,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { apiFetch } from "./api";
-import type { ActivationResult, CreditBalance, Entitlement, LedgerPage } from "./types";
+import type { ActivationResult, CreditBalance, Entitlement, LedgerPage, PackagePlan, PackagePlanList } from "./types";
 
 /**
  * Query key factory — domain `credit` thuộc `features/credit` (p9 §9.5.3):
@@ -23,6 +23,21 @@ export const creditKeys = {
   ledger: () => [...creditKeys.all, "ledger"] as const,
 };
 export const entitlementKey = ["entitlement"] as const;
+export const packageCatalogKey = ["credit", "package-catalog"] as const;
+
+/**
+ * F3 — danh mục gói đang bán. Công khai, `Cache-Control: public, max-age=300` ở server nên
+ * client cũng giữ 5 phút. Đây là NGUỒN DUY NHẤT của tên gói hiển thị: không dịch `code` bằng
+ * bảng cứng trong i18n nữa (admin thêm gói mới thì bảng cứng không bao giờ có tên đúng).
+ */
+export function usePackageCatalog(): UseQueryResult<PackagePlan[]> {
+  return useQuery({
+    queryKey: packageCatalogKey,
+    queryFn: async () => (await apiFetch<PackagePlanList>("/reference/packages")).items,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+}
 
 /**
  * H2 — số dư credit. `staleTime: 0` (p9 §9.5.4): số dư + đếm ngược hết hạn phải luôn đúng.

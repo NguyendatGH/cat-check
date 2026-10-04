@@ -2,9 +2,11 @@ package com.catcheck;
 
 import com.catcheck.shared.i18n.I18nProperties;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -86,5 +88,34 @@ class ApplicationContextSmokeTest {
         assertThat(context.getBean(com.catcheck.cat.domain.port.CatHealthSurveyRepository.class)).isNotNull();
         assertThat(context.getBean(com.catcheck.cat.domain.port.ClinicalSignReportRepository.class)).isNotNull();
         assertThat(context.getBean(com.catcheck.cat.domain.port.CatBreedRepository.class)).isNotNull();
+    }
+
+    /**
+     * {@code @Autowired} trên THAM SỐ là bắt buộc, không thừa: {@code SpringExtension} chỉ tự
+     * resolve một số kiểu đặc biệt ({@code ApplicationContext} ở {@link #contextLoads}), còn
+     * bean thường như {@code JdbcTemplate} thì không — thiếu annotation là
+     * {@code ParameterResolutionException} lúc chạy chứ không phải lỗi biên dịch. R11 (cấm
+     * field injection) không đụng tới đây: nó chỉ quét main sources và chỉ cấm trên FIELD.
+     */
+    @Test
+    void mvpReferenceDataIsSeeded(@Autowired JdbcTemplate jdbcTemplate) {
+        Integer packageCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM package_plan WHERE code IN ('MINI', 'DAILY', 'PLUS', 'MULTI', 'CARE_BOX')",
+                Integer.class);
+        Integer consentPurposeCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM consent_purpose WHERE code IN ("
+                        + "'SERVICE_CORE', 'SCAN_IMAGE_RETAIN', 'ALGO_IMPROVEMENT', "
+                        + "'HEALTH_REMINDER_PUSH', 'HEALTH_REMINDER_EMAIL', 'MARKETING_EMAIL', "
+                        + "'MARKETING_PUSH', 'PRODUCT_ANALYTICS', 'COOKIE_ANALYTICS', "
+                        + "'LOCATION_MAP', 'COMMUNITY_PUBLIC', 'ORDER_FULFILLMENT')",
+                Integer.class);
+        Integer policyCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM policy_version WHERE policy_type IN "
+                        + "('TERMS', 'PRIVACY', 'MEDICAL_DISCLAIMER') AND locale = 'vi'",
+                Integer.class);
+
+        assertThat(packageCount).isEqualTo(5);
+        assertThat(consentPurposeCount).isEqualTo(12);
+        assertThat(policyCount).isEqualTo(3);
     }
 }

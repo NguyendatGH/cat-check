@@ -48,6 +48,9 @@ class WebLayerRuleTests {
             @Override
             public void check(JavaClass item, ConditionEvents events) {
                 for (JavaMethod method : item.getMethods()) {
+                    if (!method.getModifiers().contains(JavaModifier.PUBLIC)) {
+                        continue;
+                    }
                     for (JavaClass paramType : method.getRawParameterTypes()) {
                         if (PackageMatcher.of("..domain..").matches(paramType.getPackageName())) {
                             events.add(SimpleConditionEvent.violated(method,

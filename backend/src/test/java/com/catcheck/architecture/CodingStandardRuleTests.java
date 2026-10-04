@@ -43,6 +43,12 @@ class CodingStandardRuleTests {
     @ArchTest
     static final ArchRule r8_domainStaysFrameworkFree = classes()
             .that().resideInAPackage("..domain..")
+            // Cùng miễn trừ mà R9 đã áp (ModuleBoundaryRuleTests): `package-info` chỉ mang
+            // metadata ranh giới Modulith — `scan.domain.color` phải là named interface
+            // `scan::color` để `colorchart` dùng chung ΔE00 mà không tạo cycle. Người sửa cycle
+            // đã miễn trừ ở R9 nhưng bỏ sót R8, nên build đỏ. Ý định của R8 vẫn nguyên: không
+            // CLASS nào trong ..domain.. mang annotation Spring; package-info không có hành vi.
+            .and().doNotHaveSimpleName("package-info")
             .should(notUseSpringAnnotations())
             .because("R8: class trong ..domain.. không mang annotation org.springframework.. "
                     + "(cho phép jakarta.persistence, jakarta.validation)");

@@ -18,6 +18,7 @@ public record ExportStatusView(
         Instant ackDueAt,
         Instant fulfilDueAt,
         Instant resultExpiresAt,
-        Instant completedAt
+        Instant completedAt,
+        String downloadToken
 ) {
 }

@@ -1,5 +1,7 @@
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -29,8 +31,10 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { createCommunityComment, getCommunityPost, setCommunityReaction } from "@/features/community";
 import {
   DESIGN_MOCK_CASE_PROFILE,
+  DESIGN_MOCK_RAIL_MARK,
   DESIGN_MOCK_COMMENTS,
   DESIGN_MOCK_COMMENTS_META,
   DESIGN_MOCK_EMERGENCY_CARD,
@@ -69,9 +73,17 @@ const TONE_CHIP: Record<MockTone, string> = {
   neutral: "bg-background-alt text-text-secondary",
 };
 
+const TONE_TEXT: Record<MockTone, string> = {
+  primary: "text-primary-dark",
+  secondary: "text-secondary-text-on",
+  success: "text-success-text",
+  danger: "text-danger-text",
+  neutral: "text-text-secondary",
+};
+
 const PH_CHIP_TONE: Record<MockTone, string> = {
   primary: "bg-chip-bg text-primary-dark",
-  secondary: "bg-secondary/30 text-secondary-text-on",
+  secondary: "bg-secondary text-secondary-text-on",
   success: "bg-success-bg text-success-text",
   danger: "bg-danger-bg text-danger-text",
   neutral: "bg-background-alt text-text-secondary",
@@ -100,7 +112,7 @@ function BodyText({ segments, className }: { segments: readonly MockBodySegment[
 function PhScale({ gauge }: { gauge: MockPhGauge }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="relative h-2 rounded-full bg-gradient-to-r from-secondary via-success to-primary">
+      <div className="relative h-3 rounded-full bg-gradient-to-r from-secondary via-success to-primary">
         <span
           className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-primary-darker shadow-xs"
           style={{ left: `${String(gauge.markerPercent)}%` }}
@@ -148,7 +160,7 @@ function MobileThread() {
 
       <article className="rounded-2xl bg-surface p-4 shadow-brand-md">
         <div className="flex items-start gap-3">
-          <img src={thread.author.avatarUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+          <img src={thread.author.avatarUrl} alt="" className="size-12 shrink-0 rounded-full object-cover" />
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-bold leading-tight text-text-primary">{thread.author.name}</p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -165,21 +177,23 @@ function MobileThread() {
             </div>
           </div>
         </div>
+      </article>
 
-        <BodyText segments={thread.body} className="pt-3 text-[15px] leading-relaxed text-text-primary" />
+      <article className="rounded-2xl bg-surface p-4 shadow-brand-md">
+        <BodyText segments={thread.body} className="text-[15px] leading-relaxed text-text-primary" />
 
         <div className="mt-4 rounded-xl bg-background-alt p-3">
           <div className="flex items-start justify-between gap-2">
             <span className="flex items-start gap-2">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-dark text-white">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-white">
                 <Sparkles size={13} aria-hidden="true" />
               </span>
               <span className="max-w-[140px] text-[12px] font-bold leading-tight text-primary-dark">
                 {thread.dataCard.title}
               </span>
             </span>
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-success-bg px-2.5 py-1 text-[11px] font-bold text-success-text">
-              <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
+            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-on-primary-subtle px-2.5 py-1.5 text-[11px] font-bold text-primary-dark">
+              <span className="size-2 rounded-full bg-success-strong" aria-hidden="true" />
               {thread.dataCard.statusLabel}
             </span>
           </div>
@@ -238,9 +252,9 @@ function MobileThread() {
         </div>
       </article>
 
-      <section className="rounded-2xl bg-deco-backdrop/70 p-4">
+      <section className="rounded-2xl bg-deco-backdrop p-4">
         <div className="flex items-start gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white">
             <Stethoscope size={16} aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -248,7 +262,7 @@ function MobileThread() {
             <p className="pt-0.5 text-[12px] leading-relaxed text-text-secondary">{thread.expertNote.subtitle}</p>
           </div>
         </div>
-        <blockquote className="mt-3 rounded-xl bg-surface p-3 text-[13px] leading-relaxed text-text-primary">
+        <blockquote className="mt-3 rounded-lg bg-surface/90 p-3 text-[13px] leading-relaxed text-text-primary">
           {thread.expertNote.quote}
         </blockquote>
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
@@ -356,7 +370,7 @@ function WebPostCard() {
   const thread = DESIGN_MOCK_THREAD;
 
   return (
-    <article className="rounded-2xl bg-surface p-6 shadow-brand-md">
+    <article className="rounded-2xl bg-surface p-8 shadow-brand-md">
       <div className="flex items-start gap-3">
         <img src={thread.author.avatarUrl} alt="" className="size-12 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
@@ -378,7 +392,13 @@ function WebPostCard() {
 
       <div className="flex flex-wrap gap-2 pt-4">
         {thread.tags.map((tag) => (
-          <span key={tag} className="rounded-md bg-chip-bg px-2 py-1 text-[11px] font-semibold text-primary-dark">
+          <span
+            key={tag}
+            className={cn(
+              "rounded-md px-2 py-1 text-[11px] font-semibold",
+              tag === thread.highlightTag ? "bg-secondary text-secondary-text-on" : "bg-chip-bg text-primary-dark",
+            )}
+          >
             {tag}
           </span>
         ))}
@@ -388,18 +408,18 @@ function WebPostCard() {
       <p className="pt-2 text-[14px] leading-relaxed text-text-secondary">{thread.body}</p>
 
       <div className="grid gap-4 pt-4 md:grid-cols-[minmax(0,264fr)_minmax(0,264fr)]">
-        <div>
-          <div className="relative overflow-hidden rounded-xl">
+        <div className="overflow-hidden rounded-xl bg-background-alt">
+          <div className="relative">
             <img src={thread.photo.url} alt="" className="aspect-[264/224] w-full object-cover" />
             <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-primary-darker/80 px-2.5 py-1 text-[11px] font-semibold text-white">
               <span className="size-1.5 rounded-full bg-secondary" aria-hidden="true" />
               {thread.photo.caption}
             </span>
-            <span className="absolute bottom-2 right-2 rounded-full bg-surface/90 px-2.5 py-1 text-[11px] font-semibold text-text-primary">
+            <span className="absolute bottom-2 right-2 rounded-full bg-primary-darker/50 px-2.5 py-1 text-[11px] font-semibold text-white">
               {thread.photo.chip}
             </span>
           </div>
-          <p className="flex items-center justify-between gap-2 pt-2 text-[12px] font-semibold text-text-secondary">
+          <p className="flex items-center justify-between gap-2 p-3 text-[12px] font-semibold text-text-secondary">
             <span className="flex items-center gap-1.5">
               <ZoomIn size={14} className="text-primary-dark" aria-hidden="true" />
               {thread.zoomNote.title}
@@ -428,7 +448,7 @@ function WebPostCard() {
               <span className="text-[10px] font-bold tracking-[0.5px] text-text-tertiary">
                 {thread.analysis.metricLabel}
               </span>
-              <span className="shrink-0 rounded-md bg-secondary/35 px-2 py-1 text-[11px] font-bold leading-tight text-secondary-text-on">
+              <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-[11px] font-bold leading-tight text-secondary-text-on">
                 {thread.analysis.statusLabel}
               </span>
             </div>
@@ -452,24 +472,26 @@ function WebPostCard() {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-6 border-t border-border/50 pt-4 text-[13px] font-semibold text-text-secondary">
-        <span className="flex items-center gap-1.5">
-          <Heart size={16} className="text-danger" fill="currentColor" aria-hidden="true" />
-          {thread.likeCount} {t("post.like")}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <MessageSquare size={16} aria-hidden="true" />
-          {thread.commentCount} {t("post.comment")}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Share2 size={16} aria-hidden="true" />
-          {thread.shareCount} {t("post.share")}
-        </span>
+      <div className="-mx-8 -mb-8 mt-6 rounded-b-2xl bg-background-alt/60 px-8 py-4">
+        <div className="flex flex-wrap items-center gap-6 text-[13px] font-semibold text-text-secondary">
+          <span className="flex items-center gap-1.5">
+            <Heart size={16} className="text-danger" fill="currentColor" aria-hidden="true" />
+            {thread.likeCount} {t("post.like")}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MessageSquare size={16} aria-hidden="true" />
+            {thread.commentCount} {t("post.comment")}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Share2 size={16} aria-hidden="true" />
+            {thread.shareCount} {t("post.share")}
+          </span>
+        </div>
+        <p className="flex items-center gap-1.5 pt-2 text-[12px] text-success-text">
+          <Bookmark size={13} aria-hidden="true" />
+          {thread.savedNote}
+        </p>
       </div>
-      <p className="flex items-center gap-1.5 pt-2 text-[12px] text-success-text">
-        <Bookmark size={13} aria-hidden="true" />
-        {thread.savedNote}
-      </p>
     </article>
   );
 }
@@ -477,7 +499,11 @@ function WebPostCard() {
 function WebVetOpinion() {
   const vet = DESIGN_MOCK_VET_OPINION;
   return (
-    <section className="overflow-hidden rounded-2xl border-l-4 border-primary-dark bg-deco-backdrop/60 p-6 shadow-brand-md">
+    <section className="relative overflow-hidden rounded-2xl bg-surface p-8 pl-10 shadow-brand-md">
+      <span
+        className="absolute inset-y-0 left-0 w-2 bg-gradient-to-b from-primary-dark via-verified-deep to-secondary-text-on"
+        aria-hidden="true"
+      />
       <div className="flex items-start gap-3">
         <img src={vet.avatarUrl} alt="" className="size-14 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
@@ -497,12 +523,12 @@ function WebVetOpinion() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl bg-surface p-4">
+      <div className="mt-4 rounded-xl bg-background-alt p-4">
         <p className="text-[14px] leading-relaxed text-text-primary">{vet.greeting}</p>
         <p className="pt-3 text-[14px] leading-relaxed text-text-primary">{vet.explanation}</p>
       </div>
 
-      <div className="mt-4 rounded-xl bg-surface p-4">
+      <div className="mt-4 rounded-xl bg-chip-bg/60 p-4">
         <h3 className="flex items-center gap-2 text-[15px] font-bold text-primary-dark">
           <Stethoscope size={16} aria-hidden="true" />
           {vet.stepsTitle}
@@ -526,14 +552,14 @@ function WebVetOpinion() {
           <ThumbsUp size={14} aria-hidden="true" />
           {vet.helpfulLabel}
         </span>
-        <span className="flex items-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-[12px] font-semibold text-text-secondary">
+        <span className="flex items-center gap-2 rounded-xl bg-deco-backdrop px-4 py-2.5 text-[12px] font-semibold text-text-secondary">
           <CornerUpLeft size={14} aria-hidden="true" />
           {vet.askMoreLabel}
         </span>
       </div>
       <button
         type="button"
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary-dark px-5 py-3 text-[13px] font-bold text-white hover:bg-primary"
+        className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-primary-dark px-5 py-3 text-[13px] font-bold text-white hover:bg-primary"
       >
         <Calendar size={15} aria-hidden="true" />
         {vet.bookingLabel}
@@ -545,7 +571,7 @@ function WebVetOpinion() {
 function WebComments() {
   const { t } = useTranslation("community");
   return (
-    <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
+    <section className="rounded-2xl bg-surface p-8 shadow-brand-md">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-[19px] font-bold leading-tight text-text-primary">{t("detail.commentsTitle")}</h2>
         <span className="rounded-lg bg-chip-bg px-2.5 py-1 text-[11px] font-bold text-primary-dark">
@@ -688,9 +714,10 @@ function WebRail() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
+      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
+        <img src={DESIGN_MOCK_RAIL_MARK} alt="" className="mx-auto mb-4 h-10 w-15 object-contain" />
         <div className="flex items-start gap-3">
-          <img src={vet.avatarUrl} alt="" className="size-14 shrink-0 rounded-full object-cover" />
+          <img src={vet.avatarUrl} alt="" className="size-14 shrink-0 rounded-2xl object-cover" />
           <div className="min-w-0">
             <p className="text-[15px] font-bold leading-tight text-text-primary">{vet.name}</p>
             <p className="pt-1 text-[11px] font-semibold leading-tight text-primary-dark">{vet.membership}</p>
@@ -698,11 +725,11 @@ function WebRail() {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-3 rounded-xl bg-background-alt px-2 py-2">
           {vet.stats.map((stat) => (
-            <div key={stat.label} className={cn("rounded-lg px-2 py-2 text-center", TONE_CHIP[stat.tone])}>
-              <p className="text-[14px] font-bold leading-tight">{stat.value}</p>
-              <p className="pt-0.5 text-[10px] opacity-80">{stat.label}</p>
+            <div key={stat.label} className="text-center">
+              <p className={cn("text-[14px] font-bold leading-tight", TONE_TEXT[stat.tone])}>{stat.value}</p>
+              <p className="pt-0.5 text-[10px] text-text-tertiary">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -733,10 +760,10 @@ function WebRail() {
         </button>
       </section>
 
-      <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
+      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
         <div className="flex items-start justify-between gap-2">
           <h2 className="max-w-[140px] text-[11px] font-bold tracking-[0.4px] text-text-tertiary">{profile.title}</h2>
-          <span className="shrink-0 rounded-full bg-secondary/35 px-2.5 py-1 text-[11px] font-bold text-secondary-text-on">
+          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-secondary-text-on">
             {profile.catBadge}
           </span>
         </div>
@@ -775,7 +802,10 @@ function WebRail() {
           </div>
           <div className="flex items-center justify-between pt-1 text-[10px] text-text-tertiary">
             {profile.historyPoints.map((point, i) => (
-              <span key={point.label} className={i === profile.historyPoints.length - 1 ? "font-bold text-primary" : ""}>
+              <span
+                key={point.label}
+                className={i === profile.historyPoints.length - 1 ? "font-bold text-primary" : ""}
+              >
                 {point.label}
               </span>
             ))}
@@ -783,7 +813,7 @@ function WebRail() {
         </div>
       </section>
 
-      <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
+      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
         <h2 className="flex items-center gap-2 text-[15px] font-bold text-text-primary">
           <Star size={15} className="text-secondary" fill="currentColor" aria-hidden="true" />
           {DESIGN_MOCK_SIMILAR_CASES.title}
@@ -809,7 +839,7 @@ function WebRail() {
         <p className="pt-3 text-[11px] font-bold text-primary-dark">{DESIGN_MOCK_SIMILAR_CASES.libraryCta}</p>
       </section>
 
-      <section className="rounded-2xl bg-primary-dark p-4">
+      <section className="rounded-2xl bg-gradient-to-br from-primary-dark to-primary p-6">
         <h2 className="flex items-center gap-2 text-[15px] font-bold leading-tight text-white">
           <Siren size={16} className="shrink-0 text-secondary" aria-hidden="true" />
           {DESIGN_MOCK_EMERGENCY_CARD.title}
@@ -872,7 +902,134 @@ function WebThread() {
   );
 }
 
+function RealCommunityPostDetail({ postId }: { postId: string }) {
+  const { t } = useTranslation("community");
+  const queryClient = useQueryClient();
+  const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+  const detail = useQuery({
+    queryKey: ["community", "post", postId],
+    queryFn: () => getCommunityPost(postId),
+    staleTime: 30_000,
+  });
+  if (detail.isPending) {
+    return <p className="p-4 text-caption text-text-secondary">{t("feedback.loading")}</p>;
+  }
+  if (detail.isError) {
+    return <p className="rounded-xl bg-danger-bg p-4 text-caption text-danger-text">{t("feedback.error")}</p>;
+  }
+  const { post, comments } = detail.data;
+  const toggleReaction = async (reaction: "LIKE" | "BOOKMARK") => {
+    await setCommunityReaction(post.id, reaction, reaction === "LIKE" ? !post.liked : !post.bookmarked);
+    await queryClient.invalidateQueries({ queryKey: ["community", "post", postId] });
+  };
+  return (
+    <div className="flex max-w-3xl flex-col gap-4">
+      <Link to="/community" className="flex items-center gap-1.5 text-caption font-semibold text-primary-dark">
+        <ArrowLeft size={14} aria-hidden="true" />
+        {t("detail.backToFeed")}
+      </Link>
+      <article className="rounded-2xl bg-surface p-5 shadow-brand-md">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-caption font-semibold text-text-secondary">
+              {post.authorName} · {post.category}
+            </p>
+            <h1 className="pt-1 text-[22px] font-bold text-text-primary">{post.title}</h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => void toggleReaction("BOOKMARK")}
+            aria-label={t("post.bookmark")}
+            aria-pressed={post.bookmarked}
+          >
+            <Bookmark
+              size={18}
+              className={post.bookmarked ? "text-primary" : "text-text-tertiary"}
+              fill={post.bookmarked ? "currentColor" : "none"}
+            />
+          </button>
+        </div>
+        <p className="whitespace-pre-wrap pt-4 text-body leading-relaxed text-text-primary">{post.body}</p>
+        {post.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-2 pt-4">
+            {post.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-chip-bg px-2.5 py-1 text-small font-semibold text-primary-dark"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex items-center gap-4 border-t border-border pt-4 mt-4 text-caption text-text-secondary">
+          <button
+            type="button"
+            onClick={() => void toggleReaction("LIKE")}
+            className="inline-flex items-center gap-1.5 font-semibold"
+            aria-label={t("post.like")}
+            aria-pressed={post.liked}
+          >
+            <Heart size={16} className={post.liked ? "text-danger" : ""} fill={post.liked ? "currentColor" : "none"} />{" "}
+            {post.likeCount}
+          </button>
+          <span>
+            <MessageSquare size={15} className="inline" /> {post.commentCount}
+          </span>
+        </div>
+      </article>
+      <section className="rounded-2xl bg-surface p-5 shadow-brand-md">
+        <h2 className="text-[16px] font-bold text-text-primary">{t("detail.commentsTitle")}</h2>
+        <div className="flex flex-col gap-3 pt-3">
+          {comments.map((item) => (
+            <article key={item.id} className="rounded-xl bg-background-alt p-3">
+              <p className="text-small font-bold text-text-primary">{item.authorName}</p>
+              <p className="whitespace-pre-wrap pt-1 text-caption leading-relaxed text-text-secondary">{item.body}</p>
+            </article>
+          ))}
+          {comments.length === 0 ? <p className="text-caption text-text-secondary">{t("detail.noComments")}</p> : null}
+        </div>
+        <form
+          className="flex gap-2 pt-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!comment.trim() || saving) return;
+            setSaving(true);
+            void createCommunityComment(post.id, comment.trim())
+              .then(() => {
+                setComment("");
+                return queryClient.invalidateQueries({ queryKey: ["community", "post", postId] });
+              })
+              .finally(() => {
+                setSaving(false);
+              });
+          }}
+        >
+          <input
+            className="h-11 min-w-0 flex-1 rounded-xl bg-background-alt px-3 text-caption"
+            value={comment}
+            onChange={(event) => {
+              setComment(event.target.value);
+            }}
+            placeholder={t("detail.commentPlaceholder")}
+          />
+          <button
+            type="submit"
+            disabled={!comment.trim() || saving}
+            className="rounded-xl bg-primary-dark px-4 text-caption font-bold text-white disabled:opacity-50"
+          >
+            {t("detail.commentSend")}
+          </button>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 export function CommunityPostDetailPage() {
+  const { postId } = useParams<{ postId: string }>();
+  if (postId) return <RealCommunityPostDetail postId={postId} />;
   return (
     <>
       <div className="lg:hidden">

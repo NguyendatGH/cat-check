@@ -1,8 +1,13 @@
 package com.catcheck.privacy.application;
 
+import com.catcheck.audit.api.AuditActor;
+import com.catcheck.audit.api.AuditEvent;
+import com.catcheck.audit.api.AuditLogService;
+import com.catcheck.audit.api.AuditSubjectType;
 import com.catcheck.privacy.api.PrivacyErrorCode;
 import com.catcheck.privacy.domain.RetentionPolicy;
 import com.catcheck.privacy.domain.port.RetentionPolicyPort;
+import com.catcheck.privacy.domain.port.RetentionDryRunPort;
 import com.catcheck.privacy.spi.UserAccountPort;
 import com.catcheck.privacy.spi.UserAccountSnapshot;
 import com.catcheck.shared.error.BusinessRuleException;
@@ -11,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.Clock;
+import java.time.Instant;
 
 /**
  * Quản lý cấu hình thời hạn lưu trữ (p4 B6, p15 REQ-RET-03): thời hạn KHÔNG hard-code
@@ -31,10 +38,21 @@ public class RetentionService {
 
     private final RetentionPolicyPort policyPort;
     private final UserAccountPort userAccountPort;
+    private final RetentionDryRunPort dryRunPort;
+    private final AuditLogService auditLogService;
+    private final Clock clock;
 
-    public RetentionService(RetentionPolicyPort policyPort, UserAccountPort userAccountPort) {
+    public RetentionService(
+            RetentionPolicyPort policyPort,
+            UserAccountPort userAccountPort,
+            RetentionDryRunPort dryRunPort,
+            AuditLogService auditLogService,
+            Clock clock) {
         this.policyPort = policyPort;
         this.userAccountPort = userAccountPort;
+        this.dryRunPort = dryRunPort;
+        this.auditLogService = auditLogService;
+        this.clock = clock;
     }
 
     /** Cấu hình retention hiện có — nguồn dữ liệu cho dashboard {@code /admin/privacy/retention} (p15 REQ-RET-05, M6). */
@@ -58,5 +76,42 @@ public class RetentionService {
             throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "SCAN_IMAGE_MAX_DAYS");
         }
         policyPort.save(policy);
+    }
+
+    /** L58 — chỉ đếm bản ghi có thể hết hạn, tuyệt đối không gọi executor xoá/ẩn danh. */
+    public DryRunResult dryRun(String code, UUID actor, String actorRole, RequestEvidence evidence) {
+        RetentionPolicy policy = policyPort.findByCode(code)
+                .orElseThrow(() -> new BusinessRuleException(PrivacyErrorCode.RETENTION_POLICY_NOT_FOUND, code));
+        Instant now = clock.instant();
+        Instant cutoff = policy.retentionDays() == null
+                ? now
+                : now.minusSeconds(policy.retentionDays() * 86_400L);
+        long candidateCount = policy.retentionDays() == null
+                ? 0
+                : dryRunPort.countExpired(policy, cutoff);
+        auditLogService.record(AuditEvent.builder()
+                .actor("DPO".equals(actorRole) ? AuditActor.dpo(actor, actorRole) : AuditActor.admin(actor, actorRole))
+                .subject(AuditSubjectType.SYSTEM, null)
+                .action("RETENTION_DRY_RUN")
+                .requestId(evidence.requestId())
+                .ipAddress(evidence.ipAddress())
+                .userAgent(evidence.userAgent())
+                .meta("policyCode", policy.code())
+                .meta("targetTable", policy.targetTable())
+                .meta("candidateCount", candidateCount)
+                .meta("cutoff", cutoff)
+                .build());
+        return new DryRunResult(policy.code(), policy.targetTable(), policy.anchorColumn(),
+                policy.retentionDays(), cutoff, candidateCount, policy.actionOnExpiry().name());
+    }
+
+    public record DryRunResult(
+            String policyCode,
+            String targetTable,
+            String anchorColumn,
+            Integer retentionDays,
+            Instant cutoff,
+            long candidateCount,
+            String actionOnExpiry) {
     }
 }

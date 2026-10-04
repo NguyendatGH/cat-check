@@ -75,8 +75,7 @@ export function ReminderNewPage() {
    * để dẫn thẳng sang trang sửa; không tìm được thì rơi về link danh sách.
    */
   const existingReminderId = (remindersQuery.data?.items ?? []).find(
-    (reminder) =>
-      reminder.catId === values.catId && reminder.type === REMINDER_TYPE && reminder.active,
+    (reminder) => reminder.catId === values.catId && reminder.type === REMINDER_TYPE && reminder.active,
   )?.id;
 
   const onSubmit = (formValues: ReminderFormValues) => {
@@ -84,8 +83,7 @@ export function ReminderNewPage() {
       catId: formValues.catId,
       type: REMINDER_TYPE,
       scheduleKind: formValues.scheduleMode,
-      intervalDays:
-        formValues.scheduleMode === "INTERVAL" ? Number(formValues.intervalDays) : undefined,
+      intervalDays: formValues.scheduleMode === "INTERVAL" ? Number(formValues.intervalDays) : undefined,
       rrule: formValues.scheduleMode === "RRULE" ? formValues.rrule.trim() : undefined,
       preferredTimeStart: inputTimeToApi(formValues.preferredTimeStart),
       preferredTimeEnd: inputTimeToApi(formValues.preferredTimeEnd),

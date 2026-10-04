@@ -12,13 +12,7 @@
  * File này chỉ giữ hình dạng dữ liệu thô từ API.
  */
 
-export type ScanClassification =
-  | "IN_RANGE"
-  | "SLIGHTLY_LOW"
-  | "SLIGHTLY_HIGH"
-  | "LOW"
-  | "HIGH"
-  | "INCONCLUSIVE";
+export type ScanClassification = "IN_RANGE" | "SLIGHTLY_LOW" | "SLIGHTLY_HIGH" | "LOW" | "HIGH" | "INCONCLUSIVE";
 
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
 

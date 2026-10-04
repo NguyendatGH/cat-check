@@ -124,11 +124,52 @@ public record DsarRequest(
                 resultRef, resultExpiresAt, downloadedAt, handledBy, pseudonymId, createdAt);
     }
 
+    /** Bản sao ghi nhận đã gửi phản hồi tiếp nhận. */
+    public DsarRequest withAckSentAt(Instant sentAt) {
+        return new DsarRequest(id, publicRef, userId, contactEmail, requestType, channel, status,
+                identityVerifiedAt, identityMethod, receivedAt, ackDueAt, sentAt, fulfilDueAt,
+                extendedTo, extensionReason, thirdPartyInvolved, completedAt, rejectionReason,
+                resultRef, resultExpiresAt, resultDownloadedAt, handledBy, pseudonymId, createdAt);
+    }
+
+    /** Bản sao gán người xử lý. */
+    public DsarRequest withHandledBy(UUID handlerId) {
+        return new DsarRequest(id, publicRef, userId, contactEmail, requestType, channel, status,
+                identityVerifiedAt, identityMethod, receivedAt, ackDueAt, ackSentAt, fulfilDueAt,
+                extendedTo, extensionReason, thirdPartyInvolved, completedAt, rejectionReason,
+                resultRef, resultExpiresAt, resultDownloadedAt, handlerId, pseudonymId, createdAt);
+    }
+
+    /** Bản sao ghi nhận một lần gia hạn và lý do bắt buộc. */
+    public DsarRequest withExtension(Instant newDueAt, String reason) {
+        return new DsarRequest(id, publicRef, userId, contactEmail, requestType, channel, status,
+                identityVerifiedAt, identityMethod, receivedAt, ackDueAt, ackSentAt, fulfilDueAt,
+                newDueAt, reason, thirdPartyInvolved, completedAt, rejectionReason,
+                resultRef, resultExpiresAt, resultDownloadedAt, handledBy, pseudonymId, createdAt);
+    }
+
+    /** Bản sao ghi lý do từ chối trước khi chuyển sang REJECTED. */
+    public DsarRequest withRejectionReason(String reason) {
+        return new DsarRequest(id, publicRef, userId, contactEmail, requestType, channel, status,
+                identityVerifiedAt, identityMethod, receivedAt, ackDueAt, ackSentAt, fulfilDueAt,
+                extendedTo, extensionReason, thirdPartyInvolved, completedAt, reason,
+                resultRef, resultExpiresAt, resultDownloadedAt, handledBy, pseudonymId, createdAt);
+    }
+
     /** Bản sao đánh dấu mốc hoàn tất. */
     public DsarRequest withCompletedAt(Instant completedAt) {
         return new DsarRequest(id, publicRef, userId, contactEmail, requestType, channel, status,
                 identityVerifiedAt, identityMethod, receivedAt, ackDueAt, ackSentAt, fulfilDueAt,
                 extendedTo, extensionReason, thirdPartyInvolved, completedAt, rejectionReason,
                 resultRef, resultExpiresAt, resultDownloadedAt, handledBy, pseudonymId, createdAt);
+    }
+
+    /** Hoàn tất một bản xuất đã được DataExportJob ghi an toàn vào kho riêng. */
+    public DsarRequest withExportResult(String storageRef, Instant expiresAt, Instant completedAt) {
+        return new DsarRequest(id, publicRef, userId, contactEmail, requestType, channel,
+                DsarStatus.COMPLETED, identityVerifiedAt, identityMethod, receivedAt, ackDueAt,
+                ackSentAt, fulfilDueAt, extendedTo, extensionReason, thirdPartyInvolved,
+                completedAt, rejectionReason, storageRef, expiresAt, null, handledBy,
+                pseudonymId, createdAt);
     }
 }

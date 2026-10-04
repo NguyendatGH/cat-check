@@ -1,0 +1,66 @@
+name: Deploy (VPS via SSH)
+
+# QUAN TRỌNG — CHƯA BẬT.
+# Bước SSH deploy cần secret thật (SSH_HOST, SSH_USER, SSH_KEY) mà dự án CHƯA
+# CÓ ở M0 — chưa chọn hosting/domain (p20 Y2 tên miền, X6 hosting: mặc định
+# "VPS Singapore", chưa xác nhận cụ thể). Workflow này:
+#   1. Chỉ trigger thủ công qua workflow_dispatch (KHÔNG chạy trên push/PR).
+#   2. Job còn bị khoá cứng thêm bằng `if: false` bên dưới.
+# TODO: bật khi có VPS thật + đã thêm đủ 3 secret SSH_HOST/SSH_KEY/SSH_USER
+# vào GitHub Secrets — xoá dòng `if: false` lúc đó.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Môi trường deploy"
+        required: true
+        type: choice
+        options: ["staging", "prod"]
+        default: "staging"
+
+jobs:
+  deploy:
+    name: SSH deploy lên VPS
+    runs-on: ubuntu-latest
+    if: false # TODO: xoá dòng này khi đã có VPS thật + secrets SSH_*
+    environment: ${{ inputs.environment }}
+    steps:
+      # Thứ tự "expand trước, deploy code mới sau": Flyway tự chạy migration
+      # lúc Spring Boot khởi động bên trong `docker compose ... up -d` — không
+      # cần bước migrate tách riêng ở M0 vì V1–V4.1 đều là bước "expand" an
+      # toàn (thêm cột/bảng nullable hoặc có default, không xoá/đổi kiểu cột
+      # đang dùng). Khi có migration "contract" (xoá cột cũ) ở mốc sau, cần
+      # tách lại thành 2 bước deploy riêng.
+      - name: Pull image mới + up -d trên VPS
+        uses: appleboy/ssh-action@v1.2.0 # TODO owner xác nhận version (chưa có trong BOM)
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/catcheck-${{ inputs.environment }}
+            docker compose -p catcheck-${{ inputs.environment }} pull
+            docker compose -p catcheck-${{ inputs.environment }} up -d
+
+      # Health check sau deploy — KHÔNG tự rollback ở MVP, chỉ cảnh báo.
+      - name: Health check — GET /actuator/health (retry tối đa 60s)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -euo pipefail
+            for i in $(seq 1 30); do
+              status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/actuator/health || echo "000")
+              if [ "$status" = "200" ]; then
+                echo "backend UP sau deploy"
+                exit 0
+              fi
+              echo "chờ backend healthy... ($i/30)"
+              sleep 2
+            done
+            echo "::warning::backend KHÔNG healthy sau 60s — KHÔNG tự rollback ở MVP, cần kiểm tra thủ công trên VPS."
+            exit 1

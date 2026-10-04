@@ -92,10 +92,7 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone: 
     <div className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-xs">
       <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">{label}</p>
       <span
-        className={cn(
-          "text-[26px] font-bold leading-8",
-          tone === "danger" ? "text-danger-text" : "text-primary-dark",
-        )}
+        className={cn("text-[26px] font-bold leading-8", tone === "danger" ? "text-danger-text" : "text-primary-dark")}
       >
         {value}
       </span>
@@ -136,12 +133,8 @@ export function WebRemindersScreen({
   const header = (
     <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-[620px]">
-        <p className="text-overline font-bold tracking-[0.4px] text-primary-dark">
-          {t("web.eyebrow")}
-        </p>
-        <h1 className="pt-1 text-[28px] font-bold leading-9 tracking-[-0.5px] text-primary-dark">
-          {t("web.title")}
-        </h1>
+        <p className="text-overline font-bold tracking-[0.4px] text-primary-dark">{t("web.eyebrow")}</p>
+        <h1 className="pt-1 text-[28px] font-bold leading-9 tracking-[-0.5px] text-primary-dark">{t("web.title")}</h1>
         <p className="pt-2 text-caption leading-relaxed text-text-secondary">{t("web.subtitle")}</p>
       </div>
       <Link
@@ -166,11 +159,7 @@ export function WebRemindersScreen({
     return (
       <div className="flex flex-col gap-4">
         {header}
-        <ErrorState
-          title={t("list.loadError")}
-          onRetry={onRetry}
-          retryLabel={t("actions.retry", { ns: "common" })}
-        />
+        <ErrorState title={t("list.loadError")} onRetry={onRetry} retryLabel={t("actions.retry", { ns: "common" })} />
       </div>
     );
   }
@@ -200,13 +189,10 @@ export function WebRemindersScreen({
   const cells = buildMonthCells(active, now);
   const monthLabel = now.toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
 
-  const tabCount = (value: ReminderTab) =>
-    reminders.filter((reminder) => matchesTab(reminder, value)).length;
+  const tabCount = (value: ReminderTab) => reminders.filter((reminder) => matchesTab(reminder, value)).length;
 
   const catLabel = (reminder: Reminder) =>
-    reminder.catId === undefined
-      ? t("list.accountWide")
-      : (catNameById.get(reminder.catId) ?? t("list.unknownCat"));
+    reminder.catId === undefined ? t("list.accountWide") : (catNameById.get(reminder.catId) ?? t("list.unknownCat"));
 
   return (
     <div className="flex flex-col gap-4">
@@ -233,9 +219,7 @@ export function WebRemindersScreen({
             }}
             className={cn(
               "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-caption font-semibold transition-colors",
-              value === tab
-                ? "bg-primary-dark text-white"
-                : "bg-surface text-text-secondary hover:bg-background-alt",
+              value === tab ? "bg-primary-dark text-white" : "bg-surface text-text-secondary hover:bg-background-alt",
             )}
           >
             {t(TAB_LABEL_KEY[value])}
@@ -294,9 +278,7 @@ export function WebRemindersScreen({
                           {t("web.forCat", { name: catLabel(reminder) })}
                         </span>
                       </div>
-                      <p className="text-body font-bold leading-snug text-text-primary">
-                        {t(`type.${reminder.type}`)}
-                      </p>
+                      <p className="text-body font-bold leading-snug text-text-primary">{t(`type.${reminder.type}`)}</p>
                       <p className="text-caption text-text-secondary">
                         {reminder.nextRunAt === undefined
                           ? t("list.nextRunUnknown")
@@ -330,9 +312,7 @@ export function WebRemindersScreen({
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-[18px] font-bold leading-6 text-primary-dark">
-              {t("web.upcomingTitle")}
-            </h2>
+            <h2 className="text-[18px] font-bold leading-6 text-primary-dark">{t("web.upcomingTitle")}</h2>
             {upcoming.length === 0 ? (
               <p className="rounded-2xl bg-surface p-4 text-caption text-text-secondary shadow-xs">
                 {t("web.upcomingEmpty")}
@@ -378,9 +358,7 @@ export function WebRemindersScreen({
 
           {paused.length > 0 ? (
             <section className="flex flex-col gap-3">
-              <h2 className="text-[18px] font-bold leading-6 text-text-secondary">
-                {t("web.pausedTitle")}
-              </h2>
+              <h2 className="text-[18px] font-bold leading-6 text-text-secondary">{t("web.pausedTitle")}</h2>
               {paused.map((reminder) => (
                 <article
                   key={reminder.id}
@@ -435,17 +413,12 @@ export function WebRemindersScreen({
                   className={cn(
                     "relative flex h-8 items-center justify-center rounded-lg text-caption",
                     cell.day === null && "opacity-0",
-                    cell.isToday
-                      ? "bg-primary-dark font-bold text-white"
-                      : "text-text-secondary",
+                    cell.isToday ? "bg-primary-dark font-bold text-white" : "text-text-secondary",
                   )}
                 >
                   {cell.day ?? ""}
                   {cell.marked && !cell.isToday ? (
-                    <span
-                      className="absolute bottom-0.5 size-1.5 rounded-full bg-secondary"
-                      aria-hidden="true"
-                    />
+                    <span className="absolute bottom-0.5 size-1.5 rounded-full bg-secondary" aria-hidden="true" />
                   ) : null}
                 </span>
               ))}

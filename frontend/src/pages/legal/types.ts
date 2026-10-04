@@ -26,6 +26,29 @@ export interface PolicyView {
 
 export type PolicyCode = "TERMS" | "PRIVACY" | "COOKIE" | "MEDICAL_DISCLAIMER";
 
+/**
+ * F9 — một dòng của `GET /policies/{code}/versions` (p8 §8.4.6, REQ-LEGAL-02).
+ * KHÔNG có `contentMd`: danh sách chỉ để chọn bản cần đọc, nội dung lấy qua permalink F10.
+ */
+export interface PolicyVersionSummaryView {
+  version: string;
+  locale: string;
+  title: string;
+  effectiveFrom: string;
+  /** `null` = bản đang hiệu lực. */
+  effectiveTo: string | null;
+  current: boolean;
+  requiresReconsent: boolean;
+  summaryOfChanges: string | null;
+  affectedPurposes: string[];
+}
+
+/** F9 — envelope không phân trang (`{policyCode, items}`), mới nhất trước. */
+export interface PolicyVersionListResponse {
+  policyCode: string;
+  items: PolicyVersionSummaryView[];
+}
+
 /** C1 — một mục đích xử lý dữ liệu đã resolve theo locale (công khai). */
 export interface PurposeView {
   code: string;

@@ -9,10 +9,7 @@ import { useAuthSessionQuery } from "@/features/auth";
  * do backend điều khiển (p11 §11.1.4) — SPA không tự gọi API OAuth, chỉ cần kiểm tra lại
  * phiên khi Google trả về đây rồi vào app.
  *
- * ⚠ Ghi chú tích hợp (xem `docs/handovers/A1-fe.md`): `GoogleOAuth2Configuration` hiện
- * KHÔNG cấu hình `successHandler` riêng nên Spring Security mặc định có thể không redirect
- * đúng về route này (và `MockOAuth2Controller` dev redirect thẳng về `/`) — trang này vẫn
- * cần tồn tại đúng hợp đồng p9 cho khi W3 nối `successHandler` trỏ về đây.
+ * Backend cấu hình success handler để tạo session CatCheck rồi redirect thẳng về route này.
  */
 export function OAuthCompletePage() {
   const { t } = useTranslation(["auth", "common"]);
@@ -40,7 +37,12 @@ export function OAuthCompletePage() {
         title={t("oauthComplete.failed.title")}
         description={t("oauthComplete.failed.description")}
         action={
-          <Button type="button" onClick={() => { void navigate("/auth/login"); }}>
+          <Button
+            type="button"
+            onClick={() => {
+              void navigate("/auth/login");
+            }}
+          >
             {t("oauthComplete.failed.cta")}
           </Button>
         }

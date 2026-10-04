@@ -1,0 +1,77 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Lint / typecheck / test / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Set up Node 24.21.0
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24.21.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Lint
+        working-directory: frontend
+        run: npx eslint . --max-warnings=0
+
+      - name: Format check
+        working-directory: frontend
+        run: npx prettier --check .
+
+      # ---- openapi-drift.yml gộp vào đây (quyết định: không tách file riêng) ----
+      # M0: backend chưa expose /v3/api-docs thật trong CI (mvnw không chạy ở
+      # đây) ⇒ bước generate/diff CHẮC CHẮN sẽ lỗi kết nối. continue-on-error
+      # TẠM THỜI để không chặn PR frontend vì lý do ngoài tầm kiểm soát của FE.
+      # TODO: bỏ continue-on-error khi có backend thật chạy được trong job này
+      # (hoặc trỏ api:gen sang 1 file OpenAPI tĩnh đã build sẵn từ backend-ci).
+      - name: Generate OpenAPI types & check drift (TẠM cho phép fail — xem TODO)
+        working-directory: frontend
+        continue-on-error: true
+        run: |
+          npm run api:gen
+          git diff --exit-code src/shared/api/schema.d.ts
+
+      - name: Unit test (Vitest)
+        working-directory: frontend
+        run: npm test
+
+      - name: Build production
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload build output (dist/)
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+          if-no-files-found: warn

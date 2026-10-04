@@ -14,12 +14,7 @@ import {
 } from "lucide-react";
 import { Badge, Button, Card } from "@/shared/ui";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
-import {
-  OnboardingShell,
-  useCreditBalance,
-  useOnboardingStore,
-  usePhBands,
-} from "@/features/onboarding";
+import { OnboardingShell, PhBandBar, useCreditBalance, useOnboardingStore, usePhBands } from "@/features/onboarding";
 
 const ROADMAP_STEPS = ["step1", "step2", "step3"] as const;
 
@@ -41,9 +36,7 @@ function SuccessRoadmap({ catName }: { catName: string }) {
         </p>
         <Badge tone="brand">{t("web.success.roadmap.badge")}</Badge>
       </div>
-      <p className="text-caption text-text-secondary">
-        {t("web.success.roadmap.intro", { catName })}
-      </p>
+      <p className="text-caption text-text-secondary">{t("web.success.roadmap.intro", { catName })}</p>
       <ol className="flex flex-col gap-4">
         {ROADMAP_STEPS.map((key, index) => (
           <li key={key} className="flex gap-3">
@@ -54,9 +47,7 @@ function SuccessRoadmap({ catName }: { catName: string }) {
               <span className="text-caption font-semibold text-text-primary">
                 {t(`web.success.roadmap.${key}.title`)}
               </span>
-              <span className="text-caption text-text-secondary">
-                {t(`web.success.roadmap.${key}.body`)}
-              </span>
+              <span className="text-caption text-text-secondary">{t(`web.success.roadmap.${key}.body`)}</span>
             </span>
           </li>
         ))}
@@ -90,7 +81,14 @@ export function OnboardingSuccessPage() {
         step={5}
         title={t("success.title")}
         footer={
-          <Button type="button" size="lg" className="w-full" onClick={() => { void navigate("/dashboard"); }}>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              void navigate("/dashboard");
+            }}
+          >
             {t("success.cta")}
           </Button>
         }
@@ -129,12 +127,8 @@ export function OnboardingSuccessPage() {
               <BadgeCheck size={13} aria-hidden="true" />
               {t("success.badge")}
             </Badge>
-            <h2 className="pt-1 text-h1 font-bold text-text-primary lg:text-display">
-              {t("success.welcome")}
-            </h2>
-            <p className="max-w-xl text-body text-text-secondary">
-              {t("success.subtitle", { catName: cat.name })}
-            </p>
+            <h2 className="pt-1 text-h1 font-bold text-text-primary lg:text-display">{t("success.welcome")}</h2>
+            <p className="max-w-xl text-body text-text-secondary">{t("success.subtitle", { catName: cat.name })}</p>
           </div>
         </div>
       }
@@ -146,7 +140,14 @@ export function OnboardingSuccessPage() {
       }
       footer={
         <div className="flex flex-col gap-3">
-          <Button type="button" size="lg" className="w-full" onClick={() => { void navigate("/dashboard"); }}>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              void navigate("/dashboard");
+            }}
+          >
             {t("success.cta")}
             <ArrowRight className="size-5" aria-hidden="true" />
           </Button>
@@ -156,7 +157,9 @@ export function OnboardingSuccessPage() {
             size="md"
             className="w-full"
             leftIcon={<ScanLine className="size-5" aria-hidden="true" />}
-            onClick={() => { void navigate("/scan/select-cat"); }}
+            onClick={() => {
+              void navigate("/scan/select-cat");
+            }}
           >
             {t("success.ctaScan")}
           </Button>
@@ -195,45 +198,62 @@ export function OnboardingSuccessPage() {
           </div>
         </div>
 
-        <dl className="flex flex-col gap-2.5 rounded-xl bg-background-alt p-4 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <dt className="flex items-center gap-2 text-caption text-text-secondary">
-              <Cat className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              {t("success.summary.breed")}
-            </dt>
-            <dd className="text-caption font-bold text-text-primary">{cat.breedName}</dd>
-          </div>
-          {normalBand ? (
+        <div className="flex flex-col gap-3 rounded-xl bg-background-alt p-4">
+          <dl className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-3">
             <div className="flex items-center justify-between gap-4">
               <dt className="flex items-center gap-2 text-caption text-text-secondary">
-                <FlaskConical className="size-4 shrink-0 text-primary" aria-hidden="true" />
-                {t("success.summary.phRange")}
+                <Cat className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                {t("success.summary.breed")}
               </dt>
-              <dd className="flex items-center gap-1.5 text-caption font-bold text-ph-normal-text">
-                <span className="size-2 shrink-0 rounded-full bg-ph-normal" aria-hidden="true" />
-                {normalBand.phMin}–{normalBand.phMax}
+              <dd className="text-caption font-bold text-text-primary">{cat.breedName}</dd>
+            </div>
+            {normalBand ? (
+              <div className="flex items-center justify-between gap-4">
+                <dt className="flex items-center gap-2 text-caption text-text-secondary">
+                  <FlaskConical className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                  {t("success.summary.phRange")}
+                </dt>
+                <dd className="flex items-center gap-1.5 text-caption font-bold text-ph-normal-text">
+                  <span className="size-2 shrink-0 rounded-full bg-ph-normal" aria-hidden="true" />
+                  {normalBand.phMin}–{normalBand.phMax}
+                </dd>
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between gap-4">
+              <dt className="flex items-center gap-2 text-caption text-text-secondary">
+                <ClipboardCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                {t("success.summary.surveyLabel")}
+              </dt>
+              <dd className="text-caption font-bold text-text-primary">
+                {surveySkipped ? t("success.summary.surveySkipped") : t("success.summary.surveyDone")}
               </dd>
             </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt className="flex items-center gap-2 text-caption text-text-secondary">
+                <IdCard className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                {t("success.summary.catId")}
+              </dt>
+              <dd className="rounded-md bg-chip-bg px-2 py-0.5 text-caption font-bold tracking-[0.5px] text-primary-dark">
+                {cat.publicCode}
+              </dd>
+            </div>
+          </dl>
+
+          {/* W1 Web-01c-5 "Ngưỡng pH Nước tiểu Dự kiến": dải màu + nhãn 2 đầu, số lấy từ
+              `GET /reference/ph-bands` nên không hard-code ngưỡng nào. */}
+          {bands && bands.length > 0 ? (
+            <div className="flex flex-col gap-1.5 border-t border-border pt-3">
+              <PhBandBar bands={bands} />
+              <div className="flex items-center justify-between gap-2 text-small text-text-tertiary">
+                <span className="truncate">{bands.at(0)?.label}</span>
+                {normalBand ? (
+                  <span className="truncate font-semibold text-ph-normal-text">{normalBand.label}</span>
+                ) : null}
+                <span className="truncate">{bands.at(-1)?.label}</span>
+              </div>
+            </div>
           ) : null}
-          <div className="flex items-center justify-between gap-4">
-            <dt className="flex items-center gap-2 text-caption text-text-secondary">
-              <ClipboardCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              {t("success.summary.surveyLabel")}
-            </dt>
-            <dd className="text-caption font-bold text-text-primary">
-              {surveySkipped ? t("success.summary.surveySkipped") : t("success.summary.surveyDone")}
-            </dd>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <dt className="flex items-center gap-2 text-caption text-text-secondary">
-              <IdCard className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              {t("success.summary.catId")}
-            </dt>
-            <dd className="rounded-md bg-chip-bg px-2 py-0.5 text-caption font-bold tracking-[0.5px] text-primary-dark">
-              {cat.publicCode}
-            </dd>
-          </div>
-        </dl>
+        </div>
       </Card>
 
       <Card padding="md" className="flex items-center justify-between gap-4">
@@ -251,7 +271,7 @@ export function OnboardingSuccessPage() {
           </p>
         </div>
         <Badge tone={activation ? "brand" : "neutral"}>
-          {activation ? activation.balance.totalAvailable : balance?.trialScansRemaining ?? 0}
+          {activation ? activation.balance.totalAvailable : (balance?.trialScansRemaining ?? 0)}
         </Badge>
       </Card>
 

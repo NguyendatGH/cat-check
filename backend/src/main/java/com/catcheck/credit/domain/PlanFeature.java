@@ -8,9 +8,8 @@ package com.catcheck.credit.domain;
  * còn hiệu lực — đó là {@code user_entitlement.write_access_until}, không phải cờ trong
  * {@code features}. Quyền ĐỌC giữ vĩnh viễn (p5 R5).</p>
  *
- * <p><b>Khiếm khuyết hợp đồng đã biết (chưa sửa)</b> — tham số của
- * {@code credit.api.EntitlementQuery}, cùng tình huống với {@link CreditLedgerRefType}, xem
- * javadoc ở đó.</p>
+ * <p>This enum stays internal. Cross-module callers use
+ * {@code EntitlementQuery.Feature}, mapped by the application service.</p>
  */
 public enum PlanFeature {
 

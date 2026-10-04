@@ -58,23 +58,18 @@ export function ReminderQuickPlan({ reminders, catNameById }: ReminderQuickPlanP
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
   const fallback = reminders.find((reminder) => reminder.active) ?? reminders.at(0);
-  const selected =
-    (pickedId === null ? undefined : reminders.find((reminder) => reminder.id === pickedId)) ??
-    fallback;
+  const selected = (pickedId === null ? undefined : reminders.find((reminder) => reminder.id === pickedId)) ?? fallback;
 
   if (selected === undefined) return null;
 
-  const values =
-    draft !== null && draft.id === selected.id ? draft.values : toReminderForm(selected);
+  const values = draft !== null && draft.id === selected.id ? draft.values : toReminderForm(selected);
 
   const patch = (change: Partial<ReminderFormValues>) => {
     setDraft({ id: selected.id, values: { ...values, ...change } });
   };
 
   const catLabel = (reminder: Reminder) =>
-    reminder.catId === undefined
-      ? t("list.accountWide")
-      : (catNameById.get(reminder.catId) ?? t("list.unknownCat"));
+    reminder.catId === undefined ? t("list.accountWide") : (catNameById.get(reminder.catId) ?? t("list.unknownCat"));
 
   const saveErrorCode = reminderErrorCode(updateReminder.error);
   const isSaving = updateReminder.isPending;

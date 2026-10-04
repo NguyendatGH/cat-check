@@ -267,7 +267,7 @@ export function ScanTimelineItem({
   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
   const isAbnormal = scan.classification !== "IN_RANGE";
   const phLabel =
-    scan.phValue !== null
+    scan.phValue != null
       ? t("item.phSummary", { label: band?.label ?? scan.classification, value: scan.phValue.toFixed(1) })
       : t("item.phUnknown", { label: band?.label ?? scan.classification });
 
@@ -306,18 +306,13 @@ export function ScanTimelineItem({
           <ChevronRight className="mt-0.5 size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
         </span>
 
-        <span
-          className={cn("w-fit rounded-full px-2.5 py-1 text-caption font-semibold", style.bg, style.text)}
-        >
+        <span className={cn("w-fit rounded-full px-2.5 py-1 text-caption font-semibold", style.bg, style.text)}>
           {phLabel}
         </span>
 
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {chips.map((chip) => (
-            <span
-              key={chip}
-              className="rounded-full bg-background-alt px-2 py-0.5 text-small text-text-secondary"
-            >
+            <span key={chip} className="rounded-full bg-background-alt px-2 py-0.5 text-small text-text-secondary">
               {chip}
             </span>
           ))}

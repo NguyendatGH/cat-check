@@ -1,7 +1,5 @@
 package com.catcheck.credit.api;
 
-import com.catcheck.credit.domain.CreditLedgerRefType;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -102,14 +100,14 @@ public interface CreditConsumption {
      * @param idempotencyKey  khoá chống double-submit, {@code <= 64} ký tự; bắt buộc vì
      *                        {@code credit_ledger.idempotency_key} là UNIQUE (p5 R8, bất biến I4).
      *                        Client retry cùng key ⇒ server trả kết quả cũ, không trừ lần hai.
-     * @param refType         loại tài nguyên tham chiếu, {@link CreditLedgerRefType#SCAN} cho scan
+     * @param refType         loại tài nguyên tham chiếu, {@link ReferenceType#SCAN} cho scan
      * @param refId           id tài nguyên tham chiếu (không phải FK — p4 §4.9.3)
      * @param note            ghi chú tùy chọn
      */
     record CreditConsumeCommand(
             int credits,
             String idempotencyKey,
-            CreditLedgerRefType refType,
+            ReferenceType refType,
             UUID refId,
             String note
     ) {
@@ -122,6 +120,14 @@ public interface CreditConsumption {
                 throw new IllegalArgumentException("idempotencyKey là bắt buộc (p5 R8)");
             }
         }
+    }
+
+    /** Public wire contract; the credit application maps it to its internal ledger enum. */
+    enum ReferenceType {
+        SCAN,
+        ACTIVATION,
+        JOB,
+        ADMIN
     }
 
     /**

@@ -1,11 +1,21 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { AlertTriangle, CheckCircle2, Droplet, RefreshCw, ScanLine, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  ClipboardList,
+  Download,
+  Droplet,
+  RefreshCw,
+  ScanLine,
+  Share2,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { PhGaugeBar, findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
-import { PhTrendChart, type TrendRange } from "@/features/trends";
-import type { CatTrendPoint, CatTrendsResponse } from "./catTrendsApi";
+import { PhBadge, PhGaugeBar, findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { PhTrendChart, type CatTrendPoint, type CatTrendsResponse, type TrendRange } from "@/features/trends";
 
 import bead01 from "@/shared/assets/images/web-scan/bead-01.png";
 import bead02 from "@/shared/assets/images/web-scan/bead-02.png";
@@ -111,8 +121,7 @@ export function WebTrendsScreen({
   const legendBands = [referenceBand, watchBand].filter((b): b is PhBand => b !== undefined);
 
   const medianBand = findBandForPh(bands, stats?.median);
-  const passPercent =
-    stats && stats.count > 0 ? Math.round((stats.inRangeCount / stats.count) * 100) : null;
+  const passPercent = stats && stats.count > 0 ? Math.round((stats.inRangeCount / stats.count) * 100) : null;
   const activeDays = weekdayBars.filter((b) => b.count > 0).length;
   const avgPerDay = stats && activeDays > 0 ? (stats.count / activeDays).toFixed(1) : dash;
 
@@ -121,6 +130,15 @@ export function WebTrendsScreen({
     ? Math.round((confidences.reduce((sum, c) => sum + c, 0) / confidences.length) * 100)
     : null;
   const chartVersions = data?.chartVersions ?? [];
+
+  /**
+   * Dải của MỘT lần quét = `classification` backend đã gán, không suy lại từ con số pH:
+   * `findBandForPh` so `band.phMin === null` nhưng API BỎ HẲN key ở dải mở (`LOW`/`HIGH`) nên
+   * `undefined !== null` ⇒ hai dải đó không bao giờ khớp và ô trạng thái in ra mã thô
+   * (`SLIGHTLY_HIGH`). Chỉ suy lại khi gặp mã lạ.
+   */
+  const bandForPoint = (p: CatTrendPoint): PhBand | undefined =>
+    bands.find((b) => b.code === p.classification) ?? findBandForPh(bands, p.phValue);
 
   const bandRangeLabel = (band: PhBand): string | null => {
     const min = finiteBound(band.phMin);
@@ -134,12 +152,11 @@ export function WebTrendsScreen({
   };
 
   const header = (
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    // Frame Figma đặt khối tiêu đề + 2 CTA TRONG một thẻ trắng, không trôi trên nền trang.
+    <Card className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-[620px]">
         <p className="text-overline font-bold tracking-[0.4px] text-primary-dark">{t("web.eyebrow")}</p>
-        <h1 className="pt-1 text-[28px] font-bold leading-9 tracking-[-0.5px] text-primary-dark">
-          {t("web.title")}
-        </h1>
+        <h1 className="pt-1 text-[28px] font-bold leading-9 tracking-[-0.5px] text-primary-dark">{t("web.title")}</h1>
         <p className="pt-2 text-caption leading-relaxed text-text-secondary">{t("web.subtitle")}</p>
       </div>
       <div className="flex shrink-0 items-start gap-3">
@@ -149,19 +166,21 @@ export function WebTrendsScreen({
         <div className="flex flex-col gap-2">
           <Link
             to="/export"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-caption font-semibold text-primary-dark shadow-xs"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-caption font-semibold text-primary-dark shadow-xs"
           >
+            <Download className="size-4 shrink-0" aria-hidden="true" />
             {t("web.exportCta")}
           </Link>
           <Link
             to="/export"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-caption font-bold text-white shadow-sm"
           >
+            <Share2 className="size-4 shrink-0" aria-hidden="true" />
             {t("web.shareVetCta")}
           </Link>
         </div>
       </div>
-    </div>
+    </Card>
   );
 
   // ── Trạng thái 1: gói không có tính năng xu hướng (403) ───────────────────────────────
@@ -225,9 +244,7 @@ export function WebTrendsScreen({
   );
 
   const logRows = points
-    .filter((p) =>
-      logBandFilter === "ALL" ? true : findBandForPh(bands, p.phValue)?.code === logBandFilter,
-    )
+    .filter((p) => (logBandFilter === "ALL" ? true : bandForPoint(p)?.code === logBandFilter))
     .slice()
     .reverse();
 
@@ -239,9 +256,7 @@ export function WebTrendsScreen({
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <Card className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">
-              {t("web.kpiAvgLabel")}
-            </p>
+            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">{t("web.kpiAvgLabel")}</p>
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-primary-dark">
               <Droplet className="size-3.5" aria-hidden="true" />
             </span>
@@ -269,9 +284,7 @@ export function WebTrendsScreen({
 
         <Card className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">
-              {t("web.kpiPassLabel")}
-            </p>
+            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">{t("web.kpiPassLabel")}</p>
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-primary-dark">
               <CheckCircle2 className="size-3.5" aria-hidden="true" />
             </span>
@@ -291,9 +304,7 @@ export function WebTrendsScreen({
 
         <Card className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">
-              {t("web.kpiScansLabel")}
-            </p>
+            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">{t("web.kpiScansLabel")}</p>
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-primary-dark">
               <ScanLine className="size-3.5" aria-hidden="true" />
             </span>
@@ -306,16 +317,12 @@ export function WebTrendsScreen({
 
         <Card className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">
-              {t("web.kpiLowConfLabel")}
-            </p>
+            <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">{t("web.kpiLowConfLabel")}</p>
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-primary-dark">
               <AlertTriangle className="size-3.5" aria-hidden="true" />
             </span>
           </div>
-          <span className="text-[26px] font-bold leading-8 text-primary-dark">
-            {stats?.lowConfidenceCount ?? 0}
-          </span>
+          <span className="text-[26px] font-bold leading-8 text-primary-dark">{stats?.lowConfidenceCount ?? 0}</span>
           <div className="mt-auto border-t border-border pt-2">
             <p className="text-[11px] leading-snug text-text-secondary">{t("web.kpiLowConfFoot")}</p>
           </div>
@@ -349,7 +356,9 @@ export function WebTrendsScreen({
             </div>
           ) : (
             <PhTrendChart
-              points={points.map((p) => ({ date: p.capturedAt, phValue: p.phValue }))}
+              points={points
+                .filter((p): p is CatTrendPoint & { phValue: number } => p.phValue !== null)
+                .map((p) => ({ date: p.capturedAt, phValue: p.phValue }))}
               bands={bands}
               referenceBand={referenceBand}
               emptyLabel={t("chart.empty")}
@@ -383,9 +392,14 @@ export function WebTrendsScreen({
 
         <div className="col-span-12 flex flex-col gap-4 xl:col-span-4">
           <Card className="flex flex-col gap-3">
-            <div>
-              <p className="text-body font-bold leading-snug text-primary-dark">{t("web.freqTitle")}</p>
-              <p className="pt-0.5 text-[11px] text-text-secondary">{t("web.freqSubtitle")}</p>
+            <div className="flex items-start gap-2">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark">
+                <BarChart3 className="size-4" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-body font-bold leading-snug text-primary-dark">{t("web.freqTitle")}</p>
+                <p className="pt-0.5 text-[11px] text-text-secondary">{t("web.freqSubtitle")}</p>
+              </div>
             </div>
             <p>
               <span className="text-[26px] font-bold leading-8 text-primary-dark">{avgPerDay}</span>{" "}
@@ -399,10 +413,7 @@ export function WebTrendsScreen({
                   <div key={bar.day} className="flex flex-1 flex-col items-center gap-1">
                     <div className="flex h-20 w-full items-end">
                       <div
-                        className={cn(
-                          "w-full rounded-t-md",
-                          bar.count > 0 ? "bg-primary-dark" : "bg-border",
-                        )}
+                        className={cn("w-full rounded-t-md", bar.count > 0 ? "bg-primary-dark" : "bg-border")}
                         style={{ height: `${String(Math.max(bar.height, 6))}%` }}
                       />
                     </div>
@@ -456,9 +467,12 @@ export function WebTrendsScreen({
       {/* Nhật ký — mỗi dòng là một điểm quét thật */}
       <Card className="flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[18px] font-bold leading-6 text-primary-dark">{t("web.logTitle")}</p>
-            <p className="pt-1 text-caption text-text-secondary">{t("web.logSubtitle")}</p>
+          <div className="flex items-start gap-2">
+            <ClipboardList className="mt-1 size-5 shrink-0 text-primary-dark" aria-hidden="true" />
+            <div>
+              <p className="text-[18px] font-bold leading-6 text-primary-dark">{t("web.logTitle")}</p>
+              <p className="pt-1 text-caption text-text-secondary">{t("web.logSubtitle")}</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -493,9 +507,10 @@ export function WebTrendsScreen({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-border">
+                {/* Mockup: hàng tiêu đề bảng có nền nhạt, không trùng nền thẻ. */}
+                <tr className="border-b border-border bg-background-alt">
                   {["web.colTime", "web.colSample", "web.colPh", "web.colStatus"].map((k) => (
-                    <th key={k} className="px-3 py-2 text-[10px] font-bold tracking-[0.4px] text-text-secondary">
+                    <th key={k} className="px-3 py-2.5 text-[10px] font-bold tracking-[0.4px] text-text-secondary">
                       {t(k)}
                     </th>
                   ))}
@@ -503,11 +518,13 @@ export function WebTrendsScreen({
               </thead>
               <tbody>
                 {logRows.map((p, i) => {
-                  const band = findBandForPh(bands, p.phValue);
+                  const band = bandForPoint(p);
                   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
                   const captured = new Date(p.capturedAt);
                   return (
-                    <tr key={p.capturedAt} className="border-b border-border">
+                    // Mockup tô nền cả hàng cho lần quét "cần lưu ý" — dùng cờ `triggersAlert`
+                    // THẬT của dải (API), không tự đặt ngưỡng.
+                    <tr key={p.capturedAt} className={cn("border-b border-border", band?.triggersAlert && style.bg)}>
                       <td className="px-3 py-3">
                         <p className="text-caption font-bold text-text-primary">
                           {new Intl.DateTimeFormat("vi-VN", {
@@ -538,15 +555,17 @@ export function WebTrendsScreen({
                         </span>
                       </td>
                       <td className="px-3 py-3">
-                        <span className="text-body font-bold text-primary-dark">{p.phValue.toFixed(2)}</span>{" "}
+                        <span className="text-body font-bold text-primary-dark">{formatPh(p.phValue, dash)}</span>{" "}
                         <span className="text-[11px] text-text-secondary">{t("web.phUnit")}</span>
                       </td>
                       <td className="px-3 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${style.bg} ${style.text}`}
-                        >
-                          {band?.label ?? p.classification}
-                        </span>
+                        {/* `PhBadge` (entities) đã kèm icon theo `band.iconName` như mockup —
+                            a11y không dựa màu đơn thuần. */}
+                        {band ? (
+                          <PhBadge band={band} className="text-[11px]" />
+                        ) : (
+                          <span className="text-[11px] text-text-secondary">{dash}</span>
+                        )}
                       </td>
                     </tr>
                   );

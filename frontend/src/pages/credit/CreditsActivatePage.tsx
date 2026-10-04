@@ -99,7 +99,14 @@ export function CreditsActivatePage() {
               </dd>
             </div>
           </dl>
-          <Button type="button" size="lg" className="w-full" onClick={() => { void navigate("/credits"); }}>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              void navigate("/credits");
+            }}
+          >
             {t("activate.success.continue")}
           </Button>
         </Card>
@@ -138,7 +145,15 @@ export function CreditsActivatePage() {
         <Button type="button" size="lg" loading={isChecking} disabled={isChecking} onClick={() => void onSubmit()}>
           {isChecking ? t("activate.checking") : t("activate.submit")}
         </Button>
-        <Button type="button" variant="tertiary" size="md" disabled={isChecking} onClick={() => { void navigate(-1); }}>
+        <Button
+          type="button"
+          variant="tertiary"
+          size="md"
+          disabled={isChecking}
+          onClick={() => {
+            void navigate(-1);
+          }}
+        >
           {t("actions.cancel", { ns: "common" })}
         </Button>
       </div>

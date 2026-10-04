@@ -3,6 +3,7 @@ package com.catcheck.privacy.infrastructure.persistence;
 import com.catcheck.privacy.domain.RetentionAction;
 import com.catcheck.privacy.domain.RetentionPolicy;
 import com.catcheck.privacy.domain.port.RetentionPolicyPort;
+import com.catcheck.privacy.domain.port.RetentionDryRunPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -14,7 +15,7 @@ import java.util.Optional;
  * API admin (M6). Bất biến I15 (SCAN_IMAGE ≤ 14 ngày) ép ở tầng service, không ép ở đây.
  */
 @Repository
-public class JdbcRetentionPolicyAdapter implements RetentionPolicyPort {
+public class JdbcRetentionPolicyAdapter implements RetentionPolicyPort, RetentionDryRunPort {
 
     private static final String COLUMNS = """
             code, data_inventory_code, target_table, retention_days, anchor_column,
@@ -78,6 +79,18 @@ public class JdbcRetentionPolicyAdapter implements RetentionPolicyPort {
                 policy.legalBasis(),
                 policy.updatedBy(),
                 policy.createdAt());
+    }
+
+    @Override
+    public long countExpired(RetentionPolicy policy, java.time.Instant cutoff) {
+        if (!policy.targetTable().matches("[a-z][a-z0-9_]*")
+                || !policy.anchorColumn().matches("[a-z][a-z0-9_]*")) {
+            throw new IllegalArgumentException("Retention dry-run chỉ cho phép identifier SQL đơn giản");
+        }
+        String sql = "SELECT count(*) FROM \"" + policy.targetTable() + "\""
+                + " WHERE \"" + policy.anchorColumn() + "\" < ?";
+        Long count = jdbc.queryForObject(sql, Long.class, cutoff);
+        return count == null ? 0 : count;
     }
 
     private RetentionPolicy readPolicy(java.sql.ResultSet rs) {

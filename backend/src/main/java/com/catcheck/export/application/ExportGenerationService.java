@@ -3,17 +3,14 @@ package com.catcheck.export.application;
 import com.catcheck.export.domain.ExportJob;
 import com.catcheck.export.domain.port.ExportJobRepository;
 import com.catcheck.export.domain.port.PdfRenderer;
+import com.catcheck.export.domain.port.ReportStorage;
 import com.catcheck.export.domain.port.SubjectSnapshotPort;
 import com.catcheck.insight.api.HealthFlagExportQuery;
-import com.catcheck.media.api.ImageStorage;
-import com.catcheck.media.api.ImageUpload;
-import com.catcheck.media.api.StoredImage;
 import com.catcheck.scan.api.ScanHistoryQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -47,7 +44,7 @@ public class ExportGenerationService {
     private final ScanHistoryQuery scanHistoryQuery;
     private final HealthFlagExportQuery healthFlagExportQuery;
     private final PdfRenderer pdfRenderer;
-    private final ImageStorage imageStorage;
+    private final ReportStorage reportStorage;
     private final Clock clock;
 
     public ExportGenerationService(
@@ -56,14 +53,14 @@ public class ExportGenerationService {
             ScanHistoryQuery scanHistoryQuery,
             HealthFlagExportQuery healthFlagExportQuery,
             PdfRenderer pdfRenderer,
-            ImageStorage imageStorage,
+            ReportStorage reportStorage,
             Clock clock) {
         this.jobRepository = jobRepository;
         this.subjectSnapshotPort = subjectSnapshotPort;
         this.scanHistoryQuery = scanHistoryQuery;
         this.healthFlagExportQuery = healthFlagExportQuery;
         this.pdfRenderer = pdfRenderer;
-        this.imageStorage = imageStorage;
+        this.reportStorage = reportStorage;
         this.clock = clock;
     }
 
@@ -82,11 +79,12 @@ public class ExportGenerationService {
             String html = PdfDocumentBuilder.build(data);
             PdfRenderer.Result rendered = pdfRenderer.render(html);
 
-            StoredImage stored = imageStorage.put("export-pdf", new ImageUpload(
-                    new ByteArrayInputStream(rendered.bytes()), job.getDocumentCode() + ".pdf",
-                    "application/pdf", rendered.bytes().length));
+            // p13 §13.6.4: PDF đi vào ReportStorage (thư mục reports/ riêng), KHÔNG vào
+            // media.ImageStorage — cổng đó chỉ nhận image/* nên trước đây mọi lần sinh PDF
+            // chết với STORAGE_UNSUPPORTED_TYPE (xem javadoc ReportStorage).
+            ReportStorage.Stored stored = reportStorage.put(job.getDocumentCode(), rendered.bytes());
 
-            job.markReady(stored.provider(), stored.key().value(), rendered.bytes().length,
+            job.markReady(stored.provider(), stored.fileRef(), rendered.bytes().length,
                     rendered.pageCount(), data.scans().size(), data.chartVersionSnapshot(), clock.instant());
             jobRepository.save(job);
         } catch (Exception ex) {
@@ -94,6 +92,19 @@ public class ExportGenerationService {
             job.markFailed(friendlyFailureReason(ex), clock.instant());
             jobRepository.save(job);
         }
+    }
+
+    /**
+     * Đánh hỏng một job không vào được hàng đợi (bể luồng từ chối) — xem
+     * {@link ExportJobDispatcher}. Không bao giờ để dòng ở lại {@code QUEUED}: p4 G1 I25 chỉ
+     * cho một job {@code QUEUED}/{@code RUNNING} mỗi user, nên một dòng kẹt là user hết đường
+     * xuất PDF.
+     */
+    public void markRejected(UUID jobId, Instant now) {
+        jobRepository.findById(jobId).ifPresent(job -> {
+            job.markFailed("He thong dang ban. Ban thu tao lai sau it phut nhe.", now);
+            jobRepository.save(job);
+        });
     }
 
     private String friendlyFailureReason(Exception ex) {

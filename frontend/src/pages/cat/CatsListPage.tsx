@@ -7,7 +7,6 @@ import { CatAvatar, CatCard, type Cat, type CatStatus } from "@/entities/cat";
 import { PhGaugeBar, phTokenStyle, usePhBands, type PhBand } from "@/entities/ph-bands";
 import { useCatList } from "@/features/cat";
 import { cn } from "@/shared/lib/cn";
-import iconSync from "@/shared/assets/icons/web-cat/hub-sync.svg";
 import iconQuickScan from "@/shared/assets/icons/web-cat/hub-quick-scan.svg";
 import iconAddCat from "@/shared/assets/icons/web-cat/hub-add-cat.svg";
 import iconSelected from "@/shared/assets/icons/web-cat/hub-selected.svg";
@@ -21,8 +20,6 @@ import iconAddNow from "@/shared/assets/icons/web-cat/hub-add-now.svg";
 import iconTableTitle from "@/shared/assets/icons/web-cat/hub-table-title.svg";
 import iconExportPdf from "@/shared/assets/icons/web-cat/hub-export-pdf.svg";
 import iconFilter from "@/shared/assets/icons/web-cat/hub-filter.svg";
-import iconRiskLow from "@/shared/assets/icons/web-cat/hub-risk-low.svg";
-import iconDoctor from "@/shared/assets/icons/web-cat/hub-doctor.svg";
 
 /**
  * `/cats` — W1 Multi-Cat Hub.
@@ -34,34 +31,12 @@ import iconDoctor from "@/shared/assets/icons/web-cat/hub-doctor.svg";
  */
 
 /**
- * DỮ LIỆU MẪU THEO THIẾT KẾ — KHÔNG PHẢI DỮ LIỆU THẬT.
- *
- * Các chỉ số lâm sàng dưới đây (pH trung bình, nguy cơ FLUTD, khay cát liên kết, bác sĩ phụ
- * trách, lịch thú y) CHƯA có trường tương ứng trong `GET /cats` (p8 §8.4.4 chỉ trả hồ sơ +
- * `lastScanAt`/`lastClassification`/`unacknowledgedFlagCount`). Hiển thị theo thứ tự mèo thật
- * để layout giống Figma; thay bằng dữ liệu thật khi backend bổ sung.
+ * ĐÃ BỎ HẲN (W1-E) — `DESIGN_MOCK_CLINICAL`: BCS/thể trạng, "nguy cơ FLUTD", khay cát liên
+ * kết, lịch thú y kế tiếp và bác sĩ phụ trách. `GET /cats` (p8 §8.4.4) chỉ trả hồ sơ +
+ * `lastScanAt`/`lastClassification`/`unacknowledgedFlagCount`; không có trường nào cho những
+ * chỉ số đó, và "nguy cơ FLUTD" còn là chẩn đoán — trái quyết định #6/#8. Nguyên tắc: thiếu
+ * field thì BỎ khỏi UI, không bịa dữ liệu. Bảng so sánh vì vậy còn 4 cột THẬT.
  */
-const DESIGN_MOCK_CLINICAL = [
-  {
-    bcs: "BCS 5/9 Lý tưởng", tray: "SmartSand #04 (Phòng khách)",
-    risk: "Rất Thấp", riskNote: "(< 5%)", vet: "Tiêm phòng dại nhắc lại",
-    vetWhen: "Còn 18 ngày (12/04/2025)", doctor: "ThS.BS Hoàng Phúc", clinic: "BV Thú Y PetCare Q.7",
-  },
-  {
-    bcs: "BCS 4.5/9 Chuẩn", tray: "BioBox #02 (Phòng ngủ)",
-    risk: "Trung Bình", riskNote: "(Cần theo dõi)", vet: "Cắt móng & kiểm tra lại",
-    vetWhen: "Ổn định & nước/ngày", doctor: "ThS.BS Hoàng Phúc", clinic: "BV Thú Y PetCare Q.7",
-  },
-  {
-    bcs: "BCS 5/9", tray: "Bắt buộc 2 lần/ngày",
-    risk: "Rất Thấp", riskNote: "(< 5%)", vet: "Tẩy giun & thức ăn Renal",
-    vetWhen: "Theo lịch hẹn tái khám", doctor: "BS. CK1 Lan Phương", clinic: "BV Thú Y PetCare Q.7",
-  },
-];
-
-function clinicalFor(index: number) {
-  return DESIGN_MOCK_CLINICAL[index % DESIGN_MOCK_CLINICAL.length];
-}
 
 export function CatsListPage() {
   const { t } = useTranslation(["cat", "common"]);
@@ -83,13 +58,20 @@ export function CatsListPage() {
           <Button
             type="button"
             leftIcon={<Plus className="size-4" aria-hidden="true" />}
-            onClick={() => { void navigate("/cats/new"); }}
+            onClick={() => {
+              void navigate("/cats/new");
+            }}
           >
             {t("list.createCta")}
           </Button>
         </div>
 
-        <Tabs value={status} onValueChange={(v) => { setStatus(v as CatStatus); }}>
+        <Tabs
+          value={status}
+          onValueChange={(v) => {
+            setStatus(v as CatStatus);
+          }}
+        >
           <TabsList aria-label={t("list.ariaList")}>
             <TabsTrigger value="ACTIVE">{t("list.filterActive")}</TabsTrigger>
             <TabsTrigger value="ARCHIVED">{t("list.filterArchived")}</TabsTrigger>
@@ -105,7 +87,9 @@ export function CatsListPage() {
         ) : isError ? (
           <ErrorState
             title={t("list.errorTitle")}
-            onRetry={() => { void refetch(); }}
+            onRetry={() => {
+              void refetch();
+            }}
             retryLabel={t("actions.retry", { ns: "common" })}
           />
         ) : items.length === 0 ? (
@@ -114,7 +98,12 @@ export function CatsListPage() {
             description={t(status === "ACTIVE" ? "list.emptyActiveDescription" : "list.emptyArchivedDescription")}
             action={
               status === "ACTIVE" ? (
-                <Button type="button" onClick={() => { void navigate("/cats/new"); }}>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    void navigate("/cats/new");
+                  }}
+                >
                   {t("list.createCta")}
                 </Button>
               ) : undefined
@@ -129,7 +118,9 @@ export function CatsListPage() {
                 primaryLabel={t("status.primary")}
                 archivedLabel={t("status.archived")}
                 ageLabel={cat.ageMonths !== null ? t("detail.ageLabel", { months: cat.ageMonths }) : undefined}
-                onSelect={(selected) => { void navigate(`/cats/${selected.id}`); }}
+                onSelect={(selected) => {
+                  void navigate(`/cats/${selected.id}`);
+                }}
               />
             ))}
           </div>
@@ -138,12 +129,21 @@ export function CatsListPage() {
 
       {/* ---------- Desktop: Figma 16:3703 ---------- */}
       <div className="hidden flex-col gap-8 lg:flex">
-        <HubBanner onScan={() => { void navigate("/scan/select-cat"); }} onAdd={() => { void navigate("/cats/new"); }} />
+        <HubBanner
+          onScan={() => {
+            void navigate("/scan/select-cat");
+          }}
+          onAdd={() => {
+            void navigate("/cats/new");
+          }}
+        />
 
         {isError ? (
           <ErrorState
             title={t("list.errorTitle")}
-            onRetry={() => { void refetch(); }}
+            onRetry={() => {
+              void refetch();
+            }}
             retryLabel={t("actions.retry", { ns: "common" })}
           />
         ) : (
@@ -151,17 +151,24 @@ export function CatsListPage() {
             <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
               {isPending
                 ? [0, 1, 2, 3].map((i) => <SkeletonLoader key={i} shape="card" />)
-                : items.map((cat, i) => (
+                : items.map((cat) => (
                     <HubCatCard
                       key={cat.id}
                       cat={cat}
-                      index={i}
                       bands={bands ?? []}
-                      onScan={() => { void navigate("/scan/select-cat"); }}
-                      onOpen={() => { void navigate(`/cats/${cat.id}`); }}
+                      onScan={() => {
+                        void navigate("/scan/select-cat");
+                      }}
+                      onOpen={() => {
+                        void navigate(`/cats/${cat.id}`);
+                      }}
                     />
                   ))}
-              <HubAddCard onAdd={() => { void navigate("/cats/new"); }} />
+              <HubAddCard
+                onAdd={() => {
+                  void navigate("/cats/new");
+                }}
+              />
             </div>
 
             {items.length > 0 ? <HubComparisonTable cats={items} bands={bands ?? []} /> : null}
@@ -183,10 +190,6 @@ function HubBanner({ onScan, onAdd }: { onScan: () => void; onAdd: () => void })
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-white/15 px-3 py-1 text-overline font-semibold tracking-[0.5px] backdrop-blur-sm">
               {t("web.hub.eyebrow")}
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.4px] text-on-primary-muted">
-              <img src={iconSync} alt="" className="size-3.5" />
-              {t("web.hub.sync")}
             </span>
           </div>
           <h1 className="pt-3 text-h1 font-bold leading-tight">{t("web.hub.title")}</h1>
@@ -222,10 +225,17 @@ function bandOfCat(cat: Cat, bands: PhBand[]): PhBand | undefined {
 }
 
 function HubCatCard({
-  cat, index, bands, onScan, onOpen,
-}: { cat: Cat; index: number; bands: PhBand[]; onScan: () => void; onOpen: () => void }) {
+  cat,
+  bands,
+  onScan,
+  onOpen,
+}: {
+  cat: Cat;
+  bands: PhBand[];
+  onScan: () => void;
+  onOpen: () => void;
+}) {
   const { t, i18n } = useTranslation(["cat", "common"]);
-  const m = clinicalFor(index);
   const active = cat.isPrimary;
   const band = bandOfCat(cat, bands);
   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
@@ -266,12 +276,9 @@ function HubCatCard({
           <p className="text-body font-bold text-text-primary">
             {cat.weightKg != null ? t("web.hub.weightKg", { value: cat.weightKg }) : "—"}
           </p>
-          <p className="truncate text-[10px] text-text-tertiary">{m.bcs}</p>
         </div>
         <div className={cn("rounded-xl px-3 py-2", style.bg)}>
-          <p className={cn("text-[10px] uppercase tracking-[0.4px] opacity-80", style.text)}>
-            {t("web.hub.phShort")}
-          </p>
+          <p className={cn("text-[10px] uppercase tracking-[0.4px] opacity-80", style.text)}>{t("web.hub.phShort")}</p>
           <p className={cn("truncate text-caption font-bold", style.text)}>
             {band?.label ?? t("web.hub.lastScanNone")}
           </p>
@@ -290,9 +297,6 @@ function HubCatCard({
             {cat.lastScanAt
               ? t("web.hub.lastScanAt", { date: new Date(cat.lastScanAt).toLocaleDateString(i18n.language) })
               : t("web.hub.lastScanNone")}
-          </p>
-          <p className="truncate pt-1 text-[10px] text-info-text opacity-80">
-            {t("web.hub.linkedTray")}: {m.tray}
           </p>
         </div>
       </div>
@@ -341,10 +345,8 @@ function HubAddCard({ onAdd }: { onAdd: () => void }) {
 
 function HubComparisonTable({ cats, bands }: { cats: Cat[]; bands: PhBand[] }) {
   const { t } = useTranslation(["cat", "common"]);
-  const cols = [
-    t("web.hub.colCat"), t("web.hub.colAge"), t("web.hub.colBody"),
-    t("web.hub.colPh"), t("web.hub.colRisk"), t("web.hub.colVet"), t("web.hub.colDoctor"),
-  ];
+  // Chỉ còn các cột có field THẬT trong `GET /cats` + `GET /reference/ph-bands`.
+  const cols = [t("web.hub.colCat"), t("web.hub.colAge"), t("web.hub.colBody"), t("web.hub.colPh")];
 
   return (
     <section className="rounded-2xl bg-surface p-6 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]">
@@ -386,8 +388,7 @@ function HubComparisonTable({ cats, bands }: { cats: Cat[]; bands: PhBand[] }) {
             </tr>
           </thead>
           <tbody>
-            {cats.map((cat, i) => {
-              const m = clinicalFor(i);
+            {cats.map((cat) => {
               const band = bandOfCat(cat, bands);
               const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
               return (
@@ -413,32 +414,11 @@ function HubComparisonTable({ cats, bands }: { cats: Cat[]; bands: PhBand[] }) {
                     <p className="text-caption font-semibold text-text-primary">
                       {cat.weightKg != null ? t("web.hub.weightKg", { value: cat.weightKg }) : "—"}
                     </p>
-                    <p className="text-[10px] text-text-tertiary">{m.bcs}</p>
                   </td>
                   <td className="px-3 py-3">
                     <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-bold", style.bg, style.text)}>
                       {band?.label ?? t("web.hub.lastScanNone")}
                     </span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-text-primary">
-                      <img src={iconRiskLow} alt="" className="size-3" />
-                      {m.risk}
-                    </span>
-                    <p className="text-[10px] text-text-tertiary">{m.riskNote}</p>
-                  </td>
-                  <td className="px-3 py-3">
-                    <p className="text-caption text-text-primary">{m.vet}</p>
-                    <p className="text-[10px] text-text-tertiary">{m.vetWhen}</p>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <img src={iconDoctor} alt="" className="size-4 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="truncate text-caption font-semibold text-text-primary">{m.doctor}</p>
-                        <p className="truncate text-[10px] text-text-tertiary">{m.clinic}</p>
-                      </div>
-                    </div>
                   </td>
                 </tr>
               );
@@ -479,9 +459,7 @@ function HubLitterSeparationGuide() {
       </div>
 
       <h2 className="pt-3 text-h3 font-bold text-text-primary">{t("web.hub.guideTitle")}</h2>
-      <p className="max-w-[760px] pt-2 text-caption leading-relaxed text-text-secondary">
-        {t("web.hub.guideIntro")}
-      </p>
+      <p className="max-w-[760px] pt-2 text-caption leading-relaxed text-text-secondary">{t("web.hub.guideIntro")}</p>
 
       <ol className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
         {steps.map((step, index) => (

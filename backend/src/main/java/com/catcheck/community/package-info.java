@@ -1,7 +1,7 @@
 /**
  * Cộng đồng người nuôi mèo (chia sẻ kinh nghiệm, hỏi đáp).
  *
- * Khung rỗng Phase 2/3 — chưa triển khai ở M0/M1. Xem README.md cùng thư mục.
+ * API chia sẻ bài viết, bình luận, reaction và báo cáo nội dung.
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = { "shared" })
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "shared", "audit::api" })
 package com.catcheck.community;

@@ -15,8 +15,7 @@ import { cn } from "@/shared/lib/cn";
  * Cột nội dung vì thế rộng 560px — độ dài dòng dễ đọc cho văn bản pháp lý dài, thay vì
  * kéo hết 944px.
  */
-export const LEGAL_SHELL =
-  "mx-auto flex w-full max-w-2xl flex-col px-4 py-8 lg:max-w-[992px] lg:px-6 lg:py-10";
+export const LEGAL_SHELL = "mx-auto flex w-full max-w-2xl flex-col px-4 py-8 lg:max-w-[992px] lg:px-6 lg:py-10";
 
 /** Hàng chia hai cột ở `lg` — dưới `lg` vẫn là một cột xếp dọc như cũ. */
 export const LEGAL_SPLIT = "flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-6";
@@ -51,9 +50,7 @@ export function DocumentToc({ items }: { items: TocItem[] }) {
   if (items.length === 0) return null;
   return (
     <nav aria-label={t("toc.title")} className={cn(LEGAL_ASIDE_CARD, "gap-3")}>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
-        {t("toc.title")}
-      </p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">{t("toc.title")}</p>
       <ul className="flex flex-col gap-1 overflow-y-auto">
         {items.map((item) => (
           <li key={item.id}>

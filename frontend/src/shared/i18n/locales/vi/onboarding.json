@@ -94,6 +94,7 @@
     "title": "Khảo sát sức khoẻ ban đầu",
     "subtitle": "Giúp CatCheck thiết lập mốc chuẩn và lịch nhắc phù hợp cho {{catName}}.",
     "forCat": "Dành riêng cho {{catName}}",
+    "yourCat": "bé mèo của bạn",
     "skip": "Bỏ qua, để sau",
     "skipConfirm": {
       "title": "Bỏ qua khảo sát?",
@@ -176,7 +177,8 @@
         },
         "exclusiveNone": "Không thể chọn cùng các dấu hiệu khác."
       }
-    }
+    },
+    "definitionError": "Không tải được bộ câu hỏi khảo sát. Vui lòng thử lại."
   },
   "disclaimer": {
     "title": "Miễn trừ trách nhiệm y tế",

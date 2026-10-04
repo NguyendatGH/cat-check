@@ -17,32 +17,46 @@ import {
   Droplets,
   PawPrint,
 } from "lucide-react";
-import { Button, Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/ui";
+import { Button, Dialog, DialogContent, DialogDescription, DialogTitle, ErrorState, SkeletonLoader } from "@/shared/ui";
 import {
   OnboardingShell,
   OptionCard,
+  PhBandBar,
   QuestionField,
   surveySchema,
+  useHealthSurveyDefinition,
   useOnboardingStore,
   usePhBands,
   useSubmitSurvey,
+  EMPTY_SURVEY_ANSWERS,
   type CreatedCat,
   type PhBand,
   type SurveyFormValues,
+  type SurveyQuestionDefinition,
 } from "@/features/onboarding";
 import litterSilica from "@/shared/assets/images/onboarding-litter-silica.jpg";
 import litterBentonite from "@/shared/assets/images/onboarding-litter-bentonite.jpg";
 import litterOrganic from "@/shared/assets/images/onboarding-litter-organic.jpg";
 import { cn } from "@/shared/lib/cn";
 
-const QUESTION_NAMES = [
-  "litterType",
-  "urinaryHistory",
-  "dietType",
-  "urinationFrequency",
-] as const;
+/**
+ * Tên trường hợp lệ của form = chính shape của `surveySchema` (nguồn kiểu duy nhất). Danh
+ * sách/thứ tự/lựa chọn CÂU HỎI đến từ F6 `GET /reference/health-survey/{version}`; chỗ này
+ * chỉ là cầu nối kiểu để `react-hook-form` biết trường nào là chuỗi, trường nào là mảng.
+ */
+type SurveyFieldName = keyof SurveyFormValues;
+type MultiFieldName = { [K in SurveyFieldName]: SurveyFormValues[K] extends string[] ? K : never }[SurveyFieldName];
+type SingleFieldName = Exclude<SurveyFieldName, MultiFieldName>;
 
-type OptionMap = Record<string, string>;
+const SURVEY_FIELD_NAMES = Object.keys(surveySchema.shape) as SurveyFieldName[];
+
+function isSurveyField(key: string): key is SurveyFieldName {
+  return (SURVEY_FIELD_NAMES as string[]).includes(key);
+}
+
+function isMultiField(key: SurveyFieldName): key is MultiFieldName {
+  return Array.isArray(EMPTY_SURVEY_ANSWERS[key]);
+}
 
 /** Ảnh thật từng loại cát (M1 01c-4) — trích từ SVG thiết kế gốc, không dùng cho SILICA vì
  * Figma không mock lựa chọn này riêng (trùng hình với CATCHECK_SMART trong bản thiết kế). */
@@ -57,7 +71,8 @@ const ICON_PROPS = { size: 20, "aria-hidden": true } as const;
 /** Icon từng lựa chọn — khớp Figma M1 01c-4. `urinationFrequency`/`symptoms` KHÔNG có icon
  * vì Figma không mock 2 câu hỏi này (chỉ 4 câu: litter/tiền sử/ăn uống/lịch quét — lịch quét
  * thuộc M5 reminder, đã loại theo ORCHESTRATOR §2, thay bằng `urinationFrequency` có sẵn
- * trong `SurveyAnswers`); không tự bịa icon khi không có nguồn thiết kế. */
+ * trong `SurveyAnswers`); không tự bịa icon khi không có nguồn thiết kế — 2 câu đó nhận ô
+ * radio/checkbox mặc định của `OptionCard` như bản web W1 Web-01c-4. */
 const OPTION_ICONS: Partial<Record<string, Partial<Record<string, ReactNode>>>> = {
   // SILICA là lựa chọn duy nhất không có ảnh thật trong Figma — dùng icon để 4 thẻ cùng
   // chiều cao và cùng có khối dẫn bên trái.
@@ -75,13 +90,22 @@ const OPTION_ICONS: Partial<Record<string, Partial<Record<string, ReactNode>>>> 
   },
 };
 
-/** Bố cục lưới từng câu — M1 01c-4: câu 1 & 2 xếp dọc trên mobile, câu 3 hai cột. */
-const QUESTION_GRID: Record<(typeof QUESTION_NAMES)[number], string> = {
+/**
+ * Bố cục lưới từng câu — M1 01c-4: câu 1 & 2 xếp dọc trên mobile, câu 3 hai cột. Đây là dữ
+ * liệu THIẾT KẾ theo khoá câu hỏi, không phải định nghĩa câu hỏi; khoá lạ (backend thêm câu
+ * mới) rơi về `QUESTION_GRID_DEFAULT`.
+ */
+const QUESTION_GRID: Record<string, string> = {
   litterType: "grid-cols-1 lg:grid-cols-2",
-  urinaryHistory: "grid-cols-1 lg:grid-cols-2",
+  // 1 cột ở mọi breakpoint (M1 01c-4): mỗi lựa chọn có chú thích phụ căn phải, 2 cột làm
+  // chú thích vỡ 3 dòng trong thẻ cột trái bản web.
+  urinaryHistory: "grid-cols-1",
   dietType: "grid-cols-2",
   urinationFrequency: "grid-cols-1 sm:grid-cols-2",
+  symptoms: "grid-cols-1 md:grid-cols-2",
 };
+
+const QUESTION_GRID_DEFAULT = "grid-cols-1 sm:grid-cols-2";
 
 /** Câu hỏi dùng thẻ xếp dọc (icon trên, chữ dưới) — M1 01c-4 câu "Chế độ ăn". */
 const STACKED_QUESTIONS = new Set<string>(["dietType"]);
@@ -100,16 +124,9 @@ const RECOMMENDED_LITTER = "CATCHECK_SMART";
 
 const GUIDE_STEPS = ["step1", "step2", "step3"] as const;
 
-/** Thanh dải pH: màu theo `severity` (token `--color-ph-*` chỉ khai ở `:root`). */
-const PH_SEVERITY_BAR: Record<PhBand["severity"], string> = {
-  NORMAL: "bg-[var(--color-ph-normal)]",
-  ATTENTION: "bg-[var(--color-ph-mild)]",
-  WATCH: "bg-[var(--color-ph-abnormal)]",
-  NEUTRAL: "bg-[var(--color-ph-unknown)]",
-};
-
 interface SurveyAsideProps {
   cat: CreatedCat | null;
+  catName: string;
   bands: PhBand[];
 }
 
@@ -121,7 +138,7 @@ interface SurveyAsideProps {
  * không trả chỉ số nào như vậy và nó là phát ngôn y tế (W1 §5 đã đánh dấu mâu thuẫn với
  * quyết định #6). Khối bảo mật "HIPAA" cũng bị bỏ — W1 §5 ghi rõ HIPAA không áp dụng ở VN.
  */
-function SurveyAside({ cat, bands }: SurveyAsideProps) {
+function SurveyAside({ cat, catName, bands }: SurveyAsideProps) {
   const { t } = useTranslation("onboarding");
   const normalBand = bands.find((b) => b.severity === "NORMAL");
 
@@ -180,18 +197,8 @@ function SurveyAside({ cat, bands }: SurveyAsideProps) {
             <p className="text-h2 font-bold text-[var(--color-ph-normal-text)]">
               {normalBand.phMin}–{normalBand.phMax}
             </p>
-            <div className="flex h-2 overflow-hidden rounded-full">
-              {bands.map((band) => (
-                <span
-                  key={band.code}
-                  className={cn("h-full flex-1", PH_SEVERITY_BAR[band.severity])}
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
-            <p className="text-caption text-text-secondary">
-              {t("web.survey.phCard.body", { catName: cat?.name ?? "" })}
-            </p>
+            <PhBandBar bands={bands} />
+            <p className="text-caption text-text-secondary">{t("web.survey.phCard.body", { catName })}</p>
           </>
         ) : (
           <p className="text-caption text-text-tertiary">{t("web.survey.phCard.loading")}</p>
@@ -213,9 +220,7 @@ function SurveyAside({ cat, bands }: SurveyAsideProps) {
                 <span className="text-caption font-semibold text-text-primary">
                   {t(`web.survey.guide.${key}.title`)}
                 </span>
-                <span className="text-caption text-text-secondary">
-                  {t(`web.survey.guide.${key}.body`)}
-                </span>
+                <span className="text-caption text-text-secondary">{t(`web.survey.guide.${key}.body`)}</span>
               </span>
             </li>
           ))}
@@ -239,10 +244,11 @@ export function OnboardingHealthSurveyPage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
 
-  const questionOptions = (key: string): OptionMap => t(key, { returnObjects: true }) as OptionMap;
   const { createdCat, surveyAnswers, setSurveyAnswers, setSurveySkipped, setStep } = useOnboardingStore();
   const submitSurvey = useSubmitSurvey(createdCat?.id ?? "");
   const { data: phBands } = usePhBands();
+  // F6 — bộ câu hỏi THẬT. Thứ tự, kiểu (SINGLE/MULTI) và danh sách lựa chọn đều của server.
+  const definitionQuery = useHealthSurveyDefinition();
   const [skipOpen, setSkipOpen] = useState(false);
 
   const {
@@ -261,19 +267,114 @@ export function OnboardingHealthSurveyPage() {
     },
   });
 
-  const watchedSymptoms = watch("symptoms");
   const isSaving = isSubmitting || submitSurvey.isPending;
 
-  const handleSymptomChange = (value: string, checked: boolean) => {
+  /**
+   * Câu MULTI: `NONE` loại trừ mọi lựa chọn khác (và ngược lại) — quy tắc nghiệp vụ của
+   * `cat_health_survey.answers`, không phải của một câu hỏi cụ thể nào.
+   */
+  const toggleMultiValue = (name: MultiFieldName, current: string[], value: string, checked: boolean) => {
     let next: string[];
     if (value === "NONE") {
       next = checked ? ["NONE"] : [];
     } else {
-      next = checked
-        ? [...watchedSymptoms.filter((s) => s !== "NONE"), value]
-        : watchedSymptoms.filter((s) => s !== value);
+      next = checked ? [...current.filter((v) => v !== "NONE"), value] : current.filter((v) => v !== value);
     }
-    setValue("symptoms", next, { shouldValidate: true });
+    setValue(name, next, { shouldValidate: true });
+  };
+
+  /** Lựa chọn nào có mô tả/chú thích riêng trong i18n thì dùng, không có thì bỏ qua. */
+  const optionalText = (key: string): string | undefined => t(key, { defaultValue: "" }) || undefined;
+
+  /**
+   * Chỉ render câu hỏi mà schema client biết: backend thêm câu mới (version sau) thì trường
+   * đó chưa có chỗ trong `SurveyFormValues`, hiển thị nó ra sẽ tạo ô nhập không bao giờ gửi
+   * đi được. Bỏ qua lặng lẽ an toàn hơn là dựng ô giả.
+   */
+  const questions: SurveyQuestionDefinition[] = [...(definitionQuery.data?.questions ?? [])]
+    .filter((q) => isSurveyField(q.key))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const renderQuestion = (question: SurveyQuestionDefinition, index: number) => {
+    if (!isSurveyField(question.key)) return null;
+    const name = question.key;
+    const grid = cn("grid gap-3", QUESTION_GRID[name] ?? QUESTION_GRID_DEFAULT);
+    const label = t(question.labelKey);
+    const multi = question.type === "MULTI";
+
+    if (multi && isMultiField(name)) {
+      const selected = watch(name);
+      return (
+        <QuestionField
+          key={name}
+          number={index + 1}
+          label={label}
+          hint={optionalText(`survey.questions.${name}.hint`)}
+          error={errors[name]?.message}
+        >
+          <div className={grid}>
+            {question.options.map((option) => (
+              <OptionCard
+                key={option.code}
+                type="checkbox"
+                name={name}
+                value={option.code}
+                checked={selected.includes(option.code)}
+                onChange={() => {
+                  toggleMultiValue(name, selected, option.code, !selected.includes(option.code));
+                }}
+                title={t(option.labelKey)}
+              />
+            ))}
+          </div>
+        </QuestionField>
+      );
+    }
+
+    const singleName = name as SingleFieldName;
+    return (
+      <QuestionField
+        key={name}
+        number={index + 1}
+        label={label}
+        meta={QUESTIONS_WITH_META.has(name) ? optionalText(`survey.questions.${name}.meta`) : undefined}
+        error={errors[singleName]?.message}
+      >
+        <div className={grid}>
+          {question.options.map((option) => (
+            <OptionCard
+              key={option.code}
+              type="radio"
+              name={singleName}
+              value={option.code}
+              checked={watch(singleName) === option.code}
+              onChange={(v) => {
+                setValue(singleName, v, { shouldValidate: true });
+              }}
+              title={t(option.labelKey)}
+              description={
+                QUESTIONS_WITH_DESCRIPTION.has(name)
+                  ? optionalText(`survey.questions.${name}.descriptions.${option.code}`)
+                  : undefined
+              }
+              meta={
+                name === "urinaryHistory" && URINARY_NOTE_VALUES.has(option.code)
+                  ? optionalText(`survey.questions.urinaryHistory.notes.${option.code}`)
+                  : undefined
+              }
+              badge={
+                name === "litterType" && option.code === RECOMMENDED_LITTER
+                  ? optionalText("survey.questions.litterType.recommended")
+                  : undefined
+              }
+              layout={STACKED_QUESTIONS.has(name) ? "stack" : "row"}
+              imageUrl={name === "litterType" ? LITTER_TYPE_IMAGES[option.code] : undefined}
+              icon={OPTION_ICONS[name]?.[option.code]}
+            />
+          ))}
+        </div>
+      </QuestionField>
+    );
   };
 
   const onSubmit = async (values: SurveyFormValues) => {
@@ -301,7 +402,8 @@ export function OnboardingHealthSurveyPage() {
     void navigate("/onboarding/disclaimer");
   };
 
-  const catName = createdCat?.name ?? "";
+  // Chưa có hồ sơ (vào thẳng URL) thì câu "…phù hợp cho {catName}." bị cụt thành "cho ."
+  const catName = createdCat?.name ?? t("survey.yourCat");
 
   return (
     <OnboardingShell
@@ -309,12 +411,18 @@ export function OnboardingHealthSurveyPage() {
       title={t("survey.title")}
       subtitle={t("survey.subtitle", { catName })}
       panel
-      onBack={() => { void navigate("/onboarding/cat"); }}
-      onStepClick={(step) => {
-        if (step === 1) { void navigate("/onboarding/cat"); }
-        if (step === 2) { void navigate("/onboarding/health-survey"); }
+      onBack={() => {
+        void navigate("/onboarding/cat");
       }}
-      aside={<SurveyAside cat={createdCat} bands={phBands ?? []} />}
+      onStepClick={(step) => {
+        if (step === 1) {
+          void navigate("/onboarding/cat");
+        }
+        if (step === 2) {
+          void navigate("/onboarding/health-survey");
+        }
+      }}
+      aside={<SurveyAside cat={createdCat} catName={catName} bands={phBands ?? []} />}
       footer={
         <div className="flex flex-col gap-3">
           <Button
@@ -323,7 +431,9 @@ export function OnboardingHealthSurveyPage() {
             loading={isSaving}
             className="w-full"
             disabled={isSaving || !createdCat}
-            onClick={() => { void handleSubmit(onSubmit)(); }}
+            onClick={() => {
+              void handleSubmit(onSubmit)();
+            }}
           >
             {isSaving ? t("survey.saving") : t("survey.submit")}
           </Button>
@@ -333,7 +443,9 @@ export function OnboardingHealthSurveyPage() {
             size="md"
             className="w-full"
             disabled={isSaving}
-            onClick={() => { setSkipOpen(true); }}
+            onClick={() => {
+              setSkipOpen(true);
+            }}
           >
             {t("survey.skip")}
           </Button>
@@ -347,71 +459,22 @@ export function OnboardingHealthSurveyPage() {
           {t("survey.forCat", { catName })}
         </p>
 
-        {QUESTION_NAMES.map((name, index) => (
-          <QuestionField
-            key={name}
-            number={index + 1}
-            label={t(`survey.questions.${name}.label`)}
-            meta={QUESTIONS_WITH_META.has(name) ? t(`survey.questions.${name}.meta`) : undefined}
-            error={errors[name]?.message}
-          >
-            <div className={cn("grid gap-3", QUESTION_GRID[name])}>
-              {Object.entries(questionOptions(`survey.questions.${name}.options`)).map(
-                ([value, label]) => (
-                  <OptionCard
-                    key={value}
-                    type="radio"
-                    name={name}
-                    value={value}
-                    checked={watch(name) === value}
-                    onChange={(v) => { setValue(name, v, { shouldValidate: true }); }}
-                    title={label}
-                    description={
-                      QUESTIONS_WITH_DESCRIPTION.has(name)
-                        ? t(`survey.questions.${name}.descriptions.${value}`)
-                        : undefined
-                    }
-                    meta={
-                      name === "urinaryHistory" && URINARY_NOTE_VALUES.has(value)
-                        ? t(`survey.questions.urinaryHistory.notes.${value}`)
-                        : undefined
-                    }
-                    badge={
-                      name === "litterType" && value === RECOMMENDED_LITTER
-                        ? t("survey.questions.litterType.recommended")
-                        : undefined
-                    }
-                    layout={STACKED_QUESTIONS.has(name) ? "stack" : "row"}
-                    imageUrl={name === "litterType" ? LITTER_TYPE_IMAGES[value] : undefined}
-                    icon={OPTION_ICONS[name]?.[value]}
-                  />
-                ),
-              )}
-            </div>
-          </QuestionField>
-        ))}
-
-        <QuestionField
-          label={t("survey.questions.symptoms.label")}
-          hint={t("survey.questions.symptoms.hint")}
-          error={errors.symptoms?.message}
-        >
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {Object.entries(questionOptions("survey.questions.symptoms.options")).map(
-              ([value, label]) => (
-                <OptionCard
-                  key={value}
-                  type="checkbox"
-                  name="symptoms"
-                  value={value}
-                  checked={watchedSymptoms.includes(value)}
-                  onChange={() => { handleSymptomChange(value, !watchedSymptoms.includes(value)); }}
-                  title={label}
-                />
-              ),
-            )}
+        {definitionQuery.isPending ? (
+          <div className="flex flex-col gap-4">
+            <SkeletonLoader shape="card" className="h-40" />
+            <SkeletonLoader shape="card" className="h-40" />
           </div>
-        </QuestionField>
+        ) : definitionQuery.isError ? (
+          <ErrorState
+            title={t("survey.definitionError")}
+            onRetry={() => {
+              void definitionQuery.refetch();
+            }}
+            retryLabel={t("actions.retry", { ns: "common" })}
+          />
+        ) : (
+          questions.map(renderQuestion)
+        )}
       </div>
 
       <Dialog open={skipOpen} onOpenChange={setSkipOpen}>
@@ -419,10 +482,21 @@ export function OnboardingHealthSurveyPage() {
           <DialogTitle>{t("survey.skipConfirm.title")}</DialogTitle>
           <DialogDescription>{t("survey.skipConfirm.description")}</DialogDescription>
           <div className="mt-4 flex flex-col gap-3">
-            <Button type="button" variant="tertiary" onClick={() => { void onSkip(); }}>
+            <Button
+              type="button"
+              variant="tertiary"
+              onClick={() => {
+                void onSkip();
+              }}
+            >
               {t("survey.skipConfirm.confirm")}
             </Button>
-            <Button type="button" onClick={() => { setSkipOpen(false); }}>
+            <Button
+              type="button"
+              onClick={() => {
+                setSkipOpen(false);
+              }}
+            >
               {t("survey.skipConfirm.cancel")}
             </Button>
           </div>

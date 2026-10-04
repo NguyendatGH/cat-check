@@ -63,3 +63,16 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;
 }
+
+export async function downloadPrivacyExport(publicRef: string, token: string): Promise<Blob> {
+  const headers = new Headers({ Accept: "application/zip", "Accept-Language": currentAcceptLanguage(), "X-DSAR-Download-Token": token });
+  const response = await fetch(`${BASE_URL}/privacy/export/${encodeURIComponent(publicRef)}/download`, {
+    credentials: "include", headers,
+  });
+  if (!response.ok) {
+    let problem: ProblemDetail | undefined;
+    try { problem = (await response.json()) as ProblemDetail; } catch { /* retain status */ }
+    throw new ApiError(problem?.detail ?? `Request failed with status ${String(response.status)}`, response.status, problem?.errorCode);
+  }
+  return response.blob();
+}

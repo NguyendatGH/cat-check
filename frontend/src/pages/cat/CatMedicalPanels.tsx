@@ -1,23 +1,13 @@
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import type { Cat } from "@/entities/cat";
-import type { PhBand } from "@/entities/ph-bands";
+import { PhGaugeBar, type PhBand } from "@/entities/ph-bands";
 import { useCatNotes, type CatSummaryResponse } from "@/features/cat";
 import { useScanHistory } from "@/features/history";
 import { cn } from "@/shared/lib/cn";
-import iconVerified from "@/shared/assets/icons/web-cat/profile-verified-isfm.svg";
 import iconExportPdf from "@/shared/assets/icons/web-cat/profile-export-pdf.svg";
-import iconVaccine from "@/shared/assets/icons/web-cat/profile-vaccine.svg";
-import iconClockNext from "@/shared/assets/icons/web-cat/profile-clock-next.svg";
-import iconDeworm from "@/shared/assets/icons/web-cat/profile-deworm.svg";
-import iconAccessShield from "@/shared/assets/icons/web-cat/profile-access-shield.svg";
-import iconAllergy from "@/shared/assets/icons/web-cat/profile-allergy.svg";
-import iconCrystals from "@/shared/assets/icons/web-cat/profile-crystals.svg";
-import iconVoiding from "@/shared/assets/icons/web-cat/profile-voiding.svg";
 import iconLastScan from "@/shared/assets/icons/web-cat/profile-last-scan.svg";
 import iconAttachment from "@/shared/assets/icons/web-cat/profile-attachment.svg";
-import iconEditMenu from "@/shared/assets/icons/web-cat/profile-edit-menu.svg";
-import iconHydration from "@/shared/assets/icons/web-cat/profile-hydration.svg";
-import iconDiet from "@/shared/assets/icons/web-cat/profile-diet.svg";
 import iconDoctor from "@/shared/assets/icons/web-cat/hub-doctor.svg";
 import sandScanThumb from "@/shared/assets/images/web-cat/profile-sand-scan-thumb.png";
 
@@ -26,37 +16,24 @@ import sandScanThumb from "@/shared/assets/images/web-cat/profile-sand-scan-thum
  * `26mOVF2zdu4cI1EPz2Syxw` node `16:4290` "Web - 06 & 07. Hồ sơ Bé Mèo & Sổ khám Y tế",
  * cụ thể `16:4470` (RIGHT COLUMN) và `16:4555` (Medical Timeline).
  *
- * **Dữ liệu THẬT** (từ D12 `GET /cats/{id}/summary`, nay đã chạy): pH lần quét gần nhất,
- * thời điểm quét, phân loại, độ tin cậy, số lần quét 30 ngày, tỉ lệ trong ngưỡng, số cảnh báo
- * chưa đọc. Truyền xuống qua prop `summary` — `null` khi đang tải / lỗi / mèo chưa quét lần nào.
+ * **Dữ liệu THẬT** (từ D12 `GET /cats/{id}/summary`): pH lần quét gần nhất, thời điểm quét,
+ * phân loại, độ tin cậy, số lần quét 30 ngày, tỉ lệ trong ngưỡng, số cảnh báo chưa đọc.
+ * Dòng thời gian y tế chạy bằng `GET /scans` + `GET /cats/{id}/notes`.
  *
- * **Dữ liệu THẬT bổ sung**: dòng thời gian y tế nay chạy bằng `GET /scans` + `GET /cats/{id}/notes`
- * (xem {@link MedicalTimeline}) — không còn sự kiện khám bệnh bịa.
+ * ĐÃ BỎ HẲN (W1-E) — `DESIGN_MOCK_PROFILE` và mọi khối phụ thuộc nó, vì backend không có
+ * trường nào tương ứng và nguyên tắc là **bỏ khỏi UI, không bịa dữ liệu**:
+ *  - thể tích/tần suất bãi tiểu, hydrat hoá, khẩu phần (`NutritionPanel`);
+ *  - nhóm máu, tiền sử dị ứng (`CatIdentityTiles`);
+ *  - vaccine, tẩy giun; "Quyền giám sát lâm sàng" (chia sẻ hồ sơ real-time) — không có bảng,
+ *    không có endpoint, và p10 §6.8 xếp phần chia sẻ đa người ngoài Phase 1;
+ *  - ô "Sỏi & cặn bàng quang" và hai nhãn "Nguy cơ Canxi Oxalat/Struvite" — đây là CHẨN ĐOÁN
+ *    phân biệt, trái quyết định #6/#8 (chỉ đo pH, không phát hiện máu/khoáng);
+ *  - badge "Hồ sơ đã xác thực ISFM Gold Standard" — claim chứng nhận không có bằng chứng
+ *    (p15 REQ-CLAIM-02).
  *
- * ⚠️ **Phần còn lại vẫn là DỮ LIỆU MẪU THEO THIẾT KẾ** ({@link DESIGN_MOCK_PROFILE}): thể tích
- * bãi tiểu, khẩu phần, hydrat hoá, vaccine, tẩy giun, nhóm máu, dị nguyên. Backend KHÔNG có
- * field nào cho những thứ này (không có bảng, không có endpoint) nên không thể nối thật —
- * giữ nguyên mock và đánh dấu rõ, không nguỵ trang thành dữ liệu thật.
+ * Thang pH trong `SpectrumCard` nay dùng `PhGaugeBar` của `entities/ph-bands` — ngưỡng và
+ * màu đến từ `GET /reference/ph-bands`, không còn gradient 5.0→8.0 hard-code.
  */
-
-const DESIGN_MOCK_PROFILE = {
-  voiding: "45",
-  voidingUnit: "ml/lần",
-  voidingFreq: "Tần suất: 3.2 lần/ngày (Bình thường)",
-  phValue: 6.8,
-  bloodType: "Loại A (Type A)",
-  bloodNote: "Kháng thể chuẩn",
-  allergy: "Không phát hiện",
-  allergyNote: "Đã test 18 dị nguyên",
-  vaccineNext: "18/11/2025",
-  vaccineRemain: "Còn 385 ngày",
-  dewormLast: "Đã uống: 2 tuần trước (14/10)",
-  dewormNext: "14/11",
-  hydration: "160 ml / ngày",
-  hydrationNote: "Đạt 38ml/kg thể trọng (Tối ưu)",
-  hydrationGoal: "100% mục tiêu",
-  diet: "Royal Canin Feline Urinary S/O kết hợp Pâté Monge hồi phục đường tiết niệu vào bữa tối (50g hạt + 85g ướt).",
-};
 
 /** Cột phải desktop: chỉ số theo dõi, phổ pH, dòng thời gian, dinh dưỡng. */
 export function CatClinicalColumn({
@@ -78,9 +55,8 @@ export function CatClinicalColumn({
   return (
     <div className="flex flex-col gap-5">
       <DiagnosticAlertRow summary={summary} />
-      <SpectrumCard cat={cat} summary={summary} />
+      <SpectrumCard cat={cat} summary={summary} bands={bands} />
       <MedicalTimeline catId={cat.id} bands={bands} scanCount={scanCount} onViewAll={onViewAllHistory} />
-      <NutritionPanel />
       <p className="text-[10px] leading-relaxed text-text-tertiary">{t("disclaimer.short")}</p>
     </div>
   );
@@ -88,13 +64,14 @@ export function CatClinicalColumn({
 
 function DiagnosticAlertRow({ summary }: { summary?: CatSummaryResponse }) {
   const { t } = useTranslation("cat");
-  // THẬT: số lần quét 30 ngày + tỉ lệ trong ngưỡng. Mèo chưa quét lần nào → hiển thị 0/—,
-  // đúng trạng thái hợp lệ của tài khoản mới chứ không phải lỗi.
+  // CHỈ các trường D12 thật trả: số lần quét 30 ngày, tỉ lệ trong ngưỡng, độ tin cậy lần
+  // quét gần nhất. Mèo chưa quét lần nào → 0/— , đúng trạng thái hợp lệ của tài khoản mới.
   const scanCount = summary?.scanCount30d ?? 0;
   const inRangePercent =
     summary?.inRangeRatio30d != null ? `${String(Math.round(summary.inRangeRatio30d * 100))}%` : "—";
+  const confidence = summary?.lastScan?.confidence;
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 gap-4">
       <div className="rounded-2xl bg-success-bg p-4">
         <p className="text-[10px] font-bold uppercase tracking-[0.5px] text-success-text opacity-80">
           {t("web.profile.inRange30d")}
@@ -108,41 +85,26 @@ function DiagnosticAlertRow({ summary }: { summary?: CatSummaryResponse }) {
 
       <div className="rounded-2xl bg-surface p-4 shadow-xs">
         <div className="flex items-start gap-2">
-          <img src={iconCrystals} alt="" className="mt-0.5 size-3.5 shrink-0" />
+          <img src={iconLastScan} alt="" className="mt-0.5 size-3.5 shrink-0" />
           <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.5px] text-text-tertiary">
-            {t("web.profile.crystals")}
-          </p>
-        </div>
-        <p className="pt-2 text-caption font-semibold text-text-primary">{t("web.profile.crystalsValue")}</p>
-        <p className="pt-1 text-[10px] text-text-tertiary">{t("web.profile.crystalsNote")}</p>
-      </div>
-
-      <div className="rounded-2xl bg-surface p-4 shadow-xs">
-        <div className="flex items-start gap-2">
-          <img src={iconVoiding} alt="" className="mt-0.5 size-3.5 shrink-0" />
-          <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.5px] text-text-tertiary">
-            {t("web.profile.voiding")}
+            {t("web.profile.confidenceLabel")}
           </p>
         </div>
         <p className="pt-2 text-h3 font-bold text-text-primary">
-          {DESIGN_MOCK_PROFILE.voiding} <span className="text-caption font-normal">{DESIGN_MOCK_PROFILE.voidingUnit}</span>
+          {confidence != null ? t("web.profile.confidenceValue", { value: Math.round(confidence * 100) }) : "—"}
         </p>
-        <p className="text-[10px] text-text-tertiary">{DESIGN_MOCK_PROFILE.voidingFreq}</p>
-        <p className="pt-1 text-[10px] text-text-tertiary">{t("web.profile.voidingNote")}</p>
+        <p className="pt-1 text-[10px] text-text-tertiary">{t("web.profile.confidenceNote")}</p>
       </div>
     </div>
   );
 }
 
-function SpectrumCard({ cat, summary }: { cat: Cat; summary?: CatSummaryResponse }) {
+function SpectrumCard({ cat, summary, bands }: { cat: Cat; summary?: CatSummaryResponse; bands: PhBand[] }) {
   const { t, i18n } = useTranslation("cat");
-  // THẬT: pH + thời điểm của lần quét gần nhất. Chưa có lần quét kết luận được thì rơi về
-  // giá trị mẫu để khung thiết kế không vỡ, và nhãn bên dưới nói rõ là chưa có dữ liệu.
+  // THẬT: pH + thời điểm của lần quét gần nhất. Chưa có lần quét kết luận được thì KHÔNG đặt
+  // kim chỉ (không có giá trị mẫu nào) và nhãn bên dưới nói rõ là chưa có dữ liệu.
   const lastScan = summary?.lastScan ?? null;
   const phValue = lastScan?.phValue ?? null;
-  const gaugeValue = phValue ?? DESIGN_MOCK_PROFILE.phValue;
-  // Vị trí kim chỉ trên dải pH 5.0 → 8.0, kẹp trong [0,100] phòng giá trị ngoài dải.
-  const pct = Math.min(100, Math.max(0, ((gaugeValue - 5) / 3) * 100));
   const lastScanLabel = lastScan
     ? t("web.profile.lastScanAt", {
         date: new Date(lastScan.capturedAt).toLocaleDateString(i18n.language),
@@ -153,22 +115,9 @@ function SpectrumCard({ cat, summary }: { cat: Cat; summary?: CatSummaryResponse
       <h3 className="text-h3 font-bold text-text-primary">{t("web.profile.spectrumTitle")}</h3>
       <p className="pt-1 text-caption text-text-secondary">{t("web.profile.spectrumSub")}</p>
 
-      <div className="relative mt-6">
-        <div className="h-4 w-full rounded-full bg-gradient-to-r from-ph-abnormal via-ph-normal to-ph-mild" />
-        <div className="absolute -top-1 -translate-x-1/2" style={{ left: `${String(pct)}%` }}>
-          <div className="size-6 rounded-full border-4 border-surface bg-primary-dark shadow-sm" />
-        </div>
-      </div>
-
-      <div className="mt-3 flex justify-between text-[10px] text-text-tertiary">
-        <span>{t("web.profile.spectrumAcid")}</span>
-        <span className="font-semibold text-ph-normal-text">{t("web.profile.spectrumIdeal")}</span>
-        <span>{t("web.profile.spectrumAlkaline")}</span>
-      </div>
-      <div className="mt-1 flex justify-between text-[10px] text-text-tertiary">
-        <span>{t("web.profile.spectrumRiskOxalate")}</span>
-        <span>{t("web.profile.spectrumRiskStruvite")}</span>
-      </div>
+      {/* Dải màu + nhãn ngưỡng lấy TỪ API (`GET /reference/ph-bands`) — không hard-code
+          ngưỡng pH và không vẽ nhãn "nguy cơ sỏi" (chẩn đoán, trái quyết định #6/#8). */}
+      <PhGaugeBar bands={bands} value={phValue} className="mt-6" />
 
       <div className="mt-4 flex items-center gap-2 rounded-xl bg-info px-3 py-2">
         <img src={iconLastScan} alt="" className="size-3.5 shrink-0" />
@@ -225,7 +174,7 @@ function MedicalTimeline({
       at: scan.capturedAt,
       title: t("web.profile.timelineScanTitle"),
       subtitle:
-        scan.phValue !== null
+        scan.phValue != null
           ? t("web.profile.timelineScanSubtitle", { label, value: scan.phValue.toFixed(1) })
           : t("web.profile.timelineScanSubtitleNoPh", { label }),
       body: null,
@@ -257,9 +206,7 @@ function MedicalTimeline({
           onClick={onViewAll}
           className="shrink-0 text-caption font-semibold text-primary-dark hover:underline"
         >
-          {scanCount != null
-            ? t("web.profile.timelineAllCount", { count: scanCount })
-            : t("web.profile.timelineAll")}
+          {scanCount != null ? t("web.profile.timelineAllCount", { count: scanCount }) : t("web.profile.timelineAll")}
         </button>
       </div>
 
@@ -286,9 +233,7 @@ function MedicalTimeline({
                 )}
                 <div className="min-w-0">
                   <p className="text-caption font-bold text-text-primary">{ev.title}</p>
-                  {ev.subtitle ? (
-                    <p className="text-caption font-semibold text-primary-dark">{ev.subtitle}</p>
-                  ) : null}
+                  {ev.subtitle ? <p className="text-caption font-semibold text-primary-dark">{ev.subtitle}</p> : null}
                   <p className="pt-0.5 text-[10px] text-text-tertiary">
                     {new Date(ev.at).toLocaleDateString(i18n.language)}
                   </p>
@@ -307,85 +252,18 @@ function MedicalTimeline({
   );
 }
 
-function NutritionPanel() {
-  const { t } = useTranslation("cat");
-  return (
-    <section className="rounded-2xl bg-surface p-6 shadow-xs">
-      <div className="flex items-start justify-between gap-4">
-        <h3 className="text-h3 font-bold text-text-primary">{t("web.profile.nutritionTitle")}</h3>
-        <button
-          type="button"
-          className="flex shrink-0 items-center gap-1.5 text-caption font-semibold text-primary-dark hover:underline"
-        >
-          <img src={iconEditMenu} alt="" className="size-3.5" />
-          {t("web.profile.nutritionUpdate")}
-        </button>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        <div className="rounded-xl bg-info p-4">
-          <div className="flex items-center gap-2">
-            <img src={iconHydration} alt="" className="size-4" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.5px] text-info-text">
-              {t("web.profile.hydrationLabel")}
-            </p>
-          </div>
-          <p className="pt-2 text-h3 font-bold text-info-text">{DESIGN_MOCK_PROFILE.hydration}</p>
-          <p className="text-[10px] text-info-text opacity-80">{DESIGN_MOCK_PROFILE.hydrationNote}</p>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface/60">
-            <div className="h-full w-full rounded-full bg-primary" />
-          </div>
-          <p className="pt-1 text-[10px] font-semibold text-info-text">{DESIGN_MOCK_PROFILE.hydrationGoal}</p>
-        </div>
-
-        <div className="rounded-xl bg-background-alt p-4">
-          <div className="flex items-center gap-2">
-            <img src={iconDiet} alt="" className="size-4" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.5px] text-text-tertiary">
-              {t("web.profile.dietLabel")}
-            </p>
-          </div>
-          <p className="pt-2 text-caption leading-relaxed text-text-secondary">{DESIGN_MOCK_PROFILE.diet}</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /**
- * Hai ô "Nhóm máu" / "Tiền sử dị ứng" — ở Figma chúng nằm TRONG lưới nhận diện của thẻ hồ sơ
- * (`16:4300`), không phải khối rời cuối cột. Tách ra để `CatProfileHero` nhận qua `extraTiles`.
- * Nội dung vẫn là {@link DESIGN_MOCK_PROFILE} (backend không có hai trường này).
+ * Cột trái desktop. Figma vẽ ba thẻ: "Bác sĩ phụ trách", "Phòng bệnh & ký sinh"
+ * (vaccine/tẩy giun) và "Quyền giám sát lâm sàng" (chia sẻ hồ sơ real-time).
+ *
+ * Chỉ giữ thẻ đầu, ở TRẠNG THÁI RỖNG THẬT: không có endpoint nào gắn mèo với phòng khám
+ * (`place` là Phase 2, p4). Hai thẻ còn lại đã bỏ — backend không có bảng vaccine/tẩy giun
+ * và không có cơ chế chia sẻ hồ sơ, nên mọi con số ở đó là bịa.
  */
-export function CatIdentityTiles() {
-  const { t } = useTranslation("cat");
-  return (
-    <>
-      <div className="rounded-xl bg-background-alt p-3">
-        <p className="text-small text-text-tertiary">{t("web.profile.bloodType")}</p>
-        <p className="pt-0.5 text-caption font-bold text-text-primary">{DESIGN_MOCK_PROFILE.bloodType}</p>
-        <p className="text-small text-text-tertiary">{DESIGN_MOCK_PROFILE.bloodNote}</p>
-      </div>
-      <div className="rounded-xl bg-background-alt p-3">
-        <p className="flex items-center gap-1.5 text-small text-text-tertiary">
-          <img src={iconAllergy} alt="" className="size-3" />
-          {t("web.profile.allergy")}
-        </p>
-        <p className="pt-0.5 text-caption font-bold text-text-primary">{DESIGN_MOCK_PROFILE.allergy}</p>
-        <p className="text-small text-text-tertiary">{DESIGN_MOCK_PROFILE.allergyNote}</p>
-      </div>
-    </>
-  );
-}
-
-/** Cột trái desktop: bác sĩ phụ trách, thẻ tiêm phòng/tẩy giun, quyền giám sát lâm sàng. */
 export function CatIdentityExtras() {
   const { t } = useTranslation("cat");
   return (
     <div className="flex flex-col gap-5">
-      {/* Figma có thẻ "BÁC SĨ PHỤ TRÁCH" với tên + phòng khám + nút gọi. KHÔNG có endpoint
-          nào gắn mèo với phòng khám (`place` là Phase 2, p4) nên dựng đúng khung và hiển thị
-          TRẠNG THÁI RỖNG THẬT thay vì bịa tên một bác sĩ. */}
       <section className="rounded-2xl bg-surface p-5 shadow-xs">
         <div className="flex items-start gap-2">
           <img src={iconDoctor} alt="" className="mt-0.5 size-4 shrink-0" />
@@ -396,72 +274,26 @@ export function CatIdentityExtras() {
         <p className="pt-2 text-caption font-semibold text-text-primary">{t("web.profile.doctorEmptyTitle")}</p>
         <p className="pt-1 text-[10px] leading-relaxed text-text-tertiary">{t("web.profile.doctorEmptyBody")}</p>
       </section>
-
-      <section className="rounded-2xl bg-surface p-5 shadow-xs">
-        <h3 className="text-caption font-bold uppercase tracking-[0.4px] text-text-tertiary">
-          {t("web.profile.vaccineTitle")}
-        </h3>
-
-        <div className="mt-3 flex items-start gap-3 rounded-xl bg-success-bg p-3">
-          <img src={iconVaccine} alt="" className="mt-0.5 size-4 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-caption font-semibold text-success-text">{t("web.profile.vaccineName")}</p>
-            <p className="text-[10px] text-success-text opacity-80">{t("web.profile.vaccineNote")}</p>
-            <p className="pt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-success-text">
-              <img src={iconClockNext} alt="" className="size-3" />
-              {t("web.profile.vaccineNext", { date: DESIGN_MOCK_PROFILE.vaccineNext })} · {DESIGN_MOCK_PROFILE.vaccineRemain}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-start gap-3 rounded-xl bg-background-alt p-3">
-          <img src={iconDeworm} alt="" className="mt-0.5 size-4 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-caption font-semibold text-text-primary">{t("web.profile.dewormName")}</p>
-            <p className="text-[10px] text-text-tertiary">{t("web.profile.dewormNote")}</p>
-            <p className="pt-1 text-[10px] text-text-secondary">
-              {DESIGN_MOCK_PROFILE.dewormLast} · {DESIGN_MOCK_PROFILE.dewormNext}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl bg-surface p-5 shadow-xs">
-        <div className="flex items-start gap-2">
-          <img src={iconAccessShield} alt="" className="mt-0.5 size-4 shrink-0" />
-          <h3 className="text-caption font-bold uppercase leading-tight tracking-[0.4px] text-text-tertiary">
-            {t("web.profile.accessTitle")}
-          </h3>
-        </div>
-        <p className="pt-2 text-caption leading-relaxed text-text-secondary">{t("web.profile.accessBody")}</p>
-        <button
-          type="button"
-          className="mt-3 w-full rounded-xl bg-background-alt px-4 py-2 text-caption font-semibold text-primary-dark"
-        >
-          {t("web.profile.accessManage")}
-        </button>
-      </section>
-
     </div>
   );
 }
 
-/** Hàng hành động trên cùng của desktop: badge xác thực + xuất bệnh án. */
+/**
+ * Hàng hành động trên cùng của desktop. Badge "Hồ sơ đã xác thực ISFM Gold Standard" của
+ * Figma đã bỏ (claim chứng nhận không có bằng chứng — p15 REQ-CLAIM-02). Nút xuất hồ sơ nay
+ * dẫn thật sang `/export` thay vì là nút không làm gì.
+ */
 export function CatProfileTopActions({ className }: { className?: string }) {
   const { t } = useTranslation("cat");
   return (
-    <div className={cn("flex items-center justify-between gap-4", className)}>
-      <span className="inline-flex items-center gap-2 rounded-full bg-success-bg px-3 py-1.5 text-[11px] font-semibold text-success-text">
-        <img src={iconVerified} alt="" className="size-3.5" />
-        {t("web.profile.verified")}
-      </span>
-      <button
-        type="button"
+    <div className={cn("flex items-center justify-end gap-4", className)}>
+      <Link
+        to="/export"
         className="inline-flex items-center gap-2 rounded-xl bg-primary-dark px-4 py-2 text-caption font-semibold text-white"
       >
         <img src={iconExportPdf} alt="" className="size-3.5" />
         {t("web.profile.exportPdf")}
-      </button>
+      </Link>
     </div>
   );
 }

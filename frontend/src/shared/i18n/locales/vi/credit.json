@@ -15,13 +15,6 @@
     "overview": "Tổng quan",
     "ledger": "Lịch sử giao dịch"
   },
-  "packages": {
-    "MINI": "CATCHECK Mini – Trial",
-    "DAILY": "CATCHECK Daily",
-    "PLUS": "CATCHECK Plus",
-    "MULTI": "CATCHECK Multi",
-    "CARE_BOX": "CATCHECK Care Box"
-  },
   "balance": {
     "availableLabel": "Credit khả dụng",
     "unit": "credit",
@@ -90,5 +83,16 @@
       "expiresLabel": "Hạn dùng",
       "continue": "Về trang Credit"
     }
+  },
+  "catalog": {
+    "sectionTitle": "Danh mục gói",
+    "credits": "{{count}} credit",
+    "validity": "hạn {{days}} ngày",
+    "weight": "{{value}} kg cát",
+    "catsLimit": "Tối đa {{count}} hồ sơ mèo",
+    "catsUnlimited": "Không giới hạn số hồ sơ mèo",
+    "emptyTitle": "Chưa có gói nào đang mở bán",
+    "emptyDescription": "Khi có gói mới, danh mục sẽ hiện ở đây.",
+    "errorTitle": "Không tải được danh mục gói"
   }
 }

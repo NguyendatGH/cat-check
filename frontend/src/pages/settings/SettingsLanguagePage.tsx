@@ -66,7 +66,9 @@ export function SettingsLanguagePage() {
                 name="locale"
                 value={locale}
                 checked={selected}
-                onChange={() => { choose(locale); }}
+                onChange={() => {
+                  choose(locale);
+                }}
                 className="sr-only"
               />
               <span className="min-w-0 flex-1">

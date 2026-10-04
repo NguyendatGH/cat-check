@@ -96,7 +96,9 @@ export function SettingsSecurityPage() {
               type="password"
               autoComplete="current-password"
               value={currentPassword}
-              onChange={(event) => { setCurrentPassword(event.target.value); }}
+              onChange={(event) => {
+                setCurrentPassword(event.target.value);
+              }}
             />
             <Input
               label={t("security.newPassword")}
@@ -104,7 +106,9 @@ export function SettingsSecurityPage() {
               autoComplete="new-password"
               helperText={t("security.changePasswordNote")}
               value={newPassword}
-              onChange={(event) => { setNewPassword(event.target.value); }}
+              onChange={(event) => {
+                setNewPassword(event.target.value);
+              }}
             />
 
             <div className="flex items-center gap-3">
@@ -142,7 +146,9 @@ export function SettingsSecurityPage() {
               {otherSessions.length > 0 ? (
                 <button
                   type="button"
-                  onClick={() => { revokeAll.mutate(undefined, { onSuccess: invalidateSessions }); }}
+                  onClick={() => {
+                    revokeAll.mutate(undefined, { onSuccess: invalidateSessions });
+                  }}
                   className="text-caption font-semibold text-danger hover:underline"
                 >
                   {t("security.sessionRevokeAll")}
@@ -158,10 +164,7 @@ export function SettingsSecurityPage() {
             ) : (
               <ul className="flex flex-col gap-2">
                 {(sessions?.items ?? []).map((session) => (
-                  <li
-                    key={session.id}
-                    className="flex items-center gap-3 rounded-xl bg-background-alt/60 p-3"
-                  >
+                  <li key={session.id} className="flex items-center gap-3 rounded-xl bg-background-alt/60 p-3">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-primary-dark">
                       <Monitor size={17} aria-hidden="true" />
                     </span>
@@ -233,7 +236,9 @@ export function SettingsSecurityPage() {
                 loading={regenerate.isPending}
                 onClick={() => {
                   regenerate.mutate(undefined, {
-                    onSuccess: (result) => { setRecoveryCodes(result.recoveryCodes); },
+                    onSuccess: (result) => {
+                      setRecoveryCodes(result.recoveryCodes);
+                    },
                   });
                 }}
               >
@@ -271,7 +276,9 @@ export function SettingsSecurityPage() {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 value={totpCode}
-                onChange={(event) => { setTotpCode(event.target.value); }}
+                onChange={(event) => {
+                  setTotpCode(event.target.value);
+                }}
               />
               <Button
                 type="button"
@@ -295,7 +302,9 @@ export function SettingsSecurityPage() {
               type="button"
               size="md"
               loading={totpInit.isPending}
-              onClick={() => { totpInit.mutate(undefined); }}
+              onClick={() => {
+                totpInit.mutate(undefined);
+              }}
             >
               {t("security.mfaEnableCta")}
             </Button>

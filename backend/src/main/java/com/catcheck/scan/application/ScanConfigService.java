@@ -1,7 +1,7 @@
 package com.catcheck.scan.application;
 
 import com.catcheck.scan.domain.ScanThresholds;
-import com.catcheck.scan.domain.color.port.ChartCatalog;
+import com.catcheck.scan.domain.color.ChartCatalog;
 import org.springframework.stereotype.Service;
 
 /**

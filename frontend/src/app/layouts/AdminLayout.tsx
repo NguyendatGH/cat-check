@@ -18,7 +18,10 @@ export function AdminLayout() {
   const { t } = useTranslation("admin");
   return (
     <div className="flex min-h-dvh bg-background">
-      <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4" aria-label={t("nav.label")}>
+      <nav
+        className="flex w-56 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4"
+        aria-label={t("nav.label")}
+      >
         <p className="mb-2 px-3 text-overline text-text-tertiary">{t("nav.label")}</p>
         {ADMIN_NAV_ITEMS.map((item) => (
           <NavLink

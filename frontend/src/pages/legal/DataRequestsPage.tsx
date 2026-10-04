@@ -71,8 +71,12 @@ export function DataRequestsPage() {
             <ul className="flex flex-col gap-2">
               {rights.map((right) => (
                 <li key={right.key} className="rounded-lg border border-border bg-surface p-3">
-                  <p className="text-body font-semibold text-text-primary">{t(`dataRequests.rights.${right.key}.label`)}</p>
-                  <p className="text-caption text-text-secondary">{t(`dataRequests.rights.${right.key}.description`)}</p>
+                  <p className="text-body font-semibold text-text-primary">
+                    {t(`dataRequests.rights.${right.key}.label`)}
+                  </p>
+                  <p className="text-caption text-text-secondary">
+                    {t(`dataRequests.rights.${right.key}.description`)}
+                  </p>
                   <p className="mt-1 text-caption font-semibold text-primary">{t(right.sla)}</p>
                 </li>
               ))}
@@ -90,11 +94,23 @@ export function DataRequestsPage() {
               <li>{t("dataRequests.howToSubmit.email")}</li>
             </ol>
             {isAuthenticated ? (
-              <Button type="button" className="lg:self-start" onClick={() => { void navigate("/account/privacy"); }}>
+              <Button
+                type="button"
+                className="lg:self-start"
+                onClick={() => {
+                  void navigate("/account/privacy");
+                }}
+              >
                 {t("dataRequests.goToPrivacyCenter")}
               </Button>
             ) : (
-              <Button type="button" className="lg:self-start" onClick={() => { void navigate("/auth/login?next=%2Faccount%2Fprivacy"); }}>
+              <Button
+                type="button"
+                className="lg:self-start"
+                onClick={() => {
+                  void navigate("/auth/login?next=%2Faccount%2Fprivacy");
+                }}
+              >
                 {t("dataRequests.loginToSubmit")}
               </Button>
             )}

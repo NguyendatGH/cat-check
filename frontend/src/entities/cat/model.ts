@@ -19,12 +19,7 @@ export type NoteType = "GENERAL" | "DIET_CHANGE" | "SYMPTOM" | "VET_VISIT" | "LI
  * KHÔNG phải danh mục cấu hình. Không suy ra chẩn đoán/tên bệnh từ tập này (quyết định #6, #8).
  */
 export type ClinicalSign =
-  | "STRAINING"
-  | "NO_URINE"
-  | "CRYING"
-  | "BLOOD_VISIBLE"
-  | "LETHARGY_ANOREXIA"
-  | "EXCESSIVE_LICKING";
+  "STRAINING" | "NO_URINE" | "CRYING" | "BLOOD_VISIBLE" | "LETHARGY_ANOREXIA" | "EXCESSIVE_LICKING";
 
 export const CLINICAL_SIGNS: ClinicalSign[] = [
   "STRAINING",

@@ -59,6 +59,9 @@ class JdbcScanQueryRepository implements ScanQueryRepository {
     public Page findHistory(HistoryFilter filter, String cursor, int limit) {
         int fetchSize = Math.min(Math.max(limit, 1) + 1, HARD_LIMIT + 1);
         StringBuilder sql = new StringBuilder(BASE_SELECT);
+        // INCONCLUSIVE rows are retained for audit/history accounting, but the public history
+        // contract exposes only rows that GET /scans/{id} can render.
+        sql.append(" AND sa.classification IS NOT NULL AND sa.classification <> 'INCONCLUSIVE'");
         List<Object> args = new ArrayList<>();
         appendFilter(sql, args, filter);
 

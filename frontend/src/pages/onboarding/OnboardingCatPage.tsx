@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
   ArrowRight,
+  CalendarDays,
   CirclePlus,
   HelpCircle,
   IdCard,
@@ -23,6 +24,7 @@ import {
   FieldLabel,
   OnboardingShell,
   OptionCard,
+  PhBandBar,
   catProfileSchema,
   useBreeds,
   useCreateCat,
@@ -37,7 +39,6 @@ import {
 } from "@/features/onboarding";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
 import { isApiError } from "@/shared/api";
-import { cn } from "@/shared/lib/cn";
 
 /**
  * Bước 1/5 — Hồ sơ bé mèo (M1 01c-3, W1 Web-01c-3; p2 US-E2-01).
@@ -54,14 +55,6 @@ import { cn } from "@/shared/lib/cn";
  * CATCHECK Biomarker v2.4", card trích lời một bác sĩ có tên, và khối khuyến mãi tặng mẫu
  * cát 200g (fulfillment vật lý, chưa có entity — xem W1 §4 "Ghi chú / mâu thuẫn").
  */
-
-/** Thanh dải pH: màu theo `severity` của band (token `--color-ph-*` chỉ có ở `:root`). */
-const PH_SEVERITY_BAR: Record<PhBand["severity"], string> = {
-  NORMAL: "bg-[var(--color-ph-normal)]",
-  ATTENTION: "bg-[var(--color-ph-mild)]",
-  WATCH: "bg-[var(--color-ph-abnormal)]",
-  NEUTRAL: "bg-[var(--color-ph-unknown)]",
-};
 
 /** Tuổi (tháng) từ ngày sinh dạng `YYYY-MM-DD`; `null` khi chưa nhập/không hợp lệ. */
 function monthsSinceBirth(birthDate: string): number | null {
@@ -137,9 +130,7 @@ function CatIdCardPreview({
           </span>
         )}
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="truncate text-h3 font-bold text-white">
-            {name.trim() || t("web.cat.card.namePlaceholder")}
-          </p>
+          <p className="truncate text-h3 font-bold text-white">{name.trim() || t("web.cat.card.namePlaceholder")}</p>
           <p className="truncate text-caption text-on-primary-subtle">
             {breedName ?? t("web.cat.card.breedPlaceholder")}
           </p>
@@ -159,15 +150,7 @@ function CatIdCardPreview({
         </div>
         {bands.length > 0 ? (
           <>
-            <div className="flex h-2 overflow-hidden rounded-full">
-              {bands.map((band) => (
-                <span
-                  key={band.code}
-                  className={cn("h-full flex-1", PH_SEVERITY_BAR[band.severity])}
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
+            <PhBandBar bands={bands} />
             <div className="flex items-center justify-between gap-2 text-small text-on-primary-muted">
               <span className="truncate">{firstBand?.label}</span>
               {normalBand ? (
@@ -215,7 +198,7 @@ export function OnboardingCatPage() {
   const { data: breeds, isLoading: breedsLoading } = useBreeds();
   const createCat = useCreateCat();
   const updateCat = useUpdateCat(createdCat?.id ?? "");
-  const uploadAvatar = useUploadAvatar(createdCat?.id ?? "");
+  const uploadAvatar = useUploadAvatar();
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -272,7 +255,9 @@ export function OnboardingCatPage() {
     if (avatarFile) {
       const url = URL.createObjectURL(avatarFile);
       setAvatarPreview(url);
-      return () => { URL.revokeObjectURL(url); };
+      return () => {
+        URL.revokeObjectURL(url);
+      };
     }
     setAvatarPreview(null);
   }, [avatarFile]);
@@ -316,9 +301,13 @@ export function OnboardingCatPage() {
       return false;
     }
 
+    // Persist the id immediately after POST/PATCH succeeds. Avatar upload is a separate request;
+    // if it fails, retrying must PATCH this cat instead of creating another row in `cat`.
+    setCreatedCat(cat);
+
     if (avatarFile) {
       try {
-        const { avatarUrl } = await uploadAvatar.mutateAsync(avatarFile);
+        const { avatarUrl } = await uploadAvatar.mutateAsync({ catId: cat.id, file: avatarFile });
         cat = { ...cat, avatarUrl };
       } catch {
         setSubmitError(t("errors.generic"));
@@ -369,7 +358,9 @@ export function OnboardingCatPage() {
       panel
       onBack={undefined}
       onStepClick={(step) => {
-        if (step === 1) { void navigate("/onboarding/cat"); }
+        if (step === 1) {
+          void navigate("/onboarding/cat");
+        }
       }}
       aside={
         <>
@@ -400,7 +391,9 @@ export function OnboardingCatPage() {
             loading={isSaving}
             className="w-full"
             disabled={isSaving}
-            onClick={() => { void handleSubmit(onSubmit)(); }}
+            onClick={() => {
+              void handleSubmit(onSubmit)();
+            }}
           >
             {isSaving ? t("cat.saving") : t("cat.submit")}
             {isSaving ? null : <ArrowRight className="size-5" aria-hidden="true" />}
@@ -412,7 +405,9 @@ export function OnboardingCatPage() {
             className="w-full"
             disabled={isSaving}
             leftIcon={<CirclePlus className="size-5" aria-hidden="true" />}
-            onClick={() => { void handleSubmit(onAddAnother)(); }}
+            onClick={() => {
+              void handleSubmit(onAddAnother)();
+            }}
           >
             {t("cat.addAnother")}
           </Button>
@@ -423,7 +418,9 @@ export function OnboardingCatPage() {
         <AvatarUpload
           file={avatarFile}
           previewUrl={avatarPreview}
-          onChange={(file) => { updateCatDraft({ avatarFile: file }); }}
+          onChange={(file) => {
+            updateCatDraft({ avatarFile: file });
+          }}
         />
 
         {/* Desktop: tên + giống đứng cạnh nhau (W1 Web-01c-3). */}
@@ -446,7 +443,9 @@ export function OnboardingCatPage() {
             breeds={breeds?.items}
             loading={breedsLoading}
             value={watchedBreedCode}
-            onChange={(code) => { setValue("breedCode", code, { shouldValidate: true }); }}
+            onChange={(code) => {
+              setValue("breedCode", code, { shouldValidate: true });
+            }}
             error={errors.breedCode?.message}
           />
         </div>
@@ -463,7 +462,9 @@ export function OnboardingCatPage() {
                 name="sex"
                 value={value}
                 checked={watchedSex === value}
-                onChange={(next) => { setValue("sex", next, { shouldValidate: true }); }}
+                onChange={(next) => {
+                  setValue("sex", next, { shouldValidate: true });
+                }}
                 title={t(`cat.sex.${value.toLowerCase()}`)}
                 description={t(`cat.sex.${value.toLowerCase()}Desc`)}
                 icon={icon}
@@ -475,7 +476,9 @@ export function OnboardingCatPage() {
 
         <Checkbox
           checked={neutered}
-          onChange={(checked) => { updateCatDraft({ neutered: checked }); }}
+          onChange={(checked) => {
+            updateCatDraft({ neutered: checked });
+          }}
           label={t("cat.neutered.label")}
           description={watchedSex === "MALE" && !neutered ? t("cat.neutered.warning") : undefined}
           warn={watchedSex === "MALE" && !neutered}
@@ -484,20 +487,16 @@ export function OnboardingCatPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <FieldLabel htmlFor="birthDate">{t("cat.birthDate.label")}</FieldLabel>
-            <input
+            {/* M1 01c-3: icon lịch bên trái, cùng khung với ô cân nặng. */}
+            <Input
               id="birthDate"
               type="date"
               max={new Date().toISOString().slice(0, 10)}
-              aria-invalid={errors.birthDate ? true : undefined}
-              className={cn(
-                "h-12 rounded-xl bg-surface px-4 text-body text-text-primary shadow-xs",
-                "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
-                errors.birthDate && "outline outline-2 outline-danger",
-              )}
+              leftIcon={<CalendarDays className="size-5" aria-hidden="true" />}
+              helperText={t("cat.birthDate.hint")}
+              error={errors.birthDate ? t(errors.birthDate.message ?? "") : undefined}
               {...register("birthDate")}
             />
-            <p className="text-small text-text-tertiary">{t("cat.birthDate.hint")}</p>
-            <FieldError message={errors.birthDate?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">

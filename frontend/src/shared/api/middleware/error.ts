@@ -19,8 +19,7 @@ export const errorMiddleware: Middleware = {
       // `problemDetail.setProperty("errorCode", ...)` và KHÔNG bao giờ set `code`. Bản trước
       // đọc `code` nên `ApiError.code` luôn `undefined`, làm mọi nhánh rẽ theo mã lỗi chết âm
       // thầm. Lỗi này tự che chính nó: mock MSW cũng từng phát `code`.
-      if (body && typeof body === "object" && "errorCode" in body
-          && typeof body.errorCode === "string") {
+      if (body && typeof body === "object" && "errorCode" in body && typeof body.errorCode === "string") {
         code = body.errorCode;
       }
     } catch {

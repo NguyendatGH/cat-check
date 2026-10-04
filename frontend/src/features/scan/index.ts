@@ -10,14 +10,18 @@ export {
   QualityFlagList,
   TriggeredFlagList,
   ScanResultSummary,
+  ScanAdviceCard,
   InconclusiveNotice,
+  SelectCatOption,
   SharedTrayOption,
+  MultiCatTip,
 } from "./components";
 export type {
   CaptureTriggerProps,
   QualityFlagListProps,
   ScanResultSummaryProps,
   InconclusiveNoticeProps,
+  SelectCatOptionProps,
   SharedTrayOptionProps,
 } from "./components";
 export { useScanCaptureStore } from "./store";

@@ -6,6 +6,7 @@
 - Trạng thái: M2 — 5 bước hoàn chỉnh (RHF+zod, zustand, react-query, MSW mocks).
 
 ## Cấu trúc
+
 Toàn bộ code nằm ở các file root (không thư mục con) vì `eslint.config.js` thiếu policy
 `feature → feature` — import giữa các file cùng feature bị rule `boundaries/dependencies`
 chặn. W3 bổ sung policy thì tách `components.tsx` → `components/`, `mocks.ts` → `mocks/`.

@@ -54,10 +54,7 @@ function buildBody(payload: CatMutationPayload): string {
 }
 
 /** Sau mọi mutation thay đổi hồ sơ mèo: `cat.lists()`, `cat.detail(id)`, `entitlement` (p9 §9.5.5). */
-function invalidateAfterCatChange(
-  queryClient: ReturnType<typeof useQueryClient>,
-  catId?: string,
-) {
+function invalidateAfterCatChange(queryClient: ReturnType<typeof useQueryClient>, catId?: string) {
   void queryClient.invalidateQueries({ queryKey: catKeys.lists() });
   if (catId) {
     void queryClient.invalidateQueries({ queryKey: catKeys.detail(catId) });
@@ -122,8 +119,7 @@ export function useCatSummary(catId: string | undefined): UseQueryResult<CatSumm
 export function usePatchCat(catId: string): UseMutationResult<Cat, Error, CatMutationPayload> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload) =>
-      apiFetch<Cat>(`/cats/${catId}`, { method: "PATCH", body: buildBody(payload) }),
+    mutationFn: (payload) => apiFetch<Cat>(`/cats/${catId}`, { method: "PATCH", body: buildBody(payload) }),
     onSuccess: (cat) => {
       queryClient.setQueryData(catKeys.detail(catId), cat);
       invalidateAfterCatChange(queryClient, catId);
@@ -135,7 +131,9 @@ export function useSoftDeleteCat(catId: string): UseMutationResult<void, Error, 
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch<undefined>(`/cats/${catId}`, { method: "DELETE" }),
-    onSuccess: () => { invalidateAfterCatChange(queryClient, catId); },
+    onSuccess: () => {
+      invalidateAfterCatChange(queryClient, catId);
+    },
   });
 }
 
@@ -168,8 +166,7 @@ export function useUnarchiveCat(catId: string): UseMutationResult<Cat, Error, vo
 export function useSetPrimaryCat(catId: string): UseMutationResult<PrimaryCatResult, Error, void> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () =>
-      apiFetch<PrimaryCatResult>(`/cats/${catId}/primary`, { method: "PUT", body: "{}" }),
+    mutationFn: () => apiFetch<PrimaryCatResult>(`/cats/${catId}/primary`, { method: "PUT", body: "{}" }),
     onSuccess: (result) => {
       invalidateAfterCatChange(queryClient, result.catId);
       if (result.previousPrimaryCatId) {
@@ -187,15 +184,13 @@ export function useSetPrimaryCat(catId: string): UseMutationResult<PrimaryCatRes
 // trong cùng handler — bind `catId` ở tham số hook sẽ đóng băng giá trị rỗng của lần
 // render trước, gọi nhầm `/cats//avatar`.
 
-export function useUploadCatAvatar(): UseMutationResult<
-  { avatarUrl: string },
-  Error,
-  { catId: string; file: File }
-> {
+export function useUploadCatAvatar(): UseMutationResult<{ avatarUrl: string }, Error, { catId: string; file: File }> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ catId, file }) => apiUploadAvatar(`/cats/${catId}/avatar`, file),
-    onSuccess: (_result, { catId }) => { invalidateAfterCatChange(queryClient, catId); },
+    onSuccess: (_result, { catId }) => {
+      invalidateAfterCatChange(queryClient, catId);
+    },
   });
 }
 
@@ -203,7 +198,9 @@ export function useRemoveCatAvatar(): UseMutationResult<void, Error, { catId: st
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ catId }) => apiFetch<undefined>(`/cats/${catId}/avatar`, { method: "DELETE" }),
-    onSuccess: (_result, { catId }) => { invalidateAfterCatChange(queryClient, catId); },
+    onSuccess: (_result, { catId }) => {
+      invalidateAfterCatChange(queryClient, catId);
+    },
   });
 }
 
@@ -260,9 +257,10 @@ export function useCreateNote(
 ): UseMutationResult<CatNote, Error, { noteType: NoteType; body: string; occurredOn: string | null }> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input) =>
-      apiFetch<CatNote>(`/cats/${catId}/notes`, { method: "POST", body: JSON.stringify(input) }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: catKeys.notes(catId) }); },
+    mutationFn: (input) => apiFetch<CatNote>(`/cats/${catId}/notes`, { method: "POST", body: JSON.stringify(input) }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: catKeys.notes(catId) });
+    },
   });
 }
 
@@ -272,9 +270,10 @@ export function usePatchNote(
 ): UseMutationResult<CatNote, Error, { noteType?: NoteType; body?: string; occurredOn?: string | null }> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input) =>
-      apiFetch<CatNote>(`/cat-notes/${noteId}`, { method: "PATCH", body: JSON.stringify(input) }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: catKeys.notes(catId) }); },
+    mutationFn: (input) => apiFetch<CatNote>(`/cat-notes/${noteId}`, { method: "PATCH", body: JSON.stringify(input) }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: catKeys.notes(catId) });
+    },
   });
 }
 
@@ -282,7 +281,9 @@ export function useDeleteNote(catId: string, noteId: string): UseMutationResult<
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch<undefined>(`/cat-notes/${noteId}`, { method: "DELETE" }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: catKeys.notes(catId) }); },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: catKeys.notes(catId) });
+    },
   });
 }
 
@@ -290,11 +291,7 @@ export function useDeleteNote(catId: string, noteId: string): UseMutationResult<
 
 export function useReportClinicalSigns(
   catId: string,
-): UseMutationResult<
-  ClinicalSignReportResult,
-  Error,
-  { signs: string[]; source: ClinicalSignSource; note?: string }
-> {
+): UseMutationResult<ClinicalSignReportResult, Error, { signs: string[]; source: ClinicalSignSource; note?: string }> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input) =>
@@ -302,7 +299,9 @@ export function useReportClinicalSigns(
         method: "POST",
         body: JSON.stringify(input),
       }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: catKeys.detail(catId) }); },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: catKeys.detail(catId) });
+    },
   });
 }
 

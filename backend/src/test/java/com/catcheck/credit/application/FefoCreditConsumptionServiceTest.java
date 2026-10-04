@@ -4,6 +4,7 @@ import com.catcheck.credit.api.CreditConsumption;
 import com.catcheck.credit.api.CreditConsumption.CreditConsumeCommand;
 import com.catcheck.credit.api.CreditConsumption.CreditRefundCommand;
 import com.catcheck.credit.domain.CreditBatchSnapshot;
+import com.catcheck.credit.api.CreditConsumption.ReferenceType;
 import com.catcheck.credit.domain.CreditLedgerRefType;
 import com.catcheck.credit.domain.CreditLedgerType;
 import com.catcheck.credit.domain.Entitlement;
@@ -69,7 +70,7 @@ class FefoCreditConsumptionServiceTest {
         entitlements.row.put(userId, writeAccess(userId));
 
         CreditConsumption.CreditCharge charge = service().consume(
-                userId, new CreditConsumeCommand(3, "key-1", CreditLedgerRefType.SCAN, UUID.randomUUID(), null));
+                userId, new CreditConsumeCommand(3, "key-1", ReferenceType.SCAN, UUID.randomUUID(), null));
 
         assertEquals(1, charge.ledgerEntries().size());
         assertEquals(sooner, charge.ledgerEntries().get(0).batchId());
@@ -88,7 +89,7 @@ class FefoCreditConsumptionServiceTest {
         entitlements.row.put(userId, writeAccess(userId));
 
         CreditConsumption.CreditCharge charge = service().consume(
-                userId, new CreditConsumeCommand(4, "key-2", CreditLedgerRefType.SCAN, UUID.randomUUID(), null));
+                userId, new CreditConsumeCommand(4, "key-2", ReferenceType.SCAN, UUID.randomUUID(), null));
 
         // Một dòng ledger cho MỖI lô bị trừ (p5 R2).
         assertEquals(2, charge.ledgerEntries().size());
@@ -107,7 +108,7 @@ class FefoCreditConsumptionServiceTest {
         entitlements.row.put(userId, writeAccess(userId));
 
         CreditConsumeCommand command =
-                new CreditConsumeCommand(5, "key-3", CreditLedgerRefType.SCAN, UUID.randomUUID(), null);
+                new CreditConsumeCommand(5, "key-3", ReferenceType.SCAN, UUID.randomUUID(), null);
         BusinessRuleException ex = assertThrows(BusinessRuleException.class,
                 () -> service().consume(userId, command));
         assertEquals("CREDIT_INSUFFICIENT", ex.errorCode().code());
@@ -124,7 +125,7 @@ class FefoCreditConsumptionServiceTest {
         UUID scanId = UUID.randomUUID();
 
         CreditConsumeCommand command =
-                new CreditConsumeCommand(2, "key-4", CreditLedgerRefType.SCAN, scanId, null);
+                new CreditConsumeCommand(2, "key-4", ReferenceType.SCAN, scanId, null);
         CreditConsumption.CreditCharge first = service().consume(userId, command);
         CreditConsumption.CreditCharge second = service().consume(userId, command);
 
@@ -209,6 +210,20 @@ class FefoCreditConsumptionServiceTest {
 
         @Override
         public void markExpired(UUID batchId) {
+        }
+
+        // Hai cổng của job nền (p12 §12.6.2). Test này chỉ kiểm đường FEFO nên trả rỗng: không
+        // lô nào "đủ điều kiện hết hạn" trong các kịch bản ở đây.
+        @Override
+        public Optional<com.catcheck.credit.domain.ExpiringCreditBatch> lockBatchForExpiry(
+                UUID batchId, Instant now) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<com.catcheck.credit.domain.ExpiringCreditBatch> lockBatchForExpiryReminder(
+                UUID batchId, com.catcheck.credit.domain.ExpiryReminderMilestone milestone, Instant now) {
+            return Optional.empty();
         }
 
         @Override

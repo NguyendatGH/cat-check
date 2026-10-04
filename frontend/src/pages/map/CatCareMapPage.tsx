@@ -1,42 +1,43 @@
 import { useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Map, { Marker, NavigationControl, ScaleControl } from "@vis.gl/react-maplibre";
+import * as maplibregl from "maplibre-gl";
+import type { StyleSpecification } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import {
   AlertTriangle,
   BadgeCheck,
-  Clock,
+  BriefcaseMedical,
   FlaskConical,
   Heart,
   HelpCircle,
-  Layers,
   Map as MapIcon,
   MapPin,
-  Minus,
+  Medal,
   Navigation,
   PawPrint,
   Phone,
-  Plus,
   Crosshair,
   Search,
   ShieldCheck,
+  Siren,
   SlidersHorizontal,
   Star,
   Stethoscope,
   Truck,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { mapTilesUrl } from "@/shared/config/env";
 import { DisclaimerBanner } from "@/entities/disclaimer";
+import { listPlaces, type PlaceApi } from "@/features/place";
 import {
-  DESIGN_MOCK_AREA,
-  DESIGN_MOCK_CERTIFIED_COUNT,
-  DESIGN_MOCK_FILTERS,
-  DESIGN_MOCK_MAP_RASTER_CITY,
-  DESIGN_MOCK_MAP_RASTER_WIDE,
-  DESIGN_MOCK_NEARBY_COUNT,
-  DESIGN_MOCK_PARTNER_COUNT,
-  DESIGN_MOCK_PLACES,
   DESIGN_MOCK_QUICK_SERVICES,
   DESIGN_MOCK_CLINIC_DETAIL,
+  DESIGN_MOCK_MAP_RASTER_CITY,
+  DESIGN_MOCK_MAP_RASTER_WIDE,
   formatVnd,
   type MockFilterChip,
   type MockPlace,
@@ -50,16 +51,13 @@ import {
  * sách + 541px bản đồ, vừa đúng khung nội dung 944px mà `AppLayout` cấp — KHÔNG tự thêm
  * padding ngang ở `lg`).
  *
- * BẢN ĐỒ: app không có thư viện bản đồ và không gọi dịch vụ tile nào. Khung bản đồ ở đây là
- * ẢNH TĨNH tách từ file SVG thiết kế, phía trên phủ các marker định vị tuyệt đối theo phần
- * trăm (`MockPlace.pin`). Nút zoom phóng to/thu nhỏ chính ảnh đó, nút "lớp bản đồ" đổi giữa
- * hai ảnh nền, nút "về giữa" đưa mức phóng về 1 — không nút nào gọi mạng.
+ * BẢN ĐỒ: MapLibre, marker lấy từ `GET /places`; provider tile thật cấu hình qua
+ * `VITE_MAP_TILES_URL`, còn local smoke/dev dùng raster fallback đúng asset Figma. Không dùng
+ * geolocation trình duyệt; khu vực tìm kiếm vẫn do người dùng nhập thủ công.
  *
  * RIÊNG TƯ (p4, mục đích `LOCATION_MAP`): màn này KHÔNG gọi `navigator.geolocation`. Khu vực
  * là hằng số mẫu người dùng tự chọn; khoảng cách là số dựng sẵn trong `mockData.ts`.
  */
-
-const ZOOM_STEPS = [1, 1.35, 1.8] as const;
 
 const PIN_TONE_CLASS: Record<MockPinTone, string> = {
   featured: "bg-primary-dark text-white ring-4 ring-secondary",
@@ -81,6 +79,28 @@ const QUICK_SERVICE_ICON = {
   alert: MapPin,
 } as const;
 
+/**
+ * Chip bộ lọc trong Figma không trung tính hết: "Cấp cứu 24/7" tô đỏ, "ISFM Gold" tô vàng,
+ * mỗi nhóm có icon dẫn (`1:2904` bản mobile, `16:5393` bản web). "Tất cả" không có icon.
+ */
+const FILTER_ICON: Partial<Record<MockFilterChip["id"], LucideIcon>> = {
+  clinic: BriefcaseMedical,
+  emergency: Siren,
+  isfm: Medal,
+  lab: FlaskConical,
+};
+
+const FILTER_TONE: Record<MockFilterChip["id"], { chip: string; count: string }> = {
+  all: {
+    chip: "bg-surface text-text-secondary hover:bg-chip-bg hover:text-primary-dark",
+    count: "bg-background-alt text-text-tertiary",
+  },
+  clinic: { chip: "bg-chip-bg text-primary-dark hover:bg-info", count: "bg-surface/70" },
+  emergency: { chip: "bg-danger-bg text-danger-text hover:bg-danger-bg/70", count: "bg-surface/70" },
+  isfm: { chip: "bg-secondary-light text-secondary-text-on hover:bg-secondary", count: "bg-surface/70" },
+  lab: { chip: "bg-success-bg text-success-text hover:bg-success-bg/70", count: "bg-surface/70" },
+};
+
 const QUICK_SERVICE_TONE = {
   secondary: "bg-secondary/25 text-secondary-text-on",
   primary: "bg-chip-bg text-primary-dark",
@@ -96,56 +116,85 @@ interface MapCanvasProps {
   children?: ReactNode;
 }
 
-/** Khung bản đồ tĩnh + marker. Dùng chung cho cả bản mobile và bản desktop. */
+const MAP_STYLE: StyleSpecification = {
+  version: 8,
+  sources: mapTilesUrl
+    ? {
+        mapTiles: {
+          type: "raster" as const,
+          tiles: [`${mapTilesUrl}/{z}/{x}/{y}.png`],
+          tileSize: 256,
+        },
+      }
+    : {},
+  layers: mapTilesUrl
+    ? [{ id: "mapTiles", type: "raster" as const, source: "mapTiles" }]
+    : [],
+};
+
+const MAPLIBRE_WORKER_URL = "/maplibre/maplibre-gl-worker.mjs";
+
+/** Bản đồ MapLibre dùng chung cho mobile và desktop. */
 function MapCanvas({ places, activeId, onSelect, className, children }: MapCanvasProps) {
   const { t } = useTranslation("map");
-  const [zoomIndex, setZoomIndex] = useState(0);
-  const [wideLayer, setWideLayer] = useState(true);
-  const zoom = ZOOM_STEPS[zoomIndex];
-
-  const controlClass =
-    "flex size-9 items-center justify-center bg-surface text-text-secondary transition-colors hover:bg-chip-bg hover:text-primary-dark";
+  const first = places.find((place) => place.latitude !== undefined && place.longitude !== undefined);
+  const latitude = first?.latitude ?? 10.804;
+  const longitude = first?.longitude ?? 106.735;
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl bg-background-alt", className)}>
-      <div
-        className="absolute inset-0 origin-center transition-transform duration-300"
-        style={{ transform: `scale(${zoom.toString()})` }}
+      {!mapTilesUrl ? (
+        <>
+          <img
+            src={DESIGN_MOCK_MAP_RASTER_CITY}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 size-full object-cover lg:hidden"
+          />
+          <img
+            src={DESIGN_MOCK_MAP_RASTER_WIDE}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 hidden size-full object-cover lg:block"
+          />
+        </>
+      ) : null}
+      <Map
+        mapLib={maplibregl}
+        workerUrl={MAPLIBRE_WORKER_URL}
+        initialViewState={{ latitude, longitude, zoom: 12 }}
+        mapStyle={MAP_STYLE}
+        style={{ position: "absolute", inset: 0 }}
       >
-        <img
-          src={wideLayer ? DESIGN_MOCK_MAP_RASTER_WIDE : DESIGN_MOCK_MAP_RASTER_CITY}
-          alt={t("map.alt")}
-          className="size-full object-cover"
-        />
-        <span className="pointer-events-none absolute inset-0 bg-primary-dark/5" aria-hidden="true" />
-
+        <NavigationControl position="top-right" showCompass={false} />
+        <ScaleControl position="bottom-left" />
         {places.map((place) => {
           const Icon = KIND_ICON[place.kind];
           const active = place.id === activeId;
           return (
-            <button
+            <Marker
               key={place.id}
-              type="button"
-              onClick={() => { onSelect(place.id); }}
-              aria-label={t("map.pinLabel", { name: place.name })}
-              aria-pressed={active}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${place.pin.leftPct.toString()}%`, top: `${place.pin.topPct.toString()}%` }}
+              latitude={place.latitude ?? latitude}
+              longitude={place.longitude ?? longitude}
+              anchor="bottom"
             >
-              <span
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect(place.id);
+                }}
+                aria-label={t("map.pinLabel", { name: place.name })}
+                aria-pressed={active}
                 className="flex flex-col items-center gap-1"
-                style={{ transform: `scale(${(1 / zoom).toString()})` }}
               >
-                {place.pin.label ? (
-                  <span
-                    className={cn(
-                      "whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold shadow-xs",
-                      active ? "bg-secondary text-secondary-text-on" : "bg-surface/95 text-text-primary",
-                    )}
-                  >
-                    {place.pin.label}
-                  </span>
-                ) : null}
+                <span
+                  className={cn(
+                    "whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold shadow-xs",
+                    active ? "bg-secondary text-secondary-text-on" : "bg-surface/95 text-text-primary",
+                  )}
+                >
+                  {place.name}
+                </span>
                 <span
                   className={cn(
                     "flex items-center justify-center rounded-xl shadow-brand-md transition-transform",
@@ -155,49 +204,11 @@ function MapCanvas({ places, activeId, onSelect, className, children }: MapCanva
                 >
                   <Icon size={active ? 18 : 15} aria-hidden="true" />
                 </span>
-              </span>
-            </button>
+              </button>
+            </Marker>
           );
         })}
-      </div>
-
-      {/* Cụm điều khiển — thao tác hoàn toàn cục bộ trên ảnh tĩnh. */}
-      <div className="absolute right-3 top-3 flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => { setWideLayer((v) => !v); }}
-          aria-label={t("map.layers")}
-          className={cn(controlClass, "rounded-xl shadow-brand-md")}
-        >
-          <Layers size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={() => { setZoomIndex(0); }}
-          aria-label={t("map.recenter")}
-          className={cn(controlClass, "rounded-xl shadow-brand-md")}
-        >
-          <Crosshair size={16} aria-hidden="true" />
-        </button>
-        <div className="overflow-hidden rounded-xl shadow-brand-md">
-          <button
-            type="button"
-            onClick={() => { setZoomIndex((i) => Math.min(i + 1, ZOOM_STEPS.length - 1)); }}
-            aria-label={t("map.zoomIn")}
-            className={cn(controlClass, "border-b border-background-alt")}
-          >
-            <Plus size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => { setZoomIndex((i) => Math.max(i - 1, 0)); }}
-            aria-label={t("map.zoomOut")}
-            className={controlClass}
-          >
-            <Minus size={16} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      </Map>
 
       {children}
     </div>
@@ -218,29 +229,35 @@ function FilterChips({
   const { t } = useTranslation("map");
   return (
     <div className={cn("flex gap-2", className)}>
-      {filters.map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          onClick={() => { onChange(f.id); }}
-          className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors",
-            active === f.id
-              ? "bg-primary-dark text-white"
-              : "bg-surface text-text-secondary hover:bg-chip-bg hover:text-primary-dark",
-          )}
-        >
-          {t(`filters.${f.id}`)}
-          <span
+      {filters.map((f) => {
+        const Icon = FILTER_ICON[f.id];
+        const selected = active === f.id;
+        return (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => {
+              onChange(f.id);
+            }}
+            aria-pressed={selected}
             className={cn(
-              "rounded-full px-1.5 text-[10px] font-bold",
-              active === f.id ? "bg-white/20" : "bg-background-alt text-text-tertiary",
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors",
+              selected ? "bg-primary-dark text-white" : FILTER_TONE[f.id].chip,
             )}
           >
-            {f.count}
-          </span>
-        </button>
-      ))}
+            {Icon ? <Icon size={13} className="shrink-0" aria-hidden="true" /> : null}
+            {t(`filters.${f.id}`)}
+            <span
+              className={cn(
+                "rounded-full px-1.5 text-[10px] font-bold",
+                selected ? "bg-white/20" : FILTER_TONE[f.id].count,
+              )}
+            >
+              {f.count}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -252,6 +269,36 @@ function matchesFilter(place: MockPlace, filter: MockFilterChip["id"]): boolean 
   return place.kind === filter;
 }
 
+function toViewPlace(place: PlaceApi, index: number): MockPlace {
+  const kind = place.kind === "EMERGENCY" ? "emergency" : place.kind === "PET_SHOP" ? "lab" : "clinic";
+  const tone = kind === "emergency" ? "emergency" : "clinic";
+  return {
+    id: place.id,
+    name: place.name,
+    shortName: place.name,
+    kind,
+    address: place.address,
+    area: place.area,
+    rating: place.rating,
+    reviewCount: place.reviewCount,
+    visitCount: 0,
+    openLabel: "Thông tin giờ mở cửa đang được cập nhật",
+    openTone: kind === "emergency" ? "danger" : "success",
+    hotlineLabel: kind === "emergency" ? "Cơ sở cấp cứu" : undefined,
+    badges: place.badges,
+    leadDoctor: "Đội ngũ chuyên môn của cơ sở",
+    amenity: "Thông tin dịch vụ tại cơ sở",
+    summary: place.address,
+    specialties: place.specialties,
+    certification: place.badges.find((badge) => badge.toLowerCase().includes("isfm")),
+    phone: place.phone ?? "",
+    pin: { leftPct: 50 + ((index * 17) % 35), topPct: 35 + ((index * 19) % 40), tone, label: place.name },
+    featured: false,
+    latitude: place.latitude,
+    longitude: place.longitude,
+  };
+}
+
 /* ------------------------------------------------------------------ mobile */
 
 function MobileFeaturedCard({ place }: { place: MockPlace }) {
@@ -261,13 +308,22 @@ function MobileFeaturedCard({ place }: { place: MockPlace }) {
   return (
     <article className="rounded-2xl bg-surface p-4 shadow-brand-md">
       <div className="flex items-start justify-between gap-3">
-        <span className="flex items-center gap-1.5 rounded-full bg-chip-bg px-2.5 py-1 text-[10px] font-bold tracking-[0.4px] text-primary-dark">
-          <Star size={11} fill="currentColor" aria-hidden="true" />
-          {t("list.featuredBadge")}
+        <span className="flex items-center gap-1.5">
+          <span className="rounded-full bg-chip-bg px-2.5 py-1 text-[10px] font-bold tracking-[0.4px] text-primary-dark">
+            {t("list.featuredBadge")}
+          </span>
+          <span
+            className="flex size-4 shrink-0 items-center justify-center rounded-full bg-secondary-text-on text-secondary"
+            aria-hidden="true"
+          >
+            <Star size={9} fill="currentColor" />
+          </span>
         </span>
         <button
           type="button"
-          onClick={() => { setSaved((v) => !v); }}
+          onClick={() => {
+            setSaved((v) => !v);
+          }}
           aria-label={saved ? t("list.saved") : t("list.save")}
           aria-pressed={saved}
           className={cn(
@@ -292,19 +348,21 @@ function MobileFeaturedCard({ place }: { place: MockPlace }) {
           {place.rating.toFixed(1)}
         </span>
         <span>{t("list.reviewCount", { count: place.reviewCount })}</span>
-        <span className="flex items-center gap-1 font-semibold text-primary-dark">
-          <Navigation size={12} aria-hidden="true" />
-          {t("list.distance", { km: place.distanceKm.toFixed(1) })}
-        </span>
+        {place.distanceKm !== undefined ? (
+          <span className="flex items-center gap-1 font-semibold text-primary-dark">
+            <Navigation size={12} aria-hidden="true" />
+            {t("list.distance", { km: place.distanceKm.toFixed(1) })}
+          </span>
+        ) : null}
       </p>
       <p className="pt-1 text-[12px] text-text-secondary">{place.area}</p>
 
-      <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-success-bg px-2.5 py-1.5 text-[11px] font-semibold text-success-text">
+      <p className="mt-3 flex w-fit max-w-full items-center gap-1.5 rounded-full bg-success-bg px-2.5 py-1.5 text-[11px] font-semibold text-success-text">
         <BadgeCheck size={13} aria-hidden="true" />
         {place.openLabel}
       </p>
       {place.hotlineLabel ? (
-        <p className="mt-1.5 flex items-center gap-1.5 rounded-lg bg-danger-bg px-2.5 py-1.5 text-[11px] font-semibold text-danger-text">
+        <p className="mt-1.5 flex w-fit max-w-full items-center gap-1.5 rounded-full bg-danger-bg px-2.5 py-1.5 text-[11px] font-semibold text-danger-text">
           <Phone size={13} aria-hidden="true" />
           {place.hotlineLabel}
         </p>
@@ -313,7 +371,7 @@ function MobileFeaturedCard({ place }: { place: MockPlace }) {
       <p className="pt-3 text-[11px] font-semibold text-text-tertiary">{t("list.specialtiesLabel")}</p>
       <div className="flex flex-wrap gap-1.5 pt-1.5">
         {place.specialties.map((s) => (
-          <span key={s} className="rounded-lg bg-background-alt px-2 py-1 text-[11px] text-text-secondary">
+          <span key={s} className="rounded-lg bg-chip-bg px-2 py-1 text-[11px] text-text-secondary">
             {s}
           </span>
         ))}
@@ -369,8 +427,12 @@ function MobileNearbyRow({ place }: { place: MockPlace }) {
             <Star size={10} className="text-secondary" fill="currentColor" aria-hidden="true" />
             {place.rating.toFixed(1)}
           </span>
-          <span>{t("list.distance", { km: place.distanceKm.toFixed(1) })}</span>
-          <span className={place.openTone === "danger" ? "font-semibold text-danger-text" : "font-semibold text-success-text"}>
+          {place.distanceKm !== undefined ? <span>{t("list.distance", { km: place.distanceKm.toFixed(1) })}</span> : null}
+          <span
+            className={
+              place.openTone === "danger" ? "font-semibold text-danger-text" : "font-semibold text-success-text"
+            }
+          >
             {place.openLabel}
           </span>
         </span>
@@ -389,13 +451,14 @@ function DesktopPlaceCard({ place, active, onSelect }: { place: MockPlace; activ
   return (
     <article
       className={cn(
-        "relative overflow-hidden rounded-2xl bg-surface p-4 shadow-brand-md transition-shadow",
+        // `shrink-0`: cột danh sách là flex-column CÓ `max-h` — thiếu nó thì flexbox bóp mỗi
+        // thẻ cho vừa khung rồi `overflow-hidden` cắt mất nửa dưới (ảnh so sánh Figma cho
+        // thấy thẻ chỉ còn badge + tên + địa chỉ). Danh sách phải cuộn, không phải thẻ bị ép.
+        "relative shrink-0 overflow-hidden rounded-2xl bg-surface p-4 shadow-brand-md transition-shadow",
         active ? "ring-2 ring-primary-dark" : "hover:shadow-brand-lg",
       )}
     >
-      {place.featured ? (
-        <span className="absolute inset-y-0 left-0 w-1 bg-primary-dark" aria-hidden="true" />
-      ) : null}
+      {place.featured ? <span className="absolute inset-y-0 left-0 w-1 bg-primary-dark" aria-hidden="true" /> : null}
 
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
@@ -415,10 +478,12 @@ function DesktopPlaceCard({ place, active, onSelect }: { place: MockPlace; activ
             </span>
           ))}
         </div>
-        <span className="shrink-0 rounded-lg bg-background-alt px-2 py-1 text-center text-[11px] font-bold leading-tight text-text-secondary">
-          {place.distanceKm.toFixed(1)}
-          <span className="block text-[10px] font-semibold text-text-tertiary">{t("list.kmUnit")}</span>
-        </span>
+        {place.distanceKm !== undefined ? (
+          <span className="shrink-0 rounded-lg bg-background-alt px-2 py-1 text-center text-[11px] font-bold leading-tight text-text-secondary">
+            {place.distanceKm.toFixed(1)}
+            <span className="block text-[10px] font-semibold text-text-tertiary">{t("list.kmUnit")}</span>
+          </span>
+        ) : null}
       </div>
 
       <Link
@@ -431,73 +496,102 @@ function DesktopPlaceCard({ place, active, onSelect }: { place: MockPlace; activ
       </Link>
       <p className="pt-1 text-[11px] text-text-tertiary">{place.address}</p>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-background-alt/70 p-2.5">
-        <p className="flex items-center gap-2 text-[11px] text-text-secondary">
-          <span className="flex items-center gap-1 rounded-md bg-surface px-1.5 py-0.5 text-[11px] font-bold text-text-primary">
-            <Star size={10} className="text-secondary" fill="currentColor" aria-hidden="true" />
-            {place.rating.toFixed(1)}
-          </span>
-          <span className="min-w-0">
-            <span className="block">{t("list.ratingLabel")}</span>
-            <span className="block font-bold text-text-primary">
-              {t("list.visitCount", { count: place.visitCount })}
+      {/*
+        Figma dựng HAI kiểu thân thẻ, không phải một: thẻ nổi bật có ô đánh giá + bác sĩ phụ
+        trách + tiện ích + 3 nút lớn; thẻ thường có mô tả 2 dòng + hàng sao gọn + 2 nút nhỏ.
+        Dựng chung một thân cho cả hai làm thẻ cao gấp đôi thiết kế và khung cuộn 574px chỉ
+        còn chứa nổi một thẻ rưỡi.
+      */}
+      {place.featured ? (
+        <>
+          <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-background-alt/70 p-2.5">
+            <p className="flex items-center gap-2 text-[11px] text-text-secondary">
+              <span className="flex items-center gap-1 rounded-md bg-surface px-1.5 py-0.5 text-[11px] font-bold text-text-primary">
+                <Star size={10} className="text-secondary" fill="currentColor" aria-hidden="true" />
+                {place.rating.toFixed(1)}
+              </span>
+              <span className="min-w-0">
+                <span className="block">{t("list.ratingLabel")}</span>
+                <span className="block font-bold text-text-primary">
+                  {t("list.visitCount", { count: place.visitCount })}
+                </span>
+              </span>
+            </p>
+            <p className="flex items-center gap-2 text-[11px] text-text-secondary">
+              <Stethoscope size={14} className="shrink-0 text-primary-dark" aria-hidden="true" />
+              <span className="min-w-0">
+                <span className="block">{t("list.leadDoctorLabel")}</span>
+                <span className="block truncate font-bold text-text-primary">{place.leadDoctor}</span>
+              </span>
+            </p>
+          </div>
+
+          <p className="flex items-center gap-1.5 pt-2.5 text-[12px] text-text-secondary">
+            <BadgeCheck size={13} className="shrink-0 text-success" aria-hidden="true" />
+            {place.amenity}
+          </p>
+
+          <div className="flex gap-2 pt-3">
+            <Link
+              to={`/map/clinics/${place.id}`}
+              onClick={onSelect}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-dark px-3 py-2.5 text-[12px] font-bold text-white hover:bg-primary"
+            >
+              <MapPin size={13} aria-hidden="true" />
+              {t("actions.book")}
+            </Link>
+            <a
+              href={`tel:${place.phone.replace(/\s/g, "")}`}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-danger-bg px-3 py-2.5 text-center text-[12px] font-bold leading-tight text-danger-text hover:bg-danger-bg/70"
+            >
+              <Phone size={13} className="shrink-0" aria-hidden="true" />
+              {t("actions.urgentAdvice")}
+            </a>
+            <button
+              type="button"
+              onClick={onSelect}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-chip-bg px-3 py-2.5 text-[12px] font-bold text-primary-dark hover:bg-info"
+            >
+              <Navigation size={13} aria-hidden="true" />
+              {t("actions.directions")}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="line-clamp-2 pt-2 text-[12px] leading-relaxed text-text-secondary">{place.summary}</p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 pt-3 text-[11px] text-text-secondary">
+            <span className="flex items-center gap-1 font-bold text-text-primary">
+              <Star size={11} className="text-secondary" fill="currentColor" aria-hidden="true" />
+              {place.rating.toFixed(1)}
             </span>
-          </span>
-        </p>
-        <p className="flex items-center gap-2 text-[11px] text-text-secondary">
-          <Stethoscope size={14} className="shrink-0 text-primary-dark" aria-hidden="true" />
-          <span className="min-w-0">
-            <span className="block">{t("list.leadDoctorLabel")}</span>
-            <span className="block truncate font-bold text-text-primary">{place.leadDoctor}</span>
-          </span>
-        </p>
-      </div>
-
-      <p className="flex items-center gap-1.5 pt-2.5 text-[12px] text-text-secondary">
-        <BadgeCheck size={13} className="shrink-0 text-success" aria-hidden="true" />
-        {place.amenity}
-      </p>
-      <p className="pt-2 text-[12px] leading-relaxed text-text-secondary">{place.summary}</p>
-
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2.5 text-[11px] text-text-secondary">
-        <span className="flex items-center gap-1 font-bold text-text-primary">
-          <Star size={11} className="text-secondary" fill="currentColor" aria-hidden="true" />
-          {place.rating.toFixed(1)}
-        </span>
-        <span>{t("list.reviewCount", { count: place.reviewCount })}</span>
-        <span className="flex items-center gap-1">
-          <Clock size={11} aria-hidden="true" />
-          <span className={place.openTone === "danger" ? "font-semibold text-danger-text" : "font-semibold text-success-text"}>
-            {place.openLabel}
-          </span>
-        </span>
-      </p>
-
-      <div className="flex gap-2 pt-3">
-        <Link
-          to={`/map/clinics/${place.id}`}
-          onClick={onSelect}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-dark px-3 py-2.5 text-[12px] font-bold text-white hover:bg-primary"
-        >
-          <MapPin size={13} aria-hidden="true" />
-          {t("actions.book")}
-        </Link>
-        <a
-          href={`tel:${place.phone.replace(/\s/g, "")}`}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-danger-bg px-3 py-2.5 text-center text-[12px] font-bold leading-tight text-danger-text hover:bg-danger-bg/70"
-        >
-          <Phone size={13} className="shrink-0" aria-hidden="true" />
-          {t("actions.urgentAdvice")}
-        </a>
-        <button
-          type="button"
-          onClick={onSelect}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-chip-bg px-3 py-2.5 text-[12px] font-bold text-primary-dark hover:bg-info"
-        >
-          <Navigation size={13} aria-hidden="true" />
-          {t("actions.directions")}
-        </button>
-      </div>
+            <span>{t("list.reviewCountShort", { count: place.reviewCount })}</span>
+            <span
+              className={
+                place.openTone === "danger" ? "font-semibold text-danger-text" : "font-semibold text-success-text"
+              }
+            >
+              {place.openLabel}
+            </span>
+            <span className="ml-auto flex shrink-0 gap-2">
+              <Link
+                to={`/map/clinics/${place.id}`}
+                onClick={onSelect}
+                className="rounded-lg bg-chip-bg px-2.5 py-1.5 font-bold text-primary-dark hover:bg-info"
+              >
+                {t("actions.detail")}
+              </Link>
+              <Link
+                to={`/map/clinics/${place.id}`}
+                onClick={onSelect}
+                className="rounded-lg bg-primary-dark px-2.5 py-1.5 font-bold text-white hover:bg-primary"
+              >
+                {t("actions.bookExam")}
+              </Link>
+            </span>
+          </div>
+        </>
+      )}
     </article>
   );
 }
@@ -540,7 +634,7 @@ function DesktopMapPopup({ place }: { place: MockPlace }) {
           <span className="flex items-start gap-1.5">
             <MapPin size={13} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
             <span className="font-semibold text-text-primary">
-              {t("list.distanceFromYou", { km: place.distanceKm.toFixed(1) })}
+              {place.distanceKm !== undefined ? t("list.distanceFromYou", { km: place.distanceKm.toFixed(1) }) : place.area}
             </span>
           </span>
         </div>
@@ -593,17 +687,32 @@ function DesktopMapPopup({ place }: { place: MockPlace }) {
 export function CatCareMapPage() {
   const { t } = useTranslation("map");
   const [filter, setFilter] = useState<MockFilterChip["id"]>("all");
-  const [activeId, setActiveId] = useState(DESIGN_MOCK_PLACES[0].id);
-  const [query, setQuery] = useState(DESIGN_MOCK_AREA);
+  const [activeId, setActiveId] = useState("");
+  const [query, setQuery] = useState("");
+  const placesQuery = useQuery({
+    queryKey: ["place", "list", query],
+    queryFn: () => listPlaces({ query: query || undefined }),
+    staleTime: 60_000,
+  });
 
-  const visible = DESIGN_MOCK_PLACES.filter((p) => matchesFilter(p, filter));
-  const featured = DESIGN_MOCK_PLACES[0];
-  const activePlace = DESIGN_MOCK_PLACES.find((p) => p.id === activeId) ?? featured;
+  const places = (placesQuery.data ?? []).map(toViewPlace);
+  const visible = places.filter((p) => matchesFilter(p, filter));
+  const featured = places.at(0);
+  const activePlace = places.find((p) => p.id === activeId) ?? featured;
+  const selectedId = activePlace?.id ?? "";
+  const area = featured?.area ?? "Khu vực đã chọn";
+  const filters: MockFilterChip[] = [
+    { id: "all", count: places.length },
+    { id: "clinic", count: places.filter((p) => p.kind === "clinic").length },
+    { id: "emergency", count: places.filter((p) => p.kind === "emergency").length },
+    { id: "isfm", count: places.filter((p) => p.badges.some((badge) => badge.toLowerCase().includes("isfm"))).length },
+    { id: "lab", count: places.filter((p) => p.kind === "lab").length },
+  ];
 
   const mapBanner = (
     <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-surface/95 px-3 py-1.5 text-[11px] font-semibold text-text-primary shadow-xs">
       <span className="size-2 shrink-0 rounded-full bg-success" aria-hidden="true" />
-      {t("map.nearbyBanner", { count: DESIGN_MOCK_NEARBY_COUNT })}
+      {t("map.nearbyBanner", { count: places.length })}
     </div>
   );
 
@@ -616,30 +725,37 @@ export function CatCareMapPage() {
           <p className="pt-1 text-[12px] text-text-secondary">{t("page.subtitle")}</p>
         </div>
 
-        <label className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2.5 shadow-xs">
-          <Search size={15} className="shrink-0 text-text-tertiary" aria-hidden="true" />
-          <span className="sr-only">{t("search.label")}</span>
-          <input
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); }}
-            placeholder={t("search.placeholder")}
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-tertiary"
+        <div className="flex items-center gap-2">
+          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2.5 shadow-xs">
+            <Search size={15} className="shrink-0 text-text-tertiary" aria-hidden="true" />
+            <span className="sr-only">{t("search.label")}</span>
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+              }}
+              placeholder={t("search.placeholder")}
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-tertiary"
+            />
+          </label>
+          <button
+            type="button"
+            aria-label={t("search.advanced")}
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-dark text-white hover:bg-primary"
+          >
+            <SlidersHorizontal size={16} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="relative -mx-4 overflow-hidden">
+          <FilterChips filters={filters} active={filter} onChange={setFilter} className="overflow-x-auto px-4 pb-1 pr-10" />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent"
           />
-        </label>
+        </div>
 
-        <FilterChips
-          filters={DESIGN_MOCK_FILTERS}
-          active={filter}
-          onChange={setFilter}
-          className="-mx-4 overflow-x-auto px-4 pb-1"
-        />
-
-        <MapCanvas
-          places={visible}
-          activeId={activeId}
-          onSelect={setActiveId}
-          className="aspect-[358/320] w-full"
-        >
+        <MapCanvas places={visible} activeId={activeId} onSelect={setActiveId} className="aspect-[358/320] w-full">
           {mapBanner}
         </MapCanvas>
 
@@ -648,18 +764,21 @@ export function CatCareMapPage() {
           {t("preview.map")}
         </p>
 
-        <MobileFeaturedCard place={activePlace} />
+        {activePlace ? <MobileFeaturedCard place={activePlace} /> : null}
 
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-[17px] font-bold text-text-primary">{t("list.nearbyTitle")}</h2>
-          <button type="button" className="shrink-0 text-right text-[12px] font-semibold text-primary-dark hover:underline">
-            {t("list.nearbySeeAll", { count: DESIGN_MOCK_NEARBY_COUNT })}
+          <button
+            type="button"
+            className="shrink-0 text-right text-[12px] font-semibold text-primary-dark hover:underline"
+          >
+            {t("list.nearbySeeAll", { count: places.length })}
           </button>
         </div>
 
         <div className="flex flex-col gap-2.5">
           {visible
-            .filter((p) => p.id !== activePlace.id)
+            .filter((p) => p.id !== selectedId)
             .map((p) => (
               <MobileNearbyRow key={p.id} place={p} />
             ))}
@@ -687,14 +806,14 @@ export function CatCareMapPage() {
                 <h1 className="text-[20px] font-bold text-primary-dark">{t("network.title")}</h1>
                 <span className="flex items-center gap-1 rounded-full bg-success-bg px-2.5 py-1 text-[11px] font-bold text-success-text">
                   <BadgeCheck size={12} aria-hidden="true" />
-                  {t("network.partners", { count: DESIGN_MOCK_PARTNER_COUNT })}
+                  {t("network.partners", { count: places.length })}
                 </span>
               </div>
               <p className="pt-1.5 text-[13px] text-text-secondary">{t("network.body")}</p>
               <div className="flex flex-wrap gap-2 pt-3.5">
                 <span className="flex items-center gap-1.5 rounded-xl bg-background-alt px-3 py-2 text-[12px] font-semibold text-text-secondary">
                   <Crosshair size={13} className="text-primary-dark" aria-hidden="true" />
-                  {t("network.areaChip", { area: DESIGN_MOCK_AREA })}
+                  {t("network.areaChip", { area })}
                 </span>
                 <button
                   type="button"
@@ -719,7 +838,9 @@ export function CatCareMapPage() {
                   <span className="sr-only">{t("search.label")}</span>
                   <input
                     value={query}
-                    onChange={(e) => { setQuery(e.target.value); }}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                    }}
                     placeholder={t("search.placeholder")}
                     className="min-w-0 flex-1 bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-tertiary"
                   />
@@ -733,7 +854,7 @@ export function CatCareMapPage() {
                 </button>
               </div>
               <FilterChips
-                filters={DESIGN_MOCK_FILTERS}
+                filters={filters}
                 active={filter}
                 onChange={setFilter}
                 className="-mx-1 overflow-x-auto px-1 pt-3"
@@ -746,7 +867,9 @@ export function CatCareMapPage() {
                   key={p.id}
                   place={p}
                   active={p.id === activeId}
-                  onSelect={() => { setActiveId(p.id); }}
+                  onSelect={() => {
+                    setActiveId(p.id);
+                  }}
                 />
               ))}
               {visible.length === 0 ? (
@@ -762,11 +885,11 @@ export function CatCareMapPage() {
               <span className="size-2.5 shrink-0 rounded-full bg-primary-dark" aria-hidden="true" />
               {t("map.scanning")}
               <span className="rounded-md bg-background-alt px-1.5 py-0.5 font-bold text-text-primary">
-                {DESIGN_MOCK_AREA}
+                {area}
               </span>
-              <span className="font-semibold">{t("map.scanResult", { count: DESIGN_MOCK_CERTIFIED_COUNT })}</span>
+              <span className="font-semibold">{t("map.scanResult", { count: places.filter((p) => p.certification).length })}</span>
             </div>
-            <DesktopMapPopup place={activePlace} />
+            {activePlace ? <DesktopMapPopup place={activePlace} /> : null}
           </MapCanvas>
         </div>
 

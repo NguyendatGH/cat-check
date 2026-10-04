@@ -86,7 +86,11 @@ export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }:
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between gap-2 lg:max-w-[460px] lg:gap-3" role="group" aria-label={t("verifyOtp.fields.code.label")}>
+      <div
+        className="flex justify-between gap-2 lg:max-w-[460px] lg:gap-3"
+        role="group"
+        aria-label={t("verifyOtp.fields.code.label")}
+      >
         {digits.map((digit, index) => (
           <input
             key={index}
@@ -100,8 +104,12 @@ export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }:
             value={digit.trim()}
             disabled={disabled}
             aria-invalid={error ? true : undefined}
-            onChange={(event) => { handleChange(index, event.target.value); }}
-            onKeyDown={(event) => { handleKeyDown(index, event); }}
+            onChange={(event) => {
+              handleChange(index, event.target.value);
+            }}
+            onKeyDown={(event) => {
+              handleKeyDown(index, event);
+            }}
             className={cn(
               "h-14 w-full min-w-0 rounded-xl bg-surface text-center text-h3 font-bold text-text-primary shadow-xs lg:rounded-lg",
               "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
@@ -169,7 +177,9 @@ export function PasswordField({ className, label, error, helperText, id, ...prop
         />
         <button
           type="button"
-          onClick={() => { setVisible((v) => !v); }}
+          onClick={() => {
+            setVisible((v) => !v);
+          }}
           aria-label={visible ? t("common.hidePassword") : t("common.showPassword")}
           className="absolute right-2 flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:text-text-secondary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
         >
@@ -207,13 +217,9 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
   return (
     <div className="flex flex-col gap-1.5 rounded-xl bg-background-alt px-3 py-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-overline font-medium text-text-secondary">
-          {t("register.passwordStrength.label")}
-        </span>
+        <span className="text-overline font-medium text-text-secondary">{t("register.passwordStrength.label")}</span>
         <span className="text-overline font-medium text-text-tertiary">
-          {strength === "empty"
-            ? t("register.passwordStrength.empty")
-            : t(`register.passwordStrength.${strength}`)}
+          {strength === "empty" ? t("register.passwordStrength.empty") : t(`register.passwordStrength.${strength}`)}
         </span>
       </div>
       <div className="flex gap-1.5">
@@ -259,7 +265,9 @@ export function ResendCountdown({ seconds, onExpire, onResend, disabled }: Resen
     const timer = window.setTimeout(() => {
       setRemaining((r) => r - 1);
     }, 1000);
-    return () => { window.clearTimeout(timer); };
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [remaining, onExpire]);
 
   if (remaining > 0) {
@@ -319,7 +327,9 @@ export function ConsentCheckboxList({ purposes, values, onChange }: ConsentCheck
               type="checkbox"
               checked={checked}
               disabled={purpose.mandatory}
-              onChange={(event) => { onChange(purpose.code, event.target.checked); }}
+              onChange={(event) => {
+                onChange(purpose.code, event.target.checked);
+              }}
               className="mt-0.5 size-5 shrink-0 rounded-sm border-2 border-border-strong text-primary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
             />
             <span className="flex flex-col gap-0.5">
@@ -360,7 +370,9 @@ export function GoogleAuthButton({ label, className }: { label: string; classNam
       variant="tertiary"
       size="lg"
       className={cn("w-full bg-surface text-text-primary shadow-xs", className)}
-      onClick={() => { window.location.assign("/oauth2/authorization/google"); }}
+      onClick={() => {
+        window.location.assign("/oauth2/authorization/google");
+      }}
       leftIcon={<GoogleGlyph className="size-5" />}
     >
       {label}
@@ -401,7 +413,9 @@ export function SessionRow({ session, onRevoke, revoking }: SessionRowProps) {
           variant="tertiary"
           size="sm"
           loading={revoking}
-          onClick={() => { onRevoke(session.id); }}
+          onClick={() => {
+            onRevoke(session.id);
+          }}
         >
           {t("sessions.revoke")}
         </Button>
@@ -420,7 +434,9 @@ export function RecoveryCodeGrid({ codes }: { codes: string[] }) {
   const handleCopy = () => {
     void navigator.clipboard.writeText(codes.join("\n")).then(() => {
       setCopied(true);
-      window.setTimeout(() => { setCopied(false); }, 2000);
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     });
   };
 
@@ -433,7 +449,13 @@ export function RecoveryCodeGrid({ codes }: { codes: string[] }) {
           </span>
         ))}
       </div>
-      <Button type="button" variant="tertiary" size="sm" onClick={handleCopy} leftIcon={copied ? <Check className="size-4" /> : <Copy className="size-4" />}>
+      <Button
+        type="button"
+        variant="tertiary"
+        size="sm"
+        onClick={handleCopy}
+        leftIcon={copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+      >
         {copied ? t("mfa.recoveryCodes.copied") : t("mfa.recoveryCodes.copy")}
       </Button>
     </div>
@@ -448,7 +470,9 @@ export function InlineAlert({ children, tone = "danger" }: { children: ReactNode
       role={tone === "danger" ? "alert" : "status"}
       className={cn(
         "rounded-lg border p-3 text-small",
-        tone === "danger" ? "border-danger bg-danger-bg text-danger-text" : "border-border bg-background-alt text-text-secondary",
+        tone === "danger"
+          ? "border-danger bg-danger-bg text-danger-text"
+          : "border-border bg-background-alt text-text-secondary",
       )}
     >
       {children}

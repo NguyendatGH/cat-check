@@ -15,7 +15,7 @@ import com.catcheck.scan.domain.color.Lab;
 import com.catcheck.scan.domain.color.PhBandClassifier;
 import com.catcheck.scan.domain.color.PhChart;
 import com.catcheck.scan.domain.color.RobustStats;
-import com.catcheck.scan.domain.color.port.ChartCatalog;
+import com.catcheck.scan.domain.color.ChartCatalog;
 import com.catcheck.scan.domain.color.port.VisionEngine;
 import com.catcheck.scan.domain.port.RawImagePort;
 import com.catcheck.shared.error.BusinessRuleException;

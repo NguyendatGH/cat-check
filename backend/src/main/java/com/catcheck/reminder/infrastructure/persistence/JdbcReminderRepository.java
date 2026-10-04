@@ -128,6 +128,46 @@ class JdbcReminderRepository implements ReminderRepository {
                 .stream().findFirst();
     }
 
+    /* ------------------------------------------------------- scheduler (SendDueRemindersJob) */
+
+    @Override
+    public List<UUID> findDueIds(Instant now, int limit) {
+        // Dùng đúng index partial ix_reminder_next_run (active AND deleted_at IS NULL).
+        return jdbc.query("""
+                SELECT id
+                  FROM reminder
+                 WHERE active
+                   AND deleted_at IS NULL
+                   AND type = 'SCAN_ROUTINE'
+                   AND next_run_at IS NOT NULL
+                   AND next_run_at <= ?
+                 ORDER BY next_run_at
+                 LIMIT ?
+                """, (rs, rowNum) -> rs.getObject("id", UUID.class), now, limit);
+    }
+
+    @Override
+    public Optional<Reminder> lockDue(UUID id, Instant now) {
+        return jdbc.query("SELECT " + COLUMNS + """
+                  FROM reminder
+                 WHERE id = ?
+                   AND active
+                   AND deleted_at IS NULL
+                   AND next_run_at IS NOT NULL
+                   AND next_run_at <= ?
+                   FOR UPDATE SKIP LOCKED
+                """, (rs, rowNum) -> read(rs), id, now).stream().findFirst();
+    }
+
+    @Override
+    public void markDispatched(UUID id, Instant sentAt, Instant nextRunAt) {
+        jdbc.update("""
+                UPDATE reminder
+                   SET last_run_at = ?, next_run_at = ?, updated_at = now()
+                 WHERE id = ?
+                """, sentAt, nextRunAt, id);
+    }
+
     private Reminder read(ResultSet rs) throws SQLException {
         return new Reminder(
                 rs.getObject("id", UUID.class),

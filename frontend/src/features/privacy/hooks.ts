@@ -5,8 +5,9 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
-import { apiFetch } from "./api";
+import { apiFetch, downloadPrivacyExport } from "./api";
 import type {
+  AccessLogEntryView,
   ConsentHistoryView,
   ConsentStateView,
   DataInventoryView,
@@ -32,6 +33,7 @@ export const PRIVACY_KEYS = {
   dataInventory: ["privacy", "data-inventory"] as const,
   requests: ["privacy", "requests"] as const,
   exportStatus: (publicRef: string) => ["privacy", "export", publicRef] as const,
+  accessLog: ["privacy", "access-log"] as const,
 };
 
 /** Ân hạn xoá tài khoản: 7 ngày (TD-05, p15 §15.4.6, `DsarService.DELETION_GRACE_DAYS`). */
@@ -115,6 +117,7 @@ export function useExportStatus(publicRef: string | null): UseQueryResult<Export
     queryKey: PRIVACY_KEYS.exportStatus(publicRef ?? ""),
     queryFn: () => apiFetch<ExportStatusView>(`/privacy/export/${publicRef ?? ""}`),
     enabled: publicRef !== null,
+    refetchInterval: (query) => ["COMPLETED", "REJECTED"].includes(query.state.data?.status ?? "") ? false : 5_000,
   });
 }
 
@@ -123,22 +126,36 @@ export function useCreateExportRequest(): UseMutationResult<ExportStatusView, Er
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch<ExportStatusView>("/privacy/export", { method: "POST" }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data.downloadToken) {
+        sessionStorage.setItem(`catcheck:dsar-download:${data.publicRef}`, data.downloadToken);
+      }
       void queryClient.invalidateQueries({ queryKey: PRIVACY_KEYS.requests });
     },
   });
 }
 
 /**
- * C8 — tải gói ZIP (link một lần, 72 giờ). Ở M1 chưa có `DataExportJob` nên endpoint luôn
- * trả 409 `DSAR_EXPORT_NOT_READY`; UI phải nói thật điều đó thay vì hiện nút tải giả.
+ * C8 — tải gói ZIP bất đồng bộ (link một lần, 72 giờ).
  */
-export function useDownloadExport(): UseMutationResult<undefined, Error, string> {
+export interface DsarExportDownloadInput { publicRef: string; downloadToken: string }
+
+export function useDownloadExport(): UseMutationResult<Blob, Error, DsarExportDownloadInput> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (publicRef: string) => apiFetch<undefined>(`/privacy/export/${publicRef}/download`),
-    onSuccess: () => {
+    mutationFn: ({ publicRef, downloadToken }) => downloadPrivacyExport(publicRef, downloadToken),
+    onSuccess: (blob, { publicRef }) => {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${publicRef}.zip`;
+      anchor.click();
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 30_000);
+      sessionStorage.removeItem(`catcheck:dsar-download:${publicRef}`);
       void queryClient.invalidateQueries({ queryKey: PRIVACY_KEYS.requests });
+      void queryClient.invalidateQueries({ queryKey: PRIVACY_KEYS.exportStatus(publicRef) });
     },
   });
 }
@@ -189,6 +206,21 @@ export function useCreateDsarRequest(): UseMutationResult<DsarRequestView, Error
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PRIVACY_KEYS.requests });
     },
+  });
+}
+
+/**
+ * B13 — "Ai đã truy cập dữ liệu của tôi" (`GET /account/privacy/access-log`, p15 §15.4).
+ *
+ * Endpoint ĐÃ TỒN TẠI nhưng hiện trả mảng rỗng cố định (xem {@link AccessLogEntryView}).
+ * Vẫn nối thật: khi W3 cắm `AuditLogService.queryBySubject` vào thì màn hình có dữ liệu ngay,
+ * không phải sửa UI; và trong lúc chờ, trạng thái rỗng hiển thị là rỗng THẬT.
+ */
+export function useAccessLog(): UseQueryResult<AccessLogEntryView[]> {
+  return useQuery({
+    queryKey: PRIVACY_KEYS.accessLog,
+    queryFn: async () => (await apiFetch<{ items: AccessLogEntryView[] }>("/account/privacy/access-log")).items,
+    staleTime: 60 * 1000,
   });
 }
 

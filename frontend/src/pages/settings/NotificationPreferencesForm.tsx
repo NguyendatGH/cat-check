@@ -54,8 +54,7 @@ export function NotificationPreferencesForm({ className }: { className?: string 
   }
 
   if (query.isError || !draft) {
-    const unavailable =
-      isApiError(query.error) && (query.error.status === 403 || query.error.status === 501);
+    const unavailable = isApiError(query.error) && (query.error.status === 403 || query.error.status === 501);
     return (
       <p
         className={cn(
@@ -104,7 +103,9 @@ export function NotificationPreferencesForm({ className }: { className?: string 
                   name="attentionAlertChannel"
                   value={channel}
                   checked={selected}
-                  onChange={() => { commit({ ...draft, attentionAlertChannel: channel }); }}
+                  onChange={() => {
+                    commit({ ...draft, attentionAlertChannel: channel });
+                  }}
                   className="sr-only"
                 />
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-primary-dark">
@@ -122,9 +123,7 @@ export function NotificationPreferencesForm({ className }: { className?: string 
                     {t(`notifications.alertChannels.${channel}.body`)}
                   </span>
                 </span>
-                {selected ? (
-                  <Check size={16} className="shrink-0 text-primary-dark" aria-hidden="true" />
-                ) : null}
+                {selected ? <Check size={16} className="shrink-0 text-primary-dark" aria-hidden="true" /> : null}
               </label>
             );
           })}
@@ -136,21 +135,18 @@ export function NotificationPreferencesForm({ className }: { className?: string 
           {t("notifications.typesLegend")}
         </legend>
         {TOGGLES.map((key) => (
-          <div
-            key={key}
-            className="flex items-center gap-3 rounded-xl border border-border bg-background-alt/50 p-3"
-          >
+          <div key={key} className="flex items-center gap-3 rounded-xl border border-border bg-background-alt/50 p-3">
             <span className="min-w-0 flex-1">
               <span className="block text-body font-semibold text-text-primary">
                 {t(`notifications.toggles.${key}.title`)}
               </span>
-              <span className="block text-caption text-text-secondary">
-                {t(`notifications.toggles.${key}.body`)}
-              </span>
+              <span className="block text-caption text-text-secondary">{t(`notifications.toggles.${key}.body`)}</span>
             </span>
             <Switch
               checked={draft[key]}
-              onCheckedChange={(checked) => { commit({ ...draft, [key]: checked }); }}
+              onCheckedChange={(checked) => {
+                commit({ ...draft, [key]: checked });
+              }}
               aria-label={t(`notifications.toggles.${key}.title`)}
             />
           </div>
@@ -178,7 +174,9 @@ export function NotificationPreferencesForm({ className }: { className?: string 
           </span>
           <Switch
             checked={draft.quietHoursEnabled}
-            onCheckedChange={(checked) => { commit({ ...draft, quietHoursEnabled: checked }); }}
+            onCheckedChange={(checked) => {
+              commit({ ...draft, quietHoursEnabled: checked });
+            }}
             aria-label={t("notifications.quietHours.title")}
           />
         </div>
@@ -186,13 +184,13 @@ export function NotificationPreferencesForm({ className }: { className?: string 
           <div className="flex items-center gap-3">
             {(["quietHoursStart", "quietHoursEnd"] as const).map((field) => (
               <label key={field} className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="text-caption text-text-secondary">
-                  {t(`notifications.quietHours.${field}`)}
-                </span>
+                <span className="text-caption text-text-secondary">{t(`notifications.quietHours.${field}`)}</span>
                 <input
                   type="time"
                   value={draft[field]}
-                  onChange={(event) => { commit({ ...draft, [field]: event.target.value }); }}
+                  onChange={(event) => {
+                    commit({ ...draft, [field]: event.target.value });
+                  }}
                   className="h-11 rounded-xl border border-border bg-surface px-3 text-body text-text-primary"
                 />
               </label>
@@ -204,10 +202,7 @@ export function NotificationPreferencesForm({ className }: { className?: string 
 
       <p
         aria-live="polite"
-        className={cn(
-          "flex items-center gap-1.5 text-caption",
-          update.isError ? "text-danger" : "text-success-text",
-        )}
+        className={cn("flex items-center gap-1.5 text-caption", update.isError ? "text-danger" : "text-success-text")}
       >
         {update.isPending ? (
           <>

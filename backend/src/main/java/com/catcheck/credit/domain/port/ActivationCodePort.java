@@ -1,6 +1,8 @@
 package com.catcheck.credit.domain.port;
 
+import com.catcheck.credit.domain.ActivationBatchSummary;
 import com.catcheck.credit.domain.ActivationCode;
+import com.catcheck.credit.domain.ActivationCodeFilter;
 import com.catcheck.credit.domain.ActivationCodeStatus;
 
 import java.time.Instant;
@@ -22,6 +24,16 @@ public interface ActivationCodePort {
     void insert(ActivationCode code);
 
     /**
+     * Tạo nhiều mã trong <b>một</b> lần gửi lệnh (JDBC batch).
+     *
+     * <p>Không phải tối ưu hoá sớm: p8 L20 cho phép sinh tới 50 000 mã một lần, và 50 000 lần
+     * {@link #insert} là 50 000 round-trip tới Postgres — ở độ trễ mạng nội bộ 1 ms thì đã là
+     * ~50 giây trong MỘT transaction, đủ để request timeout và để lại transaction dài khoá
+     * {@code activation_code} suốt thời gian đó.</p>
+     */
+    void insertAll(List<ActivationCode> codes);
+
+    /**
      * Chuyển {@code ISSUED → REDEEMED} một cách <b>có điều kiện</b>, trả về {@code true} nếu
      * thực sự chuyển.
      *
@@ -41,6 +53,37 @@ public interface ActivationCodePort {
     List<ActivationCode> findIssuedCodes(String packageCode, ActivationCodeStatus status, int offset, int limit);
 
     long countIssuedCodes(String packageCode, ActivationCodeStatus status);
+
+    /** L19/L23 — một mã theo khoá chính, cho màn admin. */
+    Optional<ActivationCode> findById(UUID codeId);
+
+    /** L19 — tra cứu theo bộ lọc của màn admin, phân trang offset (p8 §8.1.4 cột {@code O}). */
+    List<ActivationCode> search(ActivationCodeFilter filter, int offset, int limit);
+
+    /** Tổng số dòng khớp {@code filter} — để màn admin hiện tổng và nhảy trang. */
+    long count(ActivationCodeFilter filter);
+
+    /**
+     * L21 — danh sách lô đã phát hành, gom theo {@code production_batch}, mới nhất trước.
+     *
+     * <p>Dòng có {@code production_batch IS NULL} bị bỏ qua: nó không thuộc lô nào nên không có
+     * {@code batchId} để trỏ tới.</p>
+     */
+    List<ActivationBatchSummary> listBatches(int offset, int limit);
+
+    /** Số lô (số giá trị {@code production_batch} khác nhau, không tính NULL). */
+    long countBatches();
+
+    /** L22/L24 — một lô theo định danh {@code production_batch}. */
+    Optional<ActivationBatchSummary> findBatch(String productionBatch);
+
+    /**
+     * L24 — vô hiệu hoá cả lô. Chỉ đụng các mã còn {@code ISSUED}: mã {@code REDEEMED} đã tạo
+     * {@code credit_batch} nên không void được (p14 §14.3.2 mục 4), mã {@code VOID} thì đã xong.
+     *
+     * @return số mã thực sự chuyển sang {@code VOID}
+     */
+    int markBatchVoid(String productionBatch);
 
     /**
      * Khoá dòng mã và <b>trả về trạng thái ĐÃ KHOÁ</b> để chống hai request kích hoạt cùng lúc

@@ -17,10 +17,16 @@ export type PhColorToken = "color-ph-normal" | "color-ph-mild" | "color-ph-abnor
 export interface PhBand {
   /** VD: `LOW`, `SLIGHTLY_LOW`, `IN_RANGE`, `SLIGHTLY_HIGH`, `HIGH`, `INCONCLUSIVE`. */
   code: string;
-  /** `null` = -vô cực. */
-  phMin: number | null;
-  /** `null` = +vô cực. */
-  phMax: number | null;
+  /**
+   * `null` HOẶC vắng mặt = -vô cực.
+   *
+   * Backend đặt `default-property-inclusion: non_null`, nên dải mở (`LOW`) KHÔNG có key này
+   * trong JSON chứ không phải có key mang `null`. Khai `?` để TypeScript buộc mọi nơi đọc
+   * phải xử lý `undefined` — bỏ sót chính là bug `findBandForPh` đã mắc.
+   */
+  phMin?: number | null;
+  /** `null` HOẶC vắng mặt = +vô cực. Xem ghi chú ở {@link PhBand.phMin}. */
+  phMax?: number | null;
   minInclusive: boolean;
   maxInclusive: boolean;
   severity: PhBandSeverity;

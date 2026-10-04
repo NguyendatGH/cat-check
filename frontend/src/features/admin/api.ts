@@ -109,6 +109,36 @@ export async function adminFetch<T>(path: string, options: AdminRequestInit = {}
   return (await adminRequest<T>(path, options)).data;
 }
 
+/** Tải CSV mã thô — response là binary và luôn phải dùng `no-store` ở server. */
+export async function downloadAdminActivationBatchCsv(batchId: string, reason: string): Promise<Blob> {
+  const headers = new Headers({
+    Accept: "text/csv",
+    "Accept-Language": currentAcceptLanguage(),
+  });
+  const csrf = readCsrfToken();
+  if (csrf !== null) {
+    headers.set(CSRF_HEADER_NAME, csrf);
+  }
+  const response = await fetch(
+    `${BASE_URL}/admin/activation-codes/batches/${encodeURIComponent(batchId)}/csv?reason=${encodeURIComponent(reason)}`,
+    { credentials: "include", headers },
+  );
+  if (!response.ok) {
+    let problem: ProblemDetail | undefined;
+    try {
+      problem = (await response.json()) as ProblemDetail;
+    } catch {
+      // body không phải JSON — vẫn ném lỗi với status gốc
+    }
+    throw new ApiError(
+      problem?.detail ?? `Request failed with status ${String(response.status)}`,
+      response.status,
+      problem?.errorCode,
+    );
+  }
+  return response.blob();
+}
+
 /** Dựng query string, bỏ qua tham số rỗng/undefined. */
 export function adminQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();

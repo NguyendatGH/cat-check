@@ -57,4 +57,29 @@ public class CreditErrorCodeConfiguration {
     ErrorCode writeAccessExpired() {
         return CreditErrorCode.WRITE_ACCESS_EXPIRED;
     }
+
+    @Bean
+    ErrorCode activationBatchTooLarge() {
+        return CreditErrorCode.ACTIVATION_BATCH_TOO_LARGE;
+    }
+
+    @Bean
+    ErrorCode activationCsvAlreadyDownloaded() {
+        return CreditErrorCode.ACTIVATION_CSV_ALREADY_DOWNLOADED;
+    }
+
+    @Bean
+    ErrorCode activationBatchExists() {
+        return CreditErrorCode.ACTIVATION_BATCH_EXISTS;
+    }
+
+    @Bean
+    ErrorCode activationBatchNotFound() {
+        return CreditErrorCode.ACTIVATION_BATCH_NOT_FOUND;
+    }
+
+    @Bean
+    ErrorCode packagePlanNotFound() {
+        return CreditErrorCode.PACKAGE_PLAN_NOT_FOUND;
+    }
 }

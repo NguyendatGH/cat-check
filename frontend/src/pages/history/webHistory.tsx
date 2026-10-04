@@ -92,9 +92,7 @@ export function WebHistoryScreen({
     <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-[600px]">
         <p className="text-overline font-bold tracking-[0.4px] text-primary-dark">{t("web.eyebrow")}</p>
-        <h1 className="pt-1 text-[26px] font-bold leading-8 tracking-[-0.5px] text-primary-dark">
-          {t("web.title")}
-        </h1>
+        <h1 className="pt-1 text-[26px] font-bold leading-8 tracking-[-0.5px] text-primary-dark">{t("web.title")}</h1>
         <p className="pt-2 text-caption leading-relaxed text-text-secondary">
           {catName ? t("web.subtitleNamed", { name: catName }) : t("web.subtitle")}
         </p>
@@ -141,7 +139,7 @@ export function WebHistoryScreen({
         <Panel className="flex flex-col gap-1.5">
           <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">{t("web.kpiTotal")}</p>
           <span className="text-[26px] font-bold leading-8 text-primary-dark">
-            {isPending ? dash : summary?.count ?? 0}
+            {isPending ? dash : (summary?.count ?? 0)}
           </span>
           <p className="mt-auto border-t border-border pt-2 text-[11px] leading-snug text-text-secondary">
             {t("web.kpiTotalFoot")}
@@ -168,9 +166,7 @@ export function WebHistoryScreen({
 
         <Panel className="flex flex-col gap-1.5">
           <p className="text-overline font-bold tracking-[0.4px] text-text-secondary">{t("web.kpiLowConf")}</p>
-          <span className="text-[26px] font-bold leading-8 text-primary-dark">
-            {summary?.lowConfidenceCount ?? 0}
-          </span>
+          <span className="text-[26px] font-bold leading-8 text-primary-dark">{summary?.lowConfidenceCount ?? 0}</span>
           <p className="mt-auto border-t border-border pt-2 text-[11px] leading-snug text-text-secondary">
             {t("web.kpiLowConfFoot", { count: summary?.inconclusiveCount ?? 0 })}
           </p>
@@ -184,12 +180,8 @@ export function WebHistoryScreen({
             <div className="flex items-center gap-3">
               <CatAvatar src={catAvatarUrl} name={catName ?? t("web.unknownCat")} size="md" />
               <div className="min-w-0">
-                <p className="truncate text-body font-bold text-text-primary">
-                  {catName ?? t("web.unknownCat")}
-                </p>
-                {catBreedName ? (
-                  <p className="truncate text-caption text-text-secondary">{catBreedName}</p>
-                ) : null}
+                <p className="truncate text-body font-bold text-text-primary">{catName ?? t("web.unknownCat")}</p>
+                {catBreedName ? <p className="truncate text-caption text-text-secondary">{catBreedName}</p> : null}
               </div>
             </div>
             <div className="border-t border-border pt-3">
@@ -286,7 +278,9 @@ export function WebHistoryScreen({
 
                     <ol className="relative flex flex-col gap-5 border-l border-border pl-6">
                       {group.map((scan) => {
-                        const band = bands.find((b) => b.code === scan.bandCode) ?? findBandForPh(bands, scan.phValue ?? Number.NaN);
+                        const band =
+                          bands.find((b) => b.code === scan.bandCode) ??
+                          findBandForPh(bands, scan.phValue ?? Number.NaN);
                         const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
                         return (
                           <li key={scan.scanId} className="relative">
@@ -317,7 +311,7 @@ export function WebHistoryScreen({
                                     {band?.label ?? scan.classification}
                                   </span>
                                   <span className="text-body font-bold text-primary-dark">
-                                    {scan.phValue !== null
+                                    {scan.phValue != null
                                       ? t("web.phValue", { value: scan.phValue.toFixed(1) })
                                       : dash}
                                   </span>

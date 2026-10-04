@@ -168,6 +168,38 @@ public enum IdentityErrorCode implements ErrorCode {
     /** 403 — role admin nhung chua thiet lap TOTP. FE dieu huong cung sang /admin/setup-2fa. */
     TOTP_SETUP_REQUIRED("totp-setup-required", HttpStatus.FORBIDDEN),
 
+    /**
+     * 403 — goi {@code /api/v1/admin/**} khi phien chua qua buoc TOTP (p8 §8.2.4, p11 S11).
+     *
+     * <p>Khac {@link #TOTP_SETUP_REQUIRED}: o day tai khoan DA dang ky TOTP, chi la phien hien
+     * tai chua nhap ma 6 so. FE xu ly khac nhau — {@code TOTP_SETUP_REQUIRED} dieu huong sang
+     * {@code /admin/setup-2fa}, con ma nay chi can mo hop nhap ma.</p>
+     */
+    ADMIN_TOTP_REQUIRED("admin-totp-required", HttpStatus.FORBIDDEN),
+
+    /**
+     * 409 — admin tự khoá tài khoản của mình hoặc tự gỡ vai trò của mình (p8 §8.2.4, L14).
+     *
+     * <p>Chặn ở server chứ không chỉ ẩn nút: tự khoá là cách nhanh nhất để mất hoàn toàn khu
+     * vực quản trị, và khôi phục thì phải can thiệp trực tiếp vào DB.</p>
+     */
+    ADMIN_CANNOT_MODIFY_SELF("admin-cannot-modify-self", HttpStatus.CONFLICT),
+
+    /** 409 — role nhạy cảm chỉ cấp qua seed/công cụ vận hành. */
+    ROLE_NOT_ASSIGNABLE("role-not-assignable", HttpStatus.CONFLICT),
+
+    /** 409 — tài khoản đã có yêu cầu reset TOTP đang chờ. */
+    MFA_RESET_PENDING("mfa-reset-pending", HttpStatus.CONFLICT),
+
+    /** 409 — yêu cầu reset không còn ở trạng thái PENDING hoặc đã hết hạn. */
+    MFA_RESET_NOT_PENDING("mfa-reset-not-pending", HttpStatus.CONFLICT),
+
+    /** 409 — request và approve phải do hai admin khác nhau thực hiện. */
+    MFA_RESET_TWO_PERSON_REQUIRED("mfa-reset-two-person-required", HttpStatus.CONFLICT),
+
+    /** 409 — giới hạn ba yêu cầu reset trong 24 giờ. */
+    MFA_RESET_RATE_LIMITED("mfa-reset-rate-limited", HttpStatus.CONFLICT),
+
     /** 429 — sai ma TOTP qua nguong p11 §11.12.3 (5 lan / 5 phut) — buoc MFA bi khoa 15 phut. */
     TOTP_LOCKED("totp-locked", HttpStatus.TOO_MANY_REQUESTS),
 

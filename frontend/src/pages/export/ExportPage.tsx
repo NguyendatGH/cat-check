@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { Download } from "lucide-react";
-import { Button, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
+import { Button, Card, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { isApiError } from "@/shared/api/errors";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import {
@@ -120,7 +120,9 @@ export function ExportPage() {
               }}
               primaryLabel={t("wizard.step1.primaryLabel")}
               secondaryLabel={t("wizard.step1.secondaryLabel")}
-              className="grid grid-cols-2 gap-3"
+              // Mockup `10` xếp 2 cột vì có 2 bé mèo; 1 bé mà vẫn 2 cột thì thẻ chỉ còn nửa
+              // bề ngang và tên/giống bị cắt (`…`). Một bé → giữ mặc định 1 cột full width.
+              className={cats.length > 1 ? "grid grid-cols-2 gap-3" : undefined}
             />
           )}
         </section>
@@ -148,7 +150,7 @@ export function ExportPage() {
         </section>
 
         {/* 3 — mục nội dung */}
-        <section className="flex flex-col gap-1">
+        <section className="flex flex-col gap-3">
           <ExportSectionHeading
             index="3."
             title={t("web.step3")}
@@ -163,15 +165,18 @@ export function ExportPage() {
               </button>
             }
           />
-          <SectionsChecklist
-            items={EXPORT_SECTIONS.map((section) => ({
-              value: section,
-              title: t(`sections.${section}.title`),
-              description: t(`sections.${section}.description`),
-            }))}
-            selected={wizard.sections}
-            onToggle={wizard.toggleSection}
-          />
+          {/* Mockup `10`: danh sách mục nội dung nằm trong MỘT thẻ trắng, không trôi trên nền trang. */}
+          <Card padding="none" className="px-4">
+            <SectionsChecklist
+              items={EXPORT_SECTIONS.map((section) => ({
+                value: section,
+                title: t(`sections.${section}.title`),
+                description: t(`sections.${section}.description`),
+              }))}
+              selected={wizard.sections}
+              onToggle={wizard.toggleSection}
+            />
+          </Card>
           {wizard.sections.length === 0 ? (
             <p role="alert" className="text-caption text-danger-text">
               {t("state.sectionsRequired")}
@@ -182,24 +187,27 @@ export function ExportPage() {
         {/* Xem trước báo cáo */}
         <section className="flex flex-col gap-3">
           <ExportSectionHeading title={t("web.previewTitle")} hint={t("web.previewFormat")} />
-          <div className="rounded-2xl bg-background-alt p-4">
-            <ReportPreviewThumbnail watermark={t("web.previewWatermark")} />
-          </div>
-          <div>
-            <p className="text-body font-bold leading-snug text-text-primary">{t("web.reportTitle")}</p>
-            <p className="pt-1.5 text-caption leading-relaxed text-text-secondary">
-              {wizard.catName
-                ? t("web.reportDescriptionNamed", {
-                    name: wizard.catName,
-                    range: rangeLabel.toLowerCase(),
-                    count: wizard.sections.length,
-                  })
-                : t("web.reportDescription", {
-                    range: rangeLabel.toLowerCase(),
-                    count: wizard.sections.length,
-                  })}
-            </p>
-          </div>
+          {/* Mockup `10`: ảnh thu nhỏ + tên/mô tả báo cáo nằm trong CÙNG một thẻ trắng. */}
+          <Card className="flex flex-col gap-3">
+            <div className="rounded-xl bg-background-alt p-4">
+              <ReportPreviewThumbnail watermark={t("web.previewWatermark")} />
+            </div>
+            <div>
+              <p className="text-body font-bold leading-snug text-text-primary">{t("web.reportTitle")}</p>
+              <p className="pt-1.5 text-caption leading-relaxed text-text-secondary">
+                {wizard.catName
+                  ? t("web.reportDescriptionNamed", {
+                      name: wizard.catName,
+                      range: rangeLabel.toLowerCase(),
+                      count: wizard.sections.length,
+                    })
+                  : t("web.reportDescription", {
+                      range: rangeLabel.toLowerCase(),
+                      count: wizard.sections.length,
+                    })}
+              </p>
+            </div>
+          </Card>
         </section>
 
         <DisclaimerBanner variant="medium" />

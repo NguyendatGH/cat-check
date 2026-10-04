@@ -100,17 +100,44 @@ export function ForgotPasswordPage() {
           <p className="text-caption text-text-secondary">{t("forgotPassword.otpStep.subtitle", { email })}</p>
         </header>
 
-        <OtpCodeInput value={code} onChange={setCode} error={otpError ?? undefined} disabled={verifyOtp.isPending} focusOnMount />
+        <OtpCodeInput
+          value={code}
+          onChange={setCode}
+          error={otpError ?? undefined}
+          disabled={verifyOtp.isPending}
+          focusOnMount
+        />
 
         <div className="flex justify-center">
-          <ResendCountdown key={resendKey} seconds={resendSeconds} onResend={() => { void handleResend(); }} disabled={requestOtp.isPending} />
+          <ResendCountdown
+            key={resendKey}
+            seconds={resendSeconds}
+            onResend={() => {
+              void handleResend();
+            }}
+            disabled={requestOtp.isPending}
+          />
         </div>
 
-        <Button type="button" size="lg" loading={verifyOtp.isPending} disabled={code.length !== 6 || verifyOtp.isPending} onClick={() => { void handleVerify(); }}>
+        <Button
+          type="button"
+          size="lg"
+          loading={verifyOtp.isPending}
+          disabled={code.length !== 6 || verifyOtp.isPending}
+          onClick={() => {
+            void handleVerify();
+          }}
+        >
           {t("forgotPassword.otpStep.submit")}
         </Button>
 
-        <button type="button" onClick={() => { setStep("EMAIL"); }} className="min-h-11 text-caption text-text-tertiary hover:underline">
+        <button
+          type="button"
+          onClick={() => {
+            setStep("EMAIL");
+          }}
+          className="min-h-11 text-caption text-text-tertiary hover:underline"
+        >
           {t("forgotPassword.otpStep.back")}
         </button>
       </div>
@@ -124,7 +151,13 @@ export function ForgotPasswordPage() {
         <p className="text-caption text-text-secondary">{t("forgotPassword.subtitle")}</p>
       </header>
 
-      <form className="flex flex-col gap-4" onSubmit={(event) => { void handleSubmit(onSubmitEmail)(event); }} noValidate>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          void handleSubmit(onSubmitEmail)(event);
+        }}
+        noValidate
+      >
         <Input
           type="email"
           label={t("forgotPassword.fields.email.label")}

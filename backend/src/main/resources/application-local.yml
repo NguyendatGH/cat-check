@@ -1,6 +1,5 @@
-# Profile "local": chạy trên máy dev, DB thật qua Docker Compose (docker-compose.yml ở gốc
-# repo, ngoài phạm vi backend/). Giá trị dưới đây KHÔNG nhạy cảm (chỉ dùng cho container local
-# của riêng máy dev) nên để thẳng trong file, không cần .env cho các giá trị này. Nếu sau này
+# Profile "local": chạy native trên máy dev, dùng PostgreSQL local ở localhost:5432. Giá trị
+# dưới đây KHÔNG nhạy cảm (chỉ dùng cho máy dev) nên để thẳng trong file. Nếu sau này
 # cần secret cục bộ thật (vd API key bên thứ ba dùng thử), đặt trong backend/.env (không commit,
 # xem .gitignore ở gốc repo) và tham chiếu bằng ${VAR_NAME} ở đây.
 
@@ -8,10 +7,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/catcheck
     username: catcheck
-    # Bug thật đã sửa: mật khẩu ở đây (trước là "catcheck") không khớp
-    # POSTGRES_PASSWORD ở docker-compose.yml gốc repo ("catcheck_local_only") — làm đúng theo
-    # README "Chạy dev nhanh" sẽ bị FATAL password authentication failed ngay bước đầu. Xác nhận
-    # bằng cách chạy thật cả hai file (docker compose up -d postgres + mvnw spring-boot:run).
+    # Phải khớp mật khẩu role catcheck được tạo trong backend/README.md.
     password: catcheck_local_only
     driver-class-name: org.postgresql.Driver
 

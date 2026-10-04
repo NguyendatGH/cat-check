@@ -4,7 +4,7 @@ import com.catcheck.cat.api.CatErrorCode;
 import com.catcheck.credit.api.CreditConsumption;
 import com.catcheck.credit.api.CreditErrorCode;
 import com.catcheck.credit.api.EntitlementQuery;
-import com.catcheck.credit.domain.PlanFeature;
+import com.catcheck.credit.api.EntitlementQuery.Feature;
 import com.catcheck.media.api.ImageStorage;
 import com.catcheck.media.api.ImageUpload;
 import com.catcheck.media.api.StoredImage;
@@ -140,7 +140,7 @@ public class SubmitScanService {
 
         PipelineOutcome outcome = pipelineService.analyze(cmd.imageBytes(), cmd.roi(), cmd.cardQuadHint());
 
-        boolean storeImageAllowed = entitlementQuery.isFeatureEnabled(cmd.userId(), PlanFeature.STORE_IMAGE);
+        boolean storeImageAllowed = entitlementQuery.isFeatureEnabled(cmd.userId(), Feature.STORE_IMAGE);
         boolean willStoreImage = storeImageAllowed && !trialRegime && !outcome.inconclusive();
 
         Optional<StoredImage> storedImage = Optional.empty();

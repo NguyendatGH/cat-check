@@ -16,14 +16,33 @@ import static org.assertj.core.api.Assertions.assertThat;
  * R17 — quy tắc đặt tên file migration. Test JUnit thường (không phải ArchUnit) vì đây là
  * kiểm tra tên FILE trong {@code src/main/resources/db/migration}, không phải kiểm tra class.
  *
- * <p>Regex đã điều chỉnh so với bản gốc để chấp nhận sub-version dạng "V4.1" (xem
- * {@code V4.1__shedlock.sql} và giải thích quyết định V4b -> V4.1 ở đầu file đó) — Flyway chỉ
- * chấp nhận số ở phần version ({@code ^V\d+__}), không chấp nhận chữ cái như "V4b".</p>
+ * <p><b>Regex nới một nhánh {@code (_\d+)?} so với văn bản p7 §7.6.2</b>
+ * ({@code ^V\d+__[a-z0-9_]+\.sql$}). Lý do, theo đúng thứ tự:</p>
+ *
+ * <ol>
+ *   <li><b>p4 thắng về miền migration.</b> {@code context/spec/04-index.md} §2 giao miền
+ *       migration cho p4; p4 §4.9.2 đặt {@code shedlock} ở khe giữa V4 và V5, và đặt trước
+ *       V16 cho trigger/bất biến, V17 cho RLS. Hai số đó KHÔNG được chiếm.</li>
+ *   <li><b>Nhưng tên literal "V4b" của p4 §4.9.2 không chạy được.</b> Flyway BỎ QUA file
+ *       trong im lặng vì "4b" không phải version hợp lệ. Đo thật bằng
+ *       {@code SchemaInvariantTests}: {@code V4b__shedlock.sql} ⇒ 23 migration, 60 bảng,
+ *       KHÔNG có bảng {@code shedlock}; {@code V4_1__shedlock.sql} ⇒ 24 migration, 61 bảng.
+ *       Không có cảnh báo nào — hỏng chỉ lộ lúc ShedLock chạy job đầu tiên.</li>
+ *   <li><b>Nên dùng {@code V4_1}</b>: Flyway coi "_" là dấu phân tách version hợp lệ (tương
+ *       đương "."), nên file này là version <b>4.1</b> — đúng khe giữa V4 và V5 mà p4 muốn,
+ *       và V16/V17 vẫn nguyên vẹn cho trigger và RLS.</li>
+ * </ol>
+ *
+ * <p>Regex ở đây vì vậy nới ĐÚNG một nhóm số phụ tuỳ chọn, không nới gì khác: chữ cái trong
+ * version vẫn bị chặn (và phải bị chặn — xem mục 2). <b>Văn bản p7 §7.6.2 cần sửa cho khớp
+ * p4</b> — handoff H15.33 / H15.65.</p>
  */
 class MigrationNamingTests {
 
-    private static final Pattern MIGRATION_FILENAME_PATTERN = Pattern.compile("^V\\d+(\\.\\d+)?__[a-z0-9_]+\\.sql$");
+    private static final Pattern MIGRATION_FILENAME_PATTERN = Pattern.compile("^V\\d+(_\\d+)?__[a-z0-9_]+\\.sql$");
+    private static final Pattern SEED_FILENAME_PATTERN = Pattern.compile("^R__seed_[a-z0-9_]+\\.sql$");
     private static final Path MIGRATION_DIR = Paths.get("src", "main", "resources", "db", "migration");
+    private static final Path SEED_DIR = Paths.get("src", "main", "resources", "db", "seed");
 
     @Test
     void allMigrationFilesMatchNamingConvention() throws IOException {
@@ -32,7 +51,7 @@ class MigrationNamingTests {
                 .toList();
 
         assertThat(invalid)
-                .as("R17: file migration phải khớp ^V\\d+(\\.\\d+)?__[a-z0-9_]+\\.sql$")
+                .as("R17 (nới theo p4 §4.9.2): file migration phải khớp ^V\\d+(_\\d+)?__[a-z0-9_]+\\.sql$")
                 .isEmpty();
     }
 
@@ -48,26 +67,23 @@ class MigrationNamingTests {
     }
 
     @Test
-    void exactlyTheWave1MigrationCatalogExists() throws IOException {
-        // Danh mục đúng theo p4 §4.9.2: V1..V4.1 (hạ tầng M0) + V5..V15 (nghiệp vụ).
+    void migrationCatalogContainsTheApprovedWave1AndFeatureMigrations() throws IOException {
+        // V18–V22 là schema mở rộng đã được owner yêu cầu cho community, place, shop và AI RAG.
         //
-        // Bản trước của test này bỏ V13 ra với lý do "không nằm trong danh mục p4 §4.9.2" —
-        // ghi chú đó SAI: p4 §4.9.2 có đúng dòng `V13 | V13__notification.sql` (notification,
-        // notification_outbox, email_outbox, push_subscription, user_notification_preference,
-        // reminder; FK health_flag.notification_id). Lúc đó V13 chỉ là CHƯA ai viết, không phải
-        // không có trong danh mục — và chính V12 cũng đã để sẵn cột
-        // `health_flag.notification_id` kèm comment "FK se duoc V13 bo sung".
+        // `V4_1__shedlock.sql` (Flyway đọc là version 4.1) giữ đúng khe thứ tự "ngay sau V4,
+        // trước V5" mà p4 §4.9.2 đặt cho `shedlock`; chỉ phần TÊN lệch khỏi literal "V4b" vì
+        // Flyway bỏ qua file đó trong im lặng (bằng chứng đo được ghi ở javadoc lớp này và ở
+        // đầu chính file V4_1).
         //
-        // CHƯA có V16/V17 (trigger/invariant + RLS) — đó là việc của W3, cần bump test này thêm
-        // 2 file khi W3 xong, KHÔNG tự thêm sớm.
+        // V17 vẫn để trống cho RLS; các tính năng Phase 2/3 dùng V18–V21 để không chiếm khe đó.
         assertThat(migrationFileNames())
-                .as("R17: đúng danh mục migration sau Wave 1 (chưa có V16/V17 của W3)")
+                .as("R17: đúng danh mục migration sau W1-A (chưa có V17__rls.sql của owner)")
                 .containsExactlyInAnyOrder(
                         "V1__extensions_and_functions.sql",
                         "V2__roles_and_grants.sql",
                         "V3__spring_session.sql",
                         "V4__modulith_event_publication.sql",
-                        "V4.1__shedlock.sql",
+                        "V4_1__shedlock.sql",
                         "V5__identity.sql",
                         "V6__privacy.sql",
                         "V7__catalog.sql",
@@ -78,7 +94,48 @@ class MigrationNamingTests {
                         "V12__monitoring.sql",
                         "V13__notification.sql",
                         "V14__export.sql",
-                        "V15__ops.sql");
+                        "V15__ops.sql",
+                        "V16__triggers_and_invariants.sql",
+                        "V18__community.sql",
+                        "V19__place.sql",
+                        "V20__shop.sql",
+                        "V21__ai_rag.sql",
+                        "V22__ai_document_lifecycle.sql");
+    }
+
+    /**
+     * R17 vế thứ hai: "Trong {@code db/seed} phải khớp {@code R__seed_[a-z0-9_]+\.sql}"
+     * (p7 §7.6.2). Trước W1-A chưa có test nào cho vế này.
+     */
+    @Test
+    void allSeedFilesMatchNamingConvention() throws IOException {
+        List<String> invalid = seedFileNames().stream()
+                .filter(name -> !SEED_FILENAME_PATTERN.matcher(name).matches())
+                .toList();
+
+        assertThat(invalid)
+                .as("R17: file seed phải khớp ^R__seed_[a-z0-9_]+\\.sql$")
+                .isEmpty();
+    }
+
+    /**
+     * p4 §4.9.2 liệt kê 11 file seed. Bốn file (`cat_breed`, `monitoring_rule`,
+     * `ph_classification_band`, `color_chart_placeholder`) hiện CHƯA tồn tại dưới dạng `R__`
+     * vì dữ liệu của chúng nằm trong V7/V9/V12 — trái p4 §4.9.1 ("V__ chỉ schema"), đã ghi
+     * handoff H15 và KHÔNG sửa ở gói này (sửa = vỡ checksum của migration đã merge).
+     */
+    @Test
+    void seedCatalogMatchesSpecMinusTheOnesStillInlinedInVersionedMigrations() throws IOException {
+        assertThat(seedFileNames())
+                .as("p4 §4.9.2: danh mục file seed hiện có")
+                .containsExactlyInAnyOrder(
+                        "R__seed_app_setting.sql",
+                        "R__seed_consent_purpose.sql",
+                        "R__seed_data_inventory_item.sql",
+                        "R__seed_holiday_calendar.sql",
+                        "R__seed_package_plan.sql",
+                        "R__seed_policy_version.sql",
+                        "R__seed_retention_policy.sql");
     }
 
     private String extractVersion(String fileName) {
@@ -86,8 +143,16 @@ class MigrationNamingTests {
     }
 
     private List<String> migrationFileNames() throws IOException {
-        assertThat(MIGRATION_DIR).as("thư mục migration phải tồn tại: " + MIGRATION_DIR).isDirectory();
-        try (Stream<Path> stream = Files.list(MIGRATION_DIR)) {
+        return fileNamesIn(MIGRATION_DIR);
+    }
+
+    private List<String> seedFileNames() throws IOException {
+        return fileNamesIn(SEED_DIR);
+    }
+
+    private List<String> fileNamesIn(Path dir) throws IOException {
+        assertThat(dir).as("thư mục phải tồn tại: " + dir).isDirectory();
+        try (Stream<Path> stream = Files.list(dir)) {
             return stream.filter(Files::isRegularFile)
                     .map(path -> path.getFileName().toString())
                     .toList();

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 
 /** Theo dõi 1 phần tử có đang trong viewport không (dùng cho lazy-load / infinite scroll). */
-export function useIntersection<T extends Element>(
-  options?: IntersectionObserverInit,
-): [RefObject<T | null>, boolean] {
+export function useIntersection<T extends Element>(options?: IntersectionObserverInit): [RefObject<T | null>, boolean] {
   const ref = useRef<T | null>(null);
   const [isIntersecting, setIsIntersecting] = useState(false);
 

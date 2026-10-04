@@ -10,31 +10,30 @@ import {
   ChevronRight,
   Droplet,
   Eye,
+  FlaskConical,
   HelpCircle,
   Lightbulb,
   PawPrint,
   Plus,
-  ShoppingBag,
-  Star,
-  Stethoscope,
-  Zap,
+  ShieldCheck,
 } from "lucide-react";
 import { useCatList } from "@/features/cat";
-import { formatScanTimestamp, useScanHistory } from "@/features/history";
+import { formatScanTimestamp, useScanHistory, useScanSummary } from "@/features/history";
 import { useReminders } from "@/features/reminder";
-import { TREND_RANGE_DAYS, useTrendSeries } from "@/features/trends";
+import { HealthFlagDisclosure } from "@/features/insight";
+import { useCareTips } from "./careTipsApi";
+import { TREND_RANGE_DAYS, toTrendPoints, useCatTrends } from "@/features/trends";
 import type { TrendRange } from "@/features/trends";
 import { PhBadge, PhGaugeBar, phTokenStyle, usePhBands } from "@/entities/ph-bands";
 import type { PhBand } from "@/entities/ph-bands";
 import { useSessionStore } from "@/entities/user";
+import { CatAvatar } from "@/entities/cat";
 import type { Cat } from "@/entities/cat";
 import type { ScanListItem } from "@/entities/scan-result";
 import type { Reminder } from "@/features/reminder";
 import { cn } from "@/shared/lib/cn";
 import { formatDate } from "@/shared/lib/format/formatDate";
 import { formatRelative } from "@/shared/lib/format/formatRelative";
-import careTipPhoto from "@/shared/assets/images/web-dashboard/care-tip-water-fountain.jpg";
-import samplePhoto from "@/shared/assets/images/web-dashboard/photo-2.png";
 
 /**
  * Trang chủ (Home Dashboard).
@@ -48,9 +47,8 @@ import samplePhoto from "@/shared/assets/images/web-dashboard/photo-2.png";
  *
  * NGUYÊN TẮC DỮ LIỆU: trang này KHÔNG bịa mèo/ảnh/lần quét/chỉ số để ảnh chụp giống Figma.
  * Mọi con số đều đến từ API thật (`/cats`, `/scans`, `/reminders`, `/reference/ph-bands`);
- * không có dữ liệu thì khối tự render empty state. Ba hằng số `DESIGN_MOCK_*` bên dưới là
- * NGOẠI LỆ duy nhất — chúng thuộc các miền CHƯA có endpoint nào (mẹo chăm sóc, bản đồ
- * phòng khám, kho cát) và được đặt tên để dễ tìm lại khi backend sẵn sàng.
+ * không có dữ liệu thì khối tự render empty state. Sau W1-E trang KHÔNG còn hằng
+ * `DESIGN_MOCK_*` nào.
  *
  * COPY: quyết định #8 (`context/spec/00-decisions.md`) — "Chỉ số đo: Chỉ pH. Không phát hiện
  * máu." Vì vậy các chuỗi của Figma hứa hẹn phát hiện máu/khoáng chất ("Không phát hiện dấu
@@ -59,34 +57,16 @@ import samplePhoto from "@/shared/assets/images/web-dashboard/photo-2.png";
  */
 
 /**
- * DESIGN_MOCK — mẹo chăm sóc trong ngày. CHƯA có endpoint nội dung (`care tips`/CMS) ở MVP;
- * ảnh lấy từ frame Figma `02. Trang chủ`. Thay bằng API thật khi module nội dung có mặt.
+ * Mẹo chăm sóc nay lấy từ **F7 `GET /api/v1/care-tips`** (`useCareTips`) — trước đây là hằng
+ * `DESIGN_MOCK_CARE_TIP` (ảnh Figma) cộng hai chuỗi i18n viết cứng. Response chỉ có
+ * `title`/`summary`, KHÔNG có ảnh minh hoạ, nên thẻ bỏ hẳn ảnh thay vì gắn ảnh trang trí giả.
+ *
+ * Hai thẻ "Cơ sở đồng hành" (`DESIGN_MOCK_CLINIC`) và "Kho cát gia đình"
+ * (`DESIGN_MOCK_LITTER_STOCK`) đã bỏ: chúng thuộc miền Bản đồ (Phase 2) và Cửa hàng
+ * (Phase 3) — `featureFlags.map`/`featureFlags.shop` đang TẮT nên `/map` và `/shop` chỉ ra
+ * `ComingSoonPage`; để lại phòng khám và tồn kho bịa trên Trang chủ là mâu thuẫn thẳng với
+ * chính hai cờ đó.
  */
-const DESIGN_MOCK_CARE_TIP = { image: careTipPhoto };
-
-/**
- * DESIGN_MOCK — thẻ "Cơ sở đồng hành". `features/map` còn là khung M0 (`export {}`), chưa có
- * endpoint phòng khám nào, nên số liệu dưới đây là dữ liệu trình bày, không phải dữ liệu thật.
- */
-const DESIGN_MOCK_CLINIC = {
-  name: "Bệnh viện Thú y PetCare Center",
-  km: "1.2",
-  area: "Thảo Điền, TP. Thủ Đức",
-  rating: "4.9",
-  reviewCount: 310,
-};
-
-/**
- * DESIGN_MOCK — thẻ "Kho cát gia đình". `features/shop` còn là khung M0 (`export {}`), chưa
- * có endpoint tồn kho/đơn hàng nào.
- */
-const DESIGN_MOCK_LITTER_STOCK = { bags: 1, days: 6 };
-
-/**
- * DESIGN_MOCK — ảnh minh hoạ vùng phân tích trong widget đo màu. `GET /scans` (E2) chỉ trả
- * `thumbnailHex`, KHÔNG trả URL ảnh, nên không thể dùng ảnh thật của lần quét gần nhất.
- */
-const DESIGN_MOCK_SCAN_PHOTO = samplePhoto;
 
 const WEB_RANGES: TrendRange[] = ["7D", "30D", "90D"];
 
@@ -99,7 +79,9 @@ interface PhScale {
 
 function buildScale(bands: PhBand[] | undefined): PhScale | null {
   if (!bands || bands.length === 0) return null;
-  const isNumber = (v: number | null): v is number => typeof v === "number" && Number.isFinite(v);
+  // `number | null | undefined`: server bỏ hẳn key `phMin`/`phMax` ở dải mở (LOW/HIGH) chứ
+  // không gửi null — xem ghi chú ở `PhBand.phMin`.
+  const isNumber = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
   const lower = bands.map((b) => b.phMin).filter(isNumber);
   const upper = bands.map((b) => b.phMax).filter(isNumber);
   if (lower.length === 0 || upper.length === 0) return null;
@@ -133,6 +115,12 @@ export function DashboardPage() {
   const { data: bands } = usePhBands();
   const { data: historyPages } = useScanHistory(undefined, "ALL", !isGuest);
   const scans = useMemo(() => historyPages?.pages[0]?.items ?? [], [historyPages]);
+  // "Xem toàn bộ N bản ghi" phải là TỔNG THẬT, không phải số đã tải: `useScanHistory` chỉ trả
+  // trang đầu nên `scans.length` dừng ở page size và con số nói dối ngay khi user có nhiều
+  // scan hơn một trang. E3 `GET /scans/summary` có sẵn `count`; truyền `!isGuest` để khách
+  // không gọi vào một endpoint chắc chắn 403.
+  const { data: scanSummary } = useScanSummary(undefined, undefined, undefined, !isGuest);
+  const totalScanCount = scanSummary?.count ?? scans.length;
   const { data: reminderList } = useReminders({ active: true }, !isGuest);
   const reminders = useMemo(() => reminderList?.items ?? [], [reminderList]);
 
@@ -141,6 +129,15 @@ export function DashboardPage() {
   const scale = buildScale(bands);
   const primaryCat = cats.find((c) => c.isPrimary) ?? cats.at(0);
   const nextReminder = reminders.find((r) => r.nextRunAt !== undefined);
+  /**
+   * Tổng số dấu hiệu chưa xác nhận của cả đàn — `GET /cats` đã trả
+   * `unacknowledgedFlagCount` cho từng bé, không cần endpoint đếm riêng. Con số này là NÚT
+   * mở danh sách thật (G1 `GET /health-flags`), không phải badge chết.
+   */
+  const unacknowledgedFlagCount = cats.reduce((sum, cat) => sum + (cat.unacknowledgedFlagCount ?? 0), 0);
+  // F7 — nội dung chăm sóc đã công bố. Công khai nên khách chưa đăng nhập vẫn đọc được.
+  const { data: careTips } = useCareTips(3);
+  const careTip = careTips?.[0];
 
   /** Lần quét gần nhất CỦA TỪNG BÉ — suy ra từ chính `/scans`, không gọi thêm endpoint. */
   const latestByCat = useMemo(() => {
@@ -157,10 +154,12 @@ export function DashboardPage() {
   const stamp = (iso: string) => formatScanTimestamp(iso, todayLabel, yesterdayLabel);
 
   const [range, setRange] = useState<TrendRange>("30D");
-  const { data: trendSeries } = useTrendSeries(primaryCat?.id, range);
+  // D13 `GET /cats/{id}/trends` — CÙNG nguồn với màn `/cats/:catId/trends`. Trước W1-E chỗ
+  // này tự tổng hợp từ `GET /scans` nên Trang chủ và màn Xu hướng hiện số khác nhau.
+  const { data: trendData } = useCatTrends(primaryCat?.id, range);
   const trendPoints = useMemo(
-    () => (trendSeries?.points ?? []).map((p) => ({ date: p.date, value: p.phValue })),
-    [trendSeries],
+    () => toTrendPoints(trendData?.points).map((p) => ({ date: p.date, value: p.phValue })),
+    [trendData],
   );
   const trendStats = useMemo(() => {
     if (trendPoints.length === 0) return null;
@@ -242,6 +241,7 @@ export function DashboardPage() {
         {/* Section 1 — Hero quét cát. Figma mobile KHÔNG có dòng chào ở trên hero. */}
         <div className="relative mt-4 overflow-hidden rounded-xl bg-primary p-5 text-white shadow-[0px_10px_24px_-6px_rgba(47,79,178,0.28)]">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] tracking-[0.4px] backdrop-blur-sm">
+            <FlaskConical size={13} aria-hidden="true" />
             {t("dashboard.heroBadge", { ns: "common" })}
           </span>
           <h3 className="pt-4 text-[20px] font-semibold">{t("dashboard.heroTitle", { ns: "common" })}</h3>
@@ -294,15 +294,7 @@ export function DashboardPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative size-14 shrink-0">
-                      <div className="size-full overflow-hidden rounded-full shadow-xs">
-                        {cat.avatarUrl ? (
-                          <img src={cat.avatarUrl} alt="" className="size-full object-cover" />
-                        ) : (
-                          <div className="flex size-full items-center justify-center bg-chip-bg text-caption font-semibold text-primary-dark">
-                            {cat.name.slice(0, 1)}
-                          </div>
-                        )}
-                      </div>
+                      <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" className="size-14 shadow-xs" />
                       {band ? (
                         <span
                           aria-hidden="true"
@@ -387,10 +379,12 @@ export function DashboardPage() {
               className="mt-2 block rounded-xl bg-surface p-4 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]"
             >
               <div className="flex items-start justify-between gap-3">
-                {latestBand ? <PhBadge band={latestBand} /> : null}
-                <div className="text-right">
+                {latestBand ? <PhBadge band={latestBand} className="min-w-0" /> : null}
+                <div className="shrink-0 text-right">
                   <p className="text-[11px] text-text-secondary">{t("dashboard.analyzed", { ns: "common" })}</p>
-                  <p className="text-[12px] font-semibold text-text-primary">{stamp(latestScan.capturedAt)}</p>
+                  <p className="whitespace-nowrap text-[12px] font-semibold text-text-primary">
+                    {stamp(latestScan.capturedAt)}
+                  </p>
                 </div>
               </div>
 
@@ -403,7 +397,7 @@ export function DashboardPage() {
                   </span>
                   <span
                     className={cn(
-                      "min-w-0 flex-1 rounded-lg bg-surface px-2 py-1 text-right text-caption font-bold leading-4",
+                      "min-w-0 flex-1 rounded-lg bg-surface px-2 py-1 text-caption font-bold leading-4",
                       phTokenStyle(latestBand?.colorToken ?? "color-ph-unknown").text,
                     )}
                   >
@@ -417,10 +411,14 @@ export function DashboardPage() {
 
                 {bands ? (
                   <div className="pt-3">
-                    <PhGaugeBar bands={bands} value={latestScan.phValue} />
+                    {/* ponytail: Figma chỉ có MỘT hàng nhãn thang (đã kèm cận dưới/trên trong chữ), còn
+                        `PhGaugeBar` luôn tự in thêm hàng số min/max -> ẩn hàng cuối của nó bằng
+                        variant con. Trần: phụ thuộc DOM của component dùng chung. Nâng cấp: thêm
+                        prop `showBounds` cho `entities/ph-bands` khi được phép sửa file đó. */}
+                    <PhGaugeBar bands={bands} value={latestScan.phValue} className="[&>div:last-child]:hidden" />
                     {scale ? (
-                      <div className="flex items-center justify-between gap-2 pt-0.5 text-[10px] text-text-secondary">
-                        <span>{t("dashboard.scaleAcid", { ns: "common" })}</span>
+                      <div className="flex items-center justify-between gap-2 pt-1.5 text-[10px] text-text-secondary">
+                        <span>{t("dashboard.scaleAcid", { ns: "common", value: scale.min.toFixed(1) })}</span>
                         <span className="font-semibold text-success-text">
                           {t("dashboard.scaleIdeal", {
                             ns: "common",
@@ -428,7 +426,7 @@ export function DashboardPage() {
                             max: formatRangeBound(scale.normal?.phMax, scale.max),
                           })}
                         </span>
-                        <span>{t("dashboard.scaleAlkaline", { ns: "common" })}</span>
+                        <span>{t("dashboard.scaleAlkaline", { ns: "common", value: scale.max.toFixed(1) })}</span>
                       </div>
                     ) : null}
                   </div>
@@ -487,30 +485,25 @@ export function DashboardPage() {
           </Link>
         </div>
 
-        {/* Section 5 — Thói quen chăm sóc trong ngày (DESIGN_MOCK_CARE_TIP) */}
-        <div className="mt-3 flex items-center gap-3 rounded-xl bg-surface p-3 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]">
-          <img
-            src={DESIGN_MOCK_CARE_TIP.image}
-            alt=""
-            className="size-[58px] shrink-0 rounded-lg object-cover"
-          />
-          <div className="min-w-0 flex-1">
+        {/* Dấu hiệu theo dõi chưa xác nhận (G1/G3) */}
+        <HealthFlagDisclosure count={unacknowledgedFlagCount} enabled={!isGuest} className="mt-3" />
+
+        {/* Section 5 — Thói quen chăm sóc trong ngày (F7 `GET /care-tips`) */}
+        {careTip ? (
+          <div className="mt-3 flex flex-col gap-1 rounded-xl bg-surface p-3 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]">
             <p className="flex items-center gap-1 text-[11px] font-semibold text-secondary-text-on">
               <Lightbulb size={12} className="shrink-0" aria-hidden="true" />
               {t("dashboard.careTipLabel", { ns: "common" })}
             </p>
-            <p className="text-[15px] font-semibold text-text-primary">
-              {t("dashboard.careTipTitle", { ns: "common" })}
-            </p>
-            <p className="truncate text-[11px] text-text-secondary">
-              {t("dashboard.careTipBody", { ns: "common" })}
-            </p>
+            <p className="text-[15px] font-semibold text-text-primary">{careTip.title}</p>
+            {careTip.summary ? <p className="text-[11px] text-text-secondary">{careTip.summary}</p> : null}
           </div>
-        </div>
+        ) : null}
 
         {/* Footer — miễn trừ y tế */}
         <div className="flex justify-center pt-5">
-          <p className="max-w-[358px] rounded-full bg-info px-3 py-1.5 text-center text-[11px] tracking-[0.4px] text-info-text">
+          <p className="flex max-w-[358px] items-center gap-2 rounded-3xl bg-info px-3 py-1.5 text-[11px] leading-4 tracking-[0.4px] text-info-text">
+            <ShieldCheck size={15} className="shrink-0" aria-hidden="true" />
             {t("dashboard.disclaimer", { ns: "common" })}
           </p>
         </div>
@@ -533,8 +526,9 @@ export function DashboardPage() {
                 })}
               </span>
             </div>
-            <h1 className="pt-2 text-[30px] font-bold leading-10 tracking-[-0.75px] text-text-primary">
+            <h1 className="flex items-center gap-2 pt-2 text-[30px] font-bold leading-10 tracking-[-0.75px] text-text-primary">
               {t("dashboardWeb.greeting", { ns: "common", name: displayName })}
+              <PawPrint size={24} className="shrink-0 text-primary-dark" aria-hidden="true" />
             </h1>
             <p className="max-w-[650px] pt-1 text-caption leading-6 text-text-secondary">
               {t("dashboardWeb.intro", { ns: "common" })}
@@ -580,15 +574,7 @@ export function DashboardPage() {
                     >
                       <div className="flex items-start gap-3">
                         <span className="relative size-12 shrink-0">
-                          <span className="block size-full overflow-hidden rounded-full bg-chip-bg">
-                            {cat.avatarUrl ? (
-                              <img src={cat.avatarUrl} alt="" className="size-full object-cover" />
-                            ) : (
-                              <span className="flex size-full items-center justify-center text-body font-bold text-primary-dark">
-                                {cat.name.slice(0, 1)}
-                              </span>
-                            )}
-                          </span>
+                          <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" className="size-12" />
                           {band ? (
                             <span
                               aria-hidden="true"
@@ -667,7 +653,8 @@ export function DashboardPage() {
                   </h2>
                 </div>
                 {latestScan?.confidence != null ? (
-                  <span className="shrink-0 rounded-full bg-background-alt px-3 py-1.5 text-[11px] font-semibold text-text-secondary">
+                  <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-background-alt px-3 py-1.5 text-[11px] font-semibold text-text-secondary">
+                    <BadgeCheck size={14} className="shrink-0 text-success" aria-hidden="true" />
                     {t("dashboardWeb.confidence", {
                       ns: "common",
                       value: (latestScan.confidence * 100).toFixed(1),
@@ -678,16 +665,23 @@ export function DashboardPage() {
 
               {latestScan ? (
                 <div className="mt-4 flex gap-5 rounded-xl bg-background-alt/60 p-4">
-                  <div className="relative w-[170px] shrink-0 overflow-hidden rounded-xl">
-                    <img src={DESIGN_MOCK_SCAN_PHOTO} alt="" className="h-[150px] w-full object-cover" />
+                  {/* `GET /scans` (E2) KHÔNG trả URL ảnh — chỉ `thumbnailHex`, tức màu đã
+                      đo được của vùng hạt. Hiển thị đúng ô màu đó thay cho tấm ảnh hạt cát
+                      lấy từ Figma (ảnh của một lần quét không có thật). */}
+                  <div
+                    className="relative min-h-[150px] w-[170px] shrink-0 self-stretch overflow-hidden rounded-xl border border-border bg-background-alt"
+                    style={latestScan.thumbnailHex ? { backgroundColor: latestScan.thumbnailHex } : undefined}
+                  >
                     <span className="absolute bottom-1.5 left-1.5 rounded bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold text-text-primary">
-                      {t("dashboardWeb.aiZone", { ns: "common" })}
+                      {t("dashboardWeb.measuredSwatch", { ns: "common" })}
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[11px] text-text-secondary">{t("dashboardWeb.extracted", { ns: "common" })}</p>
+                        <p className="text-[11px] text-text-secondary">
+                          {t("dashboardWeb.extracted", { ns: "common" })}
+                        </p>
                         <p className="flex items-center gap-2 text-[32px] font-bold leading-9 text-primary-dark">
                           {t("dashboardWeb.phBig", { ns: "common", value: latestScan.phValue?.toFixed(1) ?? "—" })}
                           {latestBand ? (
@@ -713,10 +707,10 @@ export function DashboardPage() {
 
                     {bands ? (
                       <div className="pt-3">
-                        <PhGaugeBar bands={bands} value={latestScan.phValue} />
+                        <PhGaugeBar bands={bands} value={latestScan.phValue} className="[&>div:last-child]:hidden" />
                         {scale ? (
-                          <div className="flex justify-between pt-0.5 text-[10px] text-text-secondary">
-                            <span>{t("dashboardWeb.scaleAcid", { ns: "common" })}</span>
+                          <div className="flex justify-between pt-1.5 text-[10px] text-text-secondary">
+                            <span>{t("dashboardWeb.scaleAcid", { ns: "common", value: scale.min.toFixed(1) })}</span>
                             <span className="font-semibold text-success-text">
                               {t("dashboardWeb.scaleSafe", {
                                 ns: "common",
@@ -724,7 +718,9 @@ export function DashboardPage() {
                                 max: formatRangeBound(scale.normal?.phMax, scale.max),
                               })}
                             </span>
-                            <span>{t("dashboardWeb.scaleAlkaline", { ns: "common" })}</span>
+                            <span>
+                              {t("dashboardWeb.scaleAlkaline", { ns: "common", value: scale.max.toFixed(1) })}
+                            </span>
                           </div>
                         ) : null}
                       </div>
@@ -758,7 +754,11 @@ export function DashboardPage() {
                     {t("dashboardWeb.trendLabel", { ns: "common" })}
                   </p>
                   <h2 className="pt-1 text-[20px] font-bold text-text-primary">
-                    {t("dashboardWeb.trendTitle", { ns: "common", name: primaryCat?.name ?? displayName })}
+                    {t("dashboardWeb.trendTitle", {
+                      ns: "common",
+                      days: TREND_RANGE_DAYS[range],
+                      name: primaryCat?.name ?? displayName,
+                    })}
                   </h2>
                 </div>
                 <div className="flex shrink-0 gap-1 rounded-lg bg-background-alt p-1 text-[11px] font-semibold">
@@ -766,7 +766,9 @@ export function DashboardPage() {
                     <button
                       key={r}
                       type="button"
-                      onClick={() => { setRange(r); }}
+                      onClick={() => {
+                        setRange(r);
+                      }}
                       className={cn(
                         "rounded px-2.5 py-1",
                         r === range ? "bg-surface text-primary-dark shadow-xs" : "text-text-secondary",
@@ -836,18 +838,20 @@ export function DashboardPage() {
                   {t("dashboardWeb.logTitle", { ns: "common" })}
                 </h2>
                 <Link to="/history" className="text-[11px] font-semibold text-primary-dark hover:underline">
-                  {t("dashboardWeb.logViewAll", { ns: "common", count: scans.length })} →
+                  {t("dashboardWeb.logViewAll", { ns: "common", count: totalScanCount })} →
                 </Link>
               </div>
               {scans.length > 0 ? (
                 <table className="mt-4 w-full text-left">
                   <thead>
                     <tr className="border-b border-border text-[10px] tracking-[0.4px] text-text-secondary">
-                      <th className="pb-2 font-semibold">{t("dashboardWeb.colTime", { ns: "common" })}</th>
-                      <th className="pb-2 font-semibold">{t("dashboardWeb.colColor", { ns: "common" })}</th>
-                      <th className="pb-2 font-semibold">{t("dashboardWeb.colPh", { ns: "common" })}</th>
+                      <th className="w-[26%] pb-2 font-semibold">{t("dashboardWeb.colTime", { ns: "common" })}</th>
+                      <th className="w-[30%] pb-2 font-semibold">{t("dashboardWeb.colColor", { ns: "common" })}</th>
+                      <th className="w-[9%] pb-2 font-semibold">{t("dashboardWeb.colPh", { ns: "common" })}</th>
                       <th className="pb-2 font-semibold">{t("dashboardWeb.colAi", { ns: "common" })}</th>
-                      <th className="pb-2 text-right font-semibold">{t("dashboardWeb.colDetail", { ns: "common" })}</th>
+                      <th className="whitespace-nowrap pb-2 text-right font-semibold">
+                        {t("dashboardWeb.colDetail", { ns: "common" })}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -855,9 +859,7 @@ export function DashboardPage() {
                       const band = bands?.find((b) => b.code === scan.bandCode);
                       return (
                         <tr key={scan.scanId} className="border-b border-border/60 last:border-0">
-                          <td className="py-3 text-[11px] font-semibold text-text-primary">
-                            {stamp(scan.capturedAt)}
-                          </td>
+                          <td className="py-3 text-[11px] font-semibold text-text-primary">{stamp(scan.capturedAt)}</td>
                           {/* MÀU PHẢN ỨNG CÁT — ô màu THẬT từ `thumbnailHex` của E2. Hệ thống chưa
                               có endpoint trả TÊN màu (`color_chart_point.display_name_vi` không lộ
                               ra ở `GET /scans`), nên hiển thị mã màu thay vì bịa tên. */}
@@ -877,9 +879,16 @@ export function DashboardPage() {
                           <td className="py-3 text-caption font-bold text-primary-dark">
                             {scan.phValue?.toFixed(1) ?? t("dashboardWeb.emptyCell", { ns: "common" })}
                           </td>
-                          <td className="py-3">{band ? <PhBadge band={band} /> : null}</td>
+                          <td className="py-3">
+                            {band ? (
+                              <PhBadge band={band} className="gap-1 whitespace-nowrap px-2 py-0.5 [&>svg]:size-3" />
+                            ) : null}
+                          </td>
                           <td className="py-3 text-right">
-                            <Link to={`/scans/${scan.scanId}`} aria-label={t("dashboardWeb.colDetail", { ns: "common" })}>
+                            <Link
+                              to={`/scans/${scan.scanId}`}
+                              aria-label={t("dashboardWeb.colDetail", { ns: "common" })}
+                            >
                               <Eye size={15} className="ml-auto text-text-tertiary" aria-hidden="true" />
                             </Link>
                           </td>
@@ -909,9 +918,7 @@ export function DashboardPage() {
               <span className="text-caption font-bold text-primary-dark">
                 {t("dashboardWeb.addCatTitle", { ns: "common" })}
               </span>
-              <span className="text-[11px] text-text-secondary">
-                {t("dashboardWeb.addCatNote", { ns: "common" })}
-              </span>
+              <span className="text-[11px] text-text-secondary">{t("dashboardWeb.addCatNote", { ns: "common" })}</span>
             </Link>
 
             {/* LỊCH CHĂM SÓC (nguồn: `GET /reminders?active=true`) */}
@@ -980,109 +987,27 @@ export function DashboardPage() {
               </Link>
             </article>
 
-            {/* LỜI KHUYÊN BÁC SĨ FELINE — nội dung biên tập tĩnh (chưa có CMS). */}
-            <article className="rounded-2xl border-l-4 border-primary-dark bg-info/60 p-5">
-              <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.5px] text-primary-dark">
-                <Stethoscope size={14} className="shrink-0" aria-hidden="true" />
-                {t("dashboardWeb.adviceLabel", { ns: "common" })}
-              </p>
-              <h3 className="pt-2 text-[17px] font-bold leading-6 text-text-primary">
-                {t("dashboardWeb.adviceTitle", { ns: "common" })}
-              </h3>
-              <p className="pt-2 text-[13px] leading-5 text-text-secondary">
-                {t("dashboardWeb.adviceBody", { ns: "common" })}
-              </p>
-              <Link
-                to="/community"
-                className="inline-flex items-center gap-1 pt-3 text-[12px] font-bold text-primary-dark hover:underline"
-              >
-                {t("dashboardWeb.adviceLink", { ns: "common" })}
-                <ChevronRight size={13} aria-hidden="true" />
-              </Link>
-            </article>
-
-            {/* CƠ SỞ ĐỒNG HÀNH (DESIGN_MOCK_CLINIC) */}
-            <article className="rounded-2xl bg-surface p-5 shadow-xs">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-bold tracking-[0.5px] text-text-secondary">
-                  {t("dashboardWeb.clinicLabel", { ns: "common" })}
+            {/* Mẹo chăm sóc — F7 `GET /care-tips`. Thẻ "LỜI KHUYÊN BÁC SĨ FELINE" của Figma
+                đã bỏ: nội dung đó là lời khuyên y tế viết cứng trong i18n (kèm ngưỡng pH
+                hard-code) và link của nó trỏ sang `/community` vốn đang tắt theo cờ. */}
+            {careTips && careTips.length > 0 ? (
+              <article className="rounded-2xl border-l-4 border-primary-dark bg-info/60 p-5">
+                <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.5px] text-primary-dark">
+                  <Lightbulb size={14} className="shrink-0" aria-hidden="true" />
+                  {t("dashboard.careTipLabel", { ns: "common" })}
                 </p>
-                <span className="shrink-0 rounded-full bg-success-bg px-2 py-0.5 text-[10px] font-semibold text-success-text">
-                  {t("dashboardWeb.clinicOpen", { ns: "common" })}
-                </span>
-              </div>
-              <div className="flex items-start gap-3 pt-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-chip-bg">
-                  <Stethoscope size={20} className="text-primary-dark" aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-bold leading-5 text-text-primary">{DESIGN_MOCK_CLINIC.name}</p>
-                  <p className="pt-0.5 text-[11px] leading-4 text-text-secondary">
-                    {t("dashboardWeb.clinicDistance", {
-                      ns: "common",
-                      km: DESIGN_MOCK_CLINIC.km,
-                      area: DESIGN_MOCK_CLINIC.area,
-                    })}
-                  </p>
-                  <p className="flex items-center gap-1 pt-1 text-[11px] text-text-secondary">
-                    <Star size={12} className="shrink-0 fill-secondary text-secondary" aria-hidden="true" />
-                    {t("dashboardWeb.clinicRating", {
-                      ns: "common",
-                      rating: DESIGN_MOCK_CLINIC.rating,
-                      count: DESIGN_MOCK_CLINIC.reviewCount,
-                    })}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-3">
-                <Link
-                  to="/map"
-                  className="flex h-10 items-center justify-center rounded-xl bg-chip-bg/70 px-2 text-center text-[11px] font-semibold text-primary-dark"
-                >
-                  {t("dashboardWeb.clinicMap", { ns: "common" })}
-                </Link>
-                <Link
-                  to="/map"
-                  className="flex h-10 items-center justify-center rounded-xl bg-primary-dark px-2 text-center text-[11px] font-semibold text-white"
-                >
-                  {t("dashboardWeb.clinicDetail", { ns: "common" })}
-                </Link>
-              </div>
-            </article>
-
-            {/* KHO CÁT GIA ĐÌNH (DESIGN_MOCK_LITTER_STOCK) */}
-            <article className="rounded-2xl bg-secondary-light p-5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-bold tracking-[0.5px] text-secondary-text-on">
-                  {t("dashboardWeb.litterLabel", { ns: "common" })}
-                </p>
-                <ShoppingBag size={16} className="shrink-0 text-secondary-text-on" aria-hidden="true" />
-              </div>
-              <div className="flex items-start gap-3 pt-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface">
-                  <PawPrint size={20} className="text-primary-dark" aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-bold leading-5 text-text-primary">
-                    {t("dashboardWeb.litterTitle", { ns: "common" })}
-                  </p>
-                  <p className="pt-0.5 text-[11px] leading-4 text-text-secondary">
-                    {t("dashboardWeb.litterNote", {
-                      ns: "common",
-                      bags: DESIGN_MOCK_LITTER_STOCK.bags,
-                      days: DESIGN_MOCK_LITTER_STOCK.days,
-                    })}
-                  </p>
-                </div>
-              </div>
-              <Link
-                to="/shop"
-                className="mt-4 flex h-11 items-center justify-center gap-2 rounded-full bg-primary-darker text-caption font-bold text-white"
-              >
-                {t("dashboardWeb.litterCta", { ns: "common" })}
-                <Zap size={15} aria-hidden="true" />
-              </Link>
-            </article>
+                <ul className="flex flex-col gap-3 pt-2">
+                  {careTips.map((tip) => (
+                    <li key={tip.id} className="flex flex-col gap-0.5">
+                      <span className="text-[15px] font-bold leading-6 text-text-primary">{tip.title}</span>
+                      {tip.summary ? (
+                        <span className="text-[13px] leading-5 text-text-secondary">{tip.summary}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
 
             <p className="rounded-xl bg-chip-bg/60 px-4 py-3 text-center text-[11px] leading-4 text-info-text">
               {t("dashboard.disclaimer", { ns: "common" })}
@@ -1126,7 +1051,19 @@ function TrendChart({
   const span = domainMax - domainMin || 1;
   const y = (v: number) => h - ((Math.min(domainMax, Math.max(domainMin, v)) - domainMin) / span) * h;
   const step = points.length > 1 ? w / (points.length - 1) : w;
-  const line = points.map((p, i) => `${String(i * step)},${String(y(p.value))}`).join(" ");
+  // Catmull-Rom -> Bézier bậc 3: Figma vẽ đường trơn, `polyline` cho ra đường gấp khúc.
+  const coords = points.map((p, i) => ({ x: i * step, y: y(p.value) }));
+  const at = (i: number) => coords[Math.min(coords.length - 1, Math.max(0, i))];
+  const line = coords
+    .slice(1)
+    .map((_, i) => {
+      const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+      const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
+      const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+      return `C ${String(c1.x)} ${String(c1.y)} ${String(c2.x)} ${String(c2.y)} ${String(p2.x)} ${String(p2.y)}`;
+    })
+    .join(" ");
+  const path = `M ${String(coords[0].x)} ${String(coords[0].y)} ${line}`;
   const mid = (domainMin + domainMax) / 2;
 
   // Tối đa 6 nhãn trục hoành, luôn giữ điểm đầu và điểm cuối.
@@ -1164,15 +1101,22 @@ function TrendChart({
                 strokeDasharray="4 4"
               />
             ))}
-            <rect x="0" y={y(safeMax)} width={w} height={Math.max(0, y(safeMin) - y(safeMax))} className="fill-success-bg" />
-            <polyline points={line} className="fill-none stroke-primary-dark" strokeWidth="2.5" strokeLinejoin="round" />
+            <rect
+              x="0"
+              y={y(safeMax)}
+              width={w}
+              height={Math.max(0, y(safeMin) - y(safeMax))}
+              rx="10"
+              className="fill-success-bg"
+            />
+            <path d={path} className="fill-none stroke-primary-dark" strokeWidth="2.5" strokeLinejoin="round" />
             {points.map((p, i) => (
               <circle
                 key={`${p.date}-${String(i)}`}
                 cx={i * step}
                 cy={y(p.value)}
                 r="4"
-                className="fill-surface stroke-primary-dark"
+                className={cn("stroke-primary-dark", i === points.length - 1 ? "fill-primary-dark" : "fill-surface")}
                 strokeWidth="2.5"
               />
             ))}

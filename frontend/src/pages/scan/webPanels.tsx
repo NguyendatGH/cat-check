@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { PhGaugeBar, type PhBand } from "@/entities/ph-bands";
+import { Link } from "react-router";
+import { findBandForPh, PhBadge, PhGaugeBar, type PhBand } from "@/entities/ph-bands";
 
 import iconBanner from "@/shared/assets/icons/web-scan/imgContainer.svg";
 import iconInfo1 from "@/shared/assets/icons/web-scan/imgContainer1.svg";
@@ -16,15 +17,8 @@ import iconTipsTitle from "@/shared/assets/icons/web-scan/imgContainer11.svg";
 import iconTip1 from "@/shared/assets/icons/web-scan/imgMargin.svg";
 import iconTip2 from "@/shared/assets/icons/web-scan/imgMargin1.svg";
 import iconResultBadge from "@/shared/assets/icons/web-scan/imgContainer12.svg";
-import iconVetAdvice from "@/shared/assets/icons/web-scan/imgContainer14.svg";
-import iconSave from "@/shared/assets/icons/web-scan/imgContainer15.svg";
 import iconPdf from "@/shared/assets/icons/web-scan/imgContainer16.svg";
-import iconAskVet from "@/shared/assets/icons/web-scan/imgContainer17.svg";
-import iconTrendStrip from "@/shared/assets/icons/web-scan/imgContainer18.svg";
-import sparkline from "@/shared/assets/icons/web-scan/imgSvg.svg";
-import iconMetricTile from "@/shared/assets/icons/web-scan/imgContainer19.svg";
 import viewportPhoto from "@/shared/assets/images/web-scan/viewport-litter.png";
-import catPhoto from "@/shared/assets/images/web-scan/cat-luna.png";
 
 /**
  * Bố cục DESKTOP (>= lg) cho màn Quét & Kết quả — dựng từ design context thật của Figma
@@ -34,75 +28,19 @@ import catPhoto from "@/shared/assets/images/web-scan/cat-luna.png";
  *
  * Mobile KHÔNG dùng file này — các page chỉ render nó từ breakpoint `lg` trở lên.
  *
- * ⚠️ DỮ LIỆU GIẢ: backend hiện chưa trả được kết quả có nghĩa (bảng `color_chart` mới chỉ có
- * 1 dòng placeholder ⇒ mọi lần quét đều `INCONCLUSIVE` + `scanId: null`; `/cats/{id}/trends`
- * trả 501). Các hằng `WEB_DEMO_*` bên dưới CHỈ để dựng hình đúng Figma, không phải dữ liệu
- * thật của người dùng — thay bằng dữ liệu API ngay khi backend sẵn sàng.
+ * ĐÃ BỎ HẲN (W1-E) toàn bộ hằng `WEB_DEMO_*`:
+ *  - **Ma trận bệnh lý** (`WEB_DEMO_PATHOLOGY`: FLUTD, sỏi struvite, oxalate, "vi máu /
+ *    hemoglobin") — KHÔNG thay bằng API: đây là chẩn đoán phân biệt và phát hiện máu, trái
+ *    quyết định #6 ("không chẩn đoán") và #8 ("chỉ pH, không phát hiện máu").
+ *  - **Trích dẫn bác sĩ** (`WEB_DEMO_VET_QUOTE`) — lời khuyên y tế bịa, không có nguồn.
+ *  - **Khối kết quả** (`WEB_DEMO_RESULT`) — nay suy từ `phValue` thật + dải pH của
+ *    `GET /reference/ph-bands`; nhãn/mô tả lấy từ `band.label`/`band.description`, không
+ *    hard-code ngưỡng "6.5 – 7.2" như bản thiết kế.
+ *  - **Hồ sơ mèo** (`WEB_DEMO_CAT`) — nay là mèo THẬT đang được chọn, do page truyền vào.
+ *  - **Dải xu hướng đáy trang** (`WEB_DEMO_PREVIOUS` + ảnh sparkline tĩnh) — bỏ cả component
+ *    `WebTrendStrip`: không có endpoint nào trả "2 lần quét trước" ở màn này, và biểu đồ xu
+ *    hướng thật đã có ở `/cats/:catId/trends` (D13).
  */
-
-interface DemoPathologyRow {
-  key: string;
-  title: string;
-  verdict: string;
-  body: string;
-  /** Bề rộng thanh mức độ, 0–100. */
-  level: number;
-}
-
-const WEB_DEMO_PATHOLOGY: DemoPathologyRow[] = [
-  {
-    key: "flutd",
-    title: "Viêm đường tiết niệu (FLUTD)",
-    verdict: "Thấp (0.2%)",
-    body: "Không phát hiện triệu chứng tiểu buốt, pH đồng nhất trên toàn bộ hạt.",
-    level: 8,
-  },
-  {
-    key: "struvite",
-    title: "Sỏi khoáng Struvite (MgNH₄PO₄)",
-    verdict: "Rất Thấp",
-    body: "Nước tiểu không bị kiềm lắng đọng tinh thể.",
-    level: 6,
-  },
-  {
-    key: "oxalate",
-    title: "Sỏi Canxi Oxalate",
-    verdict: "Bình thường",
-    body: "Nồng độ toan hóa thấp, không có dấu hiệu acid niệu kéo dài.",
-    level: 24,
-  },
-  {
-    key: "blood",
-    title: "Vi máu / Hemoglobin (Blood Trace)",
-    verdict: "Âm tính (-)",
-    body: "Cảm biến màu không phát hiện sắc tố đỏ/nâu đậm do hồng cầu vỡ.",
-    level: 4,
-  },
-];
-
-const WEB_DEMO_VET_QUOTE =
-  "“Tình trạng nước tiểu của bé Luna hiện tại rất ổn định và lý tưởng. Tiếp tục duy trì lượng nước uống khoảng 150ml/ngày (thông qua đài phun nước hoặc bổ sung pate mềm) và duy trì hạt ăn cân bằng dinh dưỡng hiện tại. Nên quét định kỳ 3 ngày/lần.”";
-
-const WEB_DEMO_RESULT = {
-  headline: "KẾT QUẢ: BÌNH THƯỜNG (pH 6.8)",
-  statusChip: "Khỏe mạnh",
-  reading: "6.8 pH",
-  referenceNote: "Ngưỡng chuẩn (6.5 - 7.2)",
-  body: "Nồng độ ion H+ trong nước tiểu ở mức cân bằng lý tưởng cho mèo nuôi nhà.",
-  /** Chỉ để đặt kim trên PhGaugeBar khi chưa có kết quả thật. */
-  gaugeValue: 6.8,
-};
-
-const WEB_DEMO_CAT = {
-  name: "Bé Luna",
-  chip: "Cái • Triệt sản",
-  meta: "Mèo Anh lông ngắn • 2.5 tuổi • Cân nặng: 4.2 kg",
-};
-
-const WEB_DEMO_PREVIOUS = [
-  { key: "p1", label: "Lần trước (12/10)", value: "pH 6.7 • Bình thường" },
-  { key: "p2", label: "Lần trước (09/10)", value: "pH 6.9 • Bình thường" },
-];
 
 function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`rounded-2xl bg-surface p-4 shadow-xs ${className}`}>{children}</div>;
@@ -156,31 +94,48 @@ interface WebCapturePanelProps {
   onPickFile?: (file: File) => void;
   onSubmit?: () => void;
   submitDisabled?: boolean;
+  /** Mèo đang được chọn (`GET /cats/{id}`); bỏ trống = khay dùng chung, không hiện thẻ hồ sơ. */
+  catName?: string | null;
+  catMeta?: string | null;
+  catAvatarUrl?: string | null;
 }
 
 /** Cột TRÁI desktop: hồ sơ mèo, khung ngắm AI, cân chỉnh sáng, CTA, mẹo chụp (`16:6369`). */
-export function WebCapturePanel({ previewUrl, onPickFile, onSubmit, submitDisabled }: WebCapturePanelProps) {
+export function WebCapturePanel({
+  previewUrl,
+  onPickFile,
+  onSubmit,
+  submitDisabled,
+  catName,
+  catMeta,
+  catAvatarUrl,
+}: WebCapturePanelProps) {
   const { t } = useTranslation("scan");
   return (
     <div className="flex flex-col gap-4">
-      <Card className="flex flex-col gap-3">
-        <p className="inline-flex items-center gap-1.5 text-overline font-bold tracking-[0.4px] text-text-secondary">
-          <img src={iconCatLabel} alt="" className="size-3.5" />
-          {t("web.catSectionLabel")}
-        </p>
-        <div className="flex items-center gap-3 rounded-xl bg-background-alt p-2">
-          <img src={catPhoto} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
-          <div className="min-w-0 flex-1">
-            <p className="flex flex-wrap items-center gap-2">
-              <span className="text-body font-bold text-text-primary">{WEB_DEMO_CAT.name}</span>
-              <span className="rounded-full bg-secondary-light px-2 py-0.5 text-overline font-semibold text-secondary-text-on">
-                {WEB_DEMO_CAT.chip}
+      {/* Mèo THẬT đang được chọn ở `/scan/select-cat`. Khay dùng chung (`SHARED_UNKNOWN`)
+          không có hồ sơ nào nên page không truyền `catName` và thẻ này không render. */}
+      {catName ? (
+        <Card className="flex flex-col gap-3">
+          <p className="inline-flex items-center gap-1.5 text-overline font-bold tracking-[0.4px] text-text-secondary">
+            <img src={iconCatLabel} alt="" className="size-3.5" />
+            {t("web.catSectionLabel")}
+          </p>
+          <div className="flex items-center gap-3 rounded-xl bg-background-alt p-2">
+            {catAvatarUrl ? (
+              <img src={catAvatarUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+            ) : (
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-chip-bg text-h3 font-bold text-primary">
+                {catName.charAt(0).toUpperCase()}
               </span>
-            </p>
-            <p className="truncate text-caption text-text-secondary">{WEB_DEMO_CAT.meta}</p>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-body font-bold text-text-primary">{catName}</p>
+              {catMeta ? <p className="truncate text-caption text-text-secondary">{catMeta}</p> : null}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      ) : null}
 
       <Card className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -303,39 +258,73 @@ export function WebCapturePanel({ previewUrl, onPickFile, onSubmit, submitDisabl
 
 interface WebResultPanelProps {
   bands: PhBand[];
-  /** pH thật nếu có; chưa có thì dùng số mẫu để dựng hình. */
+  /** pH THẬT của lần quét; `null`/bỏ trống = chưa có kết quả kết luận được. */
   phValue?: number | null;
+  /** `classification` server đã gán cho lần quét — ưu tiên hơn việc suy lại từ con số pH. */
+  bandCode?: string | null;
 }
 
-/** Cột PHẢI desktop: kết quả, thang pH, ma trận bệnh lý, lời khuyên, hành động (`16:6508`). */
-export function WebResultPanel({ bands, phValue }: WebResultPanelProps) {
+/** `band.description` của server là TEMPLATE chứa `{0}` để điền chính giá trị pH đó. */
+function bandSentence(band: PhBand | undefined, phValue: number | null): string | null {
+  if (!band?.description) return null;
+  if (!band.description.includes("{0}")) return band.description;
+  return phValue === null ? null : band.description.replace("{0}", phValue.toFixed(1));
+}
+
+function finiteBound(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Cột PHẢI desktop: kết quả, thang pH, hành động (`16:6508`).
+ *
+ * Nhãn phân loại LUÔN là `band.label` do `GET /reference/ph-bands` trả (đi từ `label_key`
+ * của server) — không có chuỗi "Khỏe mạnh"/"BÌNH THƯỜNG" nào viết cứng ở client, và ngưỡng
+ * tham chiếu in ra cũng lấy từ dải `severity === "NORMAL"` chứ không phải số trong Figma.
+ */
+export function WebResultPanel({ bands, phValue = null, bandCode = null }: WebResultPanelProps) {
   const { t } = useTranslation("scan");
-  const gauge = phValue ?? WEB_DEMO_RESULT.gaugeValue;
+  const band =
+    (bandCode !== null ? bands.find((b) => b.code === bandCode) : undefined) ?? findBandForPh(bands, phValue);
+  const referenceBand = bands.find((b) => b.severity === "NORMAL");
+  const refMin = finiteBound(referenceBand?.phMin);
+  const refMax = finiteBound(referenceBand?.phMax);
+  const sentence = bandSentence(band, phValue);
+  const hasResult = phValue !== null || band !== undefined;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl bg-success-bg p-4 shadow-xs">
+      <div className="rounded-2xl bg-surface p-4 shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-success-text">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-chip-bg">
               <img src={iconResultBadge} alt="" className="size-5" />
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-overline font-bold tracking-[0.4px] text-success-text">
+                <span className="text-overline font-bold tracking-[0.4px] text-text-secondary">
                   {t("web.overallLabel")}
                 </span>
-                <span className="rounded-full bg-success-bg px-2 py-0.5 text-overline font-semibold text-success-text">
-                  {WEB_DEMO_RESULT.statusChip}
-                </span>
+                {band ? <PhBadge band={band} /> : null}
               </div>
-              <p className="pt-1 text-[22px] font-bold leading-7 text-success-text">{WEB_DEMO_RESULT.headline}</p>
-              <p className="max-w-[340px] pt-1 text-caption text-text-secondary">{WEB_DEMO_RESULT.body}</p>
+              <p className="pt-1 text-[22px] font-bold leading-7 text-text-primary">
+                {hasResult ? (band?.label ?? t("web.resultUnknown")) : t("web.awaitingTitle")}
+              </p>
+              {sentence ? <p className="max-w-[340px] pt-1 text-caption text-text-secondary">{sentence}</p> : null}
+              {!hasResult ? (
+                <p className="max-w-[340px] pt-1 text-caption text-text-secondary">{t("web.awaitingBody")}</p>
+              ) : null}
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[22px] font-bold leading-7 text-text-primary">{WEB_DEMO_RESULT.reading}</p>
-            <p className="text-[11px] leading-tight text-text-secondary">{WEB_DEMO_RESULT.referenceNote}</p>
+            <p className="text-[22px] font-bold leading-7 text-text-primary">
+              {phValue !== null ? t("web.phReading", { value: phValue.toFixed(1) }) : t("web.valueUnavailable")}
+            </p>
+            {refMin !== null && refMax !== null ? (
+              <p className="text-[11px] leading-tight text-text-secondary">
+                {t("web.referenceRange", { range: `${refMin.toFixed(1)} – ${refMax.toFixed(1)}` })}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -351,100 +340,21 @@ export function WebResultPanel({ bands, phValue }: WebResultPanelProps) {
           </span>
         </div>
         {/* Dải màu + nhãn ngưỡng lấy TỪ API (entities/ph-bands) — không hard-code ngưỡng pH. */}
-        <PhGaugeBar bands={bands} value={gauge} />
+        <PhGaugeBar bands={bands} value={phValue} />
       </Card>
 
-      <Card className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-body font-bold text-text-primary">{t("web.pathologyTitle")}</p>
-          <span className="text-[11px] text-text-secondary">{t("web.pathologyBadge")}</span>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {WEB_DEMO_PATHOLOGY.map((row) => (
-            <div key={row.key} className="flex flex-col gap-1.5 rounded-xl bg-background-alt p-3">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-caption font-bold leading-snug text-text-primary">{row.title}</p>
-                <span className="shrink-0 rounded-full bg-success-bg px-2 py-0.5 text-[10px] font-semibold text-success-text">
-                  {row.verdict}
-                </span>
-              </div>
-              <p className="text-[11px] leading-snug text-text-secondary">{row.body}</p>
-              <div className="h-1 overflow-hidden rounded-full bg-info" aria-hidden="true">
-                <div className="h-full rounded-full bg-success" style={{ width: `${String(row.level)}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="flex gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
-          <img src={iconVetAdvice} alt="" className="size-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="text-caption font-bold text-text-primary">{t("web.vetAdviceTitle")}</p>
-            <span className="text-[11px] text-text-secondary">{t("web.vetAdviceBadge")}</span>
-          </div>
-          <p className="pt-1 text-caption italic leading-relaxed text-text-secondary">{WEB_DEMO_VET_QUOTE}</p>
-        </div>
-      </Card>
-
+      {/* Chỉ còn hành động CÓ THẬT. "Lưu vào lịch sử" bỏ đi vì `POST /scans` đã lưu ngay khi
+          phân tích xong (không có endpoint lưu riêng), "Hỏi bác sĩ" bỏ vì không có tính năng
+          nào phía sau nó. */}
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-caption font-bold text-white shadow-sm"
-        >
-          <img src={iconSave} alt="" className="size-4" />
-          {t("web.saveToHistory")}
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-deco-backdrop px-4 py-3 text-caption font-semibold text-primary-dark"
+        <Link
+          to="/export"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-deco-backdrop px-4 py-3 text-caption font-semibold text-primary-dark"
         >
           <img src={iconPdf} alt="" className="size-4" />
           {t("web.exportPdf")}
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-3 text-caption font-semibold text-secondary-text-on"
-        >
-          <img src={iconAskVet} alt="" className="size-4" />
-          {t("web.askVet")}
-        </button>
+        </Link>
       </div>
     </div>
-  );
-}
-
-/** Dải xu hướng 14 ngày ở đáy trang (`16:6654`). Sparkline là asset SVG của thiết kế. */
-export function WebTrendStrip() {
-  const { t } = useTranslation("scan");
-  return (
-    <Card className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-caption font-bold text-text-primary">
-          <img src={iconTrendStrip} alt="" className="size-4" />
-          {t("web.trendStripTitle")}
-        </p>
-        <span className="rounded-full bg-success-bg px-2.5 py-1 text-overline font-semibold text-success-text">
-          {t("web.trendStripBadge")}
-        </span>
-      </div>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <img src={sparkline} alt="" className="h-12 w-full flex-1 object-contain" />
-        <div className="flex gap-2">
-          {WEB_DEMO_PREVIOUS.map((row) => (
-            <div key={row.key} className="flex items-center gap-2 rounded-xl bg-background-alt px-3 py-2">
-              <img src={iconMetricTile} alt="" className="size-4 shrink-0" />
-              <div className="leading-tight">
-                <p className="text-[11px] text-text-secondary">{row.label}</p>
-                <p className="text-caption font-bold text-text-primary">{row.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Card>
   );
 }

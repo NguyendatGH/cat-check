@@ -37,13 +37,7 @@ const isBound = (v: number | null | undefined): v is number => typeof v === "num
 
 /* ================================================================== Biomarker status */
 
-export function CatBiomarkerCard({
-  bands,
-  summary,
-}: {
-  bands: PhBand[];
-  summary: CatSummaryResponse | undefined;
-}) {
+export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary: CatSummaryResponse | undefined }) {
   const { t } = useTranslation("cat");
   const lastScan = summary?.lastScan ?? null;
   const phValue = lastScan?.phValue ?? null;
@@ -72,9 +66,7 @@ export function CatBiomarkerCard({
           <ShieldCheck className="mt-px size-4 shrink-0 text-primary" aria-hidden="true" />
           {t("overview.biomarkerEyebrow")}
         </p>
-        <span
-          className={cn("shrink-0 rounded-full px-2.5 py-1 text-small font-semibold", style.bg, style.text)}
-        >
+        <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-small font-semibold", style.bg, style.text)}>
           {band?.severity === "NORMAL" ? t("overview.biomarkerStable") : t("overview.biomarkerWatch")}
         </span>
       </div>
@@ -82,9 +74,7 @@ export function CatBiomarkerCard({
       {phValue === null ? (
         <>
           <p className="pt-2 text-h3 font-bold text-text-primary">{t("overview.biomarkerNoDataTitle")}</p>
-          <p className="pt-1 text-caption leading-relaxed text-text-secondary">
-            {t("overview.biomarkerNoDataBody")}
-          </p>
+          <p className="pt-1 text-caption leading-relaxed text-text-secondary">{t("overview.biomarkerNoDataBody")}</p>
         </>
       ) : (
         <>
@@ -97,9 +87,7 @@ export function CatBiomarkerCard({
             <span className="text-small text-text-tertiary">
               {t("overview.biomarkerCurrent", { value: phValue.toFixed(1) })}
             </span>
-            {rangeLabel ? (
-              <span className={cn("text-small font-semibold", style.text)}>{rangeLabel}</span>
-            ) : null}
+            {rangeLabel ? <span className={cn("text-small font-semibold", style.text)}>{rangeLabel}</span> : null}
           </div>
           <PhGaugeBar bands={bands} value={phValue} className="pt-1.5" />
         </>
@@ -154,8 +142,7 @@ export function CatStatGrid({
   const { t } = useTranslation("cat");
   const dash = "—";
 
-  const inRange =
-    summary?.inRangeRatio30d != null ? `${String(Math.round(summary.inRangeRatio30d * 100))}%` : dash;
+  const inRange = summary?.inRangeRatio30d != null ? `${String(Math.round(summary.inRangeRatio30d * 100))}%` : dash;
   const median = scanSummary?.median != null ? scanSummary.median.toFixed(1) : dash;
   const rangeFoot =
     scanSummary?.min != null && scanSummary.max != null
@@ -178,12 +165,7 @@ export function CatStatGrid({
         tone="normal"
         foot={t("overview.statInRangeFoot")}
       />
-      <StatTile
-        label={t("overview.statMedian")}
-        icon={Droplet}
-        value={median}
-        foot={rangeFoot}
-      />
+      <StatTile label={t("overview.statMedian")} icon={Droplet} value={median} foot={rangeFoot} />
       <StatTile
         label={t("overview.statReminder")}
         icon={BellRing}
@@ -258,9 +240,7 @@ export function CatRecentScansCard({
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="text-body font-bold text-text-primary">
-                      {scan.phValue !== null
-                        ? t("web.profile.phValueShort", { value: scan.phValue.toFixed(1) })
-                        : "—"}
+                      {scan.phValue != null ? t("web.profile.phValueShort", { value: scan.phValue.toFixed(1) }) : "—"}
                     </span>
                     {band ? (
                       <span className={cn("rounded-full px-2 py-0.5 text-small font-semibold", style.bg, style.text)}>
@@ -291,15 +271,7 @@ export function CatRecentScansCard({
 
 /* ================================================================== Hành động chính */
 
-export function CatProfileActions({
-  name,
-  onScan,
-  onEdit,
-}: {
-  name: string;
-  onScan: () => void;
-  onEdit: () => void;
-}) {
+export function CatProfileActions({ name, onScan, onEdit }: { name: string; onScan: () => void; onEdit: () => void }) {
   const { t } = useTranslation("cat");
   return (
     <div className="flex flex-col gap-3">

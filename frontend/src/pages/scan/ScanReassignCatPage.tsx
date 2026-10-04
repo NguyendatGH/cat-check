@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { Button, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { CatCard } from "@/entities/cat";
-import {
-  SharedTrayOption,
-  useActiveCatsForCapture,
-  useReassignScanCat,
-  useScan,
-} from "@/features/scan";
+import { SharedTrayOption, useActiveCatsForCapture, useReassignScanCat, useScan } from "@/features/scan";
 import { isApiError } from "@/shared/api/errors";
 
 /** `/scan/:scanId/reassign-cat` (E9) — gán lại kết quả cho mèo khác, ≤24h/≤3 lần (mockup `05`

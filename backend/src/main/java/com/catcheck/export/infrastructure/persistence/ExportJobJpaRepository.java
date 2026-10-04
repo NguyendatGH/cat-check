@@ -13,4 +13,9 @@ interface ExportJobJpaRepository extends JpaRepository<ExportJob, UUID> {
     boolean existsByDocumentCode(String documentCode);
 
     Optional<ExportJob> findFirstByUserIdAndStatusIn(UUID userId, List<ExportStatus> statuses);
+
+    List<ExportJob> findByStatusInAndRequestedAtLessThanOrderByRequestedAtAsc(
+            List<ExportStatus> statuses, java.time.Instant cutoff, org.springframework.data.domain.Limit limit);
+
+    long countByStatusInAndRequestedAtLessThan(List<ExportStatus> statuses, java.time.Instant cutoff);
 }

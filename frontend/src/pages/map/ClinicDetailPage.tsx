@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import {
-  BadgeCheck,
   CalendarCheck,
   ChevronRight,
   Clock,
@@ -13,9 +13,7 @@ import {
   Heart,
   Images,
   MapPin,
-  MessageSquare,
   Navigation,
-  Paperclip,
   PawPrint,
   Phone,
   Scan,
@@ -25,18 +23,16 @@ import {
   Star,
   Stethoscope,
   VolumeX,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { DisclaimerBanner } from "@/entities/disclaimer";
+import { createPlaceBooking, createPlaceReview, getPlace, listPlaceReviews, type PlaceReviewApi } from "@/features/place";
 import {
-  DESIGN_MOCK_BOOKING,
   DESIGN_MOCK_CLINIC_DETAIL,
   DESIGN_MOCK_MAP_RASTER_WIDE,
   DESIGN_MOCK_PLACES,
   findMockPlace,
   formatVnd,
-  type MockClinicReview,
 } from "./mockData";
 
 /**
@@ -46,9 +42,9 @@ import {
  * đặt lịch 380px dính bên phải, tổng vừa khung 944px của `AppLayout` — KHÔNG tự thêm padding
  * ngang ở `lg`).
  *
- * KHÔNG CÓ BACKEND: `p4` xếp `place`/`place_review` vào Phase 2 ("không đặc tả chi tiết,
- * không viết migration ở Phase 1"), nên trang này không gọi API nào. Panel đặt lịch chỉ giữ
- * state cục bộ và không gửi đi đâu — có dòng ghi rõ điều đó ngay dưới nút xác nhận.
+ * Địa điểm, yêu cầu đặt lịch và đánh giá dùng API thật. Nội dung giờ mở cửa, bác sĩ, dịch vụ,
+ * ảnh và các thẻ đánh giá đang có trong mock data vẫn là dữ liệu thiết kế, không phải dữ liệu
+ * do cơ sở xác nhận.
  *
  * COPY: bỏ toàn bộ câu hứa phát hiện máu trong mockup (quyết định #8 của owner) và các từ
  * bị `REQ-COPY-01` chặn — chi tiết ở đầu `mockData.ts`.
@@ -94,47 +90,109 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-function ReviewCard({ review }: { review: MockClinicReview }) {
+function ReviewForm({ placeId }: { placeId: string }) {
   const { t } = useTranslation("map");
+  const queryClient = useQueryClient();
+  const [rating, setRating] = useState(5);
+  const [body, setBody] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<"success" | "error" | null>(null);
+
+  async function submitReview(event: React.SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setResult(null);
+    try {
+      await createPlaceReview(placeId, { rating, body: body.trim() || undefined });
+      setResult("success");
+      void queryClient.invalidateQueries({ queryKey: ["place", placeId, "reviews"] });
+      void queryClient.invalidateQueries({ queryKey: ["place", placeId] });
+    } catch {
+      setResult("error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
-    <article className="rounded-2xl bg-background-alt/70 p-4">
-      <div className="flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-chip-bg text-[11px] font-bold text-primary-dark">
-          {review.initials}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold text-text-primary">{review.author}</p>
-          <p className="text-[11px] text-text-secondary">{review.petLabel}</p>
-        </div>
-        <div className="shrink-0 text-right">
-          <Stars value={review.rating} />
-          <p className="pt-0.5 text-[10px] text-text-tertiary">{review.timeAgo}</p>
-        </div>
+    <form onSubmit={(event) => { void submitReview(event); }} className="mt-4 rounded-xl bg-background-alt p-4">
+      <p className="text-[13px] font-bold text-text-primary">{t("clinic.reviewFormTitle")}</p>
+      <div className="flex gap-1 pt-2" role="group" aria-label={t("clinic.ratingLabel")}>
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button key={value} type="button" aria-label={t("clinic.ratingValue", { value })} aria-pressed={rating === value} onClick={() => { setRating(value); }} className="rounded p-1 focus-visible:outline-2 focus-visible:outline-primary">
+            <Star size={20} fill={value <= rating ? "currentColor" : "none"} className={value <= rating ? "text-secondary" : "text-border"} />
+          </button>
+        ))}
       </div>
-      <p className="pt-2 text-[11px] font-semibold text-success-text">{review.tag}</p>
-      <p className="pt-2 text-[12px] leading-relaxed text-text-secondary">{review.body}</p>
-      <p className="flex items-center gap-1.5 pt-2.5 text-[11px] text-text-tertiary">
-        <BadgeCheck size={12} className="shrink-0 text-success" aria-hidden="true" />
-        {t("clinic.verifiedPatient")}
-      </p>
-    </article>
+      <label className="mt-2 block text-[12px] font-semibold text-text-secondary">
+        {t("clinic.reviewBodyLabel")}
+        <textarea value={body} maxLength={1000} rows={3} onChange={(event) => { setBody(event.target.value); }} placeholder={t("clinic.reviewBodyPlaceholder")} className="mt-1.5 w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-[12px] font-normal text-text-primary" />
+      </label>
+      <button type="submit" disabled={submitting} className="mt-3 rounded-lg bg-primary-dark px-4 py-2.5 text-[12px] font-bold text-white disabled:opacity-60">
+        {submitting ? t("clinic.reviewSubmitting") : t("clinic.reviewSubmit")}
+      </button>
+      {result ? <p role="status" className={cn("pt-2 text-[12px]", result === "success" ? "text-success-text" : "text-danger-text")}>{t(result === "success" ? "clinic.reviewSent" : "clinic.reviewError")}</p> : null}
+    </form>
+  );
+}
+
+function PlaceReviewList({ reviews, loading, failed }: { reviews: PlaceReviewApi[]; loading: boolean; failed: boolean }) {
+  const { t, i18n } = useTranslation("map");
+  if (loading) return <p className="py-3 text-[12px] text-text-tertiary">{t("clinic.reviewsLoading")}</p>;
+  if (failed) return <p role="alert" className="py-3 text-[12px] text-danger-text">{t("clinic.reviewsLoadError")}</p>;
+  if (reviews.length === 0) return <p className="py-3 text-[12px] text-text-tertiary">{t("clinic.reviewsEmpty")}</p>;
+
+  return (
+    <ul className="flex flex-col gap-2 pt-3">
+      {reviews.map((review) => (
+        <li key={review.id} className="rounded-xl bg-background-alt/70 p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <Stars value={review.rating} />
+            <time className="text-[10px] text-text-tertiary" dateTime={review.createdAt}>
+              {new Date(review.createdAt).toLocaleDateString(i18n.language)}
+            </time>
+          </div>
+          {review.body ? <p className="pt-2 text-[12px] leading-relaxed text-text-secondary">{review.body}</p> : null}
+          <p className="pt-2 text-[10px] text-text-tertiary">{t("clinic.reviewAnonymous")}</p>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 /* --------------------------------------------------------- panel đặt lịch */
 
-function BookingPanel({ clinicPhone }: { clinicPhone: string }) {
+function BookingPanel({ clinicPhone, formId }: { clinicPhone: string; formId: string }) {
   const { t } = useTranslation("map");
-  const booking = DESIGN_MOCK_BOOKING;
-  const doctor = DESIGN_MOCK_CLINIC_DETAIL.doctors.find((d) => d.id === booking.doctorId);
+  const [serviceId, setServiceId] = useState("general");
+  const [note, setNote] = useState("");
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingTime, setBookingTime] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [bookingResult, setBookingResult] = useState<"success" | "error" | null>(null);
+  const placeId = useParams<{ clinicId: string }>().clinicId ?? "";
 
-  const [serviceId, setServiceId] = useState(booking.defaultServiceId);
-  const [dayId, setDayId] = useState(booking.defaultDayId);
-  const [timeSlot, setTimeSlot] = useState(booking.defaultTimeSlot);
-  const [note, setNote] = useState(booking.symptomNote);
+  async function submitBooking(event: React.SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setBookingResult(null);
+    try {
+      await createPlaceBooking(placeId, {
+        serviceCode: serviceId.toUpperCase(),
+        date: bookingDate,
+        timeSlot: bookingTime,
+        note: note.trim() || undefined,
+      });
+      setBookingResult("success");
+    } catch {
+      setBookingResult("error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
-    <section className="rounded-2xl bg-surface p-5 shadow-brand-lg">
+    <form id={formId} onSubmit={(event) => { void submitBooking(event); }} className="rounded-2xl bg-surface p-5 shadow-brand-lg">
       <div className="flex items-start justify-between gap-3">
         <h2 className="flex items-center gap-2 text-[15px] font-bold text-text-primary">
           <span className="size-2 shrink-0 rounded-full bg-success" aria-hidden="true" />
@@ -145,41 +203,27 @@ function BookingPanel({ clinicPhone }: { clinicPhone: string }) {
         </span>
       </div>
       <p className="pt-2 text-[12px] leading-relaxed text-text-secondary">{t("booking.subtitle")}</p>
-
-      {/* Bé mèo */}
-      <div className="flex items-center justify-between gap-2 pt-4">
-        <p className="text-[12px] font-bold text-text-primary">{t("booking.catLabel")}</p>
-        <p className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-success-text">
-          <BadgeCheck size={11} aria-hidden="true" />
-          {t("booking.catSynced")}
-        </p>
-      </div>
-      <p className="mt-2 rounded-xl border border-border bg-background-alt px-3 py-2.5 text-[12px] font-semibold text-text-primary">
-        {booking.catLabel}
-      </p>
-
-      <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-chip-bg/60 px-3 py-2.5">
-        <Paperclip size={13} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
-        <span>
-          <span className="block text-[11px] font-bold text-primary-dark">{t("booking.attachTitle")}</span>
-          <span className="block pt-0.5 text-[10px] leading-relaxed text-text-secondary">
-            {t("booking.attachBody")}
-          </span>
-        </span>
-      </div>
+      <p className="pt-2 text-[11px] leading-relaxed text-text-secondary">{t("booking.requestDisclaimer")}</p>
 
       {/* Dịch vụ ưu tiên */}
       <fieldset className="pt-4">
         <legend className="text-[12px] font-bold text-text-primary">{t("booking.serviceLabel")}</legend>
         <div className="grid grid-cols-2 gap-2 pt-2">
-          {booking.services.map((s) => {
+          {[
+            { id: "urinary", label: t("booking.urinary"), icon: "droplet" as const },
+            { id: "ultrasound", label: t("booking.ultrasound"), icon: "scan" as const },
+            { id: "general", label: t("booking.general"), icon: "stethoscope" as const },
+            { id: "emergency", label: t("booking.emergencyService"), icon: "siren" as const },
+          ].map((s) => {
             const Icon = BOOKING_SERVICE_ICON[s.icon];
             const selected = s.id === serviceId;
             return (
               <button
                 key={s.id}
                 type="button"
-                onClick={() => { setServiceId(s.id); }}
+                onClick={() => {
+                  setServiceId(s.id);
+                }}
                 aria-pressed={selected}
                 className={cn(
                   "flex items-center gap-2 rounded-xl px-2.5 py-2.5 text-left text-[11px] font-semibold transition-colors",
@@ -196,79 +240,16 @@ function BookingPanel({ clinicPhone }: { clinicPhone: string }) {
         </div>
       </fieldset>
 
-      {/* Bác sĩ tiếp nhận */}
-      {doctor ? (
-        <div className="pt-4">
-          <p className="text-[12px] font-bold text-text-primary">{t("booking.doctorLabel")}</p>
-          <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-border bg-background-alt px-3 py-2.5">
-            <img src={doctor.photo} alt="" className="size-8 shrink-0 rounded-full object-cover" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-bold text-text-primary">{doctor.name}</span>
-              <span className="block text-[10px] text-text-secondary">{booking.doctorBadge}</span>
-            </span>
-            <BadgeCheck size={16} className="shrink-0 text-primary" aria-hidden="true" />
-          </div>
-        </div>
-      ) : null}
-
-      {/* Ngày khám */}
-      <fieldset className="pt-4">
-        <legend className="text-[12px] font-bold text-text-primary">{t("booking.dayLabel")}</legend>
-        <div className="grid grid-cols-4 gap-2 pt-2">
-          {booking.days.map((d) => {
-            const soldOut = d.slotsLeft === 0;
-            const selected = d.id === dayId;
-            return (
-              <button
-                key={d.id}
-                type="button"
-                disabled={soldOut}
-                onClick={() => { setDayId(d.id); }}
-                aria-pressed={selected}
-                className={cn(
-                  "rounded-xl px-1 py-2 text-center transition-colors",
-                  soldOut
-                    ? "cursor-not-allowed bg-background-alt text-text-tertiary opacity-70"
-                    : selected
-                      ? "bg-primary-dark text-white"
-                      : "bg-background-alt text-text-secondary hover:bg-chip-bg hover:text-primary-dark",
-                )}
-              >
-                <span className="block text-[10px] font-semibold">{d.weekdayLabel || t("booking.today")}</span>
-                <span className="block text-[15px] font-bold">{d.dayNumber}</span>
-                <span className={cn("block text-[9px]", soldOut ? "text-danger-text" : "")}>
-                  {soldOut ? t("booking.slotsNone") : t("booking.slotsLeft", { count: d.slotsLeft })}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* Khung giờ */}
-      <fieldset className="pt-4">
-        <legend className="text-[11px] font-semibold text-text-secondary">
-          {t("booking.timeLabel", { date: booking.slotDateLabel })}
-        </legend>
-        <div className="flex flex-wrap gap-2 pt-2">
-          {booking.timeSlots.map((slot) => (
-            <button
-              key={slot}
-              type="button"
-              onClick={() => { setTimeSlot(slot); }}
-              aria-pressed={slot === timeSlot}
-              className={cn(
-                "rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
-                slot === timeSlot
-                  ? "bg-primary-dark text-white"
-                  : "bg-background-alt text-text-secondary hover:bg-chip-bg hover:text-primary-dark",
-              )}
-            >
-              {slot}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <div className="grid grid-cols-2 gap-3 pt-4">
+        <label className="text-[12px] font-bold text-text-primary">
+          {t("booking.dateLabel")}
+          <input required type="date" min={new Date().toISOString().slice(0, 10)} value={bookingDate} onChange={(event) => { setBookingDate(event.target.value); }} className="mt-2 w-full rounded-xl border border-border bg-background-alt px-3 py-2.5 text-[12px] font-normal" />
+        </label>
+        <label className="text-[12px] font-bold text-text-primary">
+          {t("booking.timeInputLabel")}
+          <input required type="time" value={bookingTime} onChange={(event) => { setBookingTime(event.target.value); }} className="mt-2 w-full rounded-xl border border-border bg-background-alt px-3 py-2.5 text-[12px] font-normal" />
+        </label>
+      </div>
 
       {/* Ghi chú */}
       <div className="pt-4">
@@ -279,57 +260,34 @@ function BookingPanel({ clinicPhone }: { clinicPhone: string }) {
           id="booking-note"
           rows={4}
           value={note}
-          onChange={(e) => { setNote(e.target.value); }}
+          onChange={(e) => {
+            setNote(e.target.value);
+          }}
           placeholder={t("booking.notePlaceholder")}
           className="mt-2 w-full resize-none rounded-xl border border-border bg-background-alt px-3 py-2.5 text-[12px] leading-relaxed text-text-secondary outline-none focus:border-primary"
         />
       </div>
 
-      {/* Chi phí */}
-      <div className="mt-4 rounded-xl bg-background-alt p-3.5">
-        <p className="flex items-center justify-between gap-2 text-[12px] text-text-secondary">
-          <span className="min-w-0">{booking.serviceCostLabel}</span>
-          <span className="shrink-0 font-bold text-text-primary">{formatVnd(booking.serviceCost)}</span>
-        </p>
-        <p className="flex items-center justify-between gap-2 pt-1.5 text-[12px] text-success-text">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <Zap size={12} className="shrink-0" aria-hidden="true" />
-            {t("booking.voucher")}
-          </span>
-          <span className="shrink-0 font-bold">-{formatVnd(booking.voucherAmount)}</span>
-        </p>
-        <p className="mt-3 flex items-end justify-between gap-2 border-t border-border pt-3">
-          <span className="text-[13px] font-bold text-text-primary">{t("booking.total")}</span>
-          <span className="shrink-0 text-[20px] font-bold text-primary-dark">{formatVnd(booking.totalCost)}</span>
-        </p>
-      </div>
-
       <button
-        type="button"
+        type="submit"
+        disabled={submitting}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary-dark px-4 py-3.5 text-[13px] font-bold text-white hover:bg-primary"
       >
         <CalendarCheck size={16} aria-hidden="true" />
-        {t("booking.submit")}
+        {submitting ? t("booking.submitting") : t("booking.submit")}
       </button>
-      <p className="pt-2 text-center text-[10px] leading-relaxed text-text-tertiary">{t("preview.booking")}</p>
+      {bookingResult ? <p role="status" className={cn("pt-3 text-[12px]", bookingResult === "success" ? "text-success-text" : "text-danger-text")}>{t(bookingResult === "success" ? "booking.requestSent" : "booking.requestError")}</p> : null}
 
-      <div className="flex gap-2 pt-3">
+      {clinicPhone ? <div className="flex gap-2 pt-3">
         <a
           href={`tel:${clinicPhone.replace(/\s/g, "")}`}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-danger-bg px-3 py-2.5 text-[11px] font-bold text-danger-text hover:bg-danger-bg/70"
         >
           <Phone size={13} className="shrink-0" aria-hidden="true" />
-          {t("booking.emergency", { phone: booking.emergencyPhone })}
+          {t("booking.callClinic", { phone: clinicPhone })}
         </a>
-        <button
-          type="button"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-chip-bg px-3 py-2.5 text-[11px] font-bold text-primary-dark hover:bg-info"
-        >
-          <MessageSquare size={13} className="shrink-0" aria-hidden="true" />
-          {t("booking.chat")}
-        </button>
-      </div>
-    </section>
+      </div> : null}
+    </form>
   );
 }
 
@@ -338,18 +296,49 @@ function BookingPanel({ clinicPhone }: { clinicPhone: string }) {
 export function ClinicDetailPage() {
   const { t } = useTranslation("map");
   const { clinicId } = useParams<{ clinicId: string }>();
-  const place = findMockPlace(clinicId);
+  const placeQuery = useQuery({
+    queryKey: ["place", clinicId],
+    queryFn: () => getPlace(clinicId ?? ""),
+    enabled: Boolean(clinicId),
+    staleTime: 60_000,
+  });
+  const reviewsQuery = useQuery({
+    queryKey: ["place", clinicId, "reviews"],
+    queryFn: () => listPlaceReviews(clinicId ?? "", 20),
+    enabled: Boolean(clinicId),
+    staleTime: 30_000,
+  });
+  const localPlace = DESIGN_MOCK_PLACES.find((item) => item.id === clinicId) ?? findMockPlace(clinicId ?? "");
+  const place = placeQuery.data
+    ? {
+        ...localPlace,
+        id: placeQuery.data.id,
+        name: placeQuery.data.name,
+        shortName: placeQuery.data.name,
+        address: placeQuery.data.address,
+        area: placeQuery.data.area,
+        phone: placeQuery.data.phone ?? "",
+        specialties: placeQuery.data.specialties,
+        badges: placeQuery.data.badges,
+        rating: placeQuery.data.rating,
+        reviewCount: placeQuery.data.reviewCount,
+        distanceKm: undefined,
+        visitCount: 0,
+        featured: false,
+        certification: placeQuery.data.badges.find((badge) => badge.toLowerCase().includes("isfm")),
+        latitude: placeQuery.data.latitude,
+        longitude: placeQuery.data.longitude,
+      }
+    : localPlace;
   const detail = DESIGN_MOCK_CLINIC_DETAIL;
   const [saved, setSaved] = useState(false);
 
-  /** id không khớp dữ liệu mẫu — vẫn render cơ sở đầu tiên, nhưng nói rõ cho người dùng. */
-  const unknownClinic = clinicId !== undefined && !DESIGN_MOCK_PLACES.some((p) => p.id === clinicId);
-
-  const notFoundNotice = unknownClinic ? (
-    <p className="rounded-xl bg-warning-bg px-3.5 py-2.5 text-[11px] font-semibold text-warning-text">
-      {t("clinic.notFound")}
-    </p>
-  ) : null;
+  if (placeQuery.isPending) {
+    return <p className="rounded-xl bg-surface p-5 text-caption text-text-secondary">{t("clinic.reviewsLoading")}</p>;
+  }
+  if (placeQuery.isError) {
+    return <p role="alert" className="rounded-xl bg-danger-bg p-5 text-caption text-danger-text">{t("clinic.notFound")}</p>;
+  }
 
   const telehealthCard = (
     <section className="rounded-2xl bg-chip-bg/50 p-4">
@@ -405,11 +394,11 @@ export function ClinicDetailPage() {
     <>
       {/* ------------------------------------------------------- mobile */}
       <div className="flex flex-col gap-4 pb-6 lg:hidden">
-        {notFoundNotice ? <div className="px-4 pt-4">{notFoundNotice}</div> : null}
-        <div className="relative mx-4 mt-4 overflow-hidden rounded-2xl">
-          <img src={detail.photos[4].src} alt="" className="aspect-[358/224] w-full object-cover" />
-          <span className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-xl bg-surface/95 px-2.5 py-1.5 text-[11px] font-semibold text-primary-dark">
-            <ShieldCheck size={13} className="shrink-0" aria-hidden="true" />
+        {/* Figma cho ảnh bìa tràn hết bề ngang khung máy, không bo góc, không lề. */}
+        <div className="relative overflow-hidden">
+          <img src={detail.photos[4].src} alt="" className="aspect-[390/224] w-full object-cover" />
+          <span className="absolute bottom-3 left-3 flex max-w-[calc(100%-7.5rem)] items-start gap-1.5 rounded-xl bg-surface/95 px-2.5 py-1.5 text-[11px] font-semibold leading-snug text-primary-dark">
+            <ShieldCheck size={13} className="mt-px shrink-0" aria-hidden="true" />
             {place.certification ?? detail.goldStandardBadge}
           </span>
           <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-xl bg-surface/95 px-2.5 py-1.5 text-[11px] font-semibold text-text-secondary">
@@ -427,8 +416,7 @@ export function ClinicDetailPage() {
             </span>
             <span>{t("list.reviewCount", { count: place.reviewCount })}</span>
             <span className="flex items-center gap-1 font-semibold text-primary-dark">
-              <Navigation size={12} aria-hidden="true" />
-              {t("list.distance", { km: place.distanceKm.toFixed(1) })}
+              {place.distanceKm !== undefined ? <><Navigation size={12} aria-hidden="true" />{t("list.distance", { km: place.distanceKm.toFixed(1) })}</> : null}
             </span>
           </p>
           <p className="pt-1 text-[12px] text-text-secondary">{place.area}</p>
@@ -438,9 +426,7 @@ export function ClinicDetailPage() {
           <span className="mt-1 size-2 shrink-0 self-start rounded-full bg-success" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="text-[12px] font-semibold text-text-primary">{place.openLabel}</p>
-            {place.hotlineLabel ? (
-              <p className="pt-0.5 text-[12px] text-text-secondary">{place.hotlineLabel}</p>
-            ) : null}
+            {place.hotlineLabel ? <p className="pt-0.5 text-[12px] text-text-secondary">{place.hotlineLabel}</p> : null}
           </div>
           <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-success-bg text-success-text">
             <Stethoscope size={16} aria-hidden="true" />
@@ -448,13 +434,13 @@ export function ClinicDetailPage() {
         </div>
 
         <div className="flex gap-2 px-4">
-          <a
+          {place.phone ? <a
             href={`tel:${place.phone.replace(/\s/g, "")}`}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-dark px-3 py-2.5 text-[13px] font-bold text-white hover:bg-primary"
           >
             <Phone size={14} aria-hidden="true" />
             {t("actions.callShort")}
-          </a>
+          </a> : null}
           <button
             type="button"
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary px-3 py-2.5 text-[13px] font-bold text-secondary-text-on hover:bg-secondary-light"
@@ -464,7 +450,9 @@ export function ClinicDetailPage() {
           </button>
           <button
             type="button"
-            onClick={() => { setSaved((v) => !v); }}
+            onClick={() => {
+              setSaved((v) => !v);
+            }}
             aria-pressed={saved}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-colors",
@@ -487,7 +475,11 @@ export function ClinicDetailPage() {
             </Link>
           </div>
           <div className="relative mt-3 overflow-hidden rounded-xl">
-            <img src={DESIGN_MOCK_MAP_RASTER_WIDE} alt={t("map.alt")} className="aspect-[326/128] w-full object-cover" />
+            <img
+              src={DESIGN_MOCK_MAP_RASTER_WIDE}
+              alt={t("map.alt")}
+              className="aspect-[326/128] w-full object-cover"
+            />
             <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-surface/95 px-2 py-1 text-[10px] font-semibold text-text-primary">
               <MapPin size={11} className="shrink-0 text-primary-dark" aria-hidden="true" />
               {detail.mapAreaLabel}
@@ -503,7 +495,7 @@ export function ClinicDetailPage() {
                 <Clock size={13} className="shrink-0" aria-hidden="true" />
                 {t("clinic.regularHours")}
               </span>
-              <span className="font-bold text-text-primary">{detail.hours}</span>
+              <span className="font-bold text-text-primary">{detail.hoursShort}</span>
             </p>
             <p className="flex flex-wrap items-center justify-between gap-2 pt-2 text-[12px]">
               <span className="flex items-center gap-1.5 font-semibold text-danger-text">
@@ -528,15 +520,13 @@ export function ClinicDetailPage() {
         <section className="px-4">
           <div className="flex items-center justify-between gap-3 pb-3">
             <h2 className="text-[17px] font-bold text-text-primary">{t("clinic.reviewsTitle")}</h2>
-            <button type="button" className="shrink-0 text-[12px] font-semibold text-primary-dark hover:underline">
-              {t("clinic.reviewsSeeAll", { count: place.reviewCount })}
-            </button>
           </div>
-          <div className="flex flex-col gap-3">
-            {detail.reviews.slice(2).map((r) => (
-              <ReviewCard key={r.id} review={r} />
-            ))}
+          <div className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2.5">
+            <Stars value={place.rating} />
+            <span className="text-[12px] font-semibold text-text-secondary">{t("clinic.reviewSummary", { rating: place.rating.toFixed(1), count: place.reviewCount })}</span>
           </div>
+          <PlaceReviewList reviews={reviewsQuery.data ?? []} loading={reviewsQuery.isPending} failed={reviewsQuery.isError} />
+          <ReviewForm placeId={place.id} />
         </section>
 
         <div className="px-4">
@@ -546,6 +536,7 @@ export function ClinicDetailPage() {
         <div className="flex flex-col gap-2.5 px-4">
           <button
             type="button"
+            onClick={() => { document.getElementById("clinic-booking-form-mobile")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
             className="flex items-center justify-center gap-2 rounded-xl bg-primary-dark px-4 py-3.5 text-[14px] font-bold text-white hover:bg-primary"
           >
             <CalendarCheck size={16} aria-hidden="true" />
@@ -558,7 +549,9 @@ export function ClinicDetailPage() {
             <FileText size={16} aria-hidden="true" />
             {t("clinic.sharePdfCta")}
           </Link>
-          <p className="text-center text-[10px] leading-relaxed text-text-tertiary">{t("preview.booking")}</p>
+        </div>
+        <div className="px-4">
+          <BookingPanel clinicPhone={place.phone} formId="clinic-booking-form-mobile" />
         </div>
       </div>
 
@@ -583,7 +576,6 @@ export function ClinicDetailPage() {
           </ol>
         </nav>
 
-        {notFoundNotice}
 
         <div className="flex items-start gap-6">
           {/* Cột nội dung */}
@@ -625,9 +617,7 @@ export function ClinicDetailPage() {
                 </span>
               </div>
 
-              <h1 className="max-w-[420px] pt-3 text-[30px] font-bold leading-tight text-primary-dark">
-                {place.name}
-              </h1>
+              <h1 className="max-w-[420px] pt-3 text-[30px] font-bold leading-tight text-primary-dark">{place.name}</h1>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3">
                 <p className="flex items-center gap-1.5 text-[12px] text-text-secondary">
@@ -637,7 +627,7 @@ export function ClinicDetailPage() {
                 </p>
                 <p className="flex items-center gap-1.5 text-[12px] font-semibold text-primary-dark">
                   <Navigation size={13} aria-hidden="true" />
-                  {t("list.distanceFromYou", { km: place.distanceKm.toFixed(1) })}
+                  {place.distanceKm !== undefined ? t("list.distanceFromYou", { km: place.distanceKm.toFixed(1) }) : place.area}
                 </p>
                 <button
                   type="button"
@@ -781,22 +771,13 @@ export function ClinicDetailPage() {
                   <Star size={17} fill="currentColor" className="text-secondary" aria-hidden="true" />
                   {t("clinic.reviewsTitleWeb")}
                 </h2>
-                <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-success-text">
-                  <BadgeCheck size={12} aria-hidden="true" />
-                  {t("clinic.reviewsBadge")}
-                </span>
               </div>
-              <div className="flex flex-col gap-3">
-                {detail.reviews.slice(0, 2).map((r) => (
-                  <ReviewCard key={r.id} review={r} />
-                ))}
+              <div className="flex items-center gap-2 rounded-xl bg-background-alt px-3 py-2.5">
+                <Stars value={place.rating} />
+                <span className="text-[12px] font-semibold text-text-secondary">{t("clinic.reviewSummary", { rating: place.rating.toFixed(1), count: place.reviewCount })}</span>
               </div>
-              <button
-                type="button"
-                className="mt-4 w-full rounded-xl bg-background-alt px-4 py-2.5 text-[12px] font-semibold text-primary-dark hover:bg-chip-bg"
-              >
-                {t("clinic.reviewsSeeAll", { count: place.reviewCount })}
-              </button>
+              <PlaceReviewList reviews={reviewsQuery.data ?? []} loading={reviewsQuery.isPending} failed={reviewsQuery.isError} />
+              <ReviewForm placeId={place.id} />
             </section>
 
             {telehealthCard}
@@ -806,7 +787,7 @@ export function ClinicDetailPage() {
 
           {/* Panel đặt lịch dính bên phải */}
           <div className="sticky top-4 w-[380px] shrink-0">
-            <BookingPanel clinicPhone={place.phone} />
+            <BookingPanel clinicPhone={place.phone} formId="clinic-booking-form-desktop" />
           </div>
         </div>
       </div>

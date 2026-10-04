@@ -19,13 +19,18 @@ final class PrivacyDtoMapper {
     }
 
     static ExportStatusView toExportStatus(DsarRequest request) {
+        return toExportStatus(request, null);
+    }
+
+    static ExportStatusView toExportStatus(DsarRequest request, String downloadToken) {
         return new ExportStatusView(
                 request.publicRef(),
                 request.status().name(),
                 request.ackDueAt(),
                 request.fulfilDueAt(),
                 request.resultExpiresAt(),
-                request.completedAt());
+                request.completedAt(),
+                downloadToken);
     }
 
     static DsarRequestView toRequestView(DsarRequest request) {

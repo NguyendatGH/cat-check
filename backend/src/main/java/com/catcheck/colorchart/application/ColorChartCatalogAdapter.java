@@ -12,7 +12,7 @@ import com.catcheck.scan.domain.color.Lab;
 import com.catcheck.scan.domain.color.PhBandClassifier;
 import com.catcheck.scan.domain.color.PhChart;
 import com.catcheck.scan.domain.color.PhChartPoint;
-import com.catcheck.scan.domain.color.port.ChartCatalog;
+import com.catcheck.scan.domain.color.ChartCatalog;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

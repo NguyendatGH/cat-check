@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.catcheck.privacy.domain.DsarRequestType;
+import com.catcheck.privacy.domain.DsarStatus;
 
 /**
  * Cổng quản lý {@code dsar_request} (p4 B5). Mọi thao tác tự phục vụ (toggle consent,
@@ -42,4 +44,9 @@ public interface DsarRequestPort {
 
     /** Đã có yêu cầu xoá đang mở chưa — partial unique index {@code uq_dsar_request_open_erase} (p4 B5). */
     boolean existsOpenEraseRequest(UUID userId);
+
+    /** Danh sách quản trị đã lọc — không dùng cursor tự phục vụ của user. */
+    List<DsarRequest> findForAdmin(DsarRequestType requestType, DsarStatus status, int offset, int limit);
+
+    long countForAdmin(DsarRequestType requestType, DsarStatus status);
 }

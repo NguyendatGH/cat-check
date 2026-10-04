@@ -4,6 +4,7 @@
 export {
   DELETION_GRACE_DAYS,
   PRIVACY_KEYS,
+  useAccessLog,
   useCancelAccountDeletion,
   useConsentHistory,
   useConsentPurposes,
@@ -23,6 +24,7 @@ export {
 } from "./hooks";
 
 export type {
+  AccessLogEntryView,
   ConsentHistoryView,
   ConsentStateView,
   ConsentStatus,

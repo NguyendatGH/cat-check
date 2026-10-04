@@ -35,9 +35,7 @@ export function WebRegisterSteps({
                 {t("web.steps.headerBadge")}
               </span>
             </span>
-            <h2 className="text-[20px] font-extrabold leading-7 text-primary-dark">
-              {t("web.steps.headerTitle")}
-            </h2>
+            <h2 className="text-[20px] font-extrabold leading-7 text-primary-dark">{t("web.steps.headerTitle")}</h2>
           </div>
           <span className="flex shrink-0 items-center gap-2 rounded-xl bg-background-alt px-3.5 py-2">
             <img src={stepCheck} alt="" className="h-[10.021px] w-[13.583px]" />
@@ -76,12 +74,7 @@ export function WebRegisterSteps({
                 {done ? (
                   <img src={stepCheck} alt="" className="h-[10.021px] w-[13.583px]" />
                 ) : (
-                  <span
-                    className={cn(
-                      "text-[18px] font-bold leading-6",
-                      active ? "text-white" : "text-nav-inactive",
-                    )}
-                  >
+                  <span className={cn("text-[18px] font-bold leading-6", active ? "text-white" : "text-nav-inactive")}>
                     {step}
                   </span>
                 )}

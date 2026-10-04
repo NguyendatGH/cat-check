@@ -8,7 +8,7 @@ import com.catcheck.audit.api.AuditSubjectType;
 import com.catcheck.credit.api.CreditConsumption;
 import com.catcheck.credit.api.CreditConsumption.CreditConsumeCommand;
 import com.catcheck.credit.api.CreditErrorCode;
-import com.catcheck.credit.domain.CreditLedgerRefType;
+import com.catcheck.credit.api.CreditConsumption.ReferenceType;
 import com.catcheck.media.api.StoredImage;
 import com.catcheck.scan.api.ScanSavedEvent;
 import com.catcheck.scan.domain.CaptureSource;
@@ -128,7 +128,7 @@ public class ScanPersistenceService {
                 }
             } else {
                 CreditConsumption.CreditCharge charge = creditConsumption.consume(cmd.userId(),
-                        new CreditConsumeCommand(1, cmd.idempotencyKey(), CreditLedgerRefType.SCAN, scanId, null));
+                        new CreditConsumeCommand(1, cmd.idempotencyKey(), ReferenceType.SCAN, scanId, null));
                 creditCharged = true;
                 creditBalanceAfter = charge.balanceAfter();
                 if (!charge.ledgerEntries().isEmpty()) {
@@ -167,6 +167,13 @@ public class ScanPersistenceService {
             // qua SPI chu khong dua vao ScanSavedEvent ngay duoi: event do khong co listener
             // nao, va identity khong duoc phep phu thuoc scan nen khong dat listener ben do.
             onboardingProgressPort.markFirstScanCompleted(cmd.userId());
+            // H15.75 — BẮT BUỘC đứng trước publishEvent. Listener rule của `insight` chạy đồng
+            // bộ trong CHÍNH transaction này (p7 §7.4.2/§7.4.5) và đọc lịch sử bằng SQL thô
+            // (ScanQueryRepository.findRecentForRules). Lệnh ghi ORM ở trên mới nằm trong
+            // persistence context, chưa xuống DB, nên không đẩy trước thì câu SQL đó thiếu đúng
+            // scan vừa tạo: R4 streak=2 cần 3 lần quét mới nổ thay vì 2 (đã đo thật).
+            // Đây chỉ là flush, KHÔNG phải commit — rollback vẫn cuốn cả health_flag lẫn scan.
+            scanRepository.flushPendingWrites();
             eventPublisher.publishEvent(new ScanSavedEvent(
                     scanId, cat == null ? null : cat.catId(), cmd.userId(), cmd.assignment().name(),
                     outcome.phValue(), outcome.classification().name(), outcome.confidence(),

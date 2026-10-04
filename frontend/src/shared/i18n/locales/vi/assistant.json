@@ -1,0 +1,12 @@
+{
+  "title": "Trợ lý CatCheck",
+  "description": "Hỏi về chăm sóc mèo dựa trên nội dung đã được duyệt.",
+  "empty": "Bạn có thể hỏi về vệ sinh khay, theo dõi màu pH hoặc cách chăm sóc hằng ngày. Trợ lý sẽ dẫn nguồn để bạn kiểm tra lại.",
+  "placeholder": "Ví dụ: Làm gì khi màu pH thay đổi bất thường?",
+  "inputLabel": "Câu hỏi cho trợ lý",
+  "send": "Gửi câu hỏi",
+  "thinking": "Đang tìm tài liệu và soạn câu trả lời…",
+  "sources": "Nguồn tham khảo",
+  "disclaimer": "Thông tin chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ thú y.",
+  "error": "Không gửi được câu hỏi. Vui lòng thử lại."
+}

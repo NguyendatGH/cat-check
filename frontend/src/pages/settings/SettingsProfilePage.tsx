@@ -175,7 +175,9 @@ export function SettingsProfilePage() {
                   type="button"
                   variant="tertiary"
                   size="md"
-                  onClick={() => { setEmailStep("request"); }}
+                  onClick={() => {
+                    setEmailStep("request");
+                  }}
                 >
                   {t("profile.emailChangeCta")}
                 </Button>
@@ -188,7 +190,9 @@ export function SettingsProfilePage() {
                   placeholder={t("profile.emailNewPlaceholder")}
                   type="email"
                   value={newEmail}
-                  onChange={(event) => { setNewEmail(event.target.value); }}
+                  onChange={(event) => {
+                    setNewEmail(event.target.value);
+                  }}
                 />
                 <div className="flex gap-2">
                   <Button
@@ -197,7 +201,9 @@ export function SettingsProfilePage() {
                     loading={requestEmailChange.isPending}
                     onClick={() => {
                       requestEmailChange.mutate(newEmail, {
-                        onSuccess: () => { setEmailStep("confirm"); },
+                        onSuccess: () => {
+                          setEmailStep("confirm");
+                        },
                       });
                     }}
                   >
@@ -207,7 +213,9 @@ export function SettingsProfilePage() {
                     type="button"
                     variant="tertiary"
                     size="md"
-                    onClick={() => { setEmailStep("idle"); }}
+                    onClick={() => {
+                      setEmailStep("idle");
+                    }}
                   >
                     {t("profile.cancel")}
                   </Button>
@@ -224,7 +232,9 @@ export function SettingsProfilePage() {
                   label={t("profile.emailOtp")}
                   inputMode="numeric"
                   value={otp}
-                  onChange={(event) => { setOtp(event.target.value); }}
+                  onChange={(event) => {
+                    setOtp(event.target.value);
+                  }}
                 />
                 <div className="flex gap-2">
                   <Button
@@ -248,7 +258,9 @@ export function SettingsProfilePage() {
                     type="button"
                     variant="tertiary"
                     size="md"
-                    onClick={() => { setEmailStep("idle"); }}
+                    onClick={() => {
+                      setEmailStep("idle");
+                    }}
                   >
                     {t("profile.cancel")}
                   </Button>
@@ -265,10 +277,7 @@ export function SettingsProfilePage() {
             {identities && identities.items.length > 0 ? (
               <ul className="flex flex-col gap-2">
                 {identities.items.map((identity) => (
-                  <li
-                    key={identity.provider}
-                    className="flex items-center gap-3 rounded-xl bg-background-alt/60 p-3"
-                  >
+                  <li key={identity.provider} className="flex items-center gap-3 rounded-xl bg-background-alt/60 p-3">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface">
                       {identity.provider === "GOOGLE" ? (
                         <GoogleGlyph className="size-[17px]" />
@@ -278,18 +287,16 @@ export function SettingsProfilePage() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-body font-semibold text-text-primary">
-                        {identity.provider === "GOOGLE"
-                          ? t("profile.identityGoogle")
-                          : t("profile.identityLocal")}
+                        {identity.provider === "GOOGLE" ? t("profile.identityGoogle") : t("profile.identityLocal")}
                       </span>
-                      <span className="block truncate text-caption text-text-secondary">
-                        {identity.providerEmail}
-                      </span>
+                      <span className="block truncate text-caption text-text-secondary">{identity.providerEmail}</span>
                     </span>
                     {identity.provider === "GOOGLE" ? (
                       <button
                         type="button"
-                        onClick={() => { unlinkIdentity.mutate(identity.provider); }}
+                        onClick={() => {
+                          unlinkIdentity.mutate(identity.provider);
+                        }}
                         className="shrink-0 text-caption font-semibold text-danger hover:underline"
                       >
                         {t("profile.identityUnlink")}

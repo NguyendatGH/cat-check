@@ -77,16 +77,12 @@ export function DisclaimerBanner({
   if (variant === "emergency") {
     const bullets = t("disclaimer.emergency.bullets", { returnObjects: true }) as string[];
     return (
-      <div
-        className={cn(
-          "overflow-hidden rounded-xl border-2 border-danger bg-danger-bg",
-          className,
-        )}
-        role="alert"
-      >
+      <div className={cn("overflow-hidden rounded-xl border-2 border-danger bg-danger-bg", className)} role="alert">
         <button
           type="button"
-          onClick={() => { setCollapsed((v) => !v); }}
+          onClick={() => {
+            setCollapsed((v) => !v);
+          }}
           aria-expanded={!collapsed}
           className="flex w-full min-h-11 items-center justify-between gap-2 p-3 text-left font-bold text-danger-text"
         >
@@ -153,7 +149,14 @@ export interface DisclaimerScrollProps {
  * `features/onboarding/components.tsx` `DisclaimerScroll` (A7 viết cục bộ trước khi entity
  * này có nội dung thật) — nơi khác nên dùng bản này thay vì tự viết lại.
  */
-export function DisclaimerScroll({ children, onReachBottom, label, hintText, doneText, className }: DisclaimerScrollProps) {
+export function DisclaimerScroll({
+  children,
+  onReachBottom,
+  label,
+  hintText,
+  doneText,
+  className,
+}: DisclaimerScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [reachedBottom, setReachedBottom] = useState(false);
 

@@ -152,9 +152,7 @@ export function SettingsPage() {
               </span>
             </p>
             <h1 className="pt-2 text-[24px] font-bold text-primary-dark">{t("web.heroTitle")}</h1>
-            <p className="max-w-[640px] pt-1.5 text-body leading-relaxed text-text-secondary">
-              {t("web.heroBody")}
-            </p>
+            <p className="max-w-[640px] pt-1.5 text-body leading-relaxed text-text-secondary">{t("web.heroBody")}</p>
           </div>
           <div className="flex shrink-0 gap-3">
             <Link
@@ -230,9 +228,7 @@ export function SettingsPage() {
                 <ShieldCheck size={16} aria-hidden="true" />
                 {t("web.standardTitle")}
               </h2>
-              <p className="pt-2 text-caption leading-relaxed text-text-secondary">
-                {SETTINGS_STANDARD_CARD.body}
-              </p>
+              <p className="pt-2 text-caption leading-relaxed text-text-secondary">{SETTINGS_STANDARD_CARD.body}</p>
               <p className="flex items-center justify-between gap-2 pt-3 text-[11px]">
                 <span className="text-text-tertiary">{t("web.certificateLabel")}</span>
                 <span className="font-bold text-primary">{SETTINGS_STANDARD_CARD.certificateCode}</span>
@@ -245,7 +241,12 @@ export function SettingsPage() {
             <section className="rounded-2xl bg-surface p-5 shadow-brand-md">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", SECTION_ICON_TONES.info)}>
+                  <span
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                      SECTION_ICON_TONES.info,
+                    )}
+                  >
                     <UserRound size={19} aria-hidden="true" />
                   </span>
                   <div>
@@ -341,7 +342,12 @@ export function SettingsPage() {
             {/* Thông báo — dữ liệu THẬT (B11/B12) */}
             <section className="rounded-2xl bg-surface p-5 shadow-brand-md">
               <div className="flex items-center gap-3">
-                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", SECTION_ICON_TONES.amber)}>
+                <span
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                    SECTION_ICON_TONES.amber,
+                  )}
+                >
                   <Bell size={19} aria-hidden="true" />
                 </span>
                 <div>
@@ -358,10 +364,7 @@ export function SettingsPage() {
                 </p>
                 <ul className="flex flex-col gap-2">
                   {SETTINGS_ALERT_THRESHOLDS.map((item) => (
-                    <li
-                      key={item.key}
-                      className="flex items-start gap-3 rounded-lg bg-surface p-3"
-                    >
+                    <li key={item.key} className="flex items-start gap-3 rounded-lg bg-surface p-3">
                       <span
                         aria-hidden="true"
                         className={cn(
@@ -371,9 +374,7 @@ export function SettingsPage() {
                       />
                       <span className="min-w-0">
                         <span className="block text-caption font-semibold text-text-primary">{item.title}</span>
-                        <span className="block pt-0.5 text-[11px] leading-relaxed text-text-tertiary">
-                          {item.body}
-                        </span>
+                        <span className="block pt-0.5 text-[11px] leading-relaxed text-text-tertiary">{item.body}</span>
                       </span>
                       {!item.supported ? (
                         <span className="ml-auto shrink-0 rounded-md bg-background-alt px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">
@@ -541,8 +542,18 @@ export function SettingsPage() {
         </section>
 
         <MobileGroup icon={Radio} title={t("mobile.groupMonitoring")}>
-          <MobileRow icon={Timer} to="/reminders" title={t("mobile.rows.reminders.title")} note={t("mobile.rows.reminders.note")} />
-          <MobileRow icon={Bell} to="/settings/notifications" title={t("mobile.rows.notifications.title")} note={t("mobile.rows.notifications.note")} />
+          <MobileRow
+            icon={Timer}
+            to="/reminders"
+            title={t("mobile.rows.reminders.title")}
+            note={t("mobile.rows.reminders.note")}
+          />
+          <MobileRow
+            icon={Bell}
+            to="/settings/notifications"
+            title={t("mobile.rows.notifications.title")}
+            note={t("mobile.rows.notifications.note")}
+          />
           {/* Khối phần cứng của thiết kế — chưa có backend, dùng `SETTINGS_DEVICE` và gắn nhãn. */}
           <MobileRow
             icon={ScanLine}
@@ -570,13 +581,33 @@ export function SettingsPage() {
             dot
             mock
           />
-          <MobileRow icon={KeyRound} to="/settings/security" title={t("mobile.rows.security.title")} note={t("mobile.rows.security.note")} />
-          <MobileRow icon={ShieldCheck} to="/account/privacy" title={t("mobile.rows.privacy.title")} note={t("mobile.rows.privacy.note")} />
-          <MobileRow icon={Languages} to="/settings/language" title={t("mobile.rows.language.title")} note={t("mobile.rows.language.note")} />
+          <MobileRow
+            icon={KeyRound}
+            to="/settings/security"
+            title={t("mobile.rows.security.title")}
+            note={t("mobile.rows.security.note")}
+          />
+          <MobileRow
+            icon={ShieldCheck}
+            to="/account/privacy"
+            title={t("mobile.rows.privacy.title")}
+            note={t("mobile.rows.privacy.note")}
+          />
+          <MobileRow
+            icon={Languages}
+            to="/settings/language"
+            title={t("mobile.rows.language.title")}
+            note={t("mobile.rows.language.note")}
+          />
         </MobileGroup>
 
         <MobileGroup icon={Headphones} title={t("mobile.groupSupport")}>
-          <MobileRow icon={BookOpen} to="/community" title={t("mobile.rows.guides.title")} note={t("mobile.rows.guides.note")} />
+          <MobileRow
+            icon={BookOpen}
+            to="/community"
+            title={t("mobile.rows.guides.title")}
+            note={t("mobile.rows.guides.note")}
+          />
           <MobileRow
             icon={Phone}
             href={`tel:${SETTINGS_SUPPORT_HOTLINE.number.replace(/-/g, "")}`}
@@ -584,7 +615,12 @@ export function SettingsPage() {
             note={`${SETTINGS_SUPPORT_HOTLINE.number} (${SETTINGS_SUPPORT_HOTLINE.hours})`}
             action={t("mobile.call")}
           />
-          <MobileRow icon={Mail} to="/legal/contact" title={t("mobile.rows.contact.title")} note={t("mobile.rows.contact.note")} />
+          <MobileRow
+            icon={Mail}
+            to="/legal/contact"
+            title={t("mobile.rows.contact.title")}
+            note={t("mobile.rows.contact.note")}
+          />
         </MobileGroup>
 
         <section className="flex gap-2.5 rounded-2xl bg-chip-bg p-4">
@@ -598,11 +634,21 @@ export function SettingsPage() {
         </section>
 
         <nav className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-caption font-bold text-text-primary">
-          <Link to="/legal/terms" className="hover:underline">{t("mobile.legalTerms")}</Link>
-          <span aria-hidden="true" className="text-text-tertiary">•</span>
-          <Link to="/legal/privacy" className="hover:underline">{t("mobile.legalPrivacy")}</Link>
-          <span aria-hidden="true" className="text-text-tertiary">•</span>
-          <Link to="/legal/medical-disclaimer" className="hover:underline">{t("mobile.legalSafety")}</Link>
+          <Link to="/legal/terms" className="hover:underline">
+            {t("mobile.legalTerms")}
+          </Link>
+          <span aria-hidden="true" className="text-text-tertiary">
+            •
+          </span>
+          <Link to="/legal/privacy" className="hover:underline">
+            {t("mobile.legalPrivacy")}
+          </Link>
+          <span aria-hidden="true" className="text-text-tertiary">
+            •
+          </span>
+          <Link to="/legal/medical-disclaimer" className="hover:underline">
+            {t("mobile.legalSafety")}
+          </Link>
         </nav>
         <p className="text-center text-[11px] leading-relaxed text-text-tertiary">
           {t("mobile.versionLine", { version: SETTINGS_APP_VERSION })}
@@ -647,9 +693,7 @@ export function SettingsPage() {
  */
 function CatTile({ cat, bands }: { cat: Cat; bands: PhBand[] | undefined }) {
   const { t } = useTranslation("settings");
-  const band = cat.lastClassification
-    ? bands?.find((item) => item.code === cat.lastClassification)
-    : undefined;
+  const band = cat.lastClassification ? bands?.find((item) => item.code === cat.lastClassification) : undefined;
 
   return (
     <Link to={`/cats/${cat.id}`} className="block rounded-xl bg-background-alt p-3">
@@ -676,9 +720,7 @@ function CatTile({ cat, bands }: { cat: Cat; bands: PhBand[] | undefined }) {
         </span>
       </div>
       <p className="truncate pt-2.5 text-body font-bold text-text-primary">{cat.name}</p>
-      <p className="truncate text-caption text-text-secondary">
-        {cat.breedName ?? cat.breedOther ?? cat.publicCode}
-      </p>
+      <p className="truncate text-caption text-text-secondary">{cat.breedName ?? cat.breedOther ?? cat.publicCode}</p>
     </Link>
   );
 }
@@ -776,7 +818,9 @@ function MockSection({
     <section className="rounded-2xl bg-surface p-5 shadow-brand-md">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", SECTION_ICON_TONES[iconTone])}>
+          <span
+            className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", SECTION_ICON_TONES[iconTone])}
+          >
             <Icon size={19} aria-hidden="true" />
           </span>
           <div>
@@ -796,15 +840,7 @@ function MockSection({
   );
 }
 
-function MobileGroup({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: LucideIcon;
-  title: string;
-  children: React.ReactNode;
-}) {
+function MobileGroup({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
       <h2 className="flex items-center gap-2 pb-1 text-h3 font-bold text-text-primary">

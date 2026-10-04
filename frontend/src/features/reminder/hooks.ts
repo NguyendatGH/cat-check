@@ -6,13 +6,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { isApiError } from "@/shared/api";
-import {
-  createReminder,
-  deleteReminder,
-  getReminder,
-  listReminders,
-  patchReminder,
-} from "./api";
+import { createReminder, deleteReminder, getReminder, listReminders, patchReminder } from "./api";
 import { REMINDER_ERROR } from "./types";
 import type {
   CreateReminderPayload,
@@ -42,10 +36,7 @@ export const reminderKeys = {
 const REMINDER_STALE_TIME = 60 * 1000;
 
 /** I1 — danh sách. Truyền `enabled: false` khi chưa biết `catId` của bộ lọc. */
-export function useReminders(
-  filter: ReminderListFilter = {},
-  enabled = true,
-): UseQueryResult<ReminderListResponse> {
+export function useReminders(filter: ReminderListFilter = {}, enabled = true): UseQueryResult<ReminderListResponse> {
   return useQuery({
     queryKey: reminderKeys.list(filter),
     queryFn: () => listReminders(filter),
@@ -126,8 +117,5 @@ export function reminderErrorCode(error: unknown): string | undefined {
  */
 export function isFeatureLocked(error: unknown): boolean {
   if (!isApiError(error)) return false;
-  return (
-    error.status === 403 &&
-    (error.code === REMINDER_ERROR.FEATURE_NOT_IN_PLAN || error.code === undefined)
-  );
+  return error.status === 403 && (error.code === REMINDER_ERROR.FEATURE_NOT_IN_PLAN || error.code === undefined);
 }

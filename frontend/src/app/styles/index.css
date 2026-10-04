@@ -16,83 +16,189 @@
 
 :root {
   color-scheme: light;
-  --color-primary: #2F4FB2; --color-primary-dark: #0D369A; --color-primary-darker: #161B2C;
-  --color-secondary: #FDCF52; --color-secondary-light: #FFDF93; --color-secondary-text-on: #725800;
-  --color-text-primary: #161B2C; --color-text-secondary: #444652; --color-text-tertiary: #63667A;
+  --color-primary: #2f4fb2;
+  --color-primary-dark: #0d369a;
+  --color-primary-darker: #161b2c;
+  --color-secondary: #fdcf52;
+  --color-secondary-light: #ffdf93;
+  --color-secondary-text-on: #725800;
+  --color-text-primary: #161b2c;
+  --color-text-secondary: #444652;
+  --color-text-tertiary: #63667a;
   /* Bổ sung khi match Figma pixel-perfect (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw): 2 giá trị
      xuất hiện lặp lại trong design thật (bottom nav inactive, chữ phụ trên nền primary)
      nhưng p10 chưa có token — giữ riêng, không đổi ngữ nghĩa token cũ. */
-  --color-nav-inactive: #747684; --color-on-primary-muted: #BECAFF;
-  --color-border: #C4C5D4; --color-border-strong: #8B8FA3;
-  --color-surface: #FFFFFF; --color-background: #FAF8FF; --color-background-alt: #F3F2FF; --color-chip-bg: #E4E7FF;
+  --color-nav-inactive: #747684;
+  --color-on-primary-muted: #becaff;
+  --color-border: #c4c5d4;
+  --color-border-strong: #8b8fa3;
+  --color-surface: #ffffff;
+  --color-background: #faf8ff;
+  --color-background-alt: #f3f2ff;
+  --color-chip-bg: #e4e7ff;
   /* Nền trang trí xoay nhẹ sau ảnh hero màn Chào mừng (Figma 16:7830) — không trùng token nào sẵn có. */
-  --color-deco-backdrop: #EBEDFF;
+  --color-deco-backdrop: #ebedff;
   /* Panel giới thiệu bản web (Figma 16:7573 Sign In, 16:8476 OTP): chữ/nền trên nền xanh đậm
      và bộ xanh lá "đã xác thực". Các giá trị này lặp lại ở nhiều màn web nên tách token thay
      vì để rgb() rải rác trong .tsx (ESLint cấm hex nên trước đó phải viết rgb()). */
-  --color-on-primary-subtle: #DEE1F9;
-  --color-verified-bright: #6BFF8F;
-  --color-verified-deep: #004A1D;
-  --color-success: #22C55E; --color-success-strong: #4AE176; --color-success-bg: #DCFCE7; --color-success-text: #15803D;
-  --color-warning: #F59E0B; --color-warning-bg: #FEF3C7; --color-warning-text: #92400E;
-  --color-danger: #BA1A1A; --color-danger-bg: #FFDAD6; --color-danger-text: #93000A;
-  --color-info: #DCE1FF; --color-info-text: #444652;
-  --color-ph-normal: var(--color-success); --color-ph-normal-bg: var(--color-success-bg); --color-ph-normal-text: var(--color-success-text);
-  --color-ph-mild: var(--color-warning); --color-ph-mild-bg: var(--color-warning-bg); --color-ph-mild-text: var(--color-warning-text);
-  --color-ph-abnormal: var(--color-danger); --color-ph-abnormal-bg: var(--color-danger-bg); --color-ph-abnormal-text: var(--color-danger-text);
-  --color-ph-unknown: var(--color-info); --color-ph-unknown-bg: var(--color-chip-bg);
+  --color-on-primary-subtle: #dee1f9;
+  --color-verified-bright: #6bff8f;
+  --color-verified-deep: #004a1d;
+  --color-success: #22c55e;
+  --color-success-strong: #4ae176;
+  --color-success-bg: #dcfce7;
+  --color-success-text: #15803d;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-danger: #ba1a1a;
+  --color-danger-bg: #ffdad6;
+  --color-danger-text: #93000a;
+  --color-info: #dce1ff;
+  --color-info-text: #444652;
+  --color-ph-normal: var(--color-success);
+  --color-ph-normal-bg: var(--color-success-bg);
+  --color-ph-normal-text: var(--color-success-text);
+  --color-ph-mild: var(--color-warning);
+  --color-ph-mild-bg: var(--color-warning-bg);
+  --color-ph-mild-text: var(--color-warning-text);
+  --color-ph-abnormal: var(--color-danger);
+  --color-ph-abnormal-bg: var(--color-danger-bg);
+  --color-ph-abnormal-text: var(--color-danger-text);
+  --color-ph-unknown: var(--color-info);
+  --color-ph-unknown-bg: var(--color-chip-bg);
   --font-family-base: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
-  --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem; --space-16: 4rem;
-  --z-dropdown: 100; --z-sticky-header: 200; --z-bottom-nav: 300; --z-overlay: 400; --z-modal: 500; --z-toast: 600; --z-tooltip: 700;
-  --ease-standard: cubic-bezier(.4,0,.2,1);
-  --duration-fast: 120ms; --duration-base: 200ms; --duration-slow: 320ms;
-  --touch-target-min: 44px; --focus-ring-width: 2px; --focus-ring-offset: 2px; --focus-ring-color: var(--color-primary-dark);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --z-dropdown: 100;
+  --z-sticky-header: 200;
+  --z-bottom-nav: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --touch-target-min: 44px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-primary-dark);
 }
 
 @theme {
-  --color-primary: #2F4FB2; --color-primary-dark: #0D369A; --color-primary-darker: #161B2C;
-  --color-secondary: #FDCF52; --color-secondary-light: #FFDF93; --color-secondary-text-on: #725800;
-  --color-text-primary: #161B2C; --color-text-secondary: #444652; --color-text-tertiary: #63667A;
+  --color-primary: #2f4fb2;
+  --color-primary-dark: #0d369a;
+  --color-primary-darker: #161b2c;
+  --color-secondary: #fdcf52;
+  --color-secondary-light: #ffdf93;
+  --color-secondary-text-on: #725800;
+  --color-text-primary: #161b2c;
+  --color-text-secondary: #444652;
+  --color-text-tertiary: #63667a;
   /* Bổ sung khi match Figma pixel-perfect (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw): 2 giá trị
      xuất hiện lặp lại trong design thật (bottom nav inactive, chữ phụ trên nền primary)
      nhưng p10 chưa có token — giữ riêng, không đổi ngữ nghĩa token cũ. */
-  --color-nav-inactive: #747684; --color-on-primary-muted: #BECAFF;
-  --color-border: #C4C5D4; --color-border-strong: #8B8FA3;
-  --color-surface: #FFFFFF; --color-background: #FAF8FF; --color-background-alt: #F3F2FF; --color-chip-bg: #E4E7FF;
+  --color-nav-inactive: #747684;
+  --color-on-primary-muted: #becaff;
+  --color-border: #c4c5d4;
+  --color-border-strong: #8b8fa3;
+  --color-surface: #ffffff;
+  --color-background: #faf8ff;
+  --color-background-alt: #f3f2ff;
+  --color-chip-bg: #e4e7ff;
   /* Nền trang trí xoay nhẹ sau ảnh hero màn Chào mừng (Figma 16:7830) — không trùng token nào sẵn có. */
-  --color-deco-backdrop: #EBEDFF;
+  --color-deco-backdrop: #ebedff;
   /* Panel giới thiệu bản web (Figma 16:7573 Sign In, 16:8476 OTP): chữ/nền trên nền xanh đậm
      và bộ xanh lá "đã xác thực". Các giá trị này lặp lại ở nhiều màn web nên tách token thay
      vì để rgb() rải rác trong .tsx (ESLint cấm hex nên trước đó phải viết rgb()). */
-  --color-on-primary-subtle: #DEE1F9;
-  --color-verified-bright: #6BFF8F;
-  --color-verified-deep: #004A1D;
-  --color-success: #22C55E; --color-success-strong: #4AE176; --color-success-bg: #DCFCE7; --color-success-text: #15803D;
-  --color-warning: #F59E0B; --color-warning-bg: #FEF3C7; --color-warning-text: #92400E;
-  --color-danger: #BA1A1A; --color-danger-bg: #FFDAD6; --color-danger-text: #93000A;
-  --color-info: #DCE1FF; --color-info-text: #444652;
+  --color-on-primary-subtle: #dee1f9;
+  --color-verified-bright: #6bff8f;
+  --color-verified-deep: #004a1d;
+  --color-success: #22c55e;
+  --color-success-strong: #4ae176;
+  --color-success-bg: #dcfce7;
+  --color-success-text: #15803d;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-danger: #ba1a1a;
+  --color-danger-bg: #ffdad6;
+  --color-danger-text: #93000a;
+  --color-info: #dce1ff;
+  --color-info-text: #444652;
   /* Bộ token dải pH: trước đây CHỈ khai báo ở :root nên Tailwind v4 không sinh utility —
      `text-ph-normal-text`, `bg-ph-mild-bg`… ở 8 call site render ra KHÔNG MÀU. Khai báo lại
      ở @theme để các class đó có thật; cú pháp arbitrary `bg-[var(--color-ph-*)]` mà
      entities/ph-bands/colorToken.ts dùng vẫn chạy nguyên vẹn. */
-  --color-ph-normal: var(--color-success); --color-ph-normal-bg: var(--color-success-bg); --color-ph-normal-text: var(--color-success-text);
-  --color-ph-mild: var(--color-warning); --color-ph-mild-bg: var(--color-warning-bg); --color-ph-mild-text: var(--color-warning-text);
-  --color-ph-abnormal: var(--color-danger); --color-ph-abnormal-bg: var(--color-danger-bg); --color-ph-abnormal-text: var(--color-danger-text);
-  --color-ph-unknown: var(--color-info); --color-ph-unknown-bg: var(--color-chip-bg);
+  --color-ph-normal: var(--color-success);
+  --color-ph-normal-bg: var(--color-success-bg);
+  --color-ph-normal-text: var(--color-success-text);
+  --color-ph-mild: var(--color-warning);
+  --color-ph-mild-bg: var(--color-warning-bg);
+  --color-ph-mild-text: var(--color-warning-text);
+  --color-ph-abnormal: var(--color-danger);
+  --color-ph-abnormal-bg: var(--color-danger-bg);
+  --color-ph-abnormal-text: var(--color-danger-text);
+  --color-ph-unknown: var(--color-info);
+  --color-ph-unknown-bg: var(--color-chip-bg);
   --font-family-sans: "Nunito", "Be Vietnam Pro", system-ui, sans-serif;
-  --text-display: 2.5rem; --text-display--line-height: 3rem; --text-display--font-weight: 700;
-  --text-h1: 2rem; --text-h1--line-height: 2.5rem; --text-h1--font-weight: 700;
-  --text-h2: 1.5rem; --text-h2--line-height: 2rem; --text-h2--font-weight: 600;
-  --text-h3: 1.25rem; --text-h3--line-height: 1.75rem; --text-h3--font-weight: 600;
-  --text-body: 1rem; --text-body--line-height: 1.5rem;
-  --text-caption: .875rem; --text-caption--line-height: 1.25rem;
-  --text-small: .75rem; --text-small--line-height: 1rem; --text-small--font-weight: 400;
-  --text-overline: .75rem; --text-overline--line-height: 1rem; --text-overline--font-weight: 600;
-  --radius-xs: 2px; --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-2xl: 20px; --radius-3xl: 24px; --radius-full: 9999px;
-  --shadow-xs: 0 1px 1px rgba(0,0,0,.05); --shadow-sm: 0 2px 2px rgba(0,0,0,.10);
-  --shadow-brand-md: 0 4px 8px rgba(47,79,178,.06); --shadow-brand-lg: 0 4px 12px rgba(47,79,178,.08); --shadow-brand-xl: 0 8px 12px rgba(47,79,178,.35);
-  --shadow-top: 0 -4px 12px rgba(47,79,178,.08);
-  --breakpoint-sm: 375px; --breakpoint-md: 768px; --breakpoint-lg: 1024px; --breakpoint-xl: 1280px;
+  --text-display: 2.5rem;
+  --text-display--line-height: 3rem;
+  --text-display--font-weight: 700;
+  --text-h1: 2rem;
+  --text-h1--line-height: 2.5rem;
+  --text-h1--font-weight: 700;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 2rem;
+  --text-h2--font-weight: 600;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.75rem;
+  --text-h3--font-weight: 600;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-caption: 0.875rem;
+  --text-caption--line-height: 1.25rem;
+  --text-small: 0.75rem;
+  --text-small--line-height: 1rem;
+  --text-small--font-weight: 400;
+  --text-overline: 0.75rem;
+  --text-overline--line-height: 1rem;
+  --text-overline--font-weight: 600;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 2px rgba(0, 0, 0, 0.1);
+  --shadow-brand-md: 0 4px 8px rgba(47, 79, 178, 0.06);
+  --shadow-brand-lg: 0 4px 12px rgba(47, 79, 178, 0.08);
+  --shadow-brand-xl: 0 8px 12px rgba(47, 79, 178, 0.35);
+  --shadow-top: 0 -4px 12px rgba(47, 79, 178, 0.08);
+  /* ⚠ `sm` ở đây là 375px, KHÔNG phải 640px mặc định của Tailwind. Mọi điện thoại hiện đại
+     đều rộng hơn 375px, nên `sm:` kích hoạt ở GẦN NHƯ MỌI thiết bị — nó là "màn hình rất hẹp
+     trở lên", không phải "màn hình to hơn điện thoại".
+     Đã có một bug thật vì hiểu nhầm điều này: ShopPage tách mobile/desktop bằng 30 biến thể
+     `sm:`, nên cây giao diện mobile tồn tại trong code mà không bao giờ render được trên
+     điện thoại. Tách mobile khỏi desktop thì dùng `md:` (768px) hoặc `lg:` (1024px).
+     Dùng `sm:` chỉ cho tinh chỉnh nhỏ giữa máy rất hẹp và máy thường. */
+  --breakpoint-sm: 375px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
 }
 
 /* Chỉ light theme ở Phase 1 (đã khai color-scheme: light ở trên tường minh).

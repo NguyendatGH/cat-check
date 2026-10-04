@@ -66,6 +66,9 @@ class ModuleBoundaryRuleTests {
     @ArchTest
     static final ArchRule r9_colorDomainStaysPureJava = noClasses()
             .that().resideInAPackage("com.catcheck.scan.domain.color..")
+            // Package metadata declares the Modulith boundary; the color implementation itself
+            // remains dependency-free and runnable without Spring/native libraries.
+            .and().doNotHaveSimpleName("package-info")
             .should().dependOnClassesThat().resideInAnyPackage("org.bytedeco..", "org.springframework..", "jakarta..")
             .because("R9: com.catcheck.scan.domain.color không phụ thuộc org.bytedeco.., org.springframework.., jakarta.. "
                     + "(package chưa tồn tại ở M0, áp dụng thật từ M3)")

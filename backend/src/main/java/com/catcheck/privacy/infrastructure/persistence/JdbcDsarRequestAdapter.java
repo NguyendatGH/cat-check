@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
 
 /**
  * {@link DsarRequestPort} trên {@code JdbcTemplate}.
@@ -171,6 +172,35 @@ public class JdbcDsarRequestAdapter implements DsarRequestPort {
                    AND status NOT IN ('COMPLETED', 'REJECTED')
                 """, Integer.class, userId);
         return count != null && count > 0;
+    }
+
+    @Override
+    public List<DsarRequest> findForAdmin(DsarRequestType requestType, DsarStatus status, int offset, int limit) {
+        List<Object> args = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT " + COLUMNS + " FROM dsar_request WHERE 1 = 1");
+        appendAdminFilter(sql, args, "request_type", requestType == null ? null : requestType.name());
+        appendAdminFilter(sql, args, "status", status == null ? null : status.name());
+        sql.append(" ORDER BY received_at DESC, id DESC OFFSET ? LIMIT ?");
+        args.add(offset);
+        args.add(limit);
+        return jdbc.query(sql.toString(), (rs, rowNum) -> readRequest(rs), args.toArray());
+    }
+
+    @Override
+    public long countForAdmin(DsarRequestType requestType, DsarStatus status) {
+        List<Object> args = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT count(*) FROM dsar_request WHERE 1 = 1");
+        appendAdminFilter(sql, args, "request_type", requestType == null ? null : requestType.name());
+        appendAdminFilter(sql, args, "status", status == null ? null : status.name());
+        Long count = jdbc.queryForObject(sql.toString(), Long.class, args.toArray());
+        return count == null ? 0 : count;
+    }
+
+    private static void appendAdminFilter(StringBuilder sql, List<Object> args, String column, String value) {
+        if (value != null) {
+            sql.append(" AND ").append(column).append(" = ?");
+            args.add(value);
+        }
     }
 
     private DsarRequest readRequest(ResultSet rs) {

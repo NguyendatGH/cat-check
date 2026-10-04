@@ -85,7 +85,14 @@ export const handlers = [
     await delay(80);
     if (String(params.catId) !== LUNA_ID) {
       return HttpResponse.json(
-        { type: "https://catcheck.vn/problems/cat-not-found", title: "CAT_NOT_FOUND", status: 404, detail: "Không tìm thấy mèo.", instance: "/mock", code: "CAT_NOT_FOUND" },
+        {
+          type: "https://catcheck.vn/problems/cat-not-found",
+          title: "CAT_NOT_FOUND",
+          status: 404,
+          detail: "Không tìm thấy mèo.",
+          instance: "/mock",
+          code: "CAT_NOT_FOUND",
+        },
         { status: 404 },
       );
     }

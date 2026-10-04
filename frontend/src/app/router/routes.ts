@@ -29,6 +29,7 @@ export const ROUTE_PATTERNS = {
   onboardingActivate: "/onboarding/activate",
   onboardingSuccess: "/onboarding/success",
   dashboard: "/dashboard",
+  assistant: "/assistant",
   selectCat: "/scan/select-cat",
   scan: "/scan",
   scanResult: "/scan/result/:scanId",
@@ -90,4 +91,3 @@ export const ROUTE_PATTERNS = {
 } as const;
 
 export type RouteKey = keyof typeof ROUTE_PATTERNS;
-

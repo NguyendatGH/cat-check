@@ -237,9 +237,7 @@ export function ReminderDetailPage() {
 
           <div className="flex min-h-11 items-center justify-between gap-3">
             <span>
-              <span className="block text-caption font-semibold text-text-primary">
-                {t("form.activeLabel")}
-              </span>
+              <span className="block text-caption font-semibold text-text-primary">{t("form.activeLabel")}</span>
               <span className="block text-small text-text-tertiary">{t("form.activeHint")}</span>
             </span>
             <Switch
@@ -255,17 +253,13 @@ export function ReminderDetailPage() {
             <div className="flex items-center justify-between gap-3">
               <dt className="text-small text-text-secondary">{t("list.nextRunLabel")}</dt>
               <dd className="text-caption font-bold text-text-primary">
-                {reminder.nextRunAt === undefined
-                  ? t("list.nextRunUnknown")
-                  : formatDateTime(reminder.nextRunAt)}
+                {reminder.nextRunAt === undefined ? t("list.nextRunUnknown") : formatDateTime(reminder.nextRunAt)}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-3">
               <dt className="text-small text-text-secondary">{t("list.lastRunLabel")}</dt>
               <dd className="text-caption text-text-primary">
-                {reminder.lastRunAt === undefined
-                  ? t("list.nextRunUnknown")
-                  : formatDateTime(reminder.lastRunAt)}
+                {reminder.lastRunAt === undefined ? t("list.nextRunUnknown") : formatDateTime(reminder.lastRunAt)}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-3">

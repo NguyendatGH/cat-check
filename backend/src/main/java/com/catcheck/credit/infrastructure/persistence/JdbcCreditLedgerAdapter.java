@@ -3,6 +3,8 @@ package com.catcheck.credit.infrastructure.persistence;
 import com.catcheck.credit.domain.CreditBatchSnapshot;
 import com.catcheck.credit.domain.CreditLedgerRefType;
 import com.catcheck.credit.domain.CreditLedgerType;
+import com.catcheck.credit.domain.ExpiringCreditBatch;
+import com.catcheck.credit.domain.ExpiryReminderMilestone;
 import com.catcheck.credit.domain.LedgerEntry;
 import com.catcheck.credit.domain.port.CreditLedgerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -94,6 +96,63 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                         RowReaders.requiredInt(rs, "remaining_amount"),
                         RowReaders.requiredInt(rs, "initial_amount")),
                 batchId).stream().findFirst();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>{@code FOR UPDATE SKIP LOCKED} chứ không phải {@code FOR UPDATE}: job hết hạn chạy mỗi
+     * giờ và không có gì phải gấp với một lô đang bị transaction khác giữ — bỏ qua rồi gặp lại
+     * ở lần chạy sau rẻ hơn là xếp hàng chờ sau một lần trừ credit đang mở.</p>
+     */
+    @Override
+    public Optional<ExpiringCreditBatch> lockBatchForExpiry(UUID batchId, Instant now) {
+        return jdbc.query("""
+                SELECT id, user_id, expires_at, remaining_amount, initial_amount
+                  FROM credit_batch
+                 WHERE id = ?
+                   AND status = 'ACTIVE'
+                   AND expires_at <= ?
+                   AND remaining_amount > 0
+                 FOR UPDATE SKIP LOCKED
+                """, (rs, rowNum) -> mapExpiring(rs), batchId, RowReaders.utc(now))
+                .stream().findFirst();
+    }
+
+    @Override
+    public Optional<ExpiringCreditBatch> lockBatchForExpiryReminder(
+            UUID batchId, ExpiryReminderMilestone milestone, Instant now) {
+        return jdbc.query("""
+                SELECT id, user_id, expires_at, remaining_amount, initial_amount
+                  FROM credit_batch
+                 WHERE id = ?
+                   AND status = 'ACTIVE'
+                   AND remaining_amount > 0
+                   AND expires_at > ?
+                   AND expires_at <= ?
+                   AND %s IS NULL
+                 FOR UPDATE SKIP LOCKED
+                """.formatted(notifiedColumn(milestone)),
+                (rs, rowNum) -> mapExpiring(rs),
+                batchId, RowReaders.utc(now), RowReaders.utc(now.plus(milestone.lead())))
+                .stream().findFirst();
+    }
+
+    /** Cột cờ "đã nhắc mốc này" trên {@code credit_batch} (p4 §4.5.1) — nguồn là enum, không phải input. */
+    private static String notifiedColumn(ExpiryReminderMilestone milestone) {
+        return switch (milestone) {
+            case T48H -> "t48h_notified_at";
+            case T6H -> "t6h_notified_at";
+        };
+    }
+
+    private static ExpiringCreditBatch mapExpiring(ResultSet rs) throws SQLException {
+        return new ExpiringCreditBatch(
+                RowReaders.uuid(rs, "id"),
+                RowReaders.uuid(rs, "user_id"),
+                RowReaders.requiredInstant(rs, "expires_at"),
+                RowReaders.requiredInt(rs, "remaining_amount"),
+                RowReaders.requiredInt(rs, "initial_amount"));
     }
 
     @Override

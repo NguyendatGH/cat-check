@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:18.6-trixie
+    environment:
+      POSTGRES_DB: catcheck
+      POSTGRES_USER: catcheck
+      POSTGRES_PASSWORD: catcheck_local_only
+    ports: ["5432:5432"]
+    volumes: ["catcheck_pg_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.31.2
+    ports: ["8025:8025", "1025:1025"]
+
+  adminer:
+    image: adminer
+    profiles: ["tools"]
+    ports: ["8081:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+    profiles: ["full"]
+    ports: ["8080:8080", "9090:9090"]
+    volumes: ["catcheck_storage_dev:/var/lib/catcheck/storage"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catcheck
+      SPRING_DATASOURCE_USERNAME: catcheck
+      SPRING_DATASOURCE_PASSWORD: catcheck_local_only
+      SPRING_MAIL_HOST: mailpit
+      ACTIVATION_PEPPER: ${ACTIVATION_PEPPER:-local-only-activation-pepper-32-bytes-minimum}
+      RECOVERY_CODE_PEPPER: ${RECOVERY_CODE_PEPPER:-local-only-recovery-pepper-32-bytes-minimum}
+      OTP_PEPPER: ${OTP_PEPPER:-local-only-otp-pepper-value-32-bytes-minimum}
+      APP_PII_ENCRYPTION_KEYS: ${APP_PII_ENCRYPTION_KEYS:-v1:CloKO4ynWhcsVst049R7CP4bTplnynDtCGsSiFIOUgU=}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    profiles: ["full"]
+    ports: ["5173:80"]
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  catcheck_pg_data:
+  catcheck_storage_dev:

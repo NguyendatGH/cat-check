@@ -1,8 +1,10 @@
-# place
+# Place directory
 
-Phase 2/3 — chưa triển khai.
+The local implementation provides published-place search/detail, aggregate ratings, published
+review listing and upsert, plus booking-request creation. Review listing intentionally returns
+only review id, rating, body, and timestamp; it does not expose account identifiers or profile
+fields. Booking creation is a request (`REQUESTED`), not a confirmed appointment.
 
-Module này chỉ tồn tại như một khung package rỗng để đặt chỗ trong kiến trúc Spring Modulith
-(`@ApplicationModule(allowedDependencies = { "shared" })`), phục vụ mốc M0 ("mọi ranh giới
-kiến trúc đã có máy canh"). Chưa có entity/api/logic nghiệp vụ nào — sẽ được triển khai ở giai
-đoạn Phase 2/3 theo roadmap trong spec.
+Routes are documented by `PlaceController` under `/api/v1/places`. Place hours, doctor profiles,
+service catalog/pricing, clinic image galleries, booking availability, and booking management
+are not represented by this API and must not be presented as verified place data.

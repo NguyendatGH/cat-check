@@ -53,7 +53,8 @@ const RESTRICTED_IMPORTS_BASE = [
       paths: [
         {
           name: "openapi-fetch",
-          message: "openapi-fetch chỉ được import trực tiếp trong shared/api (dùng shared/api/client thay vì import thẳng).",
+          message:
+            "openapi-fetch chỉ được import trực tiếp trong shared/api (dùng shared/api/client thay vì import thẳng).",
         },
       ],
     },
@@ -81,6 +82,7 @@ export default tseslint.config(
       "src/shared/api/schema.d.ts",
       "playwright-report/**",
       "test-results/**",
+      ".shot-*.mjs",
     ],
   },
 

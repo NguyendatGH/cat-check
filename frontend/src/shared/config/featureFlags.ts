@@ -1,12 +1,16 @@
 /**
- * Cờ tính năng Phase 2/3 — TẤT CẢ tắt ở M0. Route vẫn đăng ký đủ (p9 §9.4.3), chỉ đổi
- * element sang ComingSoonPage khi cờ tắt (app/router/router.tsx).
- * TODO: nối remote config / admin toggle thật ở milestone sau.
+ * Cờ tính năng Phase 2/3. Community, map/place và shop đã có migration + API backend nên
+ * được mở trong bản local này; scan và AI chat không thuộc phạm vi thay đổi.
+ *
+ * Kiểu là `Record<FeatureFlagKey, boolean>` chứ KHÔNG phải `as const`: với `as const` thì
+ * mọi giá trị là literal `false`, TypeScript rút gọn `featureFlags.shop ? a : b` thành `b`
+ * và rule `no-unnecessary-condition` báo lỗi ngay tại chỗ kiểm cờ — tức là cờ chỉ "bật được"
+ * nếu sửa cả file này lẫn chỗ dùng. `boolean` giữ cho việc bật cờ là đổi đúng một giá trị.
  */
-export const featureFlags = {
-  community: false,
-  map: false,
-  shop: false,
-} as const;
+export type FeatureFlagKey = "community" | "map" | "shop";
 
-export type FeatureFlagKey = keyof typeof featureFlags;
+export const featureFlags: Record<FeatureFlagKey, boolean> = {
+  community: true,
+  map: true,
+  shop: true,
+};

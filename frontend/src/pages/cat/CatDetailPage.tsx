@@ -4,16 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
-import {
-  Archive,
-  ArchiveRestore,
-  Crown,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Stethoscope,
-  Trash2,
-} from "lucide-react";
+import { Archive, ArchiveRestore, Crown, MoreVertical, Pencil, Plus, Stethoscope, Trash2 } from "lucide-react";
 import {
   Badge,
   Button,
@@ -73,14 +64,10 @@ import {
   useScanHistory,
   useScanSummary,
 } from "@/features/history";
-import { CatClinicalColumn, CatIdentityExtras, CatIdentityTiles, CatProfileTopActions } from "./CatMedicalPanels";
+import { HealthFlagDisclosure } from "@/features/insight";
+import { CatClinicalColumn, CatIdentityExtras, CatProfileTopActions } from "./CatMedicalPanels";
 import { CatProfileHero } from "./CatProfileHero";
-import {
-  CatBiomarkerCard,
-  CatProfileActions,
-  CatRecentScansCard,
-  CatStatGrid,
-} from "./CatOverviewPanels";
+import { CatBiomarkerCard, CatProfileActions, CatRecentScansCard, CatStatGrid } from "./CatOverviewPanels";
 
 const NOTE_TYPES: NoteType[] = ["GENERAL", "DIET_CHANGE", "SYMPTOM", "VET_VISIT", "LITTER_CHANGE"];
 const SURVEY_QUESTION_NAMES = ["litterType", "urinaryHistory", "dietType", "urinationFrequency"] as const;
@@ -128,7 +115,9 @@ export function CatDetailPage() {
       <ErrorState
         title={t("detail.notFoundTitle")}
         description={t("detail.notFoundDescription")}
-        onRetry={() => { void refetch(); }}
+        onRetry={() => {
+          void refetch();
+        }}
         retryLabel={t("actions.retry", { ns: "common" })}
       />
     );
@@ -157,10 +146,13 @@ export function CatDetailPage() {
     } catch (error) {
       const code = isApiError(error) ? error.code : undefined;
       const messageKey =
-        code === "CAT_ALREADY_DELETED" ? "confirm.delete.alreadyDeleted" :
-        code === "CAT_ALREADY_PRIMARY" ? "confirm.setPrimary.alreadyPrimary" :
-        code === "CAT_PRIMARY_REQUIRES_ACTIVE" ? "confirm.setPrimary.requiresActive" :
-        "errors.generic";
+        code === "CAT_ALREADY_DELETED"
+          ? "confirm.delete.alreadyDeleted"
+          : code === "CAT_ALREADY_PRIMARY"
+            ? "confirm.setPrimary.alreadyPrimary"
+            : code === "CAT_PRIMARY_REQUIRES_ACTIVE"
+              ? "confirm.setPrimary.requiresActive"
+              : "errors.generic";
       toast.error(t(messageKey));
       setConfirmAction(null);
     }
@@ -175,93 +167,124 @@ export function CatDetailPage() {
 
       <div className="contents lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
         <div className="flex flex-col gap-6 lg:col-span-5">
-      <CatProfileHero
-        cat={cat}
-        extraTiles={<CatIdentityTiles />}
-        menu={
-        <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="tertiary"
-              size="sm"
-              aria-label={t("actions.moreActions")}
-              className="border-0 bg-surface/90"
-            >
-              <MoreVertical className="size-5" aria-hidden="true" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent aria-label={t("actions.moreActions")}>
-            <DialogTitle>{t("actions.moreActions")}</DialogTitle>
-            <div className="mt-4 flex flex-col gap-1">
-              <ListItem
-                leading={<Pencil className="size-5" aria-hidden="true" />}
-                title={t("actions.edit")}
-                onClick={() => { setMenuOpen(false); void navigate(`/cats/${catId}/edit`); }}
-              />
-              {!cat.isPrimary && cat.status === "ACTIVE" ? (
-                <ListItem
-                  leading={<Crown className="size-5" aria-hidden="true" />}
-                  title={t("actions.setPrimary")}
-                  onClick={() => { setMenuOpen(false); setConfirmAction("setPrimary"); }}
-                />
-              ) : null}
-              {cat.status === "ACTIVE" ? (
-                <ListItem
-                  leading={<Archive className="size-5" aria-hidden="true" />}
-                  title={t("actions.archive")}
-                  onClick={() => { setMenuOpen(false); setConfirmAction("archive"); }}
-                />
-              ) : (
-                <ListItem
-                  leading={<ArchiveRestore className="size-5" aria-hidden="true" />}
-                  title={t("actions.unarchive")}
-                  onClick={() => { setMenuOpen(false); setConfirmAction("unarchive"); }}
-                />
-              )}
-              <ListItem
-                leading={<Trash2 className="size-5 text-danger-text" aria-hidden="true" />}
-                title={<span className="text-danger-text">{t("actions.delete")}</span>}
-                onClick={() => { setMenuOpen(false); setConfirmAction("delete"); }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-        }
-      />
-
-      <EmergencyDisclaimerBanner forceExpanded={flagged} />
-
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">{t("detail.tabs.overview")}</TabsTrigger>
-          <TabsTrigger value="history">{t("detail.tabs.history")}</TabsTrigger>
-          <TabsTrigger value="notes">{t("detail.tabs.notes")}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <OverviewTab
-            catId={catId}
+          <CatProfileHero
             cat={cat}
-            summary={catSummary}
-            onOpenSurvey={() => { setSurveyDialogOpen(true); }}
-            onOpenSigns={() => { setSignsDialogOpen(true); }}
+            menu={
+              <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="tertiary"
+                    size="sm"
+                    aria-label={t("actions.moreActions")}
+                    className="border-0 bg-surface/90"
+                  >
+                    <MoreVertical className="size-5" aria-hidden="true" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent aria-label={t("actions.moreActions")}>
+                  <DialogTitle>{t("actions.moreActions")}</DialogTitle>
+                  <div className="mt-4 flex flex-col gap-1">
+                    <ListItem
+                      leading={<Pencil className="size-5" aria-hidden="true" />}
+                      title={t("actions.edit")}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        void navigate(`/cats/${catId}/edit`);
+                      }}
+                    />
+                    {!cat.isPrimary && cat.status === "ACTIVE" ? (
+                      <ListItem
+                        leading={<Crown className="size-5" aria-hidden="true" />}
+                        title={t("actions.setPrimary")}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setConfirmAction("setPrimary");
+                        }}
+                      />
+                    ) : null}
+                    {cat.status === "ACTIVE" ? (
+                      <ListItem
+                        leading={<Archive className="size-5" aria-hidden="true" />}
+                        title={t("actions.archive")}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setConfirmAction("archive");
+                        }}
+                      />
+                    ) : (
+                      <ListItem
+                        leading={<ArchiveRestore className="size-5" aria-hidden="true" />}
+                        title={t("actions.unarchive")}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setConfirmAction("unarchive");
+                        }}
+                      />
+                    )}
+                    <ListItem
+                      leading={<Trash2 className="size-5 text-danger-text" aria-hidden="true" />}
+                      title={<span className="text-danger-text">{t("actions.delete")}</span>}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setConfirmAction("delete");
+                      }}
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            }
           />
-        </TabsContent>
 
-        <TabsContent value="history">
-          <HistoryTab catId={catId} />
-        </TabsContent>
+          <EmergencyDisclaimerBanner forceExpanded={flagged} />
 
-        <TabsContent value="notes">
-          <NotesTab
-            catId={catId}
-            onAdd={() => { setEditingNoteId(null); setNoteDialogOpen(true); }}
-            onEdit={(noteId) => { setEditingNoteId(noteId); setNoteDialogOpen(true); }}
-            onDelete={(noteId) => { setDeletingNoteId(noteId); }}
-          />
-        </TabsContent>
-      </Tabs>
+          {/* `unacknowledgedFlagCount` (D10/D12) bây giờ bấm được: bung danh sách THẬT từ
+              G1 `GET /health-flags?catId=…&acknowledged=false` và xác nhận từng mục bằng
+              G3. Trước đây con số này không dẫn đi đâu cả. */}
+          <HealthFlagDisclosure catId={catId} count={cat.unacknowledgedFlagCount ?? 0} />
+
+          <Tabs defaultValue="overview">
+            <TabsList>
+              <TabsTrigger value="overview">{t("detail.tabs.overview")}</TabsTrigger>
+              <TabsTrigger value="history">{t("detail.tabs.history")}</TabsTrigger>
+              <TabsTrigger value="notes">{t("detail.tabs.notes")}</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview">
+              <OverviewTab
+                catId={catId}
+                cat={cat}
+                summary={catSummary}
+                onOpenSurvey={() => {
+                  setSurveyDialogOpen(true);
+                }}
+                onOpenSigns={() => {
+                  setSignsDialogOpen(true);
+                }}
+              />
+            </TabsContent>
+
+            <TabsContent value="history">
+              <HistoryTab catId={catId} />
+            </TabsContent>
+
+            <TabsContent value="notes">
+              <NotesTab
+                catId={catId}
+                onAdd={() => {
+                  setEditingNoteId(null);
+                  setNoteDialogOpen(true);
+                }}
+                onEdit={(noteId) => {
+                  setEditingNoteId(noteId);
+                  setNoteDialogOpen(true);
+                }}
+                onDelete={(noteId) => {
+                  setDeletingNoteId(noteId);
+                }}
+              />
+            </TabsContent>
+          </Tabs>
 
           <div className="hidden lg:block">
             <CatIdentityExtras />
@@ -274,52 +297,71 @@ export function CatDetailPage() {
             summary={catSummary}
             bands={phBands ?? []}
             scanCount={catScanSummary?.count ?? null}
-            onViewAllHistory={() => { void navigate(`/cats/${catId}/history`); }}
+            onViewAllHistory={() => {
+              void navigate(`/cats/${catId}/history`);
+            }}
           />
         </div>
       </div>
 
       <ConfirmDialog
         open={confirmAction !== null}
-        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
         title={
-          confirmAction === "archive" ? t("confirm.archive.title", { name: cat.name }) :
-          confirmAction === "unarchive" ? t("confirm.unarchive.title", { name: cat.name }) :
-          confirmAction === "setPrimary" ? t("confirm.setPrimary.title", { name: cat.name }) :
-          t("confirm.delete.title", { name: cat.name })
+          confirmAction === "archive"
+            ? t("confirm.archive.title", { name: cat.name })
+            : confirmAction === "unarchive"
+              ? t("confirm.unarchive.title", { name: cat.name })
+              : confirmAction === "setPrimary"
+                ? t("confirm.setPrimary.title", { name: cat.name })
+                : t("confirm.delete.title", { name: cat.name })
         }
         description={
-          confirmAction === "archive" ? t("confirm.archive.description") :
-          confirmAction === "unarchive" ? t("confirm.unarchive.description") :
-          confirmAction === "setPrimary" ? t("confirm.setPrimary.description") :
-          t("confirm.delete.description")
+          confirmAction === "archive"
+            ? t("confirm.archive.description")
+            : confirmAction === "unarchive"
+              ? t("confirm.unarchive.description")
+              : confirmAction === "setPrimary"
+                ? t("confirm.setPrimary.description")
+                : t("confirm.delete.description")
         }
         confirmLabel={
-          confirmAction === "archive" ? t("confirm.archive.confirm") :
-          confirmAction === "unarchive" ? t("confirm.unarchive.confirm") :
-          confirmAction === "setPrimary" ? t("confirm.setPrimary.confirm") :
-          t("confirm.delete.confirm")
+          confirmAction === "archive"
+            ? t("confirm.archive.confirm")
+            : confirmAction === "unarchive"
+              ? t("confirm.unarchive.confirm")
+              : confirmAction === "setPrimary"
+                ? t("confirm.setPrimary.confirm")
+                : t("confirm.delete.confirm")
         }
         cancelLabel={
-          confirmAction === "archive" ? t("confirm.archive.cancel") :
-          confirmAction === "unarchive" ? t("confirm.unarchive.cancel") :
-          confirmAction === "setPrimary" ? t("confirm.setPrimary.cancel") :
-          t("confirm.delete.cancel")
+          confirmAction === "archive"
+            ? t("confirm.archive.cancel")
+            : confirmAction === "unarchive"
+              ? t("confirm.unarchive.cancel")
+              : confirmAction === "setPrimary"
+                ? t("confirm.setPrimary.cancel")
+                : t("confirm.delete.cancel")
         }
         destructive={confirmAction === "delete"}
         loading={actionLoading}
-        onConfirm={() => { void runAction(); }}
+        onConfirm={() => {
+          void runAction();
+        }}
       />
 
       <HealthSurveyDialog catId={catId} catName={cat.name} open={surveyDialogOpen} onOpenChange={setSurveyDialogOpen} />
       <ClinicalSignsDialog catId={catId} open={signsDialogOpen} onOpenChange={setSignsDialogOpen} />
-      <NoteFormDialog
+      <NoteFormDialog catId={catId} noteId={editingNoteId} open={noteDialogOpen} onOpenChange={setNoteDialogOpen} />
+      <DeleteNoteConfirm
         catId={catId}
-        noteId={editingNoteId}
-        open={noteDialogOpen}
-        onOpenChange={setNoteDialogOpen}
+        noteId={deletingNoteId}
+        onClose={() => {
+          setDeletingNoteId(null);
+        }}
       />
-      <DeleteNoteConfirm catId={catId} noteId={deletingNoteId} onClose={() => { setDeletingNoteId(null); }} />
     </div>
   );
 }
@@ -366,9 +408,11 @@ function OverviewTab({
     {
       label: t("detail.neuteredLabel"),
       value:
-        cat.neutered === true ? t("detail.neuteredYes") :
-        cat.neutered === false ? t("detail.neuteredNo") :
-        t("detail.neuteredUnknown"),
+        cat.neutered === true
+          ? t("detail.neuteredYes")
+          : cat.neutered === false
+            ? t("detail.neuteredNo")
+            : t("detail.neuteredUnknown"),
     },
   ];
 
@@ -384,8 +428,12 @@ function OverviewTab({
           bands={bands ?? []}
           totalCount={scanSummary?.count ?? 0}
           timestampLabel={timestampLabel}
-          onOpenScan={(scanId) => { void navigate(`/scans/${scanId}`); }}
-          onViewAll={() => { void navigate(`/cats/${catId}/history`); }}
+          onOpenScan={(scanId) => {
+            void navigate(`/scans/${scanId}`);
+          }}
+          onViewAll={() => {
+            void navigate(`/cats/${catId}/history`);
+          }}
         />
       </div>
 
@@ -419,7 +467,9 @@ function OverviewTab({
           <p className="text-caption text-text-secondary">{t("survey.notSubmittedDescription")}</p>
         ) : (
           <p className="text-caption text-text-secondary">
-            {survey.submittedAt ? t("survey.lastSubmittedAt", { date: new Date(survey.submittedAt).toLocaleDateString("vi-VN") }) : null}
+            {survey.submittedAt
+              ? t("survey.lastSubmittedAt", { date: new Date(survey.submittedAt).toLocaleDateString("vi-VN") })
+              : null}
           </p>
         )}
       </Card>
@@ -443,8 +493,12 @@ function OverviewTab({
       <div className="flex flex-col gap-4 lg:hidden">
         <CatProfileActions
           name={cat.name}
-          onScan={() => { void navigate("/scan/select-cat"); }}
-          onEdit={() => { void navigate(`/cats/${catId}/edit`); }}
+          onScan={() => {
+            void navigate("/scan/select-cat");
+          }}
+          onEdit={() => {
+            void navigate(`/cats/${catId}/edit`);
+          }}
         />
         <p className="text-small leading-relaxed text-text-tertiary">{t("disclaimer.short")}</p>
       </div>
@@ -462,8 +516,10 @@ function HistoryTab({ catId }: { catId: string }) {
   const { t } = useTranslation(["cat", "history", "common"]);
   const navigate = useNavigate();
   const { data: bands } = usePhBands();
-  const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useScanHistory(catId, "ALL");
+  const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useScanHistory(
+    catId,
+    "ALL",
+  );
 
   const items = data?.pages.flatMap((p) => p.items) ?? [];
   const groups = new Map<string, typeof items>();
@@ -478,7 +534,9 @@ function HistoryTab({ catId }: { catId: string }) {
       <ErrorState
         className="mt-4"
         title={t("state.loadError", { ns: "history" })}
-        onRetry={() => { void refetch(); }}
+        onRetry={() => {
+          void refetch();
+        }}
         retryLabel={t("actions.retry", { ns: "common" })}
       />
     );
@@ -490,7 +548,12 @@ function HistoryTab({ catId }: { catId: string }) {
         title={t("state.emptyTitle", { ns: "history" })}
         description={t("state.emptyDescription", { ns: "history" })}
         action={
-          <Button type="button" onClick={() => { void navigate("/scan/select-cat"); }}>
+          <Button
+            type="button"
+            onClick={() => {
+              void navigate("/scan/select-cat");
+            }}
+          >
             {t("state.emptyCta", { ns: "history" })}
           </Button>
         }
@@ -520,7 +583,9 @@ function HistoryTab({ catId }: { catId: string }) {
                 )}
                 disputedLabel={t("item.disputedBadge", { ns: "history" })}
                 detailLabel={t("item.detailLink", { ns: "history" })}
-                onOpen={(scanId) => { void navigate(`/scans/${scanId}`); }}
+                onOpen={(scanId) => {
+                  void navigate(`/scans/${scanId}`);
+                }}
               />
             ))}
           </div>
@@ -532,13 +597,21 @@ function HistoryTab({ catId }: { catId: string }) {
           type="button"
           variant="tertiary"
           loading={isFetchingNextPage}
-          onClick={() => { void fetchNextPage(); }}
+          onClick={() => {
+            void fetchNextPage();
+          }}
         >
           {t("state.loadMore", { ns: "history" })}
         </Button>
       ) : null}
 
-      <Button type="button" variant="tertiary" onClick={() => { void navigate(`/cats/${catId}/history`); }}>
+      <Button
+        type="button"
+        variant="tertiary"
+        onClick={() => {
+          void navigate(`/cats/${catId}/history`);
+        }}
+      >
         {t("overview.recentAllShort")}
       </Button>
     </div>
@@ -573,7 +646,12 @@ function NotesTab({
       {isPending ? (
         <SkeletonLoader shape="card" />
       ) : isError ? (
-        <ErrorState title={t("notes.errorTitle")} onRetry={() => { void refetch(); }} />
+        <ErrorState
+          title={t("notes.errorTitle")}
+          onRetry={() => {
+            void refetch();
+          }}
+        />
       ) : items.length === 0 ? (
         <EmptyState title={t("notes.emptyTitle")} description={t("notes.emptyDescription")} />
       ) : (
@@ -584,10 +662,24 @@ function NotesTab({
                 <div className="flex items-center justify-between gap-2">
                   <Badge tone="neutral">{t(`notes.types.${note.noteType}`)}</Badge>
                   <div className="flex gap-1">
-                    <Button type="button" variant="tertiary" size="sm" onClick={() => { onEdit(note.id); }}>
+                    <Button
+                      type="button"
+                      variant="tertiary"
+                      size="sm"
+                      onClick={() => {
+                        onEdit(note.id);
+                      }}
+                    >
                       {t("notes.editAction")}
                     </Button>
-                    <Button type="button" variant="tertiary" size="sm" onClick={() => { onDelete(note.id); }}>
+                    <Button
+                      type="button"
+                      variant="tertiary"
+                      size="sm"
+                      onClick={() => {
+                        onDelete(note.id);
+                      }}
+                    >
                       {t("notes.deleteAction")}
                     </Button>
                   </div>
@@ -655,7 +747,9 @@ function HealthSurveyDialog({
     if (value === "NONE") {
       next = checked ? ["NONE"] : [];
     } else {
-      next = checked ? [...watchedSymptoms.filter((s) => s !== "NONE"), value] : watchedSymptoms.filter((s) => s !== value);
+      next = checked
+        ? [...watchedSymptoms.filter((s) => s !== "NONE"), value]
+        : watchedSymptoms.filter((s) => s !== value);
     }
     setValue("symptoms", next, { shouldValidate: true });
   };
@@ -692,7 +786,9 @@ function HealthSurveyDialog({
                     name={name}
                     value={value}
                     checked={watch(name) === value}
-                    onChange={(v) => { setValue(name, v, { shouldValidate: true }); }}
+                    onChange={(v) => {
+                      setValue(name, v, { shouldValidate: true });
+                    }}
                     title={label}
                   />
                 ))}
@@ -702,7 +798,9 @@ function HealthSurveyDialog({
           ))}
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-body font-semibold text-text-primary">{t("survey.questions.symptoms.label")}</legend>
+            <legend className="text-body font-semibold text-text-primary">
+              {t("survey.questions.symptoms.label")}
+            </legend>
             <p className="text-caption text-text-tertiary">{t("survey.questions.symptoms.hint")}</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {Object.entries(questionOptions("survey.questions.symptoms.options")).map(([value, label]) => (
@@ -712,7 +810,9 @@ function HealthSurveyDialog({
                   name="symptoms"
                   value={value}
                   checked={watchedSymptoms.includes(value)}
-                  onChange={() => { handleSymptomChange(value, !watchedSymptoms.includes(value)); }}
+                  onChange={() => {
+                    handleSymptomChange(value, !watchedSymptoms.includes(value));
+                  }}
                   title={label}
                 />
               ))}
@@ -722,10 +822,22 @@ function HealthSurveyDialog({
         </div>
 
         <div className="mt-6 flex flex-col gap-3">
-          <Button type="button" loading={submitSurvey.isPending} onClick={() => { void handleSubmit(onSubmit)(); }}>
+          <Button
+            type="button"
+            loading={submitSurvey.isPending}
+            onClick={() => {
+              void handleSubmit(onSubmit)();
+            }}
+          >
             {submitSurvey.isPending ? t("survey.saving") : t("survey.submit")}
           </Button>
-          <Button type="button" variant="tertiary" onClick={() => { onOpenChange(false); }}>
+          <Button
+            type="button"
+            variant="tertiary"
+            onClick={() => {
+              onOpenChange(false);
+            }}
+          >
             {t("survey.cancel")}
           </Button>
         </div>
@@ -796,10 +908,17 @@ function ClinicalSignsDialog({
               {result.triggered ? t("clinicalSigns.result.triggeredTitle") : t("clinicalSigns.result.okTitle")}
             </p>
             <p className="text-caption text-text-secondary">
-              {result.triggered ? t("clinicalSigns.result.triggeredDescription") : t("clinicalSigns.result.okDescription")}
+              {result.triggered
+                ? t("clinicalSigns.result.triggeredDescription")
+                : t("clinicalSigns.result.okDescription")}
             </p>
             {result.triggered ? <ClinicalSignEmergencyNotice /> : null}
-            <Button type="button" onClick={() => { onOpenChange(false); }}>
+            <Button
+              type="button"
+              onClick={() => {
+                onOpenChange(false);
+              }}
+            >
               {t("clinicalSigns.result.close")}
             </Button>
           </div>
@@ -810,7 +929,9 @@ function ClinicalSignsDialog({
 
             <ClinicalSignPicker
               value={watch("signs") as ClinicalSign[]}
-              onChange={(signs) => { setValue("signs", signs, { shouldValidate: true }); }}
+              onChange={(signs) => {
+                setValue("signs", signs, { shouldValidate: true });
+              }}
               error={errors.signs?.message}
             />
 
@@ -832,7 +953,9 @@ function ClinicalSignsDialog({
               <input
                 type="checkbox"
                 checked={acknowledged}
-                onChange={(event) => { setAcknowledged(event.target.checked); }}
+                onChange={(event) => {
+                  setAcknowledged(event.target.checked);
+                }}
                 className="mt-0.5 size-5 shrink-0 accent-primary"
               />
               <span className="text-body text-text-primary">{t("clinicalSigns.form.acknowledge")}</span>
@@ -846,11 +969,19 @@ function ClinicalSignsDialog({
                 type="button"
                 loading={reportSigns.isPending}
                 disabled={!acknowledged}
-                onClick={() => { void handleSubmit(onSubmit)(); }}
+                onClick={() => {
+                  void handleSubmit(onSubmit)();
+                }}
               >
                 {reportSigns.isPending ? t("clinicalSigns.form.saving") : t("clinicalSigns.form.submit")}
               </Button>
-              <Button type="button" variant="tertiary" onClick={() => { onOpenChange(false); }}>
+              <Button
+                type="button"
+                variant="tertiary"
+                onClick={() => {
+                  onOpenChange(false);
+                }}
+              >
                 {t("clinicalSigns.form.cancel")}
               </Button>
             </div>
@@ -894,7 +1025,11 @@ function NoteFormDialog({
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
-      reset(existing ? { noteType: existing.noteType, body: existing.body, occurredOn: existing.occurredOn ?? "" } : { noteType: "GENERAL", body: "", occurredOn: "" });
+      reset(
+        existing
+          ? { noteType: existing.noteType, body: existing.body, occurredOn: existing.occurredOn ?? "" }
+          : { noteType: "GENERAL", body: "", occurredOn: "" },
+      );
     }
     onOpenChange(next);
   };
@@ -936,7 +1071,9 @@ function NoteFormDialog({
                   name="noteType"
                   value={type}
                   checked={watch("noteType") === type}
-                  onChange={(v) => { setValue("noteType", v as NoteType, { shouldValidate: true }); }}
+                  onChange={(v) => {
+                    setValue("noteType", v as NoteType, { shouldValidate: true });
+                  }}
                   title={t(`notes.types.${type}`)}
                 />
               ))}
@@ -976,10 +1113,22 @@ function NoteFormDialog({
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button type="button" loading={isSaving} onClick={() => { void handleSubmit(onSubmit)(); }}>
+            <Button
+              type="button"
+              loading={isSaving}
+              onClick={() => {
+                void handleSubmit(onSubmit)();
+              }}
+            >
               {isSaving ? t("notes.form.saving") : t("notes.form.submit")}
             </Button>
-            <Button type="button" variant="tertiary" onClick={() => { onOpenChange(false); }}>
+            <Button
+              type="button"
+              variant="tertiary"
+              onClick={() => {
+                onOpenChange(false);
+              }}
+            >
               {t("actions.cancel", { ns: "common" })}
             </Button>
           </div>
@@ -998,7 +1147,9 @@ function DeleteNoteConfirm({ catId, noteId, onClose }: { catId: string; noteId: 
   return (
     <ConfirmDialog
       open={noteId !== null}
-      onOpenChange={(open) => { if (!open) onClose(); }}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
       title={t("notes.deleteTitle")}
       description={t("notes.deleteDescription")}
       confirmLabel={t("notes.deleteConfirm")}
@@ -1006,7 +1157,12 @@ function DeleteNoteConfirm({ catId, noteId, onClose }: { catId: string; noteId: 
       destructive
       loading={deleteNote.isPending}
       onConfirm={() => {
-        deleteNote.mutate(undefined, { onSuccess: onClose, onError: () => { toast.error(t("errors.generic")); } });
+        deleteNote.mutate(undefined, {
+          onSuccess: onClose,
+          onError: () => {
+            toast.error(t("errors.generic"));
+          },
+        });
       }}
     />
   );

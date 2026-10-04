@@ -96,9 +96,7 @@ export function WebExportScreen({
   const header = (
     <div className="max-w-[620px]">
       <p className="text-overline font-bold tracking-[0.4px] text-primary-dark">{t("web.eyebrow")}</p>
-      <h1 className="pt-1 text-[26px] font-bold leading-8 tracking-[-0.5px] text-primary-dark">
-        {t("web.title")}
-      </h1>
+      <h1 className="pt-1 text-[26px] font-bold leading-8 tracking-[-0.5px] text-primary-dark">{t("web.title")}</h1>
       <p className="pt-2 text-caption leading-relaxed text-text-secondary">{t("web.subtitle")}</p>
     </div>
   );
@@ -167,9 +165,7 @@ export function WebExportScreen({
             <ExportSectionHeading index="1." title={t("web.step1")} hint={t("web.step1Hint")} />
             {cats.length === 0 ? (
               <div className="rounded-xl bg-background-alt p-5">
-                <p className="text-body font-semibold text-text-primary">
-                  {t("selectCat.emptyTitle", { ns: "scan" })}
-                </p>
+                <p className="text-body font-semibold text-text-primary">{t("selectCat.emptyTitle", { ns: "scan" })}</p>
                 <p className="pt-1 text-caption text-text-secondary">
                   {t("selectCat.emptyDescription", { ns: "scan" })}
                 </p>
@@ -181,7 +177,8 @@ export function WebExportScreen({
                 onSelect={onSelectCat}
                 primaryLabel={t("wizard.step1.primaryLabel")}
                 secondaryLabel={t("wizard.step1.secondaryLabel")}
-                className="grid grid-cols-2 gap-3"
+                // 1 bé mèo mà vẫn ép 2 cột thì tên/giống bị cắt — xem `ExportPage.tsx`.
+                className={cats.length > 1 ? "grid grid-cols-2 gap-3" : undefined}
               />
             )}
           </Panel>

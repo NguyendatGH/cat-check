@@ -33,7 +33,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ) : null}
         <div className="relative flex items-center">
           {leftIcon ? (
-            <span className="pointer-events-none absolute left-3.5 flex items-center text-text-tertiary" aria-hidden="true">
+            <span
+              className="pointer-events-none absolute left-3.5 flex items-center text-text-tertiary"
+              aria-hidden="true"
+            >
               {leftIcon}
             </span>
           ) : null}

@@ -3,6 +3,8 @@ package com.catcheck.credit.domain.port;
 import com.catcheck.credit.domain.CreditBatchSnapshot;
 import com.catcheck.credit.domain.CreditLedgerRefType;
 import com.catcheck.credit.domain.CreditLedgerType;
+import com.catcheck.credit.domain.ExpiringCreditBatch;
+import com.catcheck.credit.domain.ExpiryReminderMilestone;
 import com.catcheck.credit.domain.LedgerEntry;
 
 import java.time.Instant;
@@ -91,6 +93,39 @@ public interface CreditLedgerPort {
 
     /** Đánh dấu đã gửi nhắc T-6h — xem {@link #markT48hNotified}. */
     void markT6hNotified(UUID batchId);
+
+    /**
+     * Khoá <b>một</b> lô đã quá hạn để đóng nó, bằng {@code SELECT ... FOR UPDATE SKIP LOCKED}
+     * kèm lại đúng bộ lọc {@code status = 'ACTIVE' AND expires_at <= now AND remaining_amount
+     * > 0}.
+     *
+     * <p>Đây là lớp bảo vệ thứ hai mà p12 §12.6.1 quy tắc 3 bắt buộc, <b>độc lập với
+     * ShedLock</b>: nếu một lần chạy vượt {@code lockAtMostFor} thì ShedLock nhả khoá và
+     * instance khác chạy song song — {@code SKIP LOCKED} khiến hai instance không bao giờ cùng
+     * đóng một lô, và việc lặp lại bộ lọc khiến lô đã đóng rồi không khớp nữa (idempotency của
+     * p12 §12.6.2: "điều kiện {@code remaining_amount > 0} làm lần chạy sau không ghi ledger
+     * trùng").</p>
+     *
+     * <p>{@code SKIP LOCKED} thay vì chờ khoá là cố ý: một lô đang bị transaction khác giữ thì
+     * hoặc nó đang được trừ credit (và job sẽ gặp lại nó ở lần chạy sau), hoặc nó đang được
+     * instance khác đóng. Cả hai trường hợp, chờ đều chỉ làm job dài ra vô ích.</p>
+     *
+     * @return lô đã khoá, hoặc rỗng nếu lô không còn đủ điều kiện / đang bị khoá
+     */
+    Optional<ExpiringCreditBatch> lockBatchForExpiry(UUID batchId, Instant now);
+
+    /**
+     * Khoá một lô tới mốc nhắc {@code milestone} ({@code FOR UPDATE SKIP LOCKED}), lặp lại bộ
+     * lọc "còn hiệu lực, còn credit, cột cờ của mốc này còn NULL".
+     *
+     * <p>Khoá dòng tuy chỉ để gửi thông báo nhưng vẫn cần: không có nó, hai instance chạy song
+     * song (ShedLock đã thủng) sẽ cùng đọc {@code t48h_notified_at IS NULL} rồi cùng đẩy một
+     * thông báo vào outbox.</p>
+     *
+     * @return lô đã khoá, hoặc rỗng nếu đã gửi / không còn đủ điều kiện / đang bị khoá
+     */
+    Optional<ExpiringCreditBatch> lockBatchForExpiryReminder(
+            UUID batchId, ExpiryReminderMilestone milestone, Instant now);
 
     /**
      * Ghi một dòng sổ cái. Bảng là append-only: cổng này <b>không có</b> phương thức update hay

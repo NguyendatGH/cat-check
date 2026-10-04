@@ -44,15 +44,7 @@ export function SharedTrayLogPage() {
   const navigate = useNavigate();
   const { data: bands } = usePhBands();
 
-  const {
-    data,
-    isPending,
-    isError,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["history", "shared-tray"],
     queryFn: ({ pageParam }: { pageParam: string | null }) => {
       const qs = new URLSearchParams({ assignment: "SHARED_UNKNOWN", limit: String(PAGE_SIZE) });
@@ -174,9 +166,7 @@ export function SharedTrayLogPage() {
   return (
     <div className="flex flex-col gap-5 px-4 py-5 lg:px-0">
       <header>
-        <h1 className="text-h2 font-bold text-text-primary lg:text-h1">
-          {t("common:pages.sharedTrayLog.title")}
-        </h1>
+        <h1 className="text-h2 font-bold text-text-primary lg:text-h1">{t("common:pages.sharedTrayLog.title")}</h1>
         <p className="pt-1 text-body text-text-secondary">{t("sharedTray.lead")}</p>
       </header>
 

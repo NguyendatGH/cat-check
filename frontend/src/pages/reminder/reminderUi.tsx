@@ -137,9 +137,7 @@ export function DueChip({ due }: { due: DueState }) {
   return (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-1 text-small font-bold text-secondary-text-on">
       <Clock size={12} aria-hidden="true" />
-      {due.kind === "hours"
-        ? t("list.dueInHours", { hours: due.hours })
-        : t("list.dueInDays", { days: due.days })}
+      {due.kind === "hours" ? t("list.dueInHours", { hours: due.hours }) : t("list.dueInDays", { days: due.days })}
     </span>
   );
 }
@@ -183,11 +181,7 @@ export function ReminderStatusLine({
 }) {
   const { t } = useTranslation("reminder");
   if (!reminder.active) {
-    return (
-      <p className="pt-0.5 text-caption text-text-secondary">
-        {t("list.scheduleLinePaused", { schedule })}
-      </p>
-    );
+    return <p className="pt-0.5 text-caption text-text-secondary">{t("list.scheduleLinePaused", { schedule })}</p>;
   }
   const overdue = due.kind === "overdue";
   return (
@@ -250,9 +244,7 @@ export function LimitReachedNotice({ existingReminderId }: { existingReminderId?
         to={existingReminderId === undefined ? "/reminders" : `/reminders/${existingReminderId}`}
         className="text-caption font-bold text-primary-dark underline"
       >
-        {existingReminderId === undefined
-          ? t("errors.limitReachedFallback")
-          : t("errors.limitReachedCta")}
+        {existingReminderId === undefined ? t("errors.limitReachedFallback") : t("errors.limitReachedCta")}
       </Link>
     </div>
   );
@@ -265,9 +257,7 @@ export function ScheduleInvalidNotice() {
     <div className="flex items-start gap-2 rounded-xl bg-danger-bg p-4" role="alert">
       <AlertTriangle size={16} className="mt-0.5 shrink-0 text-danger-text" aria-hidden="true" />
       <span>
-        <span className="block text-body font-bold text-danger-text">
-          {t("errors.scheduleInvalidTitle")}
-        </span>
+        <span className="block text-body font-bold text-danger-text">{t("errors.scheduleInvalidTitle")}</span>
         <span className="block text-caption text-danger-text">{t("errors.scheduleInvalidBody")}</span>
       </span>
     </div>
@@ -300,11 +290,7 @@ export function EducationCard({ withPhoto = false }: { withPhoto?: boolean }) {
   return (
     <section className="overflow-hidden rounded-2xl bg-chip-bg">
       {withPhoto ? (
-        <img
-          src={vetFollowupPhoto}
-          alt={t("education.photoAlt")}
-          className="h-36 w-full object-cover"
-        />
+        <img src={vetFollowupPhoto} alt={t("education.photoAlt")} className="h-36 w-full object-cover" />
       ) : null}
       <div className="flex flex-col gap-2 p-4">
         <p className="flex items-center gap-2 text-body font-bold text-primary-dark">
@@ -313,10 +299,7 @@ export function EducationCard({ withPhoto = false }: { withPhoto?: boolean }) {
         </p>
         <p className="text-caption leading-relaxed text-text-secondary">{t("education.body")}</p>
         <p className="text-small leading-relaxed text-text-tertiary">{t("education.note")}</p>
-        <Link
-          to="/legal/medical-disclaimer"
-          className="text-caption font-semibold text-primary-dark underline"
-        >
+        <Link to="/legal/medical-disclaimer" className="text-caption font-semibold text-primary-dark underline">
           {t("education.linkLabel")}
         </Link>
       </div>
@@ -419,10 +402,7 @@ function sameChannels(a: ReminderChannel[], b: ReminderChannel[]): boolean {
  * nhưng `PatchReminderRequest` phía server nhận `LocalTime` và không mô hình hoá `null`, nên UI
  * chỉ cho đổi khung giờ chứ không cho bỏ trống lại.
  */
-export function buildReminderPatch(
-  values: ReminderFormValues,
-  reminder: Reminder,
-): PatchReminderPayload {
+export function buildReminderPatch(values: ReminderFormValues, reminder: Reminder): PatchReminderPayload {
   const patch: PatchReminderPayload = {};
 
   if (values.scheduleMode !== reminder.scheduleKind) {
@@ -549,9 +529,7 @@ export function FrequencyPicker({
             >
               <span className="flex w-full items-center justify-between gap-2">
                 <span className="text-body font-bold">{presetLabels[value].title}</span>
-                {selected ? (
-                  <BadgeCheck size={16} className="shrink-0 text-secondary" aria-hidden="true" />
-                ) : null}
+                {selected ? <BadgeCheck size={16} className="shrink-0 text-secondary" aria-hidden="true" /> : null}
               </span>
               <span
                 className={cn(
@@ -636,9 +614,7 @@ export function FrequencyPicker({
             }}
             className="size-5 shrink-0 accent-[var(--color-primary-dark)]"
           />
-          <span className="text-caption font-semibold text-text-primary">
-            {t("form.advancedToggle")}
-          </span>
+          <span className="text-caption font-semibold text-text-primary">{t("form.advancedToggle")}</span>
         </label>
         {scheduleMode === "RRULE" ? (
           <div className="flex flex-col gap-1.5">
@@ -705,9 +681,7 @@ export function TimeWindowPicker({
             <Sun size={18} aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-caption font-bold text-text-primary">
-              {t("form.timeSummaryTitle")}
-            </span>
+            <span className="block text-caption font-bold text-text-primary">{t("form.timeSummaryTitle")}</span>
             <span className="block text-small text-text-secondary">
               {t("form.timeSummaryRange", { from: start, to: end })}
             </span>
@@ -799,22 +773,14 @@ export function ChannelPicker({ value, errorKey, onChange }: ChannelPickerProps)
                   <Icon size={17} aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-caption font-bold text-text-primary">
-                    {t(`channel.${channel}`)}
-                  </span>
-                  <span className="block text-small text-text-secondary">
-                    {t(`channel.${channel}Note`)}
-                  </span>
+                  <span className="block text-caption font-bold text-text-primary">{t(`channel.${channel}`)}</span>
+                  <span className="block text-small text-text-secondary">{t(`channel.${channel}Note`)}</span>
                 </span>
                 <input
                   type="checkbox"
                   checked={checked}
                   onChange={(event) => {
-                    onChange(
-                      event.target.checked
-                        ? [...value, channel]
-                        : value.filter((item) => item !== channel),
-                    );
+                    onChange(event.target.checked ? [...value, channel] : value.filter((item) => item !== channel));
                   }}
                   className="size-5 shrink-0 accent-[var(--color-primary-dark)]"
                 />
@@ -839,14 +805,7 @@ export interface CatSelectProps {
 }
 
 /** "Hồ sơ Mèo của bạn" ở đầu frame 09 — danh sách mèo lấy từ `features/cat` (D1), không endpoint mới. */
-export function CatSelect({
-  value,
-  options,
-  disabled = false,
-  loading = false,
-  errorKey,
-  onChange,
-}: CatSelectProps) {
+export function CatSelect({ value, options, disabled = false, loading = false, errorKey, onChange }: CatSelectProps) {
   const { t } = useTranslation("reminder");
   const selectId = useId();
 
@@ -858,10 +817,7 @@ export function CatSelect({
     return (
       <div className="flex flex-col items-start gap-2 rounded-2xl bg-surface p-4 shadow-brand-md">
         <p className="text-caption text-text-secondary">{t("form.catEmpty")}</p>
-        <Link
-          to="/cats/new"
-          className="text-caption font-bold text-primary-dark underline"
-        >
+        <Link to="/cats/new" className="text-caption font-bold text-primary-dark underline">
           {t("form.catEmptyCta")}
         </Link>
       </div>
@@ -897,15 +853,7 @@ export function CatSelect({
 }
 
 /** Tiêu đề trang dùng chung — mobile dùng `text-h2`, desktop nở lên `text-h1`. */
-export function PageHeader({
-  title,
-  subtitle,
-  action,
-}: {
-  title: string;
-  subtitle?: string;
-  action?: ReactNode;
-}) {
+export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
@@ -925,15 +873,7 @@ export function PageHeader({
  * `label` cho phép dùng lại đúng nút này làm "Đồng bộ vào Lịch Apple / Google" ở chân frame 09:
  * cùng một file `.ics`, chỉ khác câu chữ — không có endpoint đồng bộ hai chiều nào ở Phase 1.
  */
-export function AddToCalendarLink({
-  href,
-  className,
-  label,
-}: {
-  href: string;
-  className?: string;
-  label?: string;
-}) {
+export function AddToCalendarLink({ href, className, label }: { href: string; className?: string; label?: string }) {
   const { t } = useTranslation("reminder");
   return (
     <a

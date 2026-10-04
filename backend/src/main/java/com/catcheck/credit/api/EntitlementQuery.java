@@ -1,7 +1,6 @@
 package com.catcheck.credit.api;
 
 import com.catcheck.credit.domain.Entitlement;
-import com.catcheck.credit.domain.PlanFeature;
 
 import java.util.UUID;
 
@@ -31,7 +30,16 @@ public interface EntitlementQuery {
     Integer maxCatProfiles(UUID userId);
 
     /** Tính năng có mở không — quyền ĐỌC, giữ vĩnh viễn (p5 R5). */
-    boolean isFeatureEnabled(UUID userId, PlanFeature feature);
+    boolean isFeatureEnabled(UUID userId, Feature feature);
+
+    /** Features callers may query without importing credit domain types. */
+    enum Feature {
+        HISTORY,
+        TREND,
+        REMINDER,
+        EXPORT,
+        STORE_IMAGE
+    }
 
     /**
      * Còn quyền tạo MỚI (scan mới, tạo hồ sơ mèo, đặt reminder mới) hay không — quyền này

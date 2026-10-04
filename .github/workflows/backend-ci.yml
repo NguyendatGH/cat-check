@@ -1,0 +1,141 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---- Job 1: compile, unit test, integration test (Testcontainers), JaCoCo ----
+  build-test:
+    name: Compile / test / JaCoCo
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # PHẢI ở đầu job: Testcontainers (dùng trong `mvn verify`) sẽ `docker pull`
+      # image postgres — tránh Docker Hub anonymous rate-limit (100 pull/6h/IP).
+      - name: Docker Hub login
+        uses: docker/login-action@v3.3.0 # TODO owner xác nhận version (chưa có trong BOM đã pin)
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v7.0.1
+
+      - name: Set up JDK 25 (Temurin)
+        uses: actions/setup-java@v6.0.1
+        with:
+          java-version: "25"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Cache ~/.m2/repository
+        uses: actions/cache@v4.2.0 # TODO owner xác nhận version (chưa có trong BOM đã pin)
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Compile
+        working-directory: backend
+        run: ./mvnw -B compile
+
+      - name: Unit test
+        working-directory: backend
+        run: ./mvnw -B test
+
+      - name: Integration test + verify (Testcontainers, JaCoCo)
+        working-directory: backend
+        run: ./mvnw -B verify
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # ---- Job 2: kiến trúc (ArchUnit + Spring Modulith verify) — báo cáo TÁCH
+  # BIỆT khỏi lỗi test nghiệp vụ thường, chạy song song với build-test. ----
+  #
+  # Quyết định: tách thành job riêng (không chỉ là step) để "vi phạm ranh giới
+  # kiến trúc" hiện lên như 1 required status check độc lập trên PR, tách khỏi
+  # build-test. Job này KHÔNG lọc test bằng `-Dtest=*ArchitectureTest,...` vì
+  # agent viết backend/** đang làm song song — chưa biết chắc quy ước đặt tên
+  # class test ArchUnit/Modulith thật (rủi ro filter sai tên ⇒ chạy 0 test mà
+  # vẫn báo xanh, còn nguy hiểm hơn không tách). Job chạy `mvn verify` đầy đủ
+  # (như build-test) rồi cố gắng lọc report liên quan kiến trúc ra một summary
+  # riêng. TODO: khi đã biết tên class thật, đổi sang `-Dtest=<tên thật>` để
+  # job này chạy nhanh hơn và không trùng lặp compute với build-test.
+  architecture-check:
+    name: Architecture check (ArchUnit / Modulith verify)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Docker Hub login
+        uses: docker/login-action@v3.3.0 # TODO owner xác nhận version
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v7.0.1
+
+      - name: Set up JDK 25 (Temurin)
+        uses: actions/setup-java@v6.0.1
+        with:
+          java-version: "25"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Cache ~/.m2/repository
+        uses: actions/cache@v4.2.0 # TODO owner xác nhận version
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: mvn verify (bao gồm ArchUnit + Modulith `ApplicationModules.verify()`)
+        working-directory: backend
+        run: ./mvnw -B verify
+
+      - name: Tóm tắt riêng các report liên quan kiến trúc
+        if: always()
+        working-directory: backend
+        run: |
+          {
+            echo "## Architecture check (ArchUnit / Spring Modulith verify)"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          matches=$(grep -rilE 'architect|modularity|moduletest' target/surefire-reports target/failsafe-reports 2>/dev/null || true)
+          if [ -z "$matches" ]; then
+            echo "_Không tìm thấy report có tên khớp quy ước Architecture/Modularity/ModuleTest — xem toàn bộ \`target/surefire-reports/\` nếu backend đặt tên class khác._" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "$matches" | while IFS= read -r f; do
+              echo "- \`$f\`" >> "$GITHUB_STEP_SUMMARY"
+            done
+          fi
+
+      - name: Upload architecture check report
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: architecture-check-report
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+          retention-days: 14
+          if-no-files-found: warn

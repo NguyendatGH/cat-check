@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
+import { LineChart, Repeat2 } from "lucide-react";
 import { Button, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { usePhBands } from "@/entities/ph-bands";
-import { ScanResultSummary, useScan } from "@/features/scan";
-import { WebResultPanel, WebScanHeader, WebTrendStrip } from "./webPanels";
+import { ScanAdviceCard, ScanResultSummary, useScan } from "@/features/scan";
+import { WebResultPanel, WebScanHeader } from "./webPanels";
 
 /**
  * `/scan/result/:scanId` — kết quả ngay sau khi phân tích xong (p8 §8.5.4 E4, mockup `04`).
@@ -45,9 +46,8 @@ export function ScanResultPage() {
       {/* Desktop (>= lg): bố cục Figma 16:6333 */}
       <div className="hidden w-full flex-col gap-4 py-6 lg:flex">
         <WebScanHeader />
-        <WebResultPanel bands={bands ?? []} phValue={result.phValue} />
-        <WebTrendStrip />
-        <DisclaimerBanner variant="medium" hasWarningFlags={result.triggeredFlags.length > 0} />
+        <WebResultPanel bands={bands ?? []} phValue={result.phValue} bandCode={result.bandCode} />
+        <DisclaimerBanner variant="short" />
         {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" hasWarningFlags /> : null}
       </div>
 
@@ -55,34 +55,37 @@ export function ScanResultPage() {
       <div className="flex flex-col gap-4 p-4 lg:hidden">
         <ScanResultSummary result={result} bands={bands ?? []} matchLabel={t("result.matchLabel")} />
 
-      <DisclaimerBanner variant="medium" hasWarningFlags={result.triggeredFlags.length > 0} />
-      {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" hasWarningFlags /> : null}
+        <ScanAdviceCard result={result} />
 
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="primary"
-          onClick={() => {
-            void navigate(scanId ? `/scans/${scanId}` : "/cats");
-          }}
-        >
-          {t("result.viewAnalysisCta")}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            void navigate(scanId ? `/scan/${scanId}/reassign-cat` : "/scan/select-cat");
-          }}
-        >
-          {t("result.reassignCta")}
-        </Button>
-        <Button
-          variant="tertiary"
-          onClick={() => {
-            void navigate("/dashboard");
-          }}
-        >
-          {t("result.backHome")}
-        </Button>
+        <DisclaimerBanner variant="short" />
+        {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" hasWarningFlags /> : null}
+
+        {/* Mockup `04`: đúng 2 CTA — chính (xem phân tích) + phụ nền trắng. "Về trang chủ" bỏ
+            đi vì thanh tab dưới đã có sẵn lối về Trang chủ. */}
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            size="lg"
+            leftIcon={<LineChart className="size-4" aria-hidden="true" />}
+            onClick={() => {
+              void navigate(scanId ? `/scans/${scanId}` : "/cats");
+            }}
+          >
+            {t("result.viewAnalysisCta")}
+          </Button>
+          {result.reassignRemaining > 0 ? (
+            <Button
+              variant="tertiary"
+              size="lg"
+              className="border-transparent bg-surface font-bold"
+              leftIcon={<Repeat2 className="size-4" aria-hidden="true" />}
+              onClick={() => {
+                void navigate(scanId ? `/scan/${scanId}/reassign-cat` : "/scan/select-cat");
+              }}
+            >
+              {t("result.reassignCta")}
+            </Button>
+          ) : null}
         </div>
       </div>
     </>

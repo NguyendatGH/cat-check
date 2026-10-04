@@ -41,14 +41,21 @@
     "subtitle": "Số phiên bản và ngày hiệu lực giúp xác định bạn đã đồng ý với nội dung nào.",
     "currentBadge": "Bản hiện hành",
     "viewLink": "Xem bản này",
-    "historyNotAvailable": "Hệ thống hiện chỉ lưu và hiển thị được bản hiện hành. Lịch sử đầy đủ các phiên bản trước sẽ được bổ sung sau.",
     "backToDocument": "Quay lại trang tài liệu",
     "notFoundTitle": "Không tìm thấy tài liệu",
-    "notFoundDescription": "Đường dẫn không hợp lệ hoặc tài liệu không tồn tại."
+    "notFoundDescription": "Đường dẫn không hợp lệ hoặc tài liệu không tồn tại.",
+    "versionLabel": "Phiên bản {{version}}",
+    "requiresReconsent": "Cần đồng ý lại",
+    "effectiveFrom": "Hiệu lực từ {{from}}",
+    "effectiveRange": "Hiệu lực {{from}} – {{to}}",
+    "emptyTitle": "Chưa có phiên bản nào được công bố",
+    "emptyDescription": "Tài liệu này chưa có bản chính thức nào. Khi có bản đầu tiên, phiên bản và ngày hiệu lực sẽ hiện ở đây.",
+    "permalinkNote": "Mỗi phiên bản có một đường dẫn riêng và được giữ vĩnh viễn, kể cả khi đã bị thay thế — bạn luôn mở lại được nội dung mình từng đồng ý."
   },
   "versionDetail": {
-    "archiveNotAvailableTitle": "Chưa có bản lưu trữ cho phiên bản này",
-    "archiveNotAvailableDescription": "Hệ thống hiện chỉ phục vụ được bản hiện hành, chưa lưu trữ được các phiên bản cũ (phiên bản yêu cầu: {{version}})."
+    "notFoundTitle": "Không tìm thấy phiên bản này",
+    "notFoundDescription": "Không có phiên bản {{version}} của tài liệu này. Kiểm tra lại đường dẫn hoặc xem danh sách phiên bản.",
+    "backToVersions": "Xem danh sách phiên bản"
   },
   "disclaimer": {
     "short": {
@@ -431,6 +438,13 @@
     "errors": {
       "generic": "Có lỗi xảy ra. Vui lòng thử lại.",
       "rateLimited": "Bạn thao tác hơi nhanh. Vui lòng thử lại sau ít phút."
+    },
+    "accessLog": {
+      "title": "Nhật ký truy cập dữ liệu",
+      "intro": "Những lượt đọc hoặc thay đổi dữ liệu của bạn do người khác thực hiện (quản trị viên, cán bộ bảo vệ dữ liệu, tiến trình hệ thống) được ghi lại ở đây.",
+      "actor": "Người/tiến trình thực hiện: {{actor}}",
+      "empty": "Chưa có lượt truy cập nào được ghi nhận.",
+      "pendingNote": "Máy chủ đã mở đường đọc nhật ký nhưng chưa nối vào kho audit, nên danh sách hiện luôn trống. Trống ở đây là trống thật — không có dòng mẫu nào."
     }
   }
 }

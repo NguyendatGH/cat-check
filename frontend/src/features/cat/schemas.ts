@@ -60,7 +60,9 @@ export type CatFormSchemaValues = z.infer<typeof catFormSchema>;
 export const noteFormSchema = z.object({
   noteType: z.string().min(1, "notes.form.noteType.required"),
   body: z.string().trim().min(1, "notes.form.body.required").max(NOTE_BODY_MAX, "notes.form.body.tooLong"),
-  occurredOn: z.string().refine((value) => !value || isValidDateString(value), "notes.form.occurredOn.invalid")
+  occurredOn: z
+    .string()
+    .refine((value) => !value || isValidDateString(value), "notes.form.occurredOn.invalid")
     .refine(notFuture, "notes.form.occurredOn.future"),
 });
 
@@ -78,9 +80,7 @@ export type SurveyFormSchemaValues = z.infer<typeof surveyFormSchema>;
 
 /** D20 — ít nhất 1 dấu hiệu, chỉ nhận giá trị trong tập cố định p4 C5. */
 export const clinicalSignFormSchema = z.object({
-  signs: z
-    .array(z.enum(CLINICAL_SIGNS as [string, ...string[]]))
-    .min(1, "clinicalSigns.form.signs.required"),
+  signs: z.array(z.enum(CLINICAL_SIGNS as [string, ...string[]])).min(1, "clinicalSigns.form.signs.required"),
   note: z.string().max(NOTE_BODY_MAX, "clinicalSigns.form.note.tooLong"),
 });
 

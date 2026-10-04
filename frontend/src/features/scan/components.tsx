@@ -85,7 +85,7 @@ export function CaptureTrigger({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl bg-text-primary">
+      <div className="relative aspect-[3/5] w-full overflow-hidden rounded-3xl bg-text-primary">
         {previewUrl ? (
           <img src={previewUrl} alt={t("result.imageAlt")} className="absolute inset-0 size-full object-cover" />
         ) : (
@@ -93,15 +93,15 @@ export function CaptureTrigger({
         )}
 
         {/* Vùng ngắm: 4 góc định vị + vạch quét ngang (mockup `03`). */}
-        <div className="absolute inset-x-[8%] top-[14%] aspect-square" aria-hidden="true">
+        <div className="absolute inset-x-[9%] top-[20%] aspect-square" aria-hidden="true">
           <span className="absolute inset-0 rounded-xl bg-surface/10" />
           {VIEWFINDER_CORNERS.map((corner) => (
             <span key={corner} className={cn("absolute size-9 border-surface", corner)} />
           ))}
-          <span className="absolute inset-x-3 bottom-8 h-0.5 rounded-full bg-secondary/80" />
+          <span className="absolute inset-x-3 bottom-4 h-0.5 rounded-full bg-secondary/80" />
         </div>
 
-        <p className="absolute inset-x-6 bottom-[30%] flex items-center justify-center gap-2 rounded-full bg-surface/15 px-3 py-2 text-center text-small font-semibold text-white">
+        <p className="absolute inset-x-[10%] bottom-[22%] flex items-center justify-center gap-2 rounded-full bg-surface/15 px-3 py-2 text-center text-small font-semibold text-white">
           <ScanLine className="size-4 shrink-0 text-secondary" aria-hidden="true" />
           {t("capture.frameHint")}
         </p>
@@ -129,10 +129,12 @@ export function CaptureTrigger({
             onClick={() => {
               cameraInputRef.current?.click();
             }}
-            className="mb-6 flex size-[72px] shrink-0 items-center justify-center rounded-full bg-surface p-1.5 shadow-brand-xl disabled:opacity-50"
+            className="flex size-20 shrink-0 items-center justify-center rounded-full bg-surface/30 p-1.5 shadow-brand-xl disabled:opacity-50"
           >
-            <span className="flex size-full items-center justify-center rounded-full bg-primary">
-              <ScanLine className="size-7 text-secondary" aria-hidden="true" />
+            <span className="flex size-full items-center justify-center rounded-full bg-surface p-1.5">
+              <span className="flex size-full items-center justify-center rounded-full bg-primary-dark">
+                <ScanLine className="size-7 text-secondary" aria-hidden="true" />
+              </span>
             </span>
           </button>
 
@@ -213,10 +215,7 @@ export function CaptureTrigger({
 export function AnalyzingState({ text }: { text: string }) {
   return (
     <div className="flex flex-col items-center gap-4 px-6 py-16 text-center" role="status" aria-live="polite">
-      <span
-        className="size-12 animate-spin rounded-full border-4 border-border border-t-primary"
-        aria-hidden="true"
-      />
+      <span className="size-12 animate-spin rounded-full border-4 border-border border-t-primary" aria-hidden="true" />
       <p className="text-body text-text-secondary">{text}</p>
     </div>
   );
@@ -251,9 +250,7 @@ export function QualityFlagList({ flags, className }: QualityFlagListProps) {
           key={flag.code}
           className={cn(
             "flex items-start gap-2 rounded-lg p-2.5 text-caption",
-            flag.severity === "BLOCKING"
-              ? "bg-danger-bg text-danger-text"
-              : "bg-warning-bg text-warning-text",
+            flag.severity === "BLOCKING" ? "bg-danger-bg text-danger-text" : "bg-warning-bg text-warning-text",
           )}
         >
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -287,8 +284,7 @@ export function TriggeredFlagList({ flags }: { flags: TriggeredFlag[] }) {
 
 /* ---------------- Thang pH (PhScale) ---------------- */
 
-const isFiniteNumber = (v: number | null | undefined): v is number =>
-  typeof v === "number" && Number.isFinite(v);
+const isFiniteNumber = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
 /** Phần thang đo nằm NGOÀI dải hữu hạn, để 2 dải mở đầu/cuối vẫn nhìn thấy được. */
 const OPEN_END_RATIO = 0.3;
@@ -365,7 +361,7 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
     return <p className={cn("text-caption text-text-tertiary", className)}>{t("result.scale.unavailable")}</p>;
   }
 
-  const markerPercent = value !== null ? percentOf(geometry, value) : null;
+  const markerPercent = isFiniteNumber(value) ? percentOf(geometry, value) : null;
   const markerStyle = phTokenStyle(activeBand?.colorToken ?? "color-ph-unknown");
 
   const rangeLabel = (band: PhBand): string => {
@@ -386,7 +382,7 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
 
       {/* Con trỏ giá trị đo — đặt theo % vị trí thật trên thang. */}
       <div className="relative h-7">
-        {markerPercent !== null && value !== null ? (
+        {markerPercent !== null && isFiniteNumber(value) ? (
           <span
             className={cn(
               "absolute -translate-x-1/2 whitespace-nowrap rounded-lg px-2 py-1 text-small font-bold",
@@ -404,7 +400,10 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
         {geometry.segments.map((segment) => (
           <span
             key={segment.code}
-            className={cn("absolute inset-y-0 first:rounded-l-full last:rounded-r-full", phTokenStyle(segment.colorToken).solid)}
+            className={cn(
+              "absolute inset-y-0 first:rounded-l-full last:rounded-r-full",
+              phTokenStyle(segment.colorToken).solid,
+            )}
             style={{ left: `${String(segment.left)}%`, width: `${String(segment.width)}%` }}
           />
         ))}
@@ -438,10 +437,7 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
               const style = phTokenStyle(band.colorToken);
               const isActive = activeBand?.code === band.code;
               return (
-                <li
-                  key={band.code}
-                  className={cn("rounded-lg px-2 py-1.5", isActive ? style.bg : "bg-transparent")}
-                >
+                <li key={band.code} className={cn("rounded-lg px-2 py-1.5", isActive ? style.bg : "bg-transparent")}>
                   <p className={cn("text-small font-bold", style.text)}>{rangeLabel(band)}</p>
                   <p className="text-small leading-snug text-text-secondary">{band.label}</p>
                 </li>
@@ -461,7 +457,7 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
  * nguyên `{0}` trên màn hình.
  */
 export function formatBandDescription(description: string, phValue: number | null): string {
-  return description.replace(/\{0\}/g, phValue !== null ? phValue.toFixed(1) : "—");
+  return description.replace(/\{0\}/g, isFiniteNumber(phValue) ? phValue.toFixed(1) : "—");
 }
 
 /** Dải khớp `bandCode` của kết quả — nguồn nhãn/màu duy nhất (không tự phân loại lại). */
@@ -486,47 +482,52 @@ export interface ScanResultSummaryProps {
 export function ScanResultSummary({ result, bands, matchLabel, className }: ScanResultSummaryProps) {
   const { t } = useTranslation("scan");
   const band = findResultBand(bands, result);
+  /**
+   * BE lược MỌI field `null` khỏi JSON (xem `GET /scans/{id}`: không có `displayHex`/
+   * `matchPercent` khi chưa đo được), nên so sánh `!== null` vẫn đúng với `undefined` và
+   * hàng "Màu hạt ghi nhận" từng hiện rỗng. Chuẩn hoá về `null` một lần tại đây.
+   */
+  const displayHex = result.displayHex ?? null;
+  const matchPercent = result.matchPercent ?? null;
 
   return (
     <Card padding="md" className={cn("flex flex-col gap-4", className)}>
       <div className="flex flex-col items-center gap-2 text-center">
         {band ? <PhBadge band={band} /> : null}
         <h2 className="text-h3 font-bold text-text-primary">
-          {result.phValue !== null
+          {isFiniteNumber(result.phValue)
             ? t("result.phHeading", { value: result.phValue.toFixed(1) })
             : (band?.label ?? t("result.inconclusive.title"))}
         </h2>
         {band ? (
-          <p className="text-caption text-text-secondary">
-            {formatBandDescription(band.description, result.phValue)}
-          </p>
+          <p className="text-caption text-text-secondary">{formatBandDescription(band.description, result.phValue)}</p>
         ) : null}
       </div>
 
-      <div className="rounded-xl bg-background-alt p-3">
+      <div className="rounded-xl bg-background-alt p-4">
         <PhScale bands={bands} value={result.phValue} activeBand={band} />
       </div>
 
-      {result.displayHex !== null || result.matchPercent !== null ? (
-        <div className="flex items-center gap-3 rounded-xl bg-background-alt p-3">
-          {result.displayHex !== null ? (
+      {displayHex !== null || matchPercent !== null ? (
+        <div className="flex items-center gap-3 rounded-lg bg-deco-backdrop p-3">
+          {displayHex !== null ? (
             <span
-              className="size-8 shrink-0 rounded-full border-2 border-surface shadow-sm"
-              style={{ backgroundColor: result.displayHex }}
+              className="size-7 shrink-0 rounded-full border-[6px] border-surface shadow-sm"
+              style={{ backgroundColor: displayHex }}
               aria-hidden="true"
             />
           ) : null}
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-caption font-bold text-text-primary">{t("result.vetNoteTitle")}</span>
-            {result.displayHex !== null ? (
+            {displayHex !== null ? (
               <span className="truncate text-caption text-text-secondary">
-                {t("result.grainColorName", { hex: result.displayHex })}
+                {t("result.grainColorName", { hex: displayHex })}
               </span>
             ) : null}
           </span>
-          {result.matchPercent !== null ? (
+          {matchPercent !== null ? (
             <span className="shrink-0 rounded-full bg-surface px-3 py-1 text-caption font-bold text-primary-dark">
-              {matchLabel ?? t("result.matchLabel")} {result.matchPercent}%
+              {matchLabel ?? t("result.matchLabel")} {matchPercent}%
             </span>
           ) : null}
         </div>
@@ -561,9 +562,7 @@ function AdviceRow({ icon, title, body }: { icon: ReactNode; title: string; body
  */
 export function ScanAdviceCard({ result, className }: { result: ScanResult; className?: string }) {
   const { t } = useTranslation("scan");
-  const watchMessages = result.triggeredFlags.map((flag) =>
-    t(flag.messageKey, { defaultValue: flag.ruleCode }),
-  );
+  const watchMessages = result.triggeredFlags.map((flag) => t(flag.messageKey, { defaultValue: flag.ruleCode }));
 
   return (
     <Card padding="md" className={cn("flex flex-col gap-3", className)}>
@@ -664,14 +663,13 @@ export function SelectCatOption({ cat, selected, onSelect, bands, className }: S
         : t("selectCat.sexUnknown");
   const SexIcon = cat.sex === "MALE" ? Mars : Venus;
 
-  const ageLabel =
-    cat.ageMonths === null
-      ? null
-      : cat.ageMonths >= 12
-        ? t("selectCat.ageYears", { count: Math.floor(cat.ageMonths / 12) })
-        : t("selectCat.ageMonthsShort", { count: cat.ageMonths });
+  const ageLabel = !isFiniteNumber(cat.ageMonths)
+    ? null
+    : cat.ageMonths >= 12
+      ? t("selectCat.ageYears", { count: Math.floor(cat.ageMonths / 12) })
+      : t("selectCat.ageMonthsShort", { count: cat.ageMonths });
 
-  const metaLine = [cat.breedName, cat.weightKg === null ? null : t("selectCat.weight", { value: cat.weightKg })]
+  const metaLine = [cat.breedName, isFiniteNumber(cat.weightKg) ? t("selectCat.weight", { value: cat.weightKg }) : null]
     .filter((part): part is string => Boolean(part))
     .join(" • ");
 
@@ -696,7 +694,8 @@ export function SelectCatOption({ cat, selected, onSelect, bands, className }: S
       )}
     >
       <span className="flex items-center gap-3">
-        <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" />
+        {/* 56px theo Figma `05` (rect 56×56 rx28) — lớn hơn preset `md` của CatAvatar. */}
+        <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" className="size-14" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2">
             <span className="truncate text-body font-bold text-text-primary">{cat.name}</span>
@@ -716,19 +715,15 @@ export function SelectCatOption({ cat, selected, onSelect, bands, className }: S
       </span>
 
       <span className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background-alt px-3 py-2">
-        <span className="inline-flex items-center gap-1.5 text-caption text-text-secondary">
-          {lastBand ? (
-            <>
-              <span
-                className={cn("size-2.5 shrink-0 rounded-full", phTokenStyle(lastBand.colorToken).solid)}
-                aria-hidden="true"
-              />
-              {lastBand.label}
-            </>
-          ) : (
-            <span className="size-2.5 shrink-0 rounded-full bg-border" aria-hidden="true" />
-          )}
-        </span>
+        {lastBand ? (
+          <span className="inline-flex items-center gap-1.5 text-caption text-text-secondary">
+            <span
+              className={cn("size-2.5 shrink-0 rounded-full", phTokenStyle(lastBand.colorToken).solid)}
+              aria-hidden="true"
+            />
+            {lastBand.label}
+          </span>
+        ) : null}
         <span className="inline-flex items-center gap-1.5 text-caption text-text-secondary">
           <Clock className="size-3.5 shrink-0" aria-hidden="true" />
           {lastScanLabel}
@@ -761,7 +756,7 @@ export function SharedTrayOption({ title, description, selected, onSelect, class
         className,
       )}
     >
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-text-on">
+      <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary-light text-secondary-text-on">
         <HelpCircle className="size-6" aria-hidden="true" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

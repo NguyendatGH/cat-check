@@ -14,11 +14,7 @@ export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 72;
 
 export const registerSchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(1, "register.fields.fullName.required")
-    .max(120, "register.fields.fullName.tooLong"),
+  fullName: z.string().trim().min(1, "register.fields.fullName.required").max(120, "register.fields.fullName.tooLong"),
   // z.email() (zod v4) thay cho z.string().email() đã deprecated — gộp luôn "trống" và
   // "sai định dạng" vào một message vì zod báo cả hai lỗi cùng lúc cho input rỗng.
   email: z.email("register.fields.email.invalid").trim(),

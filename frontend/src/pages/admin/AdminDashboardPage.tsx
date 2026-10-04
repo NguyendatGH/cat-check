@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ArrowRight, CircleCheck, CircleX, Loader2 } from "lucide-react";
-import { AdminPageHeader, AdminSection, ApiErrorNote, MissingApiNotice, useAdminSystemStatus } from "@/features/admin";
+import { AdminPageHeader, AdminSection, ApiErrorNote, useAdminMetrics, useAdminSystemStatus } from "@/features/admin";
 import { formatDate } from "@/shared/lib/format/formatDate";
 
 /**
@@ -12,8 +12,7 @@ import { formatDate } from "@/shared/lib/format/formatDate";
  * thay `/actuator/health` và không phải business logic đầy đủ. Vì vậy trang này không
  * gọi nó là "sức khoẻ hệ thống".
  *
- * Chỉ số vận hành thật (L63 `GET /admin/metrics/dashboard`, ô Q23) chưa có backend —
- * nêu thẳng ở cuối trang thay vì dựng số giả.
+ * Chỉ số vận hành thật (L63 `GET /admin/metrics/dashboard`) được đọc trực tiếp từ PostgreSQL.
  */
 
 /** Liên kết nhanh tới các màn ĐÃ nối API thật. Đường dẫn khớp `app/router/routes.ts`. */
@@ -27,6 +26,7 @@ const WIRED_LINKS = [
 export function AdminDashboardPage() {
   const { t } = useTranslation("admin");
   const status = useAdminSystemStatus();
+  const metrics = useAdminMetrics();
 
   return (
     <div className="flex max-w-5xl flex-col gap-5">
@@ -82,11 +82,28 @@ export function AdminDashboardPage() {
         </ul>
       </AdminSection>
 
-      <MissingApiNotice
-        specSection="p8 §8.4.12 (f)"
-        endpoints={[{ code: "L63", signature: "GET /admin/metrics/dashboard" }]}
-        note={t("pages.dashboard.noApiNote")}
-      />
+      <AdminSection title={t("dashboard.metricsTitle")} description={t("dashboard.metricsDescription")}>
+        {metrics.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
+        {metrics.isError ? <ApiErrorNote error={metrics.error} /> : null}
+        {metrics.data ? (
+          <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              ["users", metrics.data.users],
+              ["activeCats", metrics.data.activeCats],
+              ["scans", metrics.data.scans],
+              ["failedJobs", metrics.data.failedJobs],
+              ["pendingOutbox", metrics.data.pendingOutbox],
+            ].map(([key, value]) => (
+              <div key={key} className="rounded-xl bg-background-alt/70 p-4">
+                <dt className="text-caption text-text-secondary">{t(`dashboard.metrics.${String(key)}`)}</dt>
+                <dd className="pt-1 text-[26px] font-bold text-primary-dark">
+                  {Number(value).toLocaleString("vi-VN")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+      </AdminSection>
     </div>
   );
 }

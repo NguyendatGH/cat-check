@@ -4,6 +4,7 @@ import { ArrowDownCircle, ArrowUpCircle, Check, Clock, X } from "lucide-react";
 import { Badge, Card, Input, type InputProps } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { formatActivationCode } from "./schemas";
+import { usePackageCatalog } from "./hooks";
 import type { CreditBatch, CreditLedgerType, Entitlement, LedgerEntry } from "./types";
 
 /**
@@ -77,6 +78,10 @@ export interface CreditBatchCardProps {
 
 export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
   const { t } = useTranslation("credit");
+  // Tên gói từ F3 `GET /reference/packages` (query dùng chung, cache 5 phút ⇒ nhiều thẻ lô
+  // credit trên cùng màn chỉ tốn một request). Chưa tải xong thì hiện `packageCode` thô —
+  // không có bảng tên gói cứng nào ở client nữa.
+  const { data: plans } = usePackageCatalog();
   const percent = batch.initialAmount > 0 ? Math.round((batch.remainingAmount / batch.initialAmount) * 100) : 0;
   const expired = batch.remainingSeconds <= 0;
 
@@ -84,7 +89,7 @@ export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
     <Card className={cn("flex flex-col gap-3", className)}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-body font-semibold text-text-primary">
-          {t(`packages.${batch.packageCode}`, { defaultValue: batch.packageCode })}
+          {plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode}
         </p>
         <Badge tone={expired ? "neutral" : "brand"}>
           {expired ? t("batch.expired") : formatRemainingSeconds(batch.remainingSeconds, t)}
@@ -93,7 +98,10 @@ export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
 
       <div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-chip-bg" role="img" aria-hidden="true">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${String(Math.max(0, Math.min(100, percent)))}%` }} />
+          <div
+            className="h-full rounded-full bg-primary"
+            style={{ width: `${String(Math.max(0, Math.min(100, percent)))}%` }}
+          />
         </div>
         <p className="mt-1.5 text-caption text-text-secondary">
           {t("batch.remainingOfTotal", { remaining: batch.remainingAmount, total: batch.initialAmount })}
@@ -135,7 +143,12 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
         <p className="truncate text-body font-medium text-text-primary">{t(`ledger.types.${entry.type}`)}</p>
         <p className="text-small text-text-tertiary">{new Date(entry.createdAt).toLocaleString("vi-VN")}</p>
       </div>
-      <p className={cn("text-body font-semibold", tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-primary")}>
+      <p
+        className={cn(
+          "text-body font-semibold",
+          tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-primary",
+        )}
+      >
         {entry.amount >= 0 ? `+${String(entry.amount)}` : entry.amount}
       </p>
     </div>
@@ -185,7 +198,9 @@ export function ActivationCodeField({ value, onChange, ...props }: ActivationCod
   return (
     <Input
       value={value}
-      onChange={(event) => { onChange(formatActivationCode(event.target.value)); }}
+      onChange={(event) => {
+        onChange(formatActivationCode(event.target.value));
+      }}
       autoComplete="off"
       autoCapitalize="characters"
       spellCheck={false}

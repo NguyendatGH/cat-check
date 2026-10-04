@@ -45,7 +45,12 @@ export function ResetPasswordPage() {
         title={t("resetPassword.missingTicket.title")}
         description={t("resetPassword.missingTicket.description")}
         action={
-          <Button type="button" onClick={() => { void navigate("/auth/forgot-password"); }}>
+          <Button
+            type="button"
+            onClick={() => {
+              void navigate("/auth/forgot-password");
+            }}
+          >
             {t("resetPassword.missingTicket.cta")}
           </Button>
         }
@@ -80,7 +85,13 @@ export function ResetPasswordPage() {
         <p className="text-caption text-text-secondary">{t("resetPassword.subtitle")}</p>
       </header>
 
-      <form className="flex flex-col gap-4" onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} noValidate>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          void handleSubmit(onSubmit)(event);
+        }}
+        noValidate
+      >
         <PasswordField
           label={t("resetPassword.fields.newPassword.label")}
           autoComplete="new-password"

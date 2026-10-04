@@ -13,7 +13,8 @@ export const buttonVariants = cva(
       // primary-dark (#0D369A) chứ không phải primary (#2F4FB2) — primary chỉ dùng cho mảng
       // lớn (hero card, header). Secondary luôn có chữ tối trên nền vàng theo p10.
       variant: {
-        primary: "bg-primary-dark text-white shadow-[0px_4px_6px_-1px_rgba(13,54,154,0.2),0px_2px_4px_-2px_rgba(13,54,154,0.2)] hover:bg-primary",
+        primary:
+          "bg-primary-dark text-white shadow-[0px_4px_6px_-1px_rgba(13,54,154,0.2),0px_2px_4px_-2px_rgba(13,54,154,0.2)] hover:bg-primary",
         secondary: "bg-secondary text-secondary-text-on shadow-sm hover:bg-secondary-light",
         tertiary: "bg-transparent text-primary border border-border hover:bg-background-alt",
       },

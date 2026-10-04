@@ -37,7 +37,4 @@ export interface NotificationPreferences {
 
 /** Ba công tắc boolean độc lập — dùng để dựng danh sách mà không lặp lại tên khoá. */
 export type NotificationToggleKey =
-  | "creditAlertsEnabled"
-  | "reportReadyEnabled"
-  | "imageRetentionWarningEnabled"
-  | "normalResultEnabled";
+  "creditAlertsEnabled" | "reportReadyEnabled" | "imageRetentionWarningEnabled" | "normalResultEnabled";

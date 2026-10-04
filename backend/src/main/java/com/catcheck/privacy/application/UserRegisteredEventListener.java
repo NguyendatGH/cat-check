@@ -1,6 +1,6 @@
 package com.catcheck.privacy.application;
 
-import com.catcheck.identity.UserRegisteredEvent;
+import com.catcheck.privacy.spi.RegistrationConsentEvent;
 import com.catcheck.privacy.domain.ConsentMethod;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Nghe {@code UserRegisteredEvent} (identity) để ghi {@code consent_record} cho các lựa chọn
+ * Nghe {@code RegistrationConsentEvent} để ghi {@code consent_record} cho các lựa chọn
  * đồng ý người dùng tick ngay tại màn đăng ký (p15 §15.3.3 — {@code POST /auth/register}).
  *
  * <p><b>Vì sao ở đây, không phải trong identity:</b> {@code identity/package-info.java} chỉ cho
@@ -20,15 +20,8 @@ import java.util.List;
  * {@code policy_version} hiện hành để tính {@code policyHash}/{@code consentTextHash}
  * (p4 §4.4.3 nhóm B2) — đúng ranh giới sở hữu miền.</p>
  *
- * <p><b>Vì sao import {@code com.catcheck.identity.UserRegisteredEvent}</b> (gói gốc, không
- * phải {@code com.catcheck.identity.api}): {@code allowedDependencies} của {@code privacy}
- * liệt kê module trần {@code "identity"}, không phải {@code "identity::api"} — với Spring
- * Modulith, một mục trần chỉ cấp quyền truy cập named interface "unnamed" (type nằm trực tiếp
- * ở gói gốc của module đích). Xem javadoc đầy đủ ở {@link UserRegisteredEvent} — file đó KHÔNG
- * được sửa/di chuyển lại nếu không đối chiếu lại đúng lý do này.</p>
- *
- * <p><b>Đồng bộ, cùng transaction</b> với {@code RegistrationService.register} (xem javadoc đầy
- * đủ ở {@link UserRegisteredEvent}): đây là {@code @EventListener} THƯỜNG, không
+ * <p><b>Đồng bộ, cùng transaction</b> với {@code RegistrationService.register}: đây là
+ * {@code @EventListener} THƯỜNG, không
  * {@code @Async}, không {@code @TransactionalEventListener} — Spring gọi listener này ngay
  * trong cùng thread/transaction JDBC đang mở của {@code RegistrationService}, nên
  * {@link ConsentService#recordConsents} (đã tự {@code @Transactional}, propagation
@@ -63,7 +56,7 @@ public class UserRegisteredEventListener {
     }
 
     @EventListener
-    public void onUserRegistered(UserRegisteredEvent event) {
+    public void onUserRegistered(RegistrationConsentEvent event) {
         if (event.consents() == null || event.consents().isEmpty()) {
             return;
         }

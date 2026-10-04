@@ -4,6 +4,7 @@ import com.catcheck.reminder.application.spi.CatOwnershipPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -32,5 +33,13 @@ class JdbcCatOwnershipAdapter implements CatOwnershipPort {
                 rs -> rs.next() ? 1 : 0,
                 catId, ownerId);
         return found != null && found == 1;
+    }
+
+    @Override
+    public Optional<String> findAliveCatName(UUID catId, UUID ownerId) {
+        return jdbc.query(
+                "SELECT name FROM cat WHERE id = ? AND owner_id = ? AND deleted_at IS NULL",
+                (rs, rowNum) -> rs.getString("name"),
+                catId, ownerId).stream().findFirst();
     }
 }

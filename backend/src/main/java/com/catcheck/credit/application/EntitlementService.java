@@ -47,8 +47,8 @@ public class EntitlementService implements EntitlementQuery {
     }
 
     @Override
-    public boolean isFeatureEnabled(UUID userId, PlanFeature feature) {
-        return snapshot(userId).isFeatureEnabled(feature);
+    public boolean isFeatureEnabled(UUID userId, EntitlementQuery.Feature feature) {
+        return snapshot(userId).isFeatureEnabled(PlanFeature.valueOf(feature.name()));
     }
 
     @Override

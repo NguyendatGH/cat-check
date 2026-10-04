@@ -37,11 +37,19 @@ export function OnboardingDisclaimerPage() {
       step={3}
       title={t("disclaimer.title")}
       subtitle={t("disclaimer.subtitle")}
-      onBack={() => { void navigate("/onboarding/health-survey"); }}
+      onBack={() => {
+        void navigate("/onboarding/health-survey");
+      }}
       onStepClick={(step) => {
-        if (step === 1) { void navigate("/onboarding/cat"); }
-        if (step === 2) { void navigate("/onboarding/health-survey"); }
-        if (step === 3) { void navigate("/onboarding/disclaimer"); }
+        if (step === 1) {
+          void navigate("/onboarding/cat");
+        }
+        if (step === 2) {
+          void navigate("/onboarding/health-survey");
+        }
+        if (step === 3) {
+          void navigate("/onboarding/disclaimer");
+        }
       }}
       footer={
         <div className="flex flex-col gap-3">
@@ -56,9 +64,7 @@ export function OnboardingDisclaimerPage() {
               error={ackError ? t("disclaimer.ackRequired") : undefined}
               disabled={!reachedBottom}
             />
-            {!reachedBottom ? (
-              <p className="text-small text-text-tertiary">{t("disclaimer.scrollHint")}</p>
-            ) : null}
+            {!reachedBottom ? <p className="text-small text-text-tertiary">{t("disclaimer.scrollHint")}</p> : null}
           </div>
           <Button type="button" size="lg" className="w-full" onClick={onContinue}>
             {t("disclaimer.continue")}
@@ -66,7 +72,11 @@ export function OnboardingDisclaimerPage() {
         </div>
       }
     >
-      <DisclaimerScroll onReachBottom={() => { setReachedBottom(true); }}>
+      <DisclaimerScroll
+        onReachBottom={() => {
+          setReachedBottom(true);
+        }}
+      >
         <article className="flex flex-col gap-4">
           <h2 className="text-h3 font-bold text-text-primary">{content.heading}</h2>
           <p className="text-body text-text-secondary">{content.intro}</p>

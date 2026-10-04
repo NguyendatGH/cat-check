@@ -1,0 +1,104 @@
+name: Dependency Scan (Trivy)
+
+on:
+  pull_request: {} # quét fs nhanh, mọi PR
+  schedule:
+    - cron: "0 19 * * 1" # thứ 2 hằng tuần, 19:00 UTC ≈ 02:00 giờ VN — quét toàn bộ (fs + image)
+
+jobs:
+  # ---- Quét filesystem: backend/pom.xml, frontend/package-lock.json ----
+  # Báo cáo nhưng KHÔNG chặn merge, TRỪ CVE mức CRITICAL đã có bản vá (gần
+  # đúng nhất Trivy hỗ trợ sẵn cho "đang bị khai thác công khai" ở mức MVP —
+  # đối chiếu chính xác với CISA KEV để lại cho bản sau, xem TODO).
+  fs-scan:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker Hub login
+        uses: docker/login-action@v3.3.0 # TODO owner xác nhận version
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v7.0.1
+
+      - name: Trivy fs scan — báo cáo đầy đủ (không chặn merge)
+        uses: aquasecurity/trivy-action@0.28.0 # TODO owner xác nhận version (chưa có trong BOM)
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: "CRITICAL,HIGH,MEDIUM"
+          ignore-unfixed: true
+          exit-code: "0"
+
+      # TODO: thay bằng đối chiếu CISA Known Exploited Vulnerabilities (KEV)
+      # khi có tool/luồng phù hợp — hiện dùng CRITICAL + đã có bản vá làm ngưỡng
+      # chặn cứng gần đúng nhất cho "đang bị khai thác công khai" ở mức MVP.
+      - name: Trivy fs scan — chặn cứng nếu CRITICAL đã có bản vá
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: "CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+
+  # ---- Quét image đã build: CVE gói OS ----
+  # Chỉ chạy khi có khả năng build image thật (không chạy trên PR để tiết
+  # kiệm phút CI — build-image.yml đã build-check Dockerfile trên mọi PR rồi).
+  image-scan:
+    name: Trivy image scan
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker Hub login
+        uses: docker/login-action@v3.3.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v7.0.1
+
+      - name: Build backend image (tạm, chỉ để quét — không push)
+        run: docker build -t catcheck-backend:scan ./backend
+
+      - name: Build frontend image (tạm, chỉ để quét — không push)
+        run: docker build -f frontend/Dockerfile -t catcheck-frontend:scan .
+
+      - name: Trivy image scan — backend (báo cáo, không chặn)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: catcheck-backend:scan
+          format: table
+          severity: "CRITICAL,HIGH,MEDIUM"
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Trivy image scan — frontend (báo cáo, không chặn)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: catcheck-frontend:scan
+          format: table
+          severity: "CRITICAL,HIGH,MEDIUM"
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Trivy image scan — chặn cứng nếu CRITICAL đã có bản vá (backend)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: catcheck-backend:scan
+          format: table
+          severity: "CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Trivy image scan — chặn cứng nếu CRITICAL đã có bản vá (frontend)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: catcheck-frontend:scan
+          format: table
+          severity: "CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"

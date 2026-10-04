@@ -12,6 +12,34 @@ export type CreditLedgerRefType = "SCAN" | "ACTIVATION" | "JOB" | "ADMIN";
 /** 5 mã gói hiện có trong `package_plan` (p5 §5.3) — admin có thể thêm gói mới ngoài tập này. */
 export type PackageCode = "MINI" | "DAILY" | "PLUS" | "MULTI" | "CARE_BOX";
 
+/**
+ * F3 — một gói trong `GET /reference/packages` (p8 §8.4.6). Tên gói, khối lượng, số credit và
+ * hạn dùng đều do backend trả; client KHÔNG giữ bảng tên gói riêng (trước đây nằm cứng ở
+ * `credit.json: packages.*` và lệch ngay khi admin đổi `package_plan.name`).
+ *
+ * KHÔNG có trường giá tiền trong response — endpoint này là danh mục gói, không phải bảng giá
+ * (thanh toán là Phase 3). Vì vậy UI không hiển thị giá.
+ */
+export interface PackagePlan {
+  code: string;
+  name: string;
+  weightKg: number;
+  creditAmount: number;
+  creditValidityDays: number;
+  /** `null` = không giới hạn số hồ sơ mèo (p4 I27). */
+  maxCatProfiles: number | null;
+  historyLevel: string;
+  hasTrend: boolean;
+  hasReminder: boolean;
+  hasExport: boolean;
+  storeImage: boolean;
+}
+
+/** F3 — envelope `{items}` (danh mục công khai, không phân trang). */
+export interface PackagePlanList {
+  items: PackagePlan[];
+}
+
 /** H1 — `POST /activations`. */
 export interface ActivationResult {
   packageCode: string;
