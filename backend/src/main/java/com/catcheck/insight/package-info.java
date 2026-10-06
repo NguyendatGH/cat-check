@@ -10,6 +10,11 @@
  * {@code cat}/{@code notification} bỏ khỏi danh sách vì insight không dùng (health_flag chỉ cần
  * {@code cat_id} dạng UUID thô, không cần đọc dữ liệu mèo; gửi thông báo push/in-app cho
  * {@code HealthFlagRaised} là M5, ngoài phạm vi MVP theo ORCHESTRATOR §2).
+ *
+ * <p>Cạnh {@code audit::api} thêm ở W5-B: L39 (sửa cấu hình rule cảnh báo) mang ký hiệu
+ * {@code Aud} + {@code Rsn} của p8 §8.4.12 — đổi một dòng {@code monitoring_rule} đổi hành vi
+ * cảnh báo cho mọi người dùng, nên phải truy ngược được ai sửa và vì sao.
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = { "shared", "scan::api" })
+@org.springframework.modulith.ApplicationModule(
+        allowedDependencies = { "shared", "scan::api", "audit::api" })
 package com.catcheck.insight;

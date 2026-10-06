@@ -119,6 +119,50 @@ public class MonitoringRule {
         return value instanceof Boolean bool ? bool : fallback;
     }
 
+    /** Mốc sửa gần nhất — nguồn của {@code ETag}/{@code If-Match} ở L38/L39 (p8 §8.1.11). */
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    /**
+     * Áp thay đổi của L39: bật/tắt, tham số, cooldown (p8 §8.4.12 L39).
+     *
+     * <p><b>Chỉ ba trường đó.</b> {@code severity} và {@code message_key} cố ý KHÔNG sửa được
+     * qua API: p6 §6.9.7 ràng buộc {@code URGENT} chỉ thuộc {@code URGENT_CLINICAL_SIGN}, và
+     * {@code message_key} là khoá i18n phải tồn tại trong bundle — cho admin nhập tự do hai
+     * trường đó là mở đường cho một rule im lặng không hiển thị được gì.
+     *
+     * <p>Mỗi tham số {@code null} = "không đổi" (merge-patch, p8 §8.1.11). Entity này vốn
+     * chỉ-đọc (hàng cấu hình do Flyway seed); đây là đường ghi DUY NHẤT, nên luật nằm ở đây
+     * chứ không rải ra setter rời.
+     */
+    public void applyAdminUpdate(Boolean newEnabled, Map<String, Object> newParams,
+                                 Integer newCooldownHours, Boolean newPushEnabled, Instant now) {
+        if (newEnabled != null) {
+            this.enabled = newEnabled;
+        }
+        if (newParams != null) {
+            this.params = Map.copyOf(newParams);
+        }
+        if (newCooldownHours != null) {
+            if (newCooldownHours < 0) {
+                throw new IllegalArgumentException("cooldownHours phải >= 0 (ck_monitoring_rule_cooldown)");
+            }
+            if (newCooldownHours == 0 && !MonitoringRuleCode.URGENT_CLINICAL_SIGN.name().equals(code)) {
+                // p4 D11: "0 = không cooldown, CHỈ dùng cho URGENT_CLINICAL_SIGN". Để rule khác
+                // về 0 nghĩa là mỗi lần quét đều bắn một flag — spam, và người dùng tắt thông
+                // báo thì mất luôn cảnh báo thật.
+                throw new IllegalArgumentException(
+                        "cooldownHours = 0 chỉ cho URGENT_CLINICAL_SIGN (p4 D11)");
+            }
+            this.cooldownHours = newCooldownHours;
+        }
+        if (newPushEnabled != null) {
+            this.pushEnabled = newPushEnabled;
+        }
+        this.updatedAt = now;
+    }
+
     public String paramAsString(String key, String fallback) {
         Object value = params == null ? null : params.get(key);
         return value == null ? fallback : String.valueOf(value);

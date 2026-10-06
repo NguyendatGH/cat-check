@@ -168,6 +168,12 @@ class ManualPipelineOutcomeFactoryTest {
                     "D65", 2, true, points, DeltaE2000Params.CAT_CHECK));
         }
 
+        /** Backfill L33-L35 khong dung o hai test nay — cong van phai hien thuc. */
+        @Override
+        public Optional<PhChart> findChartById(java.util.UUID chartId) {
+            return findActiveChart("STANDARD", null);
+        }
+
         @Override
         public List<PhBandClassifier.Band> findGlobalBands() {
             return List.of(

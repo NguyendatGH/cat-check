@@ -15,4 +15,7 @@ interface MonitoringRuleJpaRepository extends JpaRepository<MonitoringRule, Stri
      * đánh giá rule không phụ thuộc thứ tự, không đổi hành vi sẵn có của nó.
      */
     List<MonitoringRule> findByEnabledTrueOrderBySortOrderAscCodeAsc();
+
+    /** L38 — kể cả rule đang tắt: màn cấu hình phải thấy được thứ mình vừa tắt. */
+    List<MonitoringRule> findAllByOrderBySortOrderAscCodeAsc();
 }

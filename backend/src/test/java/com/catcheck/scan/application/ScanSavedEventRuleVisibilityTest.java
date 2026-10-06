@@ -257,6 +257,19 @@ class ScanSavedEventRuleVisibilityTest {
                     return List.of();
                 }
 
+                /** Backfill L33-L35 khong lien quan test nay — cong van phai hien thuc. */
+                @Override
+                public List<ScanAnalysis> findBackfillCandidates(Instant computedFrom,
+                                                                 String engineVersionPrefix,
+                                                                 int limit, int offset) {
+                    return List.of();
+                }
+
+                @Override
+                public long countBackfillCandidates(Instant computedFrom, String engineVersionPrefix) {
+                    return 0L;
+                }
+
                 @Override
                 public Optional<ScanAnalysis> findById(UUID id) {
                     return Optional.ofNullable(visibleAnalyses.getOrDefault(id, pendingAnalyses.get(id)));
@@ -341,6 +354,17 @@ class ScanSavedEventRuleVisibilityTest {
         public List<MonitoringRule> findAll() {
             return findAllEnabled();
         }
+
+        @Override
+        public List<MonitoringRule> findAllForAdmin() {
+            return findAllEnabled();
+        }
+
+        /** L39 khong lien quan test nay — cong van phai hien thuc. */
+        @Override
+        public MonitoringRule saveAndReload(MonitoringRule rule) {
+            return rule;
+        }
     }
 
     /** Chế độ trial: không đụng {@code credit_batch}, không ghi ledger (p5 R6). */
@@ -384,6 +408,12 @@ class ScanSavedEventRuleVisibilityTest {
                             new Lab(50.0, -10.0, -20.0), 2.0, "#112233", "#112233", "8,0", "8.0", 0, 0.0));
             return Optional.of(new PhChart("00000000-0000-0000-0000-000000000002", 1,
                     PhChart.Status.ACTIVE, "D65", 2, true, points, DeltaE2000Params.CAT_CHECK));
+        }
+
+        /** Backfill L33-L35 khong dung o hai test nay — cong van phai hien thuc. */
+        @Override
+        public Optional<PhChart> findChartById(java.util.UUID chartId) {
+            return findActiveChart("STANDARD", null);
         }
 
         @Override

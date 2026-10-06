@@ -36,4 +36,40 @@ public interface PolicyVersionPort {
      * đồng ý với nội dung nào.</p>
      */
     Optional<PolicyVersion> findByTypeAndVersion(PolicyType type, String version, String locale);
+
+    /**
+     * L46 — danh sách phiên bản cho màn quản trị, phân trang kiểu offset (p8 §8.4.12 L46 cột
+     * {@code O}). Lọc theo loại/locale là tuỳ chọn; {@code null} = không lọc.
+     *
+     * <p>Khác {@link #findAllByType}: đó là F9 cho người dùng (một loại tài liệu, một locale),
+     * còn đây là mọi loại trong một bảng để DPO soát toàn bộ.</p>
+     */
+    List<PolicyVersion> findAllForAdmin(PolicyType type, String locale, int limit, int offset);
+
+    /** Tổng số dòng khớp bộ lọc của {@link #findAllForAdmin} — màn admin cần nhảy trang. */
+    long countForAdmin(PolicyType type, String locale);
+
+    /**
+     * L48 — đánh dấu đã publish: ghi {@code published_by} và chốt {@code effective_from}.
+     *
+     * <p>Đây là lần UPDATE DUY NHẤT được phép trên bảng này, và nó <b>không chạm nội dung</b>
+     * ({@code content_md}/{@code content_hash}): p4 B1 cấm sửa một phiên bản đã có
+     * {@code consent_record} trỏ tới, mà bản nháp thì chưa thể có consent nào vì nó chưa từng
+     * có hiệu lực. V6 đã {@code REVOKE DELETE} nên không có đường xoá.</p>
+     *
+     * @return số dòng đã đổi (0 = id không tồn tại)
+     */
+    int markPublished(UUID id, UUID publishedBy, Instant effectiveFrom);
+
+    /**
+     * L48 — chốt {@code effective_to} cho bản đang hiệu lực của cùng {@code (type, locale)}.
+     *
+     * <p>Không có bước này, hai bản cùng {@code effective_to IS NULL} và
+     * {@link #findCurrent} phân xử bằng {@code ORDER BY effective_from DESC} — đúng tình cờ,
+     * sai ngay khi ai đó publish một bản có {@code effective_from} trong tương lai.</p>
+     *
+     * @param exceptId bản vừa publish, không tự đóng chính mình
+     * @return số dòng đã đóng
+     */
+    int closeEffective(PolicyType type, String locale, Instant effectiveTo, UUID exceptId);
 }
