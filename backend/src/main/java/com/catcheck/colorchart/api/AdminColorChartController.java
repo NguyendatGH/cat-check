@@ -1,5 +1,7 @@
 package com.catcheck.colorchart.api;
 
+import com.catcheck.colorchart.api.dto.BackfillAcceptedResponse;
+import com.catcheck.colorchart.api.dto.BackfillPreviewResponse;
 import com.catcheck.colorchart.api.dto.ColorChartDetailResponse;
 import com.catcheck.colorchart.api.dto.ColorChartSummaryResponse;
 import com.catcheck.colorchart.api.dto.CreateColorChartRequest;
@@ -7,18 +9,24 @@ import com.catcheck.colorchart.api.dto.OffsetPageResponse;
 import com.catcheck.colorchart.api.dto.PhBandResponse;
 import com.catcheck.colorchart.api.dto.PointInput;
 import com.catcheck.colorchart.api.dto.ReplacePointsRequest;
+import com.catcheck.colorchart.api.dto.StartBackfillApplyRequest;
+import com.catcheck.colorchart.api.dto.StartBackfillPreviewRequest;
 import com.catcheck.colorchart.api.dto.UpdateColorChartRequest;
 import com.catcheck.colorchart.api.dto.UpdatePhBandRequest;
+import com.catcheck.colorchart.application.AdminAction;
+import com.catcheck.colorchart.application.ChartBackfillAdminService;
 import com.catcheck.colorchart.application.ColorChartAdminService;
 import com.catcheck.colorchart.application.PhBandAdminService;
 import com.catcheck.colorchart.domain.ChartStatus;
 import com.catcheck.colorchart.domain.ColorChart;
 import com.catcheck.colorchart.domain.PageResult;
 import com.catcheck.colorchart.domain.PhClassificationBand;
+import com.catcheck.shared.security.AdminGuard;
 import com.catcheck.shared.security.CurrentUser;
 import com.catcheck.shared.security.SecurityPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,12 +42,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
+import java.time.Period;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * Quản trị bảng màu pH — L27 đến L32, L36, L37 (p8 §8.4.12).
+ * Quản trị bảng màu pH — L27 đến L37 (p8 §8.4.12 mục (c)).
  *
  * <p>Kiểm tra vai trò nằm trong controller (tầng api) — đây là quyết định "ai được gọi API này"
  * (p8 §8.3). Tên vai trò cụ thể do {@link ColorChartRoleGuard} giữ.
@@ -49,18 +60,28 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/v1/admin")
-@Tag(name = "Quản trị bảng màu pH", description = "L27–L32, L36–L37 — CRUD bảng màu và dải phân loại")
+@Tag(name = "Quản trị bảng màu pH",
+        description = "L27–L37 — CRUD bảng màu, backfill kết quả cũ, dải phân loại")
 public class AdminColorChartController {
+
+    /**
+     * Vai trò ghi {@code audit_log.actor_role} — vai trò MẠNH NHẤT đã cho phép hành động đi qua
+     * (p4 §4.6.3). Một tài khoản có thể giữ nhiều vai trò nhưng cột chỉ chứa một.
+     */
+    private static final List<String> ADMIN_ROLE_PRIORITY = List.of("ADMIN_SUPER", "ADMIN_CATALOG");
 
     private final ColorChartAdminService adminService;
     private final PhBandAdminService phBandAdminService;
+    private final ChartBackfillAdminService backfillService;
     private final ColorChartRoleGuard roleGuard;
 
     public AdminColorChartController(ColorChartAdminService adminService,
                                      PhBandAdminService phBandAdminService,
+                                     ChartBackfillAdminService backfillService,
                                      ColorChartRoleGuard roleGuard) {
         this.adminService = adminService;
         this.phBandAdminService = phBandAdminService;
+        this.backfillService = backfillService;
         this.roleGuard = roleGuard;
     }
 
@@ -187,6 +208,69 @@ public class AdminColorChartController {
                 .body(ColorChartDetailResponse.from(adminService.findDetail(chartId)));
     }
 
+    // ------------------------------------------------------------------ L33
+
+    @Operation(
+            operationId = "startColorChartBackfillPreview",
+            summary = "Tính thử kết quả cũ theo bảng màu mới",
+            description = """
+                    L33. Chạy NỀN (`202`): ghi `scan_analysis_recompute`, KHÔNG đổi kết quả nào \
+                    đang hiển thị. `reason` bắt buộc ≥ 10 ký tự. Bảng `ARCHIVED` ⇒ \
+                    `409 COLOR_CHART_IN_USE`; bảng chưa đủ 2 mức pH ⇒ `422 COLOR_CHART_INCOMPLETE`. \
+                    Header `Location` trỏ tới L34.""")
+    @PostMapping("/color-charts/{chartId}/backfill-preview")
+    public ResponseEntity<BackfillAcceptedResponse> startBackfillPreview(
+            @CurrentUser SecurityPrincipal principal,
+            @PathVariable UUID chartId,
+            @Valid @RequestBody StartBackfillPreviewRequest request,
+            HttpServletRequest httpRequest) {
+        roleGuard.requireChartAdmin(principal);
+        Period window = ChartBackfillAdminService.parseWindow(request.window());
+        backfillService.startPreview(chartId, request.window(), adminAction(principal, request.reason(), httpRequest));
+        String statusUrl = previewUrl(chartId);
+        return ResponseEntity.accepted()
+                .location(URI.create(statusUrl))
+                .body(new BackfillAcceptedResponse(chartId.toString(), window.toString(), statusUrl));
+    }
+
+    // ------------------------------------------------------------------ L34
+
+    @Operation(
+            operationId = "getColorChartBackfillPreview",
+            summary = "Tác động của lượt tính thử",
+            description = """
+                    L34. Số bản ghi bị LẬT phân loại và `deltaPh` lớn nhất, kèm `evaluated` làm \
+                    mẫu số — "12 bản ghi bị lật" không nói được gì nếu không biết 12 trên bao nhiêu.""")
+    @GetMapping("/color-charts/{chartId}/backfill-preview")
+    public BackfillPreviewResponse getBackfillPreview(
+            @CurrentUser SecurityPrincipal principal,
+            @PathVariable UUID chartId) {
+        roleGuard.requireChartAdmin(principal);
+        return BackfillPreviewResponse.from(chartId.toString(), backfillService.impact(chartId));
+    }
+
+    // ------------------------------------------------------------------ L35
+
+    @Operation(
+            operationId = "applyColorChartBackfill",
+            summary = "Áp dụng kết quả tính thử",
+            description = """
+                    L35. Chạy NỀN (`202`): tạo dòng `scan_analysis` mới (`recompute_of` trỏ về bản \
+                    gốc) và chuyển `is_current`. Chưa chạy preview ⇒ `422 COLOR_CHART_INCOMPLETE`.""")
+    @PostMapping("/color-charts/{chartId}/backfill-apply")
+    public ResponseEntity<BackfillAcceptedResponse> applyBackfill(
+            @CurrentUser SecurityPrincipal principal,
+            @PathVariable UUID chartId,
+            @Valid @RequestBody StartBackfillApplyRequest request,
+            HttpServletRequest httpRequest) {
+        roleGuard.requireChartAdmin(principal);
+        backfillService.startApply(chartId, adminAction(principal, request.reason(), httpRequest));
+        String statusUrl = previewUrl(chartId);
+        return ResponseEntity.accepted()
+                .location(URI.create(statusUrl))
+                .body(new BackfillAcceptedResponse(chartId.toString(), null, statusUrl));
+    }
+
     // ------------------------------------------------------------------ L36
 
     @Operation(
@@ -236,5 +320,34 @@ public class AdminColorChartController {
         return ResponseEntity.ok()
                 .eTag(ETag.of(updated))
                 .body(PhBandResponse.from(updated, locale.getLanguage()));
+    }
+
+    /**
+     * Gộp "kiểm {@code reason}" và "dựng ngữ cảnh audit" vào một lời gọi — tách ra thì một
+     * endpoint mới có thể dựng ngữ cảnh mà quên kiểm {@code reason}, và lỗi đó chỉ lộ ra khi
+     * có người đọc lại {@code audit_log} nhiều tháng sau.
+     */
+    private static AdminAction adminAction(SecurityPrincipal principal, String reason,
+                                           HttpServletRequest request) {
+        return new AdminAction(
+                principal.userId(),
+                actorRole(principal),
+                AdminGuard.requireReason(reason),
+                request.getHeader("X-Request-Id"),
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent"));
+    }
+
+    private static String actorRole(SecurityPrincipal principal) {
+        for (String candidate : ADMIN_ROLE_PRIORITY) {
+            if (AdminGuard.hasAnyRole(principal, Set.of(candidate))) {
+                return candidate;
+            }
+        }
+        return principal.roles().stream().findFirst().orElse(null);
+    }
+
+    private static String previewUrl(UUID chartId) {
+        return "/api/v1/admin/color-charts/" + chartId + "/backfill-preview";
     }
 }

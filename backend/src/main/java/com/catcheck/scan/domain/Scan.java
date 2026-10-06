@@ -212,6 +212,24 @@ public class Scan {
         this.updatedAt = now;
     }
 
+    /**
+     * Trỏ lần quét sang dòng {@code scan_analysis} vừa tính lại — bước cuối của L35
+     * (p4 D4 ghi chú nghiệp vụ).
+     *
+     * <p><b>Bắt buộc, không phải trang trí:</b> mọi câu truy vấn hiển thị của
+     * {@code JdbcScanQueryRepository} (lịch sử, chi tiết, xu hướng) JOIN theo
+     * {@code s.current_analysis_id}, KHÔNG theo {@code scan_analysis.is_current}. Chỉ đổi
+     * {@code is_current} mà quên cột này thì kết quả đã backfill không bao giờ hiện ra cho
+     * người dùng — tức "áp dụng" chạy xong mà không áp dụng gì.</p>
+     *
+     * <p>Khác {@link #markAnalyzed}: không chạm {@code status} (đã là {@code ANALYZED}) và không
+     * chạm {@code credit_ledger_id} — tính lại kết quả <b>không</b> trừ thêm credit.</p>
+     */
+    public void pointAtRecomputedAnalysis(UUID analysisId, Instant now) {
+        this.currentAnalysisId = analysisId;
+        this.updatedAt = now;
+    }
+
     public void markFailed(String failureCode, Instant now) {
         this.status = ScanStatus.FAILED;
         this.failureCode = failureCode;

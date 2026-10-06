@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Hiện thực {@link ChartCatalog} (cổng do scan tuyên bố) bằng dữ liệu của module {@code colorchart}.
@@ -52,6 +53,12 @@ public class ColorChartCatalogAdapter implements ChartCatalog {
         return colorChartRepository
                 .findActiveByProductLineAndBatch(line, productionBatch)
                 .map(this::toPhChart);
+    }
+
+    /** Backfill L33–L35: bảng màu theo id, không lọc trạng thái (xem javadoc của cổng). */
+    @Override
+    public Optional<PhChart> findChartById(UUID chartId) {
+        return colorChartRepository.findById(chartId).map(this::toPhChart);
     }
 
     @Override

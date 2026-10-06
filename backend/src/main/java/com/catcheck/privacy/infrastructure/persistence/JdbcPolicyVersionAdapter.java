@@ -111,6 +111,53 @@ public class JdbcPolicyVersionAdapter implements PolicyVersionPort {
                 """, (rs, rowNum) -> readVersion(rs), type.name(), locale);
     }
 
+    @Override
+    public List<PolicyVersion> findAllForAdmin(PolicyType type, String locale, int limit, int offset) {
+        // Bộ lọc tuỳ chọn viết bằng "(? IS NULL OR cot = ?)" thay vì ghép chuỗi SQL: cùng một
+        // câu lệnh cho mọi tổ hợp bộ lọc nên PostgreSQL tái dùng được plan, và không có đường
+        // nào để một tham số lọt vào phần cú pháp.
+        String sql = "SELECT " + COLUMNS
+                + "  FROM policy_version"
+                + " WHERE (?::varchar IS NULL OR policy_type = ?)"
+                + "   AND (?::varchar IS NULL OR locale = ?)"
+                + " ORDER BY policy_type ASC, effective_from DESC, version DESC"
+                + " LIMIT ? OFFSET ?";
+        String typeName = type == null ? null : type.name();
+        return jdbc.query(sql, (rs, rowNum) -> readVersion(rs),
+                typeName, typeName, locale, locale, limit, offset);
+    }
+
+    @Override
+    public long countForAdmin(PolicyType type, String locale) {
+        String typeName = type == null ? null : type.name();
+        Long count = jdbc.queryForObject(
+                "SELECT count(*) FROM policy_version"
+                        + " WHERE (?::varchar IS NULL OR policy_type = ?)"
+                        + "   AND (?::varchar IS NULL OR locale = ?)",
+                Long.class, typeName, typeName, locale, locale);
+        return count == null ? 0L : count;
+    }
+
+    @Override
+    public int markPublished(UUID id, UUID publishedBy, Instant effectiveFrom) {
+        // java.time.Instant khong duoc driver PostgreSQL suy luan kieu SQL (xem findCurrent) —
+        // ep ve OffsetDateTime truoc khi truyen.
+        return jdbc.update(
+                "UPDATE policy_version SET published_by = ?, effective_from = ?"
+                        + " WHERE id = ? AND published_by IS NULL",
+                publishedBy, effectiveFrom.atOffset(java.time.ZoneOffset.UTC), id);
+    }
+
+    @Override
+    public int closeEffective(PolicyType type, String locale, Instant effectiveTo, UUID exceptId) {
+        return jdbc.update(
+                "UPDATE policy_version SET effective_to = ?"
+                        + " WHERE policy_type = ? AND locale = ? AND id <> ?"
+                        + "   AND effective_to IS NULL AND effective_from <= ?",
+                effectiveTo.atOffset(java.time.ZoneOffset.UTC), type.name(), locale, exceptId,
+                effectiveTo.atOffset(java.time.ZoneOffset.UTC));
+    }
+
     private PolicyVersion readVersion(java.sql.ResultSet rs) {
         try {
             return new PolicyVersion(
