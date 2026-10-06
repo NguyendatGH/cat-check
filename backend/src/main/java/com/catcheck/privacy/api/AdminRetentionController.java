@@ -30,7 +30,15 @@ import java.util.Set;
 @RequestMapping("/api/v1/admin/privacy/retention-policies")
 @Tag(name = "Quản trị retention", description = "Cấu hình thời hạn lưu dữ liệu")
 public class AdminRetentionController {
+    /** L57 {@code R:DPO} (REQ-RET-06: chỉ DPO sửa thời hạn — hệ quả pháp lý trực tiếp). */
     private static final Set<String> WRITE_ROLES = Set.of("DPO");
+    /**
+     * L56 {@code R:DPO,ADMIN_SUPER} — bản trước dùng {@code WRITE_ROLES} nên
+     * {@code ADMIN_SUPER} <b>không đọc được</b> bảng retention dù p8 §8.4.12 ô L56 cho phép,
+     * và L58 (dry-run, cũng cho ADMIN_SUPER) thì lại đọc được số liệu của chính bảng đó.
+     */
+    private static final Set<String> READ_ROLES = Set.of("DPO", "ADMIN_SUPER");
+    /** L58 {@code R:ADMIN_SUPER,DPO} + p14 Q29. */
     private static final Set<String> DRY_RUN_ROLES = Set.of("DPO", "ADMIN_SUPER");
 
     private final RetentionService retentionService;
@@ -44,7 +52,7 @@ public class AdminRetentionController {
     @Operation(operationId = "listAdminRetentionPolicies", summary = "L56 — danh sách chính sách lưu trữ")
     @GetMapping
     public List<RetentionPolicyResponse> list(@CurrentUser SecurityPrincipal principal) {
-        AdminGuard.requireAnyRole(principal, WRITE_ROLES);
+        AdminGuard.requireAnyRole(principal, READ_ROLES);
         return retentionService.listPolicies().stream().map(RetentionPolicyResponse::from).toList();
     }
 

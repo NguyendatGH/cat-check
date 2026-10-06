@@ -3,7 +3,12 @@ package com.catcheck.privacy.api;
 import com.catcheck.privacy.api.dto.AdminDsarRequestResponse;
 import com.catcheck.privacy.api.dto.AdminCreateDsarRequest;
 import com.catcheck.privacy.api.dto.AdminDsarTransitionRequest;
+import com.catcheck.privacy.api.dto.AdminDsarExportResponse;
+import com.catcheck.privacy.api.dto.AdminErasureApprovalResponse;
+import com.catcheck.privacy.api.dto.AdminReasonRequest;
 import com.catcheck.privacy.application.AdminDsarService;
+import com.catcheck.privacy.application.AdminErasureApprovalService;
+import com.catcheck.privacy.application.export.DataExportJobService;
 import com.catcheck.privacy.application.RequestEvidence;
 import com.catcheck.privacy.domain.DsarChannel;
 import com.catcheck.privacy.domain.DsarRequest;
@@ -36,12 +41,24 @@ import java.util.UUID;
 public class AdminPrivacyController {
     private static final Set<String> READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
     private static final int MAX_PAGE_SIZE = 100;
+    /** L52: p8 cho {@code DPO,ADMIN_SUPER}; p14 Q10 siết ADMIN_SUPER lại ở tầng service. */
+    private static final Set<String> EXPORT_ROLES = Set.of("ADMIN_SUPER", "DPO");
+    /** L53: {@code R:DPO} — p14 Q9 để ADMIN_SUPER là ❌ (quy tắc hai người, p15 REQ-RBAC-03). */
+    private static final Set<String> ERASURE_APPROVAL_ROLES = Set.of("DPO");
+
     private final DsarRequestPort dsarRequestPort;
     private final AdminDsarService adminDsarService;
+    private final DataExportJobService dataExportJobService;
+    private final AdminErasureApprovalService erasureApprovalService;
 
-    public AdminPrivacyController(DsarRequestPort dsarRequestPort, AdminDsarService adminDsarService) {
+    public AdminPrivacyController(DsarRequestPort dsarRequestPort,
+                                  AdminDsarService adminDsarService,
+                                  DataExportJobService dataExportJobService,
+                                  AdminErasureApprovalService erasureApprovalService) {
         this.dsarRequestPort = dsarRequestPort;
         this.adminDsarService = adminDsarService;
+        this.dataExportJobService = dataExportJobService;
+        this.erasureApprovalService = erasureApprovalService;
     }
 
     @Operation(operationId = "createAdminPrivacyRequest", summary = "L54 — tạo DSAR thay mặt user")
@@ -98,6 +115,41 @@ public class AdminPrivacyController {
                 ? AdminGuard.requireReason(body.reason()) : body.reason();
         return AdminDsarRequestResponse.from(adminDsarService.transition(
                 principal.userId(), actorRole(principal), requestId, action, reason, body.extendedTo(), evidence(request)));
+    }
+
+    /**
+     * L52 — sinh gói dữ liệu cá nhân thay mặt chủ thể, {@code 202 Accepted}.
+     *
+     * <p>Điều kiện hẹp hơn của p14 Q10 (ADMIN_SUPER chỉ xuất yêu cầu mình là
+     * {@code handled_by}) nằm ở service: ở đây chưa đọc {@code dsar_request} nên chưa biết
+     * ai đang xử lý.</p>
+     */
+    @Operation(operationId = "exportAdminPrivacyRequest", summary = "L52 — xuất gói dữ liệu cá nhân thay user")
+    @PostMapping("/{requestId}/export")
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.ACCEPTED)
+    public AdminDsarExportResponse export(
+            @CurrentUser SecurityPrincipal principal,
+            @PathVariable UUID requestId,
+            @Valid @RequestBody AdminReasonRequest body,
+            HttpServletRequest request) {
+        AdminGuard.requireAnyRole(principal, EXPORT_ROLES);
+        String reason = AdminGuard.requireReason(body.reason());
+        return AdminDsarExportResponse.from(dataExportJobService.enqueueOnBehalf(
+                requestId, principal.userId(), actorRole(principal), reason, evidence(request)));
+    }
+
+    /** L53 — phê duyệt + thực thi xoá tài khoản, quy tắc hai người (p15 REQ-RBAC-03). */
+    @Operation(operationId = "approveAdminPrivacyErasure", summary = "L53 — duyệt và thực thi xoá tài khoản")
+    @PostMapping("/{requestId}/approve-erasure")
+    public AdminErasureApprovalResponse approveErasure(
+            @CurrentUser SecurityPrincipal principal,
+            @PathVariable UUID requestId,
+            @Valid @RequestBody AdminReasonRequest body,
+            HttpServletRequest request) {
+        AdminGuard.requireAnyRole(principal, ERASURE_APPROVAL_ROLES);
+        String reason = AdminGuard.requireReason(body.reason());
+        return AdminErasureApprovalResponse.from(erasureApprovalService.approve(
+                principal.userId(), requestId, reason, evidence(request)));
     }
 
     private static String actorRole(SecurityPrincipal principal) {

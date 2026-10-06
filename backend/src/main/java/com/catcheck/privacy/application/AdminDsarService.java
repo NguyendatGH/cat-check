@@ -55,9 +55,16 @@ public class AdminDsarService {
             String reason,
             RequestEvidence evidence) {
         DsarRequest created = dsarService.createAdminRequest(userId, requestType, channel);
-        audit(actorId, actorRole, created, "DSAR_CREATED_ADMIN", reason, evidence,
-                null, created.status().name());
-        return created;
+        // Chốt NGƯỜI ĐỀ XUẤT vào handled_by ngay lúc tạo. Đây là nửa đầu của quy tắc hai
+        // người L53: p4 B5 không có cột `proposed_by` và CLAUDE.md cấm thêm migration ngoài
+        // danh mục p4 §4.9.2, nên handled_by là chỗ duy nhất ghi được ai mở hồ sơ này —
+        // không ghi thì L53 không có gì để đối chiếu và quy tắc hai người thành khẩu hiệu.
+        // Cũng đúng điều kiện p14 Q10 (ADMIN_SUPER chỉ xuất được yêu cầu mình là handled_by).
+        DsarRequest owned = created.withHandledBy(actorId);
+        dsarPort.update(owned);
+        audit(actorId, actorRole, owned, "DSAR_CREATED_ADMIN", reason, evidence,
+                null, owned.status().name());
+        return owned;
     }
 
     @Transactional
@@ -88,7 +95,13 @@ public class AdminDsarService {
             case "ASSIGN" -> {
                 DsarStatus next = request.requiresIdentityVerification() && request.identityVerifiedAt() == null
                         ? DsarStatus.IDENTITY_PENDING : DsarStatus.IN_PROGRESS;
-                yield request.withHandledBy(actorId).withStatus(next);
+                // KHÔNG ghi đè handled_by của một yêu cầu ERASE do admin nhập: trên loại yêu
+                // cầu đó handled_by là người ĐỀ XUẤT, là dữ kiện duy nhất mà L53 dùng để chặn
+                // tự duyệt (p15 REQ-RBAC-03). Cho ASSIGN đổi nó nghĩa là người đề xuất chỉ cần
+                // bấm "nhận xử lý" là vượt được quy tắc hai người.
+                yield preservesProposer(request)
+                        ? request.withStatus(next)
+                        : request.withHandledBy(actorId).withStatus(next);
             }
             case "EXTEND" -> extend(request, extendedTo, reason);
             case "COMPLETE" -> complete(request, now);
@@ -99,6 +112,16 @@ public class AdminDsarService {
         audit(actorId, actorRole, updated, "DSAR_STATUS_CHANGE", reason, evidence,
                 request.status().name(), updated.status().name(), action);
         return updated;
+    }
+
+    /**
+     * Yêu cầu {@code ERASE} do admin nhập đã có người đề xuất — {@code handled_by} trên dòng
+     * này là bằng chứng của quy tắc hai người, không phải ô phân công.
+     */
+    private static boolean preservesProposer(DsarRequest request) {
+        return request.requestType() == DsarRequestType.ERASE
+                && request.channel() != com.catcheck.privacy.domain.DsarChannel.SELF_SERVICE
+                && request.handledBy() != null;
     }
 
     private DsarRequest extend(DsarRequest request, Instant extendedTo, String reason) {

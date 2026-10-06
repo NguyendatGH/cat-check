@@ -116,6 +116,51 @@ public class JdbcSecurityIncidentAdapter implements SecurityIncidentPort {
                 """, (rs, rowNum) -> readIncident(rs), now.minusSeconds(72 * 3600));
     }
 
+    @Override
+    public java.util.Optional<SecurityIncident> findById(UUID id) {
+        return jdbc.query("""
+                SELECT\s""" + COLUMNS + """
+                  FROM security_incident
+                 WHERE id = ?
+                """, (rs, rowNum) -> readIncident(rs), id).stream().findFirst();
+    }
+
+    @Override
+    public List<SecurityIncident> findForAdmin(IncidentSeverity severity, Boolean unresolved,
+                                               int offset, int limit) {
+        // Dùng mệnh đề cố định + tham số nullable thay vì nối chuỗi WHERE động: một câu SQL
+        // duy nhất nên không có nhánh nào chưa bao giờ được chạy thật.
+        return jdbc.query("""
+                SELECT\s""" + COLUMNS + """
+                  FROM security_incident
+                 WHERE (?::varchar IS NULL OR severity = ?::varchar)
+                   AND (?::boolean IS NULL
+                        OR (?::boolean AND resolved_at IS NULL)
+                        OR (NOT ?::boolean AND resolved_at IS NOT NULL))
+                 ORDER BY detected_at DESC
+                 LIMIT ? OFFSET ?
+                """, (rs, rowNum) -> readIncident(rs),
+                name(severity), name(severity), unresolved, unresolved, unresolved, limit, offset);
+    }
+
+    @Override
+    public long countForAdmin(IncidentSeverity severity, Boolean unresolved) {
+        Long total = jdbc.queryForObject("""
+                SELECT count(*)
+                  FROM security_incident
+                 WHERE (?::varchar IS NULL OR severity = ?::varchar)
+                   AND (?::boolean IS NULL
+                        OR (?::boolean AND resolved_at IS NULL)
+                        OR (NOT ?::boolean AND resolved_at IS NOT NULL))
+                """, Long.class,
+                name(severity), name(severity), unresolved, unresolved, unresolved);
+        return total == null ? 0L : total;
+    }
+
+    private static String name(IncidentSeverity severity) {
+        return severity == null ? null : severity.name();
+    }
+
     private SecurityIncident readIncident(ResultSet rs) {
         try {
             return new SecurityIncident(

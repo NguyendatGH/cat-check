@@ -33,6 +33,28 @@ public class RetentionService {
     /** Quyết định owner #9: ảnh scan tối đa 14 ngày — không được nới bằng cấu hình (I15). */
     public static final int SCAN_IMAGE_MAX_DAYS = 14;
 
+    /** TD-05 / p15 §15.4.6: grace xoá tài khoản tối đa 7 ngày — nửa thứ hai của I15. */
+    public static final int ACCOUNT_DELETION_GRACE_MAX_DAYS = 7;
+
+    /**
+     * {@code retention_policy.code} mang trần cứng I15, khớp theo <b>tiền tố</b>.
+     *
+     * <p><b>Bug thật đã sửa, phát hiện bằng curl chứ không bằng suy đoán:</b> bản trước so
+     * {@code "SCAN_IMAGE".equals(policy.code())}, nhưng mã thật trong seed
+     * ({@code db/seed/R__seed_retention_policy.sql}) là <b>{@code SCAN_IMAGE_RAW}</b> — p4 B6
+     * chỉ ghi {@code SCAN_IMAGE} làm ví dụ. Nghĩa là trần cứng 14 ngày của quyết định owner #9
+     * <b>chưa bao giờ chạm được dòng nào</b>: một DPO đặt {@code SCAN_IMAGE_RAW = 365} sẽ
+     * được lưu, và cam kết "ảnh xoá sau 14 ngày" đã in trong copy hiển thị cho user trở thành
+     * sai mà không ai bị chặn. Xác nhận bằng {@code GET /admin/privacy/retention-policies}
+     * trên DB thật: dòng duy nhất cho ảnh scan có {@code code = 'SCAN_IMAGE_RAW'}.</p>
+     *
+     * <p>{@code SCAN_ANALYSIS_LIFECYCLE} (cũng bắt đầu bằng {@code SCAN_}) cố ý KHÔNG bị chặn:
+     * nó là số đo đã khử nhận dạng, không phải ảnh.</p>
+     */
+    private static final List<String> SCAN_IMAGE_CODE_PREFIXES = List.of("SCAN_IMAGE");
+    private static final List<String> DELETION_GRACE_CODE_PREFIXES =
+            List.of("ACCOUNT_DELETION", "ACCOUNT_ERASE", "DELETION_GRACE");
+
     /** Vai trò được sửa retention_policy (p11 §11.5.1). */
     private static final String ROLE_DPO = "DPO";
 
@@ -69,13 +91,43 @@ public class RetentionService {
         if (!snapshot.hasRole(ROLE_DPO)) {
             throw new PermissionDeniedException(PrivacyErrorCode.FORBIDDEN, ROLE_DPO);
         }
-        // Bất biến I15: 14 ngày là cam kết của owner đã in vào copy hiển thị cho user —
-        // không được nới bằng bảng cấu hình.
-        if ("SCAN_IMAGE".equals(policy.code()) && policy.retentionDays() != null
-                && policy.retentionDays() > SCAN_IMAGE_MAX_DAYS) {
-            throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "SCAN_IMAGE_MAX_DAYS");
-        }
+        requireWithinHardCap(policy);
         policyPort.save(policy);
+    }
+
+    /**
+     * Bất biến I15 (p4 §4.5.1): hai thời hạn KHÔNG được nới bằng bảng cấu hình vì chúng là
+     * cam kết đã công bố — 14 ngày ảnh scan (quyết định owner #9, đã in vào copy hiển thị cho
+     * user) và 7 ngày grace xoá tài khoản (TD-05, là điều kiện để hoàn tất xoá trong hạn luật
+     * định 20 ngày của p15 §15.4.6).
+     *
+     * <p>Mã lỗi là {@code 422 RETENTION_LIMIT_EXCEEDED} theo đúng ô L57 của p8 §8.4.12 —
+     * trước đây chỗ này trả {@code 400 VALIDATION_FAILED}, nghĩa là client không phân biệt
+     * được "gõ sai kiểu" với "giá trị bị luật chặn".</p>
+     */
+    private static void requireWithinHardCap(RetentionPolicy policy) {
+        if (policy.retentionDays() == null) {
+            return;
+        }
+        Integer cap = hardCapFor(policy.code());
+        if (cap != null && policy.retentionDays() > cap) {
+            throw new BusinessRuleException(
+                    PrivacyErrorCode.RETENTION_LIMIT_EXCEEDED, policy.code(), cap);
+        }
+    }
+
+    /** Trần cứng của một mã chính sách, {@code null} nếu mã đó không nằm trong I15. */
+    public static Integer hardCapFor(String code) {
+        if (code == null) {
+            return null;
+        }
+        String normalised = code.strip().toUpperCase(java.util.Locale.ROOT);
+        if (SCAN_IMAGE_CODE_PREFIXES.stream().anyMatch(normalised::startsWith)) {
+            return SCAN_IMAGE_MAX_DAYS;
+        }
+        return DELETION_GRACE_CODE_PREFIXES.stream().anyMatch(normalised::startsWith)
+                ? ACCOUNT_DELETION_GRACE_MAX_DAYS
+                : null;
     }
 
     /** L58 — chỉ đếm bản ghi có thể hết hạn, tuyệt đối không gọi executor xoá/ẩn danh. */

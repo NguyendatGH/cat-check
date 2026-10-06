@@ -93,6 +93,33 @@ public enum PrivacyErrorCode implements ErrorCode {
     /** 409 — bật hạn chế khi đang hạn chế. */
     RESTRICTION_ALREADY_ACTIVE("restriction-already-active", HttpStatus.CONFLICT),
 
+    /**
+     * 409 — người đề xuất xoá tài khoản tự bấm duyệt (quy tắc hai người, p15 REQ-RBAC-03 +
+     * p8 L53 <i>"người đề xuất không tự duyệt"</i>). Cùng tình huống với
+     * {@code CONTENT_SELF_APPROVAL_FORBIDDEN} của L44 nên dùng cùng status 409.
+     *
+     * <p>⚠️ Mã này <b>chưa có trong p8 §8.2.4(i)</b> — xem handoff H15.171.</p>
+     */
+    DSAR_SELF_APPROVAL_FORBIDDEN("dsar-self-approval-forbidden", HttpStatus.CONFLICT),
+
+    /* --- Retention & sự cố bảo mật (nhóm L: L57–L62) --- */
+
+    /**
+     * 422 — sửa {@code retention_policy} vượt trần cứng của bất biến I15 (p4 §4.5.1):
+     * {@code SCAN_IMAGE ≤ 14} ngày (quyết định owner #9) và grace xoá tài khoản
+     * {@code ≤ 7} ngày (TD-05). Tên mã lấy nguyên văn ô L57 của p8 §8.4.12.
+     * Tham số: {@code policyCode}, {@code maxDays}.
+     */
+    RETENTION_LIMIT_EXCEEDED("retention-limit-exceeded", HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /**
+     * 404 — {@code security_incident.id} không tồn tại (L61, và {@code incidentId} bắt buộc
+     * của L62).
+     *
+     * <p>⚠️ Mã này <b>chưa có trong p8 §8.2.4</b> — xem handoff H15.171.</p>
+     */
+    SECURITY_INCIDENT_NOT_FOUND("security-incident-not-found", HttpStatus.NOT_FOUND),
+
     /* --- Dùng chung — KHÔNG đăng ký (đã thuộc nhóm (a)/(b) của p8, xem javadoc class) --- */
 
     /** 400 — một hoặc nhiều field không hợp lệ (nhóm (a)). Chỉ ném, không nạp bean. */

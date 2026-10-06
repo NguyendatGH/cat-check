@@ -108,14 +108,20 @@ public class JdbcConsentRecordAdapter implements ConsentRecordPort {
     }
 
     @Override
-    public List<ConsentRecord> findHistoryByUser(UUID userId, Instant before, int limit) {
+    public List<ConsentRecord> findHistoryByUser(UUID userId, Instant before, UUID beforeId, int limit) {
+        // Keyset theo CẶP (occurred_at, id): nhiều mục đích được ghi trong cùng transaction nên
+        // trùng occurred_at tới microsecond — chỉ so occurred_at sẽ bỏ sót dòng ở biên trang.
+        // ORDER BY phải khớp đúng cặp đó, nếu không LIMIT cắt sai dòng.
         return jdbc.query("""
                 SELECT\s""" + COLUMNS + """
                   FROM consent_record
-                 WHERE user_id = ? AND occurred_at < ?
-                 ORDER BY occurred_at DESC
+                 WHERE user_id = ?
+                   AND (?::uuid IS NULL AND occurred_at < ?
+                        OR ?::uuid IS NOT NULL AND (occurred_at, id) < (?, ?::uuid))
+                 ORDER BY occurred_at DESC, id DESC
                  LIMIT ?
-                """, (rs, rowNum) -> readRecord(rs), userId, before, limit);
+                """, (rs, rowNum) -> readRecord(rs),
+                userId, beforeId, before, beforeId, before, beforeId, limit);
     }
 
     @Override

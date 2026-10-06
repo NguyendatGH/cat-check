@@ -1,9 +1,12 @@
 package com.catcheck.privacy.domain.port;
 
+import com.catcheck.privacy.domain.IncidentSeverity;
 import com.catcheck.privacy.domain.SecurityIncident;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Cổng quản lý {@code security_incident} (p4 B9). API nằm ở nhóm admin L (M6) — ở M1
@@ -24,4 +27,17 @@ public interface SecurityIncidentPort {
      * (p4 B9) — nguồn dữ liệu cho {@code IncidentDeadlineMonitorJob} (p12 §12.6.5).
      */
     List<SecurityIncident> findOverdueAuthorityNotification(Instant now);
+
+    Optional<SecurityIncident> findById(UUID id);
+
+    /**
+     * L59 — hàng chờ sự cố, mới phát hiện trước, phân trang offset (p8 §8.4.12 cột Trang = {@code O}).
+     *
+     * @param severity   lọc theo mức độ, {@code null} = mọi mức
+     * @param unresolved {@code true} chỉ hồ sơ chưa {@code resolved_at}, {@code false} chỉ hồ sơ
+     *                   đã khắc phục, {@code null} = cả hai
+     */
+    List<SecurityIncident> findForAdmin(IncidentSeverity severity, Boolean unresolved, int offset, int limit);
+
+    long countForAdmin(IncidentSeverity severity, Boolean unresolved);
 }

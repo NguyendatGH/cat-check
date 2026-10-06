@@ -33,7 +33,25 @@ public interface ConsentRecordPort {
     ConsentStatus findCurrentStatus(UUID userId, String purposeCode);
 
     /** Toàn bộ dòng bằng chứng của user, mới nhất trước — lịch sử tuân thủ (C4). */
-    List<ConsentRecord> findHistoryByUser(UUID userId, Instant before, int limit);
+    default List<ConsentRecord> findHistoryByUser(UUID userId, Instant before, int limit) {
+        return findHistoryByUser(userId, before, null, limit);
+    }
+
+    /**
+     * Như trên nhưng keyset theo <b>cặp</b> {@code (occurred_at, id)} — dùng cho L55
+     * ({@code GET /admin/privacy/consents}, phân trang cursor).
+     *
+     * <p><b>Vì sao phải có {@code beforeId}, phát hiện bằng curl trên dữ liệu thật:</b> một
+     * lần ghi consent sinh <b>nhiều dòng trong cùng transaction</b> (mỗi mục đích một dòng,
+     * p15 §15.3.1) nên chúng có {@code occurred_at} <b>giống hệt nhau tới microsecond</b>. Chỉ
+     * lọc {@code occurred_at < before} thì trang sau nhảy qua toàn bộ phần còn lại của nhóm:
+     * đo thật trên user có 4 dòng cùng mốc, {@code limit=2} trả 2 dòng rồi trang 2 trả
+     * <b>0 dòng</b> — hai dòng bằng chứng pháp lý biến mất khỏi màn hình của DPO. Đây đúng lý
+     * do {@code DsarRequestPort.findByUser} đã dùng keyset cặp từ đầu.</p>
+     *
+     * @param beforeId {@code id} của dòng cuối trang trước; {@code null} = trang đầu
+     */
+    List<ConsentRecord> findHistoryByUser(UUID userId, Instant before, UUID beforeId, int limit);
 
     /** Một dòng bằng chứng theo id — dùng nối {@code supersedes_id} khi tái dựng màn hình. */
     Optional<ConsentRecord> findById(UUID id);
