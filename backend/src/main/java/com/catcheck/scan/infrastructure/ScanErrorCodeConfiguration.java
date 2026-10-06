@@ -80,6 +80,11 @@ public class ScanErrorCodeConfiguration {
     }
 
     @Bean
+    ErrorCode scanImageDsarRequired() {
+        return ScanErrorCode.SCAN_IMAGE_DSAR_REQUIRED;
+    }
+
+    @Bean
     ErrorCode scanAlreadyDeleted() {
         return ScanErrorCode.SCAN_ALREADY_DELETED;
     }

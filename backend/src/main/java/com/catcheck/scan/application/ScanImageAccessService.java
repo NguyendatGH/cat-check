@@ -55,6 +55,29 @@ public class ScanImageAccessService {
         if (!scan.getUserId().equals(userId) || scan.getDeletedAt() != null) {
             throw new NotFoundException(ScanErrorCode.SCAN_NOT_FOUND);
         }
+        return openStoredImage(scan);
+    }
+
+    /**
+     * Mở ảnh <b>không</b> kiểm quyền sở hữu — dành riêng cho L6
+     * ({@code GET /admin/scans/{scanId}/image}, p8 §8.4.12 mục (a)).
+     *
+     * <p><b>Phương thức này không tự phân quyền, và điều đó là cố ý.</b> Điều kiện của L6 không
+     * phải quyền sở hữu mà là "người gọi là {@code DPO}" + "người dùng đó đang có
+     * {@code dsar_request} mở" (p14 ô Q5). Cả hai được kiểm ở
+     * {@link AdminScanService#openImageForDpo} — nơi có cổng {@code OpenDsarPort} và nơi ghi
+     * {@code audit_log} trong cùng transaction. Gọi thẳng phương thức này từ chỗ khác là bỏ qua
+     * cả hai lớp đó, nên nó {@code package-private}: chỉ {@code scan.application} thấy được.</p>
+     */
+    Result openForDsar(Scan scan) {
+        if (scan.getDeletedAt() != null) {
+            throw new NotFoundException(ScanErrorCode.SCAN_NOT_FOUND);
+        }
+        return openStoredImage(scan);
+    }
+
+    private Result openStoredImage(Scan scan) {
+        UUID scanId = scan.getId();
         if (!scan.isStoreImage()) {
             throw new NotFoundException(ScanErrorCode.SCAN_IMAGE_NOT_STORED,
                     scan.getStoreImageReason() == null ? "UNKNOWN" : scan.getStoreImageReason().name());

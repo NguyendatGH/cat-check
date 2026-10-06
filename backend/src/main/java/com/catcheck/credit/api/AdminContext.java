@@ -26,10 +26,25 @@ final class AdminContext {
     }
 
     static AdminActionContext of(SecurityPrincipal principal, String reason, HttpServletRequest request) {
+        return build(principal, AdminGuard.requireReason(reason), request);
+    }
+
+    /**
+     * Cho hành động <b>không</b> mang ký hiệu {@code Rsn} — L9
+     * ({@code GET /admin/users/{userId}/credits}) là endpoint chỉ đọc duy nhất ở đây: cột Auth của
+     * p8 L9 là {@code R:... · Aud}, không có {@code Rsn}. Vẫn ghi {@code audit_log} (cột
+     * {@code Aud} bật), chỉ là không có lý do bắt buộc.
+     */
+    static AdminActionContext withoutReason(SecurityPrincipal principal, HttpServletRequest request) {
+        return build(principal, null, request);
+    }
+
+    private static AdminActionContext build(
+            SecurityPrincipal principal, String reason, HttpServletRequest request) {
         return new AdminActionContext(
                 principal.userId(),
                 actorRole(principal),
-                AdminGuard.requireReason(reason),
+                reason,
                 request.getHeader("X-Request-Id"),
                 request.getRemoteAddr(),
                 request.getHeader("User-Agent"));

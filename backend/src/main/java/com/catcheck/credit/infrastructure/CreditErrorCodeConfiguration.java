@@ -82,4 +82,14 @@ public class CreditErrorCodeConfiguration {
     ErrorCode packagePlanNotFound() {
         return CreditErrorCode.PACKAGE_PLAN_NOT_FOUND;
     }
+
+    @Bean
+    ErrorCode creditAdjustLimitExceeded() {
+        return CreditErrorCode.CREDIT_ADJUST_LIMIT_EXCEEDED;
+    }
+
+    @Bean
+    ErrorCode creditAdjustExceedsBalance() {
+        return CreditErrorCode.CREDIT_ADJUST_EXCEEDS_BALANCE;
+    }
 }

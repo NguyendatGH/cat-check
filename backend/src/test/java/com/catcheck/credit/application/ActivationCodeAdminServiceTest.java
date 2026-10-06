@@ -162,9 +162,14 @@ class ActivationCodeAdminServiceTest {
 
         InMemoryCreditStore creditStore = new InMemoryCreditStore();
         FakeEntitlementPort entitlementPort = new FakeEntitlementPort();
+        // `UserEntitlementPort` không còn là phụ thuộc của ActivateCreditCodeService: phép tính
+        // entitlement đã chuyển sang EntitlementRecalculationService (W5-A) để đường admin cấp
+        // credit tay (L10) dùng chung đúng một định nghĩa `write_access_until` (bất biến I28).
+        EntitlementRecalculationService entitlementRecalculation =
+                new EntitlementRecalculationService(entitlementPort, creditStore, packagePlanPort);
         ActivateCreditCodeService activateService = new ActivateCreditCodeService(
-                codePort, creditStore, creditStore, entitlementPort, packagePlanPort,
-                codeHasher, auditLog, new UuidV7(clock), clock);
+                codePort, creditStore, creditStore, packagePlanPort,
+                codeHasher, auditLog, entitlementRecalculation, new UuidV7(clock), clock);
 
         assertThatThrownBy(() -> activateService.activate(
                 USER_ID, rawCode, ActivateCreditCodeService.RequestFacts.UNKNOWN))

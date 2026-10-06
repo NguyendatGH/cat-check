@@ -286,6 +286,25 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                 """.formatted(COLUMNS), (rs, rowNum) -> map(rs), refType.name(), refId);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>{@code COALESCE(SUM(abs(amount)), 0)} vì {@code SUM} trên tập rỗng trả NULL — và một
+     * admin chưa điều chỉnh gì hôm nay là trường hợp phổ biến nhất, không phải ngoại lệ.</p>
+     *
+     * <p>Đếm cả {@code GRANT} lẫn {@code ADJUST}: chiều "cấp thêm" của L10 ghi {@code GRANT}
+     * (p14 §14.4.4 bước 8), nên nếu chỉ đếm {@code ADJUST} thì nửa số thao tác không vào trần —
+     * tức là trần chỉ chặn việc thu hồi, còn việc phát credit thì vô hạn.</p>
+     */
+    @Override
+    public int sumAdminAdjustedAbsSince(UUID adminId, Instant since) {
+        Integer total = jdbc.queryForObject("""
+                SELECT COALESCE(SUM(abs(amount)), 0) FROM credit_ledger
+                 WHERE ref_type = 'ADMIN' AND ref_id = ? AND created_at >= ?
+                """, Integer.class, adminId, RowReaders.utc(since));
+        return total == null ? 0 : total;
+    }
+
     @Override
     public boolean existsRefundReferencing(UUID consumedLedgerEntryId) {
         Boolean exists = jdbc.queryForObject("""

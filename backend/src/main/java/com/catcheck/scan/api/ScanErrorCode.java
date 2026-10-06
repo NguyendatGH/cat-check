@@ -50,6 +50,16 @@ public enum ScanErrorCode implements ErrorCode {
     SCAN_IMAGE_NOT_STORED("scan-image-not-stored", HttpStatus.NOT_FOUND),
     /** 410 — ảnh đã quá hạn lưu trữ 14 ngày. */
     SCAN_IMAGE_EXPIRED("scan-image-expired", HttpStatus.GONE),
+    /**
+     * 403 — {@code DPO} gọi L6 ({@code GET /admin/scans/{id}/image}) khi người dùng đó
+     * <b>không</b> có {@code dsar_request} nào đang mở (p8 L6, p14 ô Q5).
+     *
+     * <p>p8 §8.2.4 không có mã nào cho tình huống này (handoff H15.151) — và dùng
+     * {@code ACCESS_DENIED} chung sẽ nói sai nguyên nhân: DPO <i>có</i> đúng vai trò, thứ còn
+     * thiếu là một yêu cầu pháp lý đang mở. Hai nguyên nhân khác nhau dẫn tới hai hành động khác
+     * nhau ở màn admin ("bạn không có quyền" so với "hãy nhận xử lý yêu cầu DSAR trước").</p>
+     */
+    SCAN_IMAGE_DSAR_REQUIRED("scan-image-dsar-required", HttpStatus.FORBIDDEN),
     /** 409 — scan đã bị xoá mềm trước đó. */
     SCAN_ALREADY_DELETED("scan-already-deleted", HttpStatus.CONFLICT),
     /** 409 — quá 24 giờ kể từ {@code captured_at} (p6 §6.10.3). */

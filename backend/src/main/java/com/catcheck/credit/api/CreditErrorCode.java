@@ -79,7 +79,26 @@ public enum CreditErrorCode implements ErrorCode {
     ACTIVATION_BATCH_NOT_FOUND("activation-batch-not-found", HttpStatus.NOT_FOUND),
 
     /** 404 — {@code package_plan.code} không tồn tại (L26, và L20 khi chọn gói đã bị xoá). */
-    PACKAGE_PLAN_NOT_FOUND("package-plan-not-found", HttpStatus.NOT_FOUND);
+    PACKAGE_PLAN_NOT_FOUND("package-plan-not-found", HttpStatus.NOT_FOUND),
+
+    /* --- Dieu chinh credit thu cong — L10 (p8 §8.4.12, p14 §14.4.4) --- */
+
+    /**
+     * 422 — vượt trần an toàn {@code app_setting} (mặc định 200 credit/lần, 1 000/ngày/admin —
+     * p14 §14.4.4 bước 5). Tham số: {@code maxPerOperation}, {@code maxPerDay},
+     * {@code remainingToday}.
+     */
+    CREDIT_ADJUST_LIMIT_EXCEEDED("credit-adjust-limit-exceeded", HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /**
+     * 409 — thu hồi nhiều hơn tổng {@code credit_batch.remaining_amount} còn hiệu lực
+     * (p8 §8.2.4(f)). Tham số: {@code available}, {@code requested}.
+     *
+     * <p>Cố ý KHÔNG dùng {@link #CREDIT_INSUFFICIENT} (402): mã đó là của <b>người dùng</b> hết
+     * lượt quét và p8 §8.2.3 dành riêng status 402 cho đúng nó. Ở đây không ai hết credit — một
+     * thao tác admin đang đòi thu hồi số không tồn tại.</p>
+     */
+    CREDIT_ADJUST_EXCEEDS_BALANCE("credit-adjust-exceeds-balance", HttpStatus.CONFLICT);
 
     private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
 

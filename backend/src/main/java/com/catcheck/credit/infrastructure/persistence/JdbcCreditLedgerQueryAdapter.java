@@ -84,6 +84,28 @@ public class JdbcCreditLedgerQueryAdapter implements CreditLedgerQueryPort {
         return new LedgerPage(entries, hasMore, nextCursor);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Hai câu riêng ({@code COUNT(*)} rồi trang dữ liệu) là chi phí mà chế độ offset bắt buộc
+     * phải trả — p8 §8.1.4 đã chấp nhận nó cho các bảng admin. Câu đếm cố ý <b>không</b> JOIN
+     * {@code credit_batch}: {@code package_code} chỉ để hiển thị, không ảnh hưởng con số, nên
+     * {@code LEFT JOIN} trong câu đếm là một lần quét bảng thừa.</p>
+     */
+    @Override
+    public LedgerOffsetPage findByUserForAdmin(UUID userId, int offset, int limit) {
+        int safeLimit = Math.clamp(limit, 1, HARD_LIMIT);
+        int safeOffset = Math.max(offset, 0);
+
+        Long total = jdbc.queryForObject(
+                "SELECT count(*) FROM credit_ledger WHERE user_id = ?", Long.class, userId);
+
+        String sql = SELECT_PAGE + " ORDER BY l.created_at DESC, l.id DESC LIMIT ? OFFSET ?";
+        List<LedgerRow> entries =
+                jdbc.query(sql, (rs, rowNum) -> map(rs), userId, safeLimit, safeOffset);
+        return new LedgerOffsetPage(entries, total == null ? 0L : total);
+    }
+
     private LedgerRow map(ResultSet rs) throws SQLException {
         return new LedgerRow(
                 RowReaders.uuid(rs, "id"),

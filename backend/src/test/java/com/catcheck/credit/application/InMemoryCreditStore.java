@@ -22,7 +22,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * {@code credit_batch} + {@code credit_ledger} trong bộ nhớ, đủ cho hai job nhóm A.
+ * {@code credit_batch} + {@code credit_ledger} trong bộ nhớ, dùng cho hai job nhóm A và cho
+ * {@code AdminCreditServiceTest} (L9/L10 — W5-A).
  *
  * <p>Fake này <b>lặp lại đúng các bộ lọc của câu SQL thật</b> ({@code status = 'ACTIVE'},
  * {@code expires_at <= now}, {@code remaining_amount > 0}, cột cờ đã nhắc còn NULL) — đó mới là
@@ -42,6 +43,8 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
         CreditBatchStatus status = CreditBatchStatus.ACTIVE;
         Instant t48hNotifiedAt;
         Instant t6hNotifiedAt;
+        String packageCode = "PLUS";
+        Instant activatedAt = Instant.EPOCH;
 
         Batch(UUID id, UUID userId, Instant expiresAt, int remainingAmount, int initialAmount) {
             this.id = id;
@@ -109,17 +112,32 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
 
     @Override
     public void insertNewBatch(CreditBatchGrant batch) {
-        throw new UnsupportedOperationException("khong dung trong test job");
+        Batch row = new Batch(batch.id(), batch.userId(), batch.expiresAt(),
+                batch.creditAmount(), batch.creditAmount());
+        row.packageCode = batch.packageCode();
+        row.activatedAt = batch.activatedAt();
+        batches.add(row);
     }
 
     @Override
     public List<CreditBatchView> findLiveBatches(UUID userId, Instant now) {
-        throw new UnsupportedOperationException("khong dung trong test job");
+        return batches.stream()
+                .filter(b -> b.userId.equals(userId)
+                        && b.status == CreditBatchStatus.ACTIVE
+                        && b.expiresAt.isAfter(now)
+                        && b.remainingAmount > 0)
+                .sorted(Comparator.comparing((Batch b) -> b.expiresAt).thenComparing(b -> b.id))
+                .map(InMemoryCreditStore::toView)
+                .toList();
     }
 
     @Override
     public List<CreditBatchView> findAllBatches(UUID userId) {
-        throw new UnsupportedOperationException("khong dung trong test job");
+        return batches.stream()
+                .filter(b -> b.userId.equals(userId))
+                .sorted(Comparator.comparing((Batch b) -> b.expiresAt).thenComparing(b -> b.id))
+                .map(InMemoryCreditStore::toView)
+                .toList();
     }
 
     // ----------------------------------------------------------------- CreditLedgerPort
@@ -179,9 +197,23 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
                 .sum();
     }
 
+    /**
+     * Lặp lại đúng bộ lọc + <b>thứ tự</b> của câu SQL thật ({@code status='ACTIVE'},
+     * {@code expires_at > now}, {@code remaining_amount > 0}, {@code ORDER BY expires_at, id}).
+     * Thứ tự là phần quan trọng nhất: nó mới là FEFO (p5 R2) — fake sắp sai thì test xanh trong
+     * khi code thật trừ sai lô.
+     */
     @Override
     public List<CreditBatchSnapshot> lockLiveBatchesForFefo(UUID userId, Instant now) {
-        throw new UnsupportedOperationException("khong dung trong test job");
+        return batches.stream()
+                .filter(b -> b.userId.equals(userId)
+                        && b.status == CreditBatchStatus.ACTIVE
+                        && b.expiresAt.isAfter(now)
+                        && b.remainingAmount > 0
+                        && !locked.contains(b.id))
+                .sorted(Comparator.comparing((Batch b) -> b.expiresAt).thenComparing(b -> b.id))
+                .map(b -> new CreditBatchSnapshot(b.id, b.expiresAt, b.remainingAmount, b.initialAmount))
+                .toList();
     }
 
     @Override
@@ -216,12 +248,25 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
 
     @Override
     public Optional<LedgerEntry> findByIdempotencyKey(String idempotencyKey) {
-        return Optional.empty();
+        return entries.stream()
+                .filter(entry -> idempotencyKey != null && idempotencyKey.equals(entry.idempotencyKey()))
+                .findFirst();
     }
 
     @Override
     public List<LedgerEntry> findConsumeRowsByRef(CreditLedgerRefType refType, UUID refId) {
         return List.of();
+    }
+
+    /** Trần {@code maxPerDay} của L10 — tính đúng từ các dòng đã ghi, không trả 0 cứng. */
+    @Override
+    public int sumAdminAdjustedAbsSince(UUID adminId, Instant since) {
+        return entries.stream()
+                .filter(entry -> entry.refType() == CreditLedgerRefType.ADMIN)
+                .filter(entry -> adminId.equals(entry.refId()))
+                .filter(entry -> !entry.createdAt().isBefore(since))
+                .mapToInt(entry -> Math.abs(entry.amount()))
+                .sum();
     }
 
     @Override
@@ -247,6 +292,11 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
                 && batch.expiresAt.isAfter(now)
                 && !batch.expiresAt.isAfter(now.plus(milestone.lead()))
                 && !alreadyNotified;
+    }
+
+    private static CreditBatchView toView(Batch batch) {
+        return new CreditBatchView(batch.id, batch.packageCode, batch.initialAmount,
+                batch.remainingAmount, batch.activatedAt, batch.expiresAt, batch.status);
     }
 
     private static ExpiringCreditBatch toExpiring(Batch batch) {

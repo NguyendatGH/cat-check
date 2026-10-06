@@ -173,6 +173,31 @@ class JdbcScanQueryRepository implements ScanQueryRepository {
         return rows.stream().findFirst();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Hai câu riêng ({@code COUNT(*)} rồi trang dữ liệu) là chi phí mà chế độ offset bắt buộc
+     * phải trả — p8 §8.1.4 đã chấp nhận nó cho các bảng admin ("tập dữ liệu admin nhỏ và truy
+     * vấn ít"). Câu đếm cố ý <b>không</b> JOIN {@code scan_analysis}/{@code scan_image}/
+     * {@code color_chart}: nó chỉ đếm dòng {@code scan}, và thêm JOIN vào câu đếm chỉ làm chậm
+     * chứ không đổi con số.</p>
+     */
+    @Override
+    public OffsetPage findByUserForAdmin(UUID userId, int offset, int limit) {
+        int safeLimit = Math.clamp(limit, 1, HARD_LIMIT);
+        int safeOffset = Math.max(offset, 0);
+
+        Long total = jdbc.queryForObject(
+                "SELECT count(*) FROM scan WHERE user_id = ? AND deleted_at IS NULL",
+                Long.class, userId);
+
+        String sql = BASE_SELECT
+                + " AND s.user_id = ?"
+                + " ORDER BY s.captured_at DESC, s.id DESC LIMIT ? OFFSET ?";
+        List<Row> items = jdbc.query(sql, (rs, n) -> map(rs), userId, safeLimit, safeOffset);
+        return new OffsetPage(items, total == null ? 0L : total);
+    }
+
     @Override
     public List<Row> findForExport(UUID catId, Instant from, Instant to) {
         // INCONCLUSIVE bị loại — cùng quy ước "không có bản ghi hiển thị được" của GET /scans/{id}

@@ -174,6 +174,23 @@ public interface CreditLedgerPort {
     List<LedgerEntry> findConsumeRowsByRef(CreditLedgerRefType refType, UUID refId);
 
     /**
+     * Tổng <b>giá trị tuyệt đối</b> credit mà một admin đã điều chỉnh từ mốc {@code since} —
+     * nguồn số liệu cho trần {@code credit.admin_adjust_max_per_day} của L10 (p14 §14.4.4 bước 5,
+     * p8 {@code CREDIT_ADJUST_LIMIT_EXCEEDED}).
+     *
+     * <p>Lọc theo {@code (ref_type = 'ADMIN' AND ref_id = adminId)} — đó là lý do
+     * {@code ref_id} của dòng điều chỉnh mang id của <b>admin thao tác</b>: không có cột nào khác
+     * trong {@code credit_ledger} ghi "ai đã làm", nên nếu {@code ref_id} mang thứ khác thì trần
+     * theo-ngày-theo-admin không thể tính được mà không join {@code audit_log}. p14 §14.4.4 bước 8
+     * lại ghi {@code ref_id = <audit_log.id>} — xem handoff H15.154.</p>
+     *
+     * <p><b>Tuyệt đối</b> ({@code abs}) chứ không phải tổng đại số: trần là hạn mức <i>biên độ
+     * thao tác</i>. Nếu cộng đại số thì một admin cấp 1 000 rồi thu hồi 1 000 sẽ về 0 và được cấp
+     * tiếp 1 000 — tức là trần không còn chặn gì.</p>
+     */
+    int sumAdminAdjustedAbsSince(UUID adminId, Instant since);
+
+    /**
      * Dòng {@code CONSUME} này đã được hoàn chưa.
      *
      * <p>{@code UNIQUE (idempotency_key)} chỉ chặn hoàn <i>trùng khoá</i>, không chặn hoàn hai

@@ -81,4 +81,33 @@ public interface CreditLedgerQueryPort {
      * @param limit  số dòng tối đa (p8 §8.1.4: mặc định 20, tối đa 100)
      */
     LedgerPage findByUser(UUID userId, LedgerCursor cursor, int limit);
+
+    /**
+     * Một trang sổ cái của user cho màn <b>quản trị</b>, phân trang <b>offset</b> kèm tổng số
+     * dòng — cột {@code Trang = O} của p8 L9 ({@code GET /admin/users/{userId}/credits}).
+     *
+     * <p><b>Vì sao offset ở đây mà cursor ở {@link #findByUser}:</b> hai màn hỏi hai câu khác
+     * nhau. Người dùng cuộn một dòng thời gian (cursor đúng); tổng đài đối soát một tài khoản và
+     * cần "trang 3/7" + "tổng 128 dòng" — hai thứ cursor không cho (p8 §8.1.4). Bảng vẫn là
+     * chỉ-INSERT nên offset có nhược điểm cố hữu (dòng mới chèn ở đầu làm lệch trang), nhưng với
+     * sổ cái của <i>một</i> tài khoản xem trong vài phút thì đó đúng là đánh đổi p8 đã chấp nhận
+     * cho mọi bảng admin. Xem handoff H15.150.</p>
+     *
+     * @param userId chủ sổ — bắt buộc có trong mọi truy vấn (bất biến I14)
+     * @param offset số dòng bỏ qua
+     * @param limit  số dòng tối đa (trần cứng 100)
+     */
+    LedgerOffsetPage findByUserForAdmin(UUID userId, int offset, int limit);
+
+    /**
+     * Một trang offset: các dòng + tổng số dòng. Tách khỏi {@link LedgerPage} thay vì nhồi cả
+     * {@code nextCursor} lẫn {@code totalElements} vào một record — một record mà nửa số trường
+     * luôn {@code null} là chỗ để lẫn hai chế độ phân trang mà p8 §8.1.4 cố ý giữ riêng.
+     */
+    record LedgerOffsetPage(List<LedgerRow> entries, long totalElements) {
+
+        public LedgerOffsetPage {
+            entries = entries == null ? List.of() : List.copyOf(entries);
+        }
+    }
 }

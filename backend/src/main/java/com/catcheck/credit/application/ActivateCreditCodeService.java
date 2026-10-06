@@ -15,14 +15,11 @@ import com.catcheck.credit.domain.CreditLedgerType;
 import com.catcheck.credit.domain.Entitlement;
 import com.catcheck.credit.domain.LedgerEntry;
 import com.catcheck.credit.domain.PackagePlan;
-import com.catcheck.credit.domain.PlanFeatures;
-import com.catcheck.credit.domain.PlanTier;
 import com.catcheck.credit.domain.port.ActivationCodeHasher;
 import com.catcheck.credit.domain.port.ActivationCodePort;
 import com.catcheck.credit.domain.port.CreditBatchPort;
 import com.catcheck.credit.domain.port.CreditLedgerPort;
 import com.catcheck.credit.domain.port.PackagePlanPort;
-import com.catcheck.credit.domain.port.UserEntitlementPort;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.id.UuidV7;
@@ -33,8 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -66,10 +61,10 @@ public class ActivateCreditCodeService {
 
     private final CreditLedgerPort creditLedgerPort;
     private final CreditBatchPort creditBatchPort;
-    private final UserEntitlementPort userEntitlementPort;
     private final PackagePlanPort packagePlanPort;
     private final ActivationCodeHasher codeHasher;
     private final AuditLogService auditLogService;
+    private final EntitlementRecalculationService entitlementRecalculation;
     private final UuidV7 uuidV7;
     private final Clock clock;
 
@@ -77,20 +72,20 @@ public class ActivateCreditCodeService {
             ActivationCodePort codePort,
             CreditLedgerPort creditLedgerPort,
             CreditBatchPort creditBatchPort,
-            UserEntitlementPort userEntitlementPort,
             PackagePlanPort packagePlanPort,
             ActivationCodeHasher codeHasher,
             AuditLogService auditLogService,
+            EntitlementRecalculationService entitlementRecalculation,
             UuidV7 uuidV7,
             Clock clock
     ) {
         this.codePort = codePort;
         this.creditLedgerPort = creditLedgerPort;
         this.creditBatchPort = creditBatchPort;
-        this.userEntitlementPort = userEntitlementPort;
         this.packagePlanPort = packagePlanPort;
         this.codeHasher = codeHasher;
         this.auditLogService = auditLogService;
+        this.entitlementRecalculation = entitlementRecalculation;
         this.uuidV7 = uuidV7;
         this.clock = clock;
     }
@@ -201,46 +196,16 @@ public class ActivateCreditCodeService {
     }
 
     /**
-     * Tính lại {@code user_entitlement} từ các lô user đã từng kích hoạt (bất biến I28).
+     * Tính lại {@code user_entitlement} — uỷ quyền cho
+     * {@link EntitlementRecalculationService}.
      *
-     * <p>Gói cao nhất lấy theo thứ tự {@link PlanTier}. Điểm mấu chốt của p5 R5: quyền ĐỌC giữ
-     * vĩnh viễn — user từng mua gói MULTI rồi hạ xuống MINI vẫn đọc được lịch sử và xuất PDF; chỉ
-     * quyền TẠO MỚI bị chặn theo {@code writeAccessUntil}.</p>
-     *
-     * <p>Quét TẤT CẢ lô (kể cả lô đã đóng) chứ không chỉ lô còn sống, vì gói đã hết hạn vẫn phải
-     * giữ quyền đọc.</p>
+     * <p>Trước W5-A, toàn bộ phép tính này nằm ngay trong lớp này. Đã chuyển ra vì nay có HAI
+     * đường tạo lô credit (đổi mã ở đây, admin cấp tay ở {@code AdminCreditAdjustmentService} —
+     * p8 L10): giữ hai bản sẽ cho hai định nghĩa {@code write_access_until} trôi khỏi nhau, và
+     * bất biến I28 chỉ có một.</p>
      */
     private Entitlement refreshEntitlement(UUID userId, Instant now) {
-        Entitlement current = userEntitlementPort.findOrDefault(userId, now);
-
-        String highestCode = current.highestPackage();
-        for (String packageCode : creditBatchPort.findAllBatches(userId).stream()
-                .map(batch -> batch.packageCode())
-                .filter(Objects::nonNull)
-                .toList()) {
-            highestCode = PlanTier.isHigher(packageCode, highestCode) ? packageCode : highestCode;
-        }
-
-        PlanFeatures features = PlanFeatures.none();
-        Integer maxCatProfiles = null;
-        if (highestCode != null) {
-            Optional<PackagePlan> plan = packagePlanPort.findByCode(highestCode);
-            if (plan.isPresent()) {
-                features = plan.get().features();
-                maxCatProfiles = plan.get().maxCatProfiles();
-            }
-        }
-
-        // I28: write_access_until = MAX(expires_at) của các lô ĐÃ KÍCH HOẠT. Tính ở đây thay
-        // vì để job cập nhật, để quyền ghi có hiệu lực ngay ở lần gọi kế tiếp sau kích hoạt
-        // (p8 H4: không cache quyền trong phiên).
-        Instant writeAccessUntil = userEntitlementPort.maxActivatedBatchExpiry(userId).orElse(null);
-
-        Entitlement refreshed = new Entitlement(
-                userId, highestCode, maxCatProfiles, features, writeAccessUntil,
-                current.trialScansUsed(), now);
-        userEntitlementPort.save(refreshed);
-        return refreshed;
+        return entitlementRecalculation.recalculate(userId, now);
     }
 
     /**

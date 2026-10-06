@@ -275,6 +275,12 @@ class FefoCreditConsumptionServiceTest {
             return entries.stream().anyMatch(e -> e.type() == CreditLedgerType.REFUND
                     && consumedLedgerEntryId.equals(e.refId()));
         }
+
+        /** Không dùng ở đường tiêu credit của người dùng — chỉ L10 (admin) đọc. */
+        @Override
+        public int sumAdminAdjustedAbsSince(UUID adminId, Instant since) {
+            return 0;
+        }
     }
 
     /** Cổng entitlement trong bộ nhớ. */
