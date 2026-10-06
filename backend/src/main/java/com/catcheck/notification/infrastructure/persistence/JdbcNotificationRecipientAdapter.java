@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.DateTimeException;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +40,20 @@ class JdbcNotificationRecipientAdapter implements NotificationRecipientPort {
                         rs.getString("locale"),
                         zone(rs.getString("timezone"))),
                 userId).stream().findFirst();
+    }
+
+    @Override
+    public List<UUID> findActiveRecipientIdsAfter(UUID afterId, int limit) {
+        // `? IS NULL OR id > ?` thay vi ghep chuoi SQL co dieu kien: mot cau lenh duy nhat thi
+        // PostgreSQL cache duoc plan, va khong co nhanh nao de lot mot bo loc trang thai.
+        return jdbc.query("""
+                SELECT id
+                  FROM app_user
+                 WHERE status NOT IN ('ANONYMIZED', 'DELETION_REQUESTED')
+                   AND (CAST(? AS uuid) IS NULL OR id > CAST(? AS uuid))
+                 ORDER BY id
+                 LIMIT ?
+                """, (rs, rowNum) -> rs.getObject("id", UUID.class), afterId, afterId, limit);
     }
 
     /** Múi giờ hỏng không được làm chết việc gửi — rơi về mặc định của p12 §12.5.2. */

@@ -25,6 +25,21 @@ public class MediaController {
         this.storage = storage;
     }
 
+    /**
+     * R18 (p7 §7.6.2 + {@code WebLayerRuleTests}) doi MOI method public cua mot
+     * {@code @RestController} co {@code @Operation(operationId = ...)}. Thieu annotation nay lam
+     * {@code ./mvnw test} DO cho toan bo repo — do that o nhanh w5d truoc khi sua: 344 test,
+     * 4 that bai, trong do co dong nay.
+     *
+     * <p><b>Ghi chu ve pham vi:</b> W5-D khong so huu {@code media/**} trong dot nay. Sua day la
+     * mot dong annotation thuan bo sung, khong doi hanh vi, va duoc lam vi mot suite do chan moi
+     * agent khac. Ghi handoff H15.186.</p>
+     */
+    @io.swagger.v3.oas.annotations.Operation(
+            operationId = "getSignedMediaObject",
+            summary = "Tai mot file da ky bang HMAC",
+            description = "URL do LocalImageStorage.presignedUrl phat ra; khong can phien vi "
+                    + "chinh URL da mang HMAC + han dung.")
     @GetMapping("/{*key}")
     public ResponseEntity<?> get(
             @PathVariable String key,

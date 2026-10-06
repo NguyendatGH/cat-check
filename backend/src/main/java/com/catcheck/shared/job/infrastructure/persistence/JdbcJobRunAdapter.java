@@ -7,6 +7,8 @@ import com.catcheck.shared.job.JobTriggerType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -15,65 +17,66 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * {@link JobRunPort} trên {@code JdbcTemplate}, bảng {@code job_run} (p4 §K3).
+ * {@link JobRunPort} tren {@code JdbcTemplate}, bang {@code job_run} (p4 §K3).
  *
- * <p><b>Bảng hiện có HẸP HƠN đặc tả.</b> {@code V15__ops.sql} tạo {@code job_run} với
- * {@code (id, job_name, status, started_at, finished_at, duration_ms, row_count, error_summary)},
- * trong khi p4 §K3 và p12 §12.8.2 còn đòi {@code trigger_type}, {@code dry_run},
- * {@code items_processed}, {@code items_deleted}, {@code items_failed}, {@code instance_id} và
- * trạng thái {@code SKIPPED_THRESHOLD}. W1-B <b>không được thêm migration</b> (thư mục
- * {@code db/migration} do W1-A giữ), nên adapter này ghi những gì cột hiện có cho phép và phần
- * còn lại đã được ghi vào {@code context/spec/reviews/handoffs.md} mục H15.e. Ba chỗ xuống
- * thang, đều cố ý và đều tạm thời:</p>
- * <ol>
- *   <li>{@code items_processed} ghi vào {@code row_count}; {@code items_deleted} và
- *       {@code items_failed} <b>chưa lưu được</b> (chúng vẫn có trong {@link JobOutcome} và
- *       trong log ứng dụng).</li>
- *   <li>{@code dry_run} ghi tạm thành tiền tố {@code "dry-run"} trong {@code error_summary} —
- *       xấu nhưng đọc được bằng mắt ở màn "Log job nền" của p14, còn hơn mất hẳn thông tin
- *       "lần chạy này chỉ đếm" (p4 §K3: lần chạy dry-run vẫn phải để lại dấu vết).</li>
- *   <li>{@link JobRunStatus#SKIPPED_THRESHOLD} ghi thành {@code 'SKIPPED'} vì
- *       {@code ck_job_run_status} hiện chỉ cho phép giá trị đó; {@code trigger_type} ghi vào
- *       {@code error_summary} cùng tiền tố dry-run khi khác {@code SCHEDULE}.</li>
- * </ol>
+ * <p><b>Ba cho xuong thang truoc day DA HET (W5-D).</b> {@code V26__job_run_columns.sql} bo sung
+ * {@code trigger_type}, {@code dry_run}, {@code items_processed}, {@code items_deleted},
+ * {@code items_failed}, {@code instance_id} va mo {@code ck_job_run_status} cho
+ * {@code SKIPPED_THRESHOLD} — tuc la dung cau truc p4 §K3 / p12 §12.8.2. Truoc do adapter nay
+ * phai nhoi {@code "dry-run"} va {@code "trigger=MANUAL"} vao {@code error_summary} (H15.44),
+ * nghia la mot lan chay THANH CONG do admin bam lai hien ra o man "Log job nen" cua p14 nhu mot
+ * lan chay CO LOI — va L65 thi khong the lam dung viec p8 giao cho no
+ * ({@code trigger_type = MANUAL}).</p>
+ *
+ * <p><b>{@code row_count} van duoc ghi song song voi {@code items_processed}.</b> Cot cu khong
+ * bi xoa va khong bi bo trong: L64 ({@code JdbcOpsQueryAdapter}) dang doc no, va mot giai doan
+ * man admin bi trong so lieu la cai gia khong can phai tra. Day la trung lap <b>co han</b> —
+ * khi L64 chuyen sang doc {@code items_*} thi go cot cu o mot migration rieng (handoff
+ * H15.180).</p>
+ *
+ * <p><b>{@code instance_id}</b> lay hostname cua may/container, cat con 64 ky tu theo kieu cot.
+ * p4 §K3 goi no la thu de "debug khi chay nhieu instance"; o mot instance thi no la hang so vo
+ * hai. Hostname <b>khong phai PII</b> — day la may chu, khong phai thiet bi nguoi dung.</p>
  */
 @Repository
 public class JdbcJobRunAdapter implements JobRunPort {
 
+    private static final int INSTANCE_ID_MAX_LENGTH = 64;
+
+    private static final String INSTANCE_ID = resolveInstanceId();
+
     private static final String INSERT_STARTED = """
-            INSERT INTO job_run (id, job_name, status, started_at, error_summary)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO job_run (id, job_name, status, trigger_type, dry_run, instance_id, started_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """;
 
     /**
-     * {@code ck_job_run_finish} buộc {@code finished_at} và {@code duration_ms} cùng NULL hoặc
-     * cùng có giá trị, nên hai cột đặt trong CÙNG một câu lệnh. {@code duration_ms} tính ngay
-     * trong SQL để không phải truyền lại {@code started_at} và không lệch nếu đồng hồ app trôi.
+     * {@code ck_job_run_finish} buoc {@code finished_at} va {@code duration_ms} cung NULL hoac
+     * cung co gia tri, nen hai cot dat trong CUNG mot cau lenh. {@code duration_ms} tinh ngay
+     * trong SQL de khong phai truyen lai {@code started_at} va khong lech neu dong ho app troi.
      *
-     * <p>{@code concat_ws} bỏ qua NULL, nên nó gộp tiền tố đã ghi lúc mở dòng (dry-run /
-     * trigger type) với tóm tắt lỗi mà không sinh dấu "; " thừa; {@code NULLIF(..., '')} trả
-     * cột về NULL khi cả hai đều rỗng.</p>
-     *
-     * <p><b>{@code CAST(? AS text)} quanh tham số tóm tắt lỗi là BẮT BUỘC, không phải trang
-     * trí</b> (bug thật, sửa ở W2-B — H15.87). {@code concat_ws} là hàm variadic
-     * {@code "any"}, nên khi driver gửi một NULL không kiểu, PostgreSQL ném
-     * {@code could not determine data type of parameter $5} và câu {@code UPDATE} thất bại —
-     * tức là <b>mọi lần chạy thành công</b> (lần chạy không có tóm tắt lỗi) đều không đóng
-     * được dòng, để lại {@code status = 'RUNNING'} + {@code finished_at NULL} vĩnh viễn. Lỗi
-     * này vô hình vì {@code JobRunner} chỉ bắt ngoại lệ của THÂN job, còn ngoại lệ của
-     * {@code finish()} thoát ra tới {@code @Scheduled} và bị nuốt. Đo thật trên DB local:
-     * 16/18 dòng {@code job_run} kẹt {@code RUNNING}; đúng hai dòng {@code SUCCESS} là của
-     * {@code JobHeartbeatCheckJob}, job duy nhất luôn có {@code error_summary} khác NULL
-     * (danh sách job quá hạn) nên vô tình né được bug.</p>
+     * <p><b>{@code CAST(? AS text)} quanh tham so tom tat loi la BAT BUOC, khong phai trang
+     * tri</b> (bug that, sua o W2-B — H15.87). Truoc day cau lenh dung {@code concat_ws} de gop
+     * tom tat loi voi tien to dry-run; {@code concat_ws} la ham variadic {@code "any"} nen khi
+     * driver gui mot NULL khong kieu, PostgreSQL nem
+     * {@code could not determine data type of parameter} va cau {@code UPDATE} that bai — tuc
+     * la <b>moi lan chay thanh cong</b> deu khong dong duoc dong, de lai
+     * {@code status = 'RUNNING'} + {@code finished_at NULL} vinh vien (do that: 16/18 dong
+     * {@code job_run} ket {@code RUNNING}). Tu V26 khong con phai gop chuoi nua — tom tat loi
+     * ghi thang — nhung {@code CAST} duoc giu vi ly do GOC van dung: cot la {@code TEXT} va
+     * driver khong suy duoc kieu cua mot {@code NULL} tran.</p>
      */
     private static final String FINISH = """
             UPDATE job_run
-               SET status        = ?,
-                   finished_at   = CAST(? AS timestamptz),
-                   duration_ms   = GREATEST(0, CAST(EXTRACT(EPOCH FROM
-                                       (CAST(? AS timestamptz) - started_at)) * 1000 AS INT)),
-                   row_count     = ?,
-                   error_summary = NULLIF(concat_ws('; ', error_summary, CAST(? AS text)), '')
+               SET status          = ?,
+                   finished_at     = CAST(? AS timestamptz),
+                   duration_ms     = GREATEST(0, CAST(EXTRACT(EPOCH FROM
+                                         (CAST(? AS timestamptz) - started_at)) * 1000 AS INT)),
+                   row_count       = ?,
+                   items_processed = ?,
+                   items_deleted   = ?,
+                   items_failed    = ?,
+                   error_summary   = CAST(? AS text)
              WHERE id = ?
             """;
 
@@ -94,23 +97,28 @@ public class JdbcJobRunAdapter implements JobRunPort {
                 runId,
                 jobName,
                 JobRunStatus.RUNNING.name(),
-                utc(startedAt),
-                marker(triggerType, dryRun));
+                (triggerType == null ? JobTriggerType.SCHEDULE : triggerType).name(),
+                dryRun,
+                INSTANCE_ID,
+                utc(startedAt));
     }
 
     @Override
     public void finish(UUID runId, JobOutcome outcome, Instant finishedAt) {
         OffsetDateTime finished = utc(finishedAt);
         int updated = jdbc.update(FINISH,
-                storedStatus(outcome.status()),
+                outcome.status().name(),
                 finished,
                 finished,
                 outcome.itemsProcessed(),
+                outcome.itemsProcessed(),
+                outcome.itemsDeleted(),
+                outcome.itemsFailed(),
                 outcome.errorSummary(),
                 runId);
         if (updated != 1) {
-            // Dòng vừa được chính JobRunRecorder mở mà không tìm thấy là mâu thuẫn nội tại:
-            // ném để lộ ngay thay vì để job im lặng không có nhật ký.
+            // Dong vua duoc chinh JobRunRecorder mo ma khong tim thay la mau thuan noi tai:
+            // nem de lo ngay thay vi de job im lang khong co nhat ky.
             throw new IllegalStateException("Khong dong duoc dong job_run: " + runId);
         }
     }
@@ -125,29 +133,25 @@ public class JdbcJobRunAdapter implements JobRunPort {
     }
 
     /**
-     * Ghi tạm {@code trigger_type} + {@code dry_run} khi hai cột đó chưa tồn tại (H15.e).
-     * Trả {@code null} cho lần chạy thường theo lịch để không làm bẩn cột lỗi.
+     * Hostname, hoac {@code "unknown"} neu khong phan giai duoc. {@code instance_id} la
+     * {@code NOT NULL} o p4 §K3 nen khong duoc tra {@code null}; va mot lan DNS loi khong duoc
+     * lam chet moi job nen ngoai le bi nuot o day mot cach co y.
      */
-    private static String marker(JobTriggerType triggerType, boolean dryRun) {
-        StringBuilder marker = new StringBuilder();
-        if (dryRun) {
-            marker.append("dry-run");
-        }
-        if (triggerType != null && triggerType != JobTriggerType.SCHEDULE) {
-            if (!marker.isEmpty()) {
-                marker.append(' ');
+    private static String resolveInstanceId() {
+        String candidate = System.getenv("HOSTNAME");
+        if (candidate == null || candidate.isBlank()) {
+            try {
+                candidate = InetAddress.getLocalHost().getHostName();
+            } catch (UnknownHostException ex) {
+                candidate = null;
             }
-            marker.append("trigger=").append(triggerType.name());
         }
-        return marker.isEmpty() ? null : marker.toString();
-    }
-
-    /**
-     * {@code ck_job_run_status} hiện chỉ nhận
-     * {@code RUNNING|SUCCESS|FAILED|PARTIAL|SKIPPED}, chưa có {@code SKIPPED_THRESHOLD} (H15.e).
-     */
-    private static String storedStatus(JobRunStatus status) {
-        return status == JobRunStatus.SKIPPED_THRESHOLD ? "SKIPPED" : status.name();
+        if (candidate == null || candidate.isBlank()) {
+            return "unknown";
+        }
+        return candidate.length() <= INSTANCE_ID_MAX_LENGTH
+                ? candidate
+                : candidate.substring(0, INSTANCE_ID_MAX_LENGTH);
     }
 
     private static OffsetDateTime utc(Instant instant) {

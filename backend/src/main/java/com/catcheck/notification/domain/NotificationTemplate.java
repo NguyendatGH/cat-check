@@ -3,7 +3,7 @@ package com.catcheck.notification.domain;
 import java.util.Optional;
 
 /**
- * Registry 15 template của p12 §12.2.2 + §12.2.6.
+ * Registry template của p12 §12.2.2 + §12.2.5 + §12.2.6.
  *
  * <p><b>Vì sao là enum trong code chứ không phải bảng:</b> p4 §4.4.7 chốt
  * {@code notification.template_code} là {@code VARCHAR(48)} <b>không CHECK</b> và ghi rõ
@@ -62,6 +62,26 @@ public enum NotificationTemplate {
             PreferenceGate.IMAGE_RETENTION_WARNING, null, "notif.scan.image_expiring"),
     SYSTEM_MAINTENANCE(true, true, true, false, true, false,
             PreferenceGate.NONE, null, "notif.system.maintenance"),
+    /**
+     * p12 §12.2.5 — nghia vu luat dinh, <b>khong</b> phai tien ich san pham.
+     *
+     * <p>Can cu xu ly la {@code NV} (tuan thu nghia vu phap luat) chu khong phai consent, nen
+     * {@code mandatory = true} va {@code emailConsentPurpose = null}: gui ke ca khi user da tat
+     * moi thong bao va da rut moi consent tuy chon. {@code quietHoursApply = false} vi Dieu
+     * 29.1.a ND356 cho dung <b>72 gio</b> ke tu khi phat hien su co — hoan mot thong bao den
+     * 07:00 co the lam vo chinh han do (p12 §12.2.5: "khong ap dung quiet hours", "khong duoc
+     * tri hoan de gop vao email tong hop").
+     *
+     * <p>{@code pushChannel = false} la co y: p12 §12.2.5 ghi kenh la "Email + In-app + banner
+     * cong khai". Noi dung phai du 6 muc cua Dieu 29.2 — khong nhet duoc vao mot banner push,
+     * va mot push rut gon se la mot thong bao su co <b>khong du theo luat</b>, te hon la khong
+     * co push.
+     *
+     * <p>Bat dau tu p8 L72 {@code POST /admin/system/broadcast} (H9.10: "co han luat dinh 72
+     * gio nen bat buoc phai co nut bam, khong the chi co template").
+     */
+    PRIVACY_INCIDENT_NOTICE(true, false, true, false, true, false,
+            PreferenceGate.NONE, null, "email.privacy.incident_notice"),
     /** Phase sau. Marketing KHÔNG ghi in-app và dùng cặp consent riêng (p12 §12.9.2). */
     MARKETING_PROMOTION(false, true, true, true, false, true,
             PreferenceGate.NONE, ConsentPurposes.MARKETING_EMAIL, "notif.marketing.promotion");

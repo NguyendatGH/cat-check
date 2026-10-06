@@ -98,4 +98,20 @@ class JdbcNotificationOutboxRepository implements NotificationOutboxRepository {
                  WHERE id = ?
                 """, attempts, errorCode, lastError, id);
     }
+
+    @Override
+    public boolean requeueFailed(UUID id, Instant now) {
+        return jdbc.update("""
+                UPDATE notification_outbox
+                   SET status = 'PENDING', attempts = 0, next_attempt_at = ?,
+                       last_error = NULL, last_error_code = NULL
+                 WHERE id = ? AND status = 'FAILED'
+                """, NotificationRowReaders.offset(now), id) == 1;
+    }
+
+    @Override
+    public java.util.Optional<String> findStatus(UUID id) {
+        return jdbc.query("SELECT status FROM notification_outbox WHERE id = ?",
+                (rs, rowNum) -> rs.getString("status"), id).stream().findFirst();
+    }
 }
