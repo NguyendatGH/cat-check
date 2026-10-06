@@ -106,4 +106,19 @@ public class PrivacyErrorCodeConfiguration {
     ErrorCode restrictionAlreadyActive() {
         return PrivacyErrorCode.RESTRICTION_ALREADY_ACTIVE;
     }
+
+    @Bean
+    ErrorCode dsarSelfApprovalForbidden() {
+        return PrivacyErrorCode.DSAR_SELF_APPROVAL_FORBIDDEN;
+    }
+
+    @Bean
+    ErrorCode retentionLimitExceeded() {
+        return PrivacyErrorCode.RETENTION_LIMIT_EXCEEDED;
+    }
+
+    @Bean
+    ErrorCode securityIncidentNotFound() {
+        return PrivacyErrorCode.SECURITY_INCIDENT_NOT_FOUND;
+    }
 }

@@ -12,6 +12,7 @@ import com.catcheck.audit.api.AuditSubjectType;
 import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
+import com.catcheck.shared.error.PermissionDeniedException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,6 +39,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -46,6 +48,8 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class DataExportJobService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    /** Trạng thái job mà L52 được phép đẩy lại hàng đợi — các trạng thái khác giữ nguyên gói đã có. */
+    private static final java.util.Set<String> RESTARTABLE_JOB_STATUS = java.util.Set.of("QUEUED", "FAILED");
     private final DsarExportJobPort jobs;
     private final DsarExportSnapshotPort snapshot;
     private final DsarExportStorage storage;
@@ -89,6 +93,79 @@ public class DataExportJobService {
                 .meta("publicRef", request.publicRef()).meta("requestType", "ACCESS_EXPORT").build());
         dispatchAfterCommit(request.id());
         return token;
+    }
+
+    /**
+     * L52 — DPO/ADMIN_SUPER sinh gói dữ liệu cá nhân <b>thay mặt</b> chủ thể (p8 §8.4.12 ô
+     * L52, ma trận p14 §14.2.2 ô Q10), trả {@code 202}.
+     *
+     * <p><b>Tái dùng nguyên đường export tự phục vụ</b> — cùng {@code dsar_export_job}, cùng
+     * {@link #generate(UUID)}, cùng email {@code PRIVACY_EXPORT_READY}, cùng hạn 72 giờ và
+     * link một lần. Dựng một đường thứ hai cho admin nghĩa là có hai nơi quyết định "gói dữ
+     * liệu cá nhân gồm những gì" và hai nơi quyết định khi nào nó bị xoá.</p>
+     *
+     * <p><b>Q10 chặt hơn cột {@code R:} của p8:</b> p8 ghi {@code R:DPO,ADMIN_SUPER} nhưng
+     * p14 Q10 cho {@code ADMIN_SUPER} dấu ✅* <i>"chỉ khi là handled_by của yêu cầu đó"</i>.
+     * p11/p14 sở hữu miền phân quyền nên điều kiện hẹp hơn thắng.</p>
+     *
+     * <p><b>Không trả token thô cho admin</b> (có chủ ý): token tải một lần được sinh, chỉ
+     * lưu SHA-256 rồi bỏ giá trị thô đi, nên đường tải duy nhất là link trong email
+     * {@code PRIVACY_EXPORT_READY} gửi tới {@code dsar_request.contact_email} — nếu trả token
+     * cho người gọi thì một DPO tải được trọn bộ dữ liệu cá nhân của người khác mà chủ thể
+     * không hề biết, trong khi p15 §15.4.5 đòi "link yêu cầu đăng nhập". Cách giao gói cho
+     * chủ thể không đăng nhập được (kênh POST/EMAIL) p8 chưa quy định — handoff H15.172.</p>
+     *
+     * @return trạng thái job sau lệnh; {@code dispatched = false} nghĩa là đã có job đang
+     *         chạy/đã xong nên lệnh này KHÔNG sinh gói thứ hai
+     */
+    @Transactional
+    public AdminDispatch enqueueOnBehalf(UUID requestId, UUID actorId, String actorRole,
+                                         String reason, RequestEvidence evidence) {
+        DsarRequest request = requests.findById(requestId)
+                .orElseThrow(() -> new BusinessRuleException(PrivacyErrorCode.DSAR_NOT_FOUND));
+        if (request.requestType() != DsarRequestType.ACCESS_EXPORT) {
+            throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "requestType");
+        }
+        if (!"DPO".equals(actorRole) && !actorId.equals(request.handledBy())) {
+            // p14 Q10: ADMIN_SUPER chỉ xuất được yêu cầu mà chính mình đang xử lý.
+            throw new PermissionDeniedException(PrivacyErrorCode.FORBIDDEN, "handledBy");
+        }
+        if (request.identityVerifiedAt() == null) {
+            // p15 REQ-DSAR-04: không bao giờ xuất dữ liệu chỉ vì "email gửi tới trông giống".
+            throw new BusinessRuleException(
+                    PrivacyErrorCode.DSAR_IDENTITY_VERIFICATION_REQUIRED, request.publicRef());
+        }
+        if (request.userId() == null) {
+            // user_id đã bị ẩn danh hoá (ON DELETE SET NULL) — không còn dữ liệu nào để xuất.
+            throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "userId");
+        }
+        Optional<DsarExportJob> existing = jobs.findByRequestId(request.id());
+        if (existing.isPresent() && !RESTARTABLE_JOB_STATUS.contains(existing.get().status())) {
+            return new AdminDispatch(request.publicRef(), existing.get().status(), false);
+        }
+        if (existing.isEmpty()) {
+            byte[] tokenBytes = new byte[32];
+            SECURE_RANDOM.nextBytes(tokenBytes);
+            jobs.enqueue(request.id(), sha256(
+                    Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes)));
+        }
+        if (request.status() != com.catcheck.privacy.domain.DsarStatus.IN_PROGRESS) {
+            requests.update(request.withStatus(com.catcheck.privacy.domain.DsarStatus.IN_PROGRESS));
+        }
+        auditLog.record(AuditEvent.builder()
+                .actor("DPO".equals(actorRole)
+                        ? AuditActor.dpo(actorId, actorRole) : AuditActor.admin(actorId, actorRole))
+                .subjectUser(request.userId())
+                .action("EXPORT_DATA")
+                .requestId(evidence.requestId()).ipAddress(evidence.ipAddress())
+                .userAgent(evidence.userAgent())
+                .meta("publicRef", request.publicRef())
+                .meta("requestType", "ACCESS_EXPORT")
+                .meta("onBehalfOfSubject", true)
+                .meta("reason", reason)
+                .build());
+        dispatchAfterCommit(request.id());
+        return new AdminDispatch(request.publicRef(), "QUEUED", true);
     }
 
     public void generate(UUID requestId) {
@@ -233,5 +310,7 @@ public class DataExportJobService {
         });
     }
     public record Download(InputStream stream, String filename) { }
+    /** Kết quả L52 — {@code dispatched = false} nghĩa là tái dùng gói/job đã có. */
+    public record AdminDispatch(String publicRef, String status, boolean dispatched) { }
     private record ExpiredFile(UUID requestId, String storageKey) { }
 }
