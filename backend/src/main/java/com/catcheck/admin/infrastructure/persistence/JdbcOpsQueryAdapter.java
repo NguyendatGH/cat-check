@@ -27,7 +27,8 @@ import java.util.List;
 public class JdbcOpsQueryAdapter implements OpsQueryPort {
 
     private static final String JOB_RUN_COLUMNS =
-            "id, job_name, status, started_at, finished_at, duration_ms, row_count, error_summary";
+            "id, job_name, status, trigger_type, dry_run, started_at, finished_at, duration_ms, "
+                    + "row_count, items_processed, items_deleted, items_failed, instance_id, error_summary";
 
     /**
      * Hai nhánh của L66. {@code email_outbox} không có {@code last_error_code} còn
@@ -145,10 +146,16 @@ public class JdbcOpsQueryAdapter implements OpsQueryPort {
                 rs.getObject("id", java.util.UUID.class),
                 rs.getString("job_name"),
                 rs.getString("status"),
+                rs.getString("trigger_type"),
+                rs.getBoolean("dry_run"),
                 instant(rs, "started_at"),
                 instant(rs, "finished_at"),
                 integerOrNull(rs, "duration_ms"),
                 integerOrNull(rs, "row_count"),
+                integerOrNull(rs, "items_processed"),
+                integerOrNull(rs, "items_deleted"),
+                integerOrNull(rs, "items_failed"),
+                rs.getString("instance_id"),
                 rs.getString("error_summary"));
     }
 

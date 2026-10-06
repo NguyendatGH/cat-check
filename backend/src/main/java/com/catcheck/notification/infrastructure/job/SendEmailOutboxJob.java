@@ -5,6 +5,7 @@ import com.catcheck.notification.application.OutboxDispatchReport;
 import com.catcheck.shared.job.JobContext;
 import com.catcheck.shared.job.JobOutcome;
 import com.catcheck.shared.job.JobProperties;
+import com.catcheck.shared.job.ManualJobTrigger;
 import com.catcheck.shared.job.application.JobRunner;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,7 +34,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(prefix = "catcheck.jobs.send-email-outbox", name = "enabled",
         havingValue = "true", matchIfMissing = true)
-public class SendEmailOutboxJob {
+public class SendEmailOutboxJob implements ManualJobTrigger {
 
     /** Đúng tên ở p12 §12.6.3 — {@code job_run.job_name} không viết tắt. */
     public static final String JOB_NAME = JobProperties.SEND_EMAIL_OUTBOX;
@@ -78,5 +79,24 @@ public class SendEmailOutboxJob {
         }
         return "gui " + report.sent() + ", thu lai " + report.retried()
                 + ", dead letter " + report.failed();
+    }
+
+    /* ------------------------------------------------ ManualJobTrigger (p8 L65) */
+
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    /**
+     * L65 {@code POST /admin/jobs/{jobName}/run} goi than job, KHONG goi {@link #run()}:
+     * {@code run()} tu mo mot dong {@code job_run} qua {@code JobRunner}, nen goi no o day
+     * se de lai HAI dong cho mot lan admin bam — p12 §12.6.1 quy tac 4 chot "dung mot dong moi
+     * lan chay". {@code ManualJobLauncher} la noi boc {@code JobRunner} voi
+     * {@code trigger_type = MANUAL}.
+     */
+    @Override
+    public JobOutcome runOnce(JobContext context) {
+        return dispatch(context);
     }
 }

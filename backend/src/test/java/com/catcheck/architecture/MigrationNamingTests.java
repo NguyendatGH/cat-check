@@ -100,7 +100,17 @@ class MigrationNamingTests {
                         "V19__place.sql",
                         "V20__shop.sql",
                         "V21__ai_rag.sql",
-                        "V22__ai_document_lifecycle.sql");
+                        "V22__ai_document_lifecycle.sql",
+                        // V23–V25: DSAR export job + token tải một lần (W5 khác).
+                        "V23__dsar_export_job.sql",
+                        "V24__dsar_download_token.sql",
+                        "V25__dsar_email_download_token.sql",
+                        // V26 (W5-D): 6 cột + SKIPPED_THRESHOLD của `job_run` mà `V15__ops.sql`
+                        // còn thiếu so với p4 §K3 / p12 §12.8.2 — handoff H15.44. Là NGOẠI LỆ duy
+                        // nhất của đợt này đối với quy tắc "chỉ thêm migration có trong p4 §4.9.2",
+                        // và nó tồn tại vì p8 L65 đặc tả `trigger_type = MANUAL`: không có cột
+                        // thật thì endpoint đó không làm được đúng việc của nó. Handoff H15.180.
+                        "V26__job_run_columns.sql");
     }
 
     /**

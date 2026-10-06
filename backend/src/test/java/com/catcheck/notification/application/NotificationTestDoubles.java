@@ -148,6 +148,35 @@ final class NotificationTestDoubles {
         public void markFailed(UUID id, int attempts, String errorCode, String lastError) {
             failed.put(id, errorCode);
         }
+
+        /* --------------------------------------------------- L67 (gui lai FAILED) */
+
+        /** Dong duoc dat {@code FAILED} ⇒ {@code requeueFailed} thanh cong dung mot lan. */
+        @Override
+        public boolean requeueFailed(UUID id, Instant now) {
+            if (!failed.containsKey(id)) {
+                return false;
+            }
+            failed.remove(id);
+            requeued.put(id, now);
+            return true;
+        }
+
+        @Override
+        public Optional<String> findStatus(UUID id) {
+            if (failed.containsKey(id)) {
+                return Optional.of("FAILED");
+            }
+            if (requeued.containsKey(id) || retried.containsKey(id)) {
+                return Optional.of("PENDING");
+            }
+            if (sent.containsKey(id)) {
+                return Optional.of("SENT");
+            }
+            return Optional.empty();
+        }
+
+        final Map<UUID, Instant> requeued = new LinkedHashMap<>();
     }
 
     /** Bảng {@code email_outbox} trong bộ nhớ. */
@@ -176,6 +205,29 @@ final class NotificationTestDoubles {
 
         @Override
         public void markFailed(UUID id, int attempts, String lastError) {
+            failed.add(id);
+        }
+
+        /* --------------------------------------------------- L67 (gui lai FAILED) */
+
+        final Set<UUID> failed = new HashSet<>();
+        final Map<UUID, Instant> requeued = new LinkedHashMap<>();
+
+        @Override
+        public boolean requeueFailed(UUID id, Instant now) {
+            if (!failed.remove(id)) {
+                return false;
+            }
+            requeued.put(id, now);
+            return true;
+        }
+
+        @Override
+        public Optional<String> findStatus(UUID id) {
+            if (failed.contains(id)) {
+                return Optional.of("FAILED");
+            }
+            return requeued.containsKey(id) ? Optional.of("PENDING") : Optional.empty();
         }
     }
 
@@ -301,9 +353,20 @@ final class NotificationTestDoubles {
 
         NotificationRecipient recipient;
 
+        /** L72 — danh sách id để fan-out; để rỗng thì broadcast không có ai nhận. */
+        final List<UUID> broadcastIds = new ArrayList<>();
+
         @Override
         public Optional<NotificationRecipient> findById(UUID userId) {
             return Optional.ofNullable(recipient);
+        }
+
+        @Override
+        public List<UUID> findActiveRecipientIdsAfter(UUID afterId, int limit) {
+            return broadcastIds.stream()
+                    .filter(id -> afterId == null || id.compareTo(afterId) > 0)
+                    .limit(limit)
+                    .toList();
         }
     }
 

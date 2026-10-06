@@ -21,6 +21,22 @@ public interface NotificationOutboxRepository {
     void markFailed(UUID id, int attempts, String errorCode, String lastError);
 
     /**
+     * L67 — như {@code EmailOutboxRepository.requeueFailed}: chỉ đổi dòng đang {@code FAILED},
+     * điều kiện nằm trong chính câu {@code UPDATE} để không có cuộc đua với
+     * {@code RetryFailedNotificationsJob}.
+     *
+     * <p>Xoá luôn {@code last_error_code}: giữ lại một mã như {@code UNREGISTERED} trên một dòng
+     * vừa được đưa lại hàng chờ sẽ khiến bộ lọc "thiết bị cần thu hồi" của
+     * {@code PushOutboxDispatcher} đọc sai trạng thái.
+     *
+     * @return {@code true} nếu có đúng một dòng được đưa lại hàng chờ
+     */
+    boolean requeueFailed(UUID id, Instant now);
+
+    /** Trạng thái hiện tại của một dòng; rỗng nếu không có dòng nào mang id này. */
+    java.util.Optional<String> findStatus(UUID id);
+
+    /**
      * Một dòng outbox đã join sẵn với {@code push_subscription} và {@code notification}.
      *
      * @param installationId {@code fid}; null ⇒ dùng {@code legacyToken}

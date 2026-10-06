@@ -119,4 +119,19 @@ class JdbcEmailOutboxRepository implements EmailOutboxRepository {
                 NotificationRowReaders.instant(rs, "sent_at"),
                 NotificationRowReaders.instant(rs, "created_at"));
     }
+
+    @Override
+    public boolean requeueFailed(UUID id, Instant now) {
+        return jdbc.update("""
+                UPDATE email_outbox
+                   SET status = 'PENDING', attempts = 0, next_attempt_at = ?, last_error = NULL
+                 WHERE id = ? AND status = 'FAILED'
+                """, NotificationRowReaders.offset(now), id) == 1;
+    }
+
+    @Override
+    public Optional<String> findStatus(UUID id) {
+        return jdbc.query("SELECT status FROM email_outbox WHERE id = ?",
+                (rs, rowNum) -> rs.getString("status"), id).stream().findFirst();
+    }
 }

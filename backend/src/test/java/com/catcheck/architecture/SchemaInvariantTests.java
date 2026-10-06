@@ -37,9 +37,15 @@ class SchemaInvariantTests {
     /**
      * p4 §4.9.4 mục 2: 56 bảng do Part 4 đặc tả (A:9 · B:10 · C:5 · D:13 · E:5 · F:6 · G:1 ·
      * H:3 · K:4) + 4 bảng framework (SPRING_SESSION, SPRING_SESSION_ATTRIBUTES,
-     * event_publication, shedlock) + flyway_schema_history + 5 bảng RAG = 77.
+     * event_publication, shedlock) + flyway_schema_history + 5 bảng RAG = 77, + 1 bảng của
+     * V23–V25 (DSAR export job) = 78.
+     *
+     * <p><b>Con số này là một điểm nóng khi nhiều nhánh chạy song song.</b> Mỗi migration thêm
+     * bảng đều phải sửa nó, nên nó đỏ ngay khi một nhánh khác merge trước. Giữ nguyên dạng con số
+     * cố định là CỐ Ý: một ngưỡng mềm ("≥ 77") sẽ không còn bắt được việc tạo bảng ngoài danh mục
+     * p4 §4.9.2 — đúng thứ test này tồn tại để bắt.</p>
      */
-    private static final int EXPECTED_TABLE_COUNT = 77;
+    private static final int EXPECTED_TABLE_COUNT = 78;
 
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
@@ -59,10 +65,11 @@ class SchemaInvariantTests {
     @Test
     void migratesCleanlyFromAnEmptyDatabase() {
         assertThat(migrateResult.success).as("Flyway migrate phải thành công").isTrue();
-        // V1..V16 + V18..V22 (23 versioned) + 7 file R__ repeatable.
+        // V1..V16 + V18..V26 (27 versioned) + 7 file R__ repeatable.
+        // V23–V25: DSAR export job (W5 khác). V26: 6 cột `job_run` của p4 §K3 (W5-D, H15.44/H15.180).
         assertThat(migrateResult.migrationsExecuted)
                 .as("số migration áp dụng trên DB rỗng")
-                .isEqualTo(29);
+                .isEqualTo(33);
     }
 
     /** p4 §4.9.4 mục 2. */

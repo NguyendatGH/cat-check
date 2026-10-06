@@ -4,6 +4,7 @@ import com.catcheck.shared.job.JobContext;
 import com.catcheck.shared.job.JobDescriptor;
 import com.catcheck.shared.job.JobOutcome;
 import com.catcheck.shared.job.JobProperties;
+import com.catcheck.shared.job.ManualJobTrigger;
 import io.micrometer.core.instrument.MeterRegistry;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @ConditionalOnProperty(prefix = "catcheck.jobs.job-heartbeat-check", name = "enabled",
         havingValue = "true", matchIfMissing = true)
-public class JobHeartbeatCheckJob {
+public class JobHeartbeatCheckJob implements ManualJobTrigger {
 
     /** Đúng tên ở p12 §12.6.6 — {@code job_run.job_name} không viết tắt. */
     public static final String JOB_NAME = JobProperties.JOB_HEARTBEAT_CHECK;
@@ -130,5 +131,24 @@ public class JobHeartbeatCheckJob {
         }
         Duration period = Duration.between(first, second);
         return Optional.of(first.minus(period).toInstant());
+    }
+
+    /* ------------------------------------------------ ManualJobTrigger (p8 L65) */
+
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    /**
+     * L65 {@code POST /admin/jobs/{jobName}/run} goi than job, KHONG goi {@link #run()}:
+     * {@code run()} tu mo mot dong {@code job_run} qua {@code JobRunner}, nen goi no o day
+     * se de lai HAI dong cho mot lan admin bam — p12 §12.6.1 quy tac 4 chot "dung mot dong moi
+     * lan chay". {@code ManualJobLauncher} la noi boc {@code JobRunner} voi
+     * {@code trigger_type = MANUAL}.
+     */
+    @Override
+    public JobOutcome runOnce(JobContext context) {
+        return check(context);
     }
 }
