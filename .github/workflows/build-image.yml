@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.7.1 # TODO owner xác nhận version (chưa có trong BOM đã pin)
+        uses: docker/setup-buildx-action@v4.4.1 # TODO owner xác nhận version (chưa có trong BOM đã pin)
 
       - name: Login GHCR (chỉ cần khi sẽ push)
         if: github.event_name == 'push'
