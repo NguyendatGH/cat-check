@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
 
       - name: Trivy fs scan — báo cáo đầy đủ (không chặn merge)
-        uses: aquasecurity/trivy-action@0.28.0 # TODO owner xác nhận version (chưa có trong BOM)
+        uses: aquasecurity/trivy-action@v0.36.0 # TODO owner xác nhận version (chưa có trong BOM)
         with:
           scan-type: fs
           scan-ref: .
@@ -36,7 +36,7 @@ jobs:
       # khi có tool/luồng phù hợp — hiện dùng CRITICAL + đã có bản vá làm ngưỡng
       # chặn cứng gần đúng nhất cho "đang bị khai thác công khai" ở mức MVP.
       - name: Trivy fs scan — chặn cứng nếu CRITICAL đã có bản vá
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -68,7 +68,7 @@ jobs:
         run: docker build -f frontend/Dockerfile -t catcheck-frontend:scan .
 
       - name: Trivy image scan — backend (báo cáo, không chặn)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: catcheck-backend:scan
           format: table
@@ -77,7 +77,7 @@ jobs:
           exit-code: "0"
 
       - name: Trivy image scan — frontend (báo cáo, không chặn)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: catcheck-frontend:scan
           format: table
@@ -86,7 +86,7 @@ jobs:
           exit-code: "0"
 
       - name: Trivy image scan — chặn cứng nếu CRITICAL đã có bản vá (backend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: catcheck-backend:scan
           format: table
@@ -95,7 +95,7 @@ jobs:
           exit-code: "1"
 
       - name: Trivy image scan — chặn cứng nếu CRITICAL đã có bản vá (frontend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: catcheck-frontend:scan
           format: table
