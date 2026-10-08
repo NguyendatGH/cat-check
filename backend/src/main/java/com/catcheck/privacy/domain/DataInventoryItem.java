@@ -23,6 +23,7 @@ import java.util.List;
  * @param recipient            bên thứ ba nhận dữ liệu
  * @param active               false = không còn thuộc phạm vi
  * @param createdAt            mốc tạo
+ * @param retentionDays        số ngày lưu lấy từ retention_policy.retention_days; null = chưa có chính sách hoặc theo vòng đời tài khoản
  */
 public record DataInventoryItem(
         String code,
@@ -37,7 +38,8 @@ public record DataInventoryItem(
         boolean crossBorder,
         String recipient,
         boolean active,
-        Instant createdAt
+        Instant createdAt,
+        Integer retentionDays
 ) {
 
     public DataInventoryItem {

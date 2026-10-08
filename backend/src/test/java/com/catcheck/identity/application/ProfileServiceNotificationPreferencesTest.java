@@ -52,7 +52,7 @@ class ProfileServiceNotificationPreferencesTest {
         AuditLogService audit = event -> auditActions.add(event.action());
         // identityRepository/piiCipher khong duoc cham toi trong hai luong nay nen de null —
         // truyen fake rong chi lam nhieu test.
-        return new ProfileService(accounts, null, null, audit, CLOCK, "target/avatars-test");
+        return new ProfileService(accounts, null, null, audit, CLOCK, "target/avatars-test", null);
     }
 
     @Test

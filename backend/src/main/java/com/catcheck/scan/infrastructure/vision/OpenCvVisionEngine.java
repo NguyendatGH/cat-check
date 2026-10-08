@@ -70,23 +70,40 @@ public class OpenCvVisionEngine implements VisionEngine {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
 
-        try (Mat mat = handle.mat()) {
+        {
+            // `handle` sở hữu Mat: KHÔNG đóng ở đây (try-with-resources làm Mat bị giải phóng sau lần dùng đầu,
+        // các bước sau của pipeline gặp con trỏ NULL).
+            Mat mat = handle.mat();
+            // Mỗi tầng dò có thể thấy một ứng viên thoái hoá (tứ giác diện tích 0, điểm trùng nhau…) —
+            // warpToCanonical ném IllegalArgumentException. Đó chỉ là "tầng này không tìm được thẻ":
+            // rơi xuống tầng sau, cuối cùng NONE (⇒ cờ CARD_NOT_FOUND mức WARN), KHÔNG được làm hỏng
+            // cả lần quét.
+
             // Tier 1: ArUco DICT_4X4_50
             var arucoResult = detectAruco(mat);
             if (arucoResult != null) {
-                return warpToCanonical(mat, arucoResult, CardDetectionResult.Method.ARUCO);
+                var warped = tryWarp(mat, arucoResult, CardDetectionResult.Method.ARUCO);
+                if (warped != null) {
+                    return warped;
+                }
             }
 
             // Tier 2: QRCodeDetector
             var qrResult = detectQr(mat);
             if (qrResult != null) {
-                return warpToCanonical(mat, qrResult, CardDetectionResult.Method.QR);
+                var warped = tryWarp(mat, qrResult, CardDetectionResult.Method.QR);
+                if (warped != null) {
+                    return warped;
+                }
             }
 
             // Tier 3: contour + approxPolyDP
             var contourResult = detectContour(mat);
             if (contourResult != null) {
-                return warpToCanonical(mat, contourResult, CardDetectionResult.Method.CONTOUR);
+                var warped = tryWarp(mat, contourResult, CardDetectionResult.Method.CONTOUR);
+                if (warped != null) {
+                    return warped;
+                }
             }
 
             return new CardDetectionResult(QuadHint.empty(), null, CardDetectionResult.Method.NONE);
@@ -251,6 +268,16 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
+    /** {@link #warpToCanonical} nhưng ứng viên thoái hoá ⇒ {@code null} (tầng dò này coi như không thấy thẻ). */
+    private CardDetectionResult tryWarp(Mat image, double[][] quad, CardDetectionResult.Method method) {
+        try {
+            return warpToCanonical(image, quad, method);
+        } catch (IllegalArgumentException ex) {
+            log.debug("Bo qua ung vien the thoai hoa o tang {}", method);
+            return null;
+        }
+    }
+
     /** Nắn phẳng thẻ về khung chuẩn 600×380 (p6 S3). */
     private CardDetectionResult warpToCanonical(Mat image, double[][] quad,
                                                  CardDetectionResult.Method method) {
@@ -301,51 +328,61 @@ public class OpenCvVisionEngine implements VisionEngine {
         int height = frame.size().height();
         int totalPixels = width * height;
 
-        // Gate 1: loại pixel hỏng (specular/shadow) + tính candidate
-        List<double[]> candidates = new ArrayList<>();
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Xyz xyz = frame.at(x, y);
-                Lab lab = ColorSpace.xyzToLab(xyz);
-                if (lab.l() > thresholds.specularLMax() || lab.l() < thresholds.shadowLMin()) {
-                    continue;
-                }
-                double chroma = lab.chroma();
-                if (chroma < thresholds.chromaMin()) {
-                    continue;
-                }
-                double fromSubstrate = DeltaE2000.deltaE(lab, substrateLab, DeltaE2000Params.CAT_CHECK);
-                if (fromSubstrate < thresholds.deltaEFromSubstrateMin()) {
-                    continue;
-                }
-                candidates.add(new double[] {0.3 * lab.l(), lab.a(), lab.b()});
+        // Đọc cả ảnh XYZ một lần (thay cho một lần gọi JNI mỗi pixel).
+        double[] xyzAll = frame.toDoubleArray();
+
+        // Gate 1: loại pixel hỏng (specular/shadow) + tính candidate.
+        // Nhãn kmeans đánh chỉ số theo danh sách candidate, KHÔNG theo toàn bộ pixel — nên giữ chỉ số
+        // pixel (y*width+x) của từng candidate để dựng mask.
+        double[] candidates = new double[3 * 1024];
+        int[] positions = new int[1024];
+        int n = 0;
+        for (int p = 0; p < totalPixels; p++) {
+            Lab lab = ColorSpace.xyzToLab(new Xyz(xyzAll[3 * p], xyzAll[3 * p + 1], xyzAll[3 * p + 2]));
+            if (lab.l() > thresholds.specularLMax() || lab.l() < thresholds.shadowLMin()) {
+                continue;
             }
+            double chroma = lab.chroma();
+            if (chroma < thresholds.chromaMin()) {
+                continue;
+            }
+            double fromSubstrate = DeltaE2000.deltaE(lab, substrateLab, DeltaE2000Params.CAT_CHECK);
+            if (fromSubstrate < thresholds.deltaEFromSubstrateMin()) {
+                continue;
+            }
+            if (n == positions.length) {
+                positions = java.util.Arrays.copyOf(positions, n * 2);
+                candidates = java.util.Arrays.copyOf(candidates, n * 6);
+            }
+            candidates[3 * n] = 0.3 * lab.l();
+            candidates[3 * n + 1] = lab.a();
+            candidates[3 * n + 2] = lab.b();
+            positions[n] = p;
+            n++;
         }
 
-        if (candidates.isEmpty()) {
+        // Ít candidate hơn một hạt tối thiểu thì không thể có blob nào; kmeans cũng đòi N >= K.
+        if (n == 0 || n < Math.max(thresholds.minBlobPx(), 3)) {
             return List.of();
         }
 
         // kmeans k=3
-        int[] labels = kmeans(candidates, 3);
+        int[] labels = kmeans(candidates, n, 3);
 
         // Chọn cụm có chroma trung bình cao nhất
-        int bestCluster = selectBestCluster(candidates, labels, 3);
+        int bestCluster = selectBestCluster(candidates, labels, n, 3);
 
         // Tạo mask + morphology + connected components
         try (Mat mask = new Mat(height, width, opencv_core.CV_8UC1);
              Mat kernel = opencv_imgproc.getStructuringElement(
                      opencv_imgproc.MORPH_RECT, new Size(3, 3))) {
-            mask.data().put(new byte[totalPixels]);
-
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int idx = y * width + x;
-                    if (labels[idx] == bestCluster) {
-                        mask.ptr(y).put(x, (byte) 255);
-                    }
+            byte[] maskBytes = new byte[totalPixels];
+            for (int i = 0; i < n; i++) {
+                if (labels[i] == bestCluster) {
+                    maskBytes[positions[i]] = (byte) 255;
                 }
             }
+            mask.data().put(maskBytes);
 
             opencv_imgproc.morphologyEx(mask, mask, opencv_imgproc.MORPH_OPEN, kernel);
 
@@ -355,13 +392,35 @@ public class OpenCvVisionEngine implements VisionEngine {
                 int count = opencv_imgproc.connectedComponentsWithStats(
                         mask, labelMat, stats, centroids);
 
+                // Một lượt qua labelMat cho MỌI blob (thay cho một lượt toàn ảnh mỗi blob).
+                int[] pixelLabels = new int[totalPixels];
+                new IntPointer(labelMat.data()).get(pixelLabels);
+                double[] sumL = new double[count];
+                double[] sumA = new double[count];
+                double[] sumB = new double[count];
+                int[] cnt = new int[count];
+                for (int p = 0; p < totalPixels; p++) {
+                    int label = pixelLabels[p];
+                    if (label <= 0) {
+                        continue;
+                    }
+                    Lab lab = ColorSpace.xyzToLab(new Xyz(xyzAll[3 * p], xyzAll[3 * p + 1], xyzAll[3 * p + 2]));
+                    sumL[label] += lab.l();
+                    sumA[label] += lab.a();
+                    sumB[label] += lab.b();
+                    cnt[label]++;
+                }
+
                 List<Blob> blobs = new ArrayList<>();
                 for (int i = 1; i < count; i++) {
-                    int area = stats.ptr(i).getInt(opencv_imgproc.CC_STAT_AREA);
+                    // `BytePointer.getInt(offset)` đọc theo BYTE: cột CC_STAT_AREA nằm ở 4 * chỉ số cột.
+                    int area = stats.ptr(i).getInt(4L * opencv_imgproc.CC_STAT_AREA);
                     if (area < thresholds.minBlobPx()) {
                         continue;
                     }
-                    Lab meanLab = computeBlobMean(frame, labelMat, i, width, height);
+                    Lab meanLab = cnt[i] > 0
+                            ? new Lab(sumL[i] / cnt[i], sumA[i] / cnt[i], sumB[i] / cnt[i])
+                            : new Lab(0, 0, 0);
                     blobs.add(new Blob(area, meanLab, area));
                 }
                 return blobs;
@@ -369,16 +428,16 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    private int[] kmeans(List<double[]> samples, int k) {
-        try (Mat data = new Mat(samples.size(), 3, opencv_core.CV_64FC1);
+    private int[] kmeans(double[] samples, int n, int k) {
+        // `cv::kmeans` đòi dữ liệu CV_32F (assert `type == CV_32F`), không nhận CV_64F.
+        float[] flat = new float[3 * n];
+        for (int i = 0; i < flat.length; i++) {
+            flat[i] = (float) samples[i];
+        }
+        try (Mat data = new Mat(n, 3, opencv_core.CV_32FC1);
              Mat labels = new Mat();
              Mat centers = new Mat()) {
-            for (int i = 0; i < samples.size(); i++) {
-                DoublePointer ptr = new DoublePointer(data.ptr(i));
-                ptr.put(0, samples.get(i)[0]);
-                ptr.put(1, samples.get(i)[1]);
-                ptr.put(2, samples.get(i)[2]);
-            }
+            new org.bytedeco.javacpp.FloatPointer(data.data()).put(flat);
             opencv_core.kmeans(data, k, labels,
                     new org.bytedeco.opencv.opencv_core.TermCriteria(
                             org.bytedeco.opencv.opencv_core.TermCriteria.EPS
@@ -386,22 +445,18 @@ public class OpenCvVisionEngine implements VisionEngine {
                             10, 1.0),
                     3, opencv_core.KMEANS_PP_CENTERS);
 
-            int[] result = new int[samples.size()];
-            for (int i = 0; i < samples.size(); i++) {
-                result[i] = labels.ptr(i).getInt();
-            }
+            int[] result = new int[n];
+            new IntPointer(labels.data()).get(result);
             return result;
         }
     }
 
-    private int selectBestCluster(List<double[]> samples, int[] labels, int k) {
+    private int selectBestCluster(double[] samples, int[] labels, int n, int k) {
         double[] chromaSum = new double[k];
         int[] count = new int[k];
-        for (int i = 0; i < samples.size(); i++) {
+        for (int i = 0; i < n; i++) {
             int cluster = labels[i];
-            double a = samples.get(i)[1];
-            double b = samples.get(i)[2];
-            chromaSum[cluster] += Math.hypot(a, b);
+            chromaSum[cluster] += Math.hypot(samples[3 * i + 1], samples[3 * i + 2]);
             count[cluster]++;
         }
         int best = 0;
@@ -414,25 +469,6 @@ public class OpenCvVisionEngine implements VisionEngine {
             }
         }
         return best;
-    }
-
-    private Lab computeBlobMean(OpenCvXyzFrame frame, Mat labelMat, int label, int width, int height) {
-        double sumL = 0;
-        double sumA = 0;
-        double sumB = 0;
-        int count = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                if (labelMat.ptr(y).getInt(x * 4) == label) {
-                    Lab lab = ColorSpace.xyzToLab(frame.at(x, y));
-                    sumL += lab.l();
-                    sumA += lab.a();
-                    sumB += lab.b();
-                    count++;
-                }
-            }
-        }
-        return count > 0 ? new Lab(sumL / count, sumA / count, sumB / count) : new Lab(0, 0, 0);
     }
 
     /**

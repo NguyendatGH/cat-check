@@ -2,6 +2,14 @@ spring:
   application:
     name: catcheck
 
+  servlet:
+    multipart:
+      # Mặc định của Spring là 1MB — ảnh chụp điện thoại luôn vượt nên quét/upload avatar hỏng.
+      # Trần thô cao hơn mức nghiệp vụ lớn nhất (scan 8MB: ScanThresholds.MAX_UPLOAD_BYTES);
+      # từng service vẫn tự kiểm và trả mã lỗi riêng (IMAGE_TOO_LARGE, PAYLOAD_TOO_LARGE...).
+      max-file-size: 9MB
+      max-request-size: 10MB
+
   security:
     oauth2:
       client:
@@ -81,6 +89,15 @@ management:
         include: health,info
 
 catcheck:
+  storage:
+    # local | cloudinary | auto (auto: Cloudinary khi đủ 3 biến CLOUDINARY_*, ngược lại local)
+    provider: ${CATCHECK_STORAGE_PROVIDER:auto}
+    cloudinary:
+      cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+      api-key: ${CLOUDINARY_API_KEY:}
+      api-secret: ${CLOUDINARY_API_SECRET:}
+      folder: ${CLOUDINARY_FOLDER:catcheck}
+
   oauth2:
     mock-enabled: false
     frontend-success-url: ${CATCHECK_OAUTH2_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/complete}

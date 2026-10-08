@@ -126,7 +126,7 @@ public class CatController {
             Locale locale) {
         CatStatus statusFilter = EnumParam.parse(CatStatus.class, status, "status");
         List<Cat> cats = catProfileService.listForOwner(user.userId(), statusFilter, sort);
-        List<CatResponse> items = cats.stream().map(cat -> responseAssembler.toResponse(cat, locale)).toList();
+        List<CatResponse> items = responseAssembler.toResponses(cats, locale, sort);
         return CatPageResponse.of(items, items.size(), false);
     }
 

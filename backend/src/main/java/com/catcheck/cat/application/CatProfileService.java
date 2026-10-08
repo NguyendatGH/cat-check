@@ -59,10 +59,10 @@ public class CatProfileService {
     /**
      * Whitelist trường sắp xếp của D1 (p8 §8.5.3).
      *
-     * <p>Không có {@code lastScanAt} dù p8 liệt kê nó: cột đó nằm ở module scan (A5) và chưa có cổng
-     * đọc. Khi A5 có cổng, thêm vào đây cùng lúc với {@code ScanSummaryPort}.</p>
+     * <p>{@code lastScanAt} lấy qua {@code ScanInsightPort#lastScansOf} (cổng đọc của cat); việc sắp
+     * xếp theo nó do tầng assembler thực hiện.</p>
      */
-    private static final Set<String> SORTABLE_FIELDS = Set.of("name", "createdAt");
+    private static final Set<String> SORTABLE_FIELDS = Set.of("name", "createdAt", "lastScanAt");
 
     private static final int MAX_PUBLIC_CODE_ATTEMPTS = 8;
 

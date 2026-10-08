@@ -125,7 +125,8 @@ public class ColorPipelineService {
 
         List<VisionEngine.Blob> blobs = visionEngine.selectIndicatorGrains(
                 calibration.xyzFrame(), calibration.substrateLab(), VisionEngine.GrainThresholds.standard());
-        VisionEngine.FrameSize roiSize = roiFrame.size();
+        // Kích thước ảnh PHÂN TÍCH (có thể đã thu nhỏ): blob.pixelCount() tính trên cùng hệ toạ độ này.
+        VisionEngine.FrameSize roiSize = calibration.xyzFrame().size();
         int roiPixelCount = Math.max(1, roiSize.width() * roiSize.height());
         int totalBlobPixels = blobs.stream().mapToInt(VisionEngine.Blob::pixelCount).sum();
         double indicatorRatio = Math.min(1.0, (double) totalBlobPixels / roiPixelCount);

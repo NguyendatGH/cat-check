@@ -32,7 +32,10 @@ public record CatResponse(
         boolean isPrimary,
         String notes,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Instant lastScanAt,
+        String lastClassification,
+        Long unacknowledgedFlagCount
 ) {
 
     /**
@@ -41,7 +44,8 @@ public record CatResponse(
      * @param breedName tên giống theo locale hiện tại, {@code null} nếu hồ sơ không chọn giống
      * @param avatarUrl URL đã ký (nếu có ảnh), {@code null} nếu chưa gắn ảnh đại diện
      */
-    public static CatResponse from(Cat cat, String breedName, String avatarUrl, LocalDate today) {
+    public static CatResponse from(Cat cat, String breedName, String avatarUrl, LocalDate today,
+                                   Instant lastScanAt, String lastClassification, Long unacknowledgedFlagCount) {
         return new CatResponse(
                 cat.getId().toString(),
                 cat.getPublicCode(),
@@ -62,6 +66,9 @@ public record CatResponse(
                 cat.isPrimary(),
                 cat.getNotes(),
                 cat.getCreatedAt(),
-                cat.getUpdatedAt());
+                cat.getUpdatedAt(),
+                lastScanAt,
+                lastClassification,
+                unacknowledgedFlagCount);
     }
 }

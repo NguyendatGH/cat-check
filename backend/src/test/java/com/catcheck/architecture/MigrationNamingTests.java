@@ -110,7 +110,10 @@ class MigrationNamingTests {
                         // nhất của đợt này đối với quy tắc "chỉ thêm migration có trong p4 §4.9.2",
                         // và nó tồn tại vì p8 L65 đặc tả `trigger_type = MANUAL`: không có cột
                         // thật thì endpoint đó không làm được đúng việc của nó. Handoff H15.180.
-                        "V26__job_run_columns.sql");
+                        "V26__job_run_columns.sql",
+                        // V27: khoá chính community_reaction gồm `reaction` (thích + lưu cùng lúc),
+                        // chống trùng báo cáo đang mở, bỏ 'ALL' khỏi category bài. Owner đồng ý ("fix luôn").
+                        "V27__community_reaction_multi.sql");
     }
 
     /**

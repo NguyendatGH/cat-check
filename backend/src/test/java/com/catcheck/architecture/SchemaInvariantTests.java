@@ -65,11 +65,11 @@ class SchemaInvariantTests {
     @Test
     void migratesCleanlyFromAnEmptyDatabase() {
         assertThat(migrateResult.success).as("Flyway migrate phải thành công").isTrue();
-        // V1..V16 + V18..V26 (27 versioned) + 7 file R__ repeatable.
+        // V1..V16 + V18..V27 (28 versioned) + 7 file R__ repeatable.
         // V23–V25: DSAR export job (W5 khác). V26: 6 cột `job_run` của p4 §K3 (W5-D, H15.44/H15.180).
         assertThat(migrateResult.migrationsExecuted)
                 .as("số migration áp dụng trên DB rỗng")
-                .isEqualTo(33);
+                .isEqualTo(34);
     }
 
     /** p4 §4.9.4 mục 2. */

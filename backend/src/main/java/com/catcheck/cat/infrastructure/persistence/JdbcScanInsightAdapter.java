@@ -53,6 +53,50 @@ class JdbcScanInsightAdapter implements ScanInsightPort {
     }
 
     @Override
+    public java.util.Map<UUID, LastScan> lastScansOf(java.util.Collection<UUID> catIds) {
+        java.util.Map<UUID, LastScan> result = new java.util.HashMap<>();
+        if (catIds.isEmpty()) {
+            return result;
+        }
+        jdbc.query("""
+                SELECT DISTINCT ON (s.cat_id) s.cat_id, s.id, s.captured_at,
+                       sa.ph_value, sa.classification, sa.confidence
+                  FROM scan s
+                  JOIN scan_analysis sa ON sa.scan_id = s.id AND sa.is_current
+                 WHERE s.cat_id = ANY (?) AND s.deleted_at IS NULL AND s.status = 'ANALYZED'
+                 ORDER BY s.cat_id, s.captured_at DESC
+                """,
+                rs -> {
+                    result.put(rs.getObject("cat_id", UUID.class), new LastScan(
+                            rs.getObject("id", UUID.class),
+                            instant(rs, "captured_at"),
+                            rs.getBigDecimal("ph_value"),
+                            rs.getString("classification"),
+                            rs.getBigDecimal("confidence")));
+                },
+                (Object) catIds.toArray(UUID[]::new));
+        return result;
+    }
+
+    @Override
+    public java.util.Map<UUID, Long> unacknowledgedFlagCounts(java.util.Collection<UUID> catIds) {
+        java.util.Map<UUID, Long> result = new java.util.HashMap<>();
+        if (catIds.isEmpty()) {
+            return result;
+        }
+        jdbc.query("""
+                SELECT cat_id, count(*) AS n FROM health_flag
+                 WHERE cat_id = ANY (?) AND acknowledged_at IS NULL
+                 GROUP BY cat_id
+                """,
+                rs -> {
+                    result.put(rs.getObject("cat_id", UUID.class), rs.getLong("n"));
+                },
+                (Object) catIds.toArray(UUID[]::new));
+        return result;
+    }
+
+    @Override
     public WindowStats windowStats(UUID catId, Instant from, Instant to) {
         return jdbc.query("""
                 SELECT count(*)                                                   AS scan_count,

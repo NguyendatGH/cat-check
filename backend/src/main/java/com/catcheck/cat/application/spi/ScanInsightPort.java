@@ -28,6 +28,15 @@ public interface ScanInsightPort {
     /** Lan quet gan nhat da phan tich xong ({@code scan.status = 'ANALYZED'}), neu co. */
     Optional<LastScan> lastScanOf(UUID catId);
 
+    /**
+     * Lan quet gan nhat cua NHIEU meo trong mot truy van (khong N+1). Meo chua co lan quet nao
+     * khong xuat hien trong map.
+     */
+    java.util.Map<UUID, LastScan> lastScansOf(java.util.Collection<UUID> catIds);
+
+    /** So canh bao chua doc cua nhieu meo trong mot truy van; meo khong co canh bao khong co key. */
+    java.util.Map<UUID, Long> unacknowledgedFlagCounts(java.util.Collection<UUID> catIds);
+
     /** Thong ke cua so thoi gian, dung cho {@code scanCount30d} / {@code inRangeRatio30d} (D12). */
     WindowStats windowStats(UUID catId, Instant from, Instant to);
 

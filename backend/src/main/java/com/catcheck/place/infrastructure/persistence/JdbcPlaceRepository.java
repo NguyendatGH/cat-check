@@ -36,8 +36,16 @@ public class JdbcPlaceRepository implements PlaceRepository {
         if (query != null && !query.isBlank()) { sql.append(" AND (lower(p.name) LIKE lower(?) OR lower(p.address) LIKE lower(?))"); args.add("%" + query.strip() + "%"); args.add("%" + query.strip() + "%"); }
         if (kind != null && !kind.isBlank()) { sql.append(" AND p.kind = ?"); args.add(kind.toUpperCase()); }
         if (area != null && !area.isBlank()) { sql.append(" AND p.area = ?"); args.add(area); }
-        if (latitude != null && longitude != null) { sql.append(" AND abs(p.latitude - ?) < 1.0 AND abs(p.longitude - ?) < 1.0"); args.add(latitude); args.add(longitude); }
-        sql.append(" GROUP BY p.id ORDER BY p.name LIMIT ?"); args.add(Math.clamp(limit, 1, 100));
+        // Có vị trí: KHÔNG loại cơ sở xa, mà xếp gần → xa để luôn có "gần nhất" (trước đây hộp ±1° khiến
+        // người dùng ngoài khu vực seed nhận danh sách rỗng). Khoảng cách phẳng hiệu chỉnh cos(vĩ độ).
+        boolean nearest = latitude != null && longitude != null;
+        sql.append(" GROUP BY p.id ORDER BY ");
+        if (nearest) {
+            sql.append("(p.latitude - ?) * (p.latitude - ?) + ((p.longitude - ?) * cos(radians(?))) * ((p.longitude - ?) * cos(radians(?))), ");
+            args.add(latitude); args.add(latitude);
+            args.add(longitude); args.add(latitude); args.add(longitude); args.add(latitude);
+        }
+        sql.append("p.name LIMIT ?"); args.add(Math.clamp(limit, 1, 100));
         return jdbc.query(sql.toString(), (rs, row) -> map(rs), args.toArray());
     }
 

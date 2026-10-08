@@ -47,6 +47,20 @@ public final class OpenCvXyzFrame implements VisionEngine.XyzFrame, AutoCloseabl
         return new VisionEngine.FrameSize(width, height);
     }
 
+    /** Toàn bộ ảnh dạng mảng phẳng X,Y,Z,X,Y,Z… theo hàng (một lần gọi JNI). */
+    public double[] toDoubleArray() {
+        Mat contiguous = mat.isContinuous() ? mat : mat.clone();
+        try {
+            double[] out = new double[width * height * 3];
+            new DoublePointer(contiguous.data()).get(out);
+            return out;
+        } finally {
+            if (contiguous != mat) {
+                contiguous.close();
+            }
+        }
+    }
+
     public Mat mat() {
         return mat;
     }

@@ -44,7 +44,9 @@ public class LocaleConfig {
                 "classpath:messages/insight",
                 "classpath:messages/export",
                 "classpath:messages/reminder",
-                "classpath:messages/notification");
+                "classpath:messages/notification",
+                "classpath:messages/community",
+                "classpath:messages/shop");
         messageSource.setDefaultEncoding("UTF-8");
         messageSource.setFallbackToSystemLocale(false);
         messageSource.setDefaultLocale(i18nProperties.defaultLocale());

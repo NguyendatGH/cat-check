@@ -158,9 +158,14 @@ public class LocalImageStorage implements ImageStorage {
         }
         long expiresEpochSecond = clock.instant().plus(ttl).getEpochSecond();
         String signature = sign(key.value(), expiresEpochSecond);
+        // Mã hoá TỪNG đoạn, giữ nguyên dấu `/`: `%2F` bị Tomcat chặn (400) và route `/{*key}` cần `/`
+        // thật. Trước đây mã hoá cả chuỗi ⇒ mọi ảnh do backend ký URL đều không tải được.
+        String encodedPath = java.util.Arrays.stream(key.value().split("/", -1))
+                .map(segment -> URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"))
+                .collect(java.util.stream.Collectors.joining("/"));
         return URI.create("%s/api/v1/media/%s?expires=%d&sig=%s".formatted(
                 properties.publicBaseUrl(),
-                URLEncoder.encode(key.value(), StandardCharsets.UTF_8),
+                encodedPath,
                 expiresEpochSecond,
                 signature));
     }

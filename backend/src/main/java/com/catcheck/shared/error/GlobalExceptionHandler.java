@@ -6,7 +6,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -102,13 +106,59 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex, Locale locale) {
-        log.warn("Vi pham bat bien mien: {}", ex.getClass().getSimpleName());
+    /** Sai method (vd GET vào route chỉ có POST) → 405 kèm header {@code Allow}, không phải 500. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ProblemDetail> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, Locale locale) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.METHOD_NOT_ALLOWED, messageResolver.resolve("error.method-not-allowed", locale));
+        problemDetail.setTitle("METHOD_NOT_ALLOWED");
+        problemDetail.setProperty("errorCode", "METHOD_NOT_ALLOWED");
+        problemDetail.setProperty("timestamp", clock.instant());
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        HttpHeaders headers = ex.getHeaders();
+        if (headers.getAllow() != null && !headers.getAllow().isEmpty()) {
+            builder.allow(headers.getAllow().toArray(new org.springframework.http.HttpMethod[0]));
+        }
+        return builder.body(problemDetail);
+    }
+
+    /** Tham số path/query sai kiểu (vd id không phải UUID) → 400, không phải 500. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex, Locale locale) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, messageResolver.resolve("validation.failed", locale));
         problemDetail.setTitle("VALIDATION_FAILED");
         problemDetail.setProperty("errorCode", "VALIDATION_FAILED");
+        // Chỉ trả tên tham số, KHÔNG trả giá trị bị từ chối (có thể chứa PII).
+        problemDetail.setProperty("violations", List.of(new ValidationViolation(ex.getName(), "invalid")));
+        problemDetail.setProperty("timestamp", clock.instant());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex, Locale locale) {
+        log.warn("Vi pham bat bien mien: {}", ex.getClass().getSimpleName());
+        log.debug("Chi tiet vi pham bat bien mien", ex);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, messageResolver.resolve("validation.failed", locale));
+        problemDetail.setTitle("VALIDATION_FAILED");
+        problemDetail.setProperty("errorCode", "VALIDATION_FAILED");
+        problemDetail.setProperty("timestamp", clock.instant());
+        return problemDetail;
+    }
+
+    /**
+     * Tệp vượt giới hạn multipart của servlet → 413, không phải 500. Giới hạn tầng này
+     * (`spring.servlet.multipart.max-file-size`) chỉ là chặn thô; từng nghiệp vụ (scan 8MB,
+     * avatar 5MB) vẫn tự kiểm và trả mã lỗi riêng.
+     */
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ProblemDetail handleUploadTooLarge(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex, Locale locale) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.PAYLOAD_TOO_LARGE, messageResolver.resolve("error.payload_too_large", locale));
+        problemDetail.setTitle("PAYLOAD_TOO_LARGE");
+        problemDetail.setProperty("errorCode", "PAYLOAD_TOO_LARGE");
         problemDetail.setProperty("timestamp", clock.instant());
         return problemDetail;
     }

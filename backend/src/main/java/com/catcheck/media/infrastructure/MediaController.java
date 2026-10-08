@@ -45,7 +45,8 @@ public class MediaController {
             @RequestParam String sig) {
         final StorageKey storageKey;
         try {
-            storageKey = StorageKey.parse(key);
+            // `/{*key}` giữ nguyên dấu `/` đầu của phần đường dẫn còn lại; khoá lưu trữ không có nó.
+            storageKey = StorageKey.parse(key.startsWith("/") ? key.substring(1) : key);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }

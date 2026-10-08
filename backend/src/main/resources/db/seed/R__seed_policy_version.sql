@@ -19,6 +19,11 @@ WITH seed(id, policy_type, title, content_md, affected_purposes) AS (
          'MEDICAL_DISCLAIMER',
          'Tuyên bố miễn trừ y tế',
          E'# Tuyên bố miễn trừ y tế\n\n> Bản nháp — chờ rà soát pháp lý.\n\nCatCheck cung cấp thông tin tham khảo về pH, không thay thế việc thăm khám hoặc tư vấn của bác sĩ thú y.',
+         ARRAY[]::varchar(48)[]),
+        ('01990000-0000-7000-8000-000000000004'::uuid,
+         'COOKIE',
+         'Chính sách cookie',
+         E'# Chính sách cookie\n\n> Bản nháp — chờ rà soát pháp lý.\n\nCatCheck chỉ dùng cookie cần thiết để ứng dụng hoạt động:\n\n- **Cookie phiên đăng nhập** (HttpOnly): giữ trạng thái đăng nhập của bạn trên thiết bị này; bị xoá khi bạn đăng xuất hoặc phiên hết hạn.\n- **Cookie `XSRF-TOKEN`**: mã bảo vệ chống giả mạo yêu cầu (CSRF) khi bạn thực hiện thao tác thay đổi dữ liệu.\n\nLựa chọn ngôn ngữ được lưu trong bộ nhớ trình duyệt (không phải cookie).\n\nHiện CatCheck không dùng cookie quảng cáo hay cookie theo dõi bên thứ ba. Nếu sau này bổ sung cookie đo lường, CatCheck sẽ chỉ đặt cookie đó khi bạn đồng ý.',
          ARRAY[]::varchar(48)[])
 )
 INSERT INTO policy_version (

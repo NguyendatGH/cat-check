@@ -57,11 +57,14 @@ public class AccountController {
     private final EmailChangeService emailChangeService;
     private final MfaService mfaService;
     private final SessionService sessionService;
+    private final com.catcheck.audit.api.AuditAccessLogQuery auditAccessLogQuery;
 
     public AccountController(ProfileService profileService,
                              EmailChangeService emailChangeService,
                              MfaService mfaService,
-                             SessionService sessionService) {
+                             SessionService sessionService,
+                             com.catcheck.audit.api.AuditAccessLogQuery auditAccessLogQuery) {
+        this.auditAccessLogQuery = auditAccessLogQuery;
         this.profileService = profileService;
         this.emailChangeService = emailChangeService;
         this.mfaService = mfaService;
@@ -238,8 +241,18 @@ public class AccountController {
     @Operation(operationId = "getAccountPrivacyAccessLog", summary = "Nhat ky truy cap du lieu")
     @GetMapping("/account/privacy/access-log")
     public Map<String, Object> accessLog(@AuthenticationPrincipal AuthPrincipal principal) {
-        // Doc qua audit module — W3 se noi AuditLogService.queryBySubject(userId).
-        return Map.of("items", List.of());
+        List<Map<String, Object>> items = auditAccessLogQuery.accessesToUserData(principal.userId(), 100).stream()
+                .map(entry -> {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("occurredAt", entry.occurredAt());
+                    row.put("actorType", entry.actorType());
+                    row.put("actorRole", entry.actorRole());
+                    row.put("action", entry.action());
+                    row.put("result", entry.result());
+                    return row;
+                })
+                .toList();
+        return Map.of("items", items);
     }
 
     /* --- B14-B18: MFA TOTP --- */

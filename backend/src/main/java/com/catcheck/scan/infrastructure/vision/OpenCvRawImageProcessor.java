@@ -9,13 +9,13 @@ import com.catcheck.scan.domain.color.RobustStats;
 import com.catcheck.scan.domain.color.WhiteBalanceSolver;
 import com.catcheck.scan.domain.color.port.VisionEngine;
 import com.catcheck.scan.domain.port.RawImagePort;
-import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.opencv.global.opencv_imgcodecs;
 import org.bytedeco.opencv.global.opencv_imgproc;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
+import org.bytedeco.opencv.opencv_core.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -37,6 +37,9 @@ public class OpenCvRawImageProcessor implements RawImagePort {
 
     /** Bước lấy mẫu khi ước lượng gain cân bằng trắng — không cần quét từng pixel để đủ chính xác. */
     private static final int NEUTRAL_SAMPLE_STRIDE = 3;
+
+    /** Cạnh dài tối đa của ảnh đưa vào hiệu chỉnh + tách hạt (px); ảnh lớn hơn được thu nhỏ INTER_AREA. */
+    static final int ANALYSIS_MAX_EDGE = 1280;
 
     private final OpenCvNativeLoader nativeLoader;
 
@@ -96,7 +99,10 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         if (!(frame instanceof OpenCvFrameHandle handle)) {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
-        try (Mat source = handle.mat()) {
+        {
+            // `handle` sở hữu Mat: KHÔNG đóng ở đây (try-with-resources làm Mat bị giải phóng sau lần dùng đầu,
+        // các bước sau của pipeline gặp con trỏ NULL).
+            Mat source = handle.mat();
             int width = source.cols();
             int height = source.rows();
             int x = clamp((int) Math.round(roi.x() * width), 0, width - 1);
@@ -117,8 +123,9 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         if (!(frame instanceof OpenCvFrameHandle handle)) {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
-        try (Mat source = handle.mat();
-             Mat gray = new Mat();
+        // `handle` sở hữu Mat nguồn: không đưa vào try-with-resources (xem `cropToRoi`).
+        final Mat source = handle.mat();
+        try (Mat gray = new Mat();
              Mat laplacian = new Mat();
              Mat mean = new Mat();
              Mat stddev = new Mat()) {
@@ -186,86 +193,124 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         if (!(roiFrame instanceof OpenCvFrameHandle handle)) {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
-        try (Mat source = handle.mat()) {
-            int width = source.cols();
-            int height = source.rows();
-
-            // --- Buoc 1: lay mau tim pixel "nen trung tinh" (S4b) de uoc luong gain.
-            List<RgbLinear> neutralSamples = new ArrayList<>();
-            long sampledCount = 0;
-            for (int y = 0; y < height; y += NEUTRAL_SAMPLE_STRIDE) {
-                for (int x = 0; x < width; x += NEUTRAL_SAMPLE_STRIDE) {
-                    sampledCount++;
-                    RgbLinear linear = readLinearRgb(source, x, y);
-                    Lab lab = ColorSpace.linearRgbToLab(linear);
-                    if (lab.chroma() < ScanThresholds.SUBSTRATE_CHROMA_MAX_NEUTRAL
-                            && lab.l() >= ScanThresholds.SUBSTRATE_L_MIN
-                            && lab.l() <= ScanThresholds.SUBSTRATE_L_MAX) {
-                        neutralSamples.add(linear);
-                    }
-                }
+        // `handle` sở hữu Mat: KHÔNG đóng ở đây (try-with-resources làm Mat bị giải phóng sau lần dùng đầu,
+        // các bước sau của pipeline gặp con trỏ NULL).
+        Mat source = handle.mat();
+        Mat scaled = null;
+        try {
+            // Phân tích ở độ phân giải vừa đủ: ảnh điện thoại ~12MP không cần quét từng pixel gốc.
+            int longEdge = Math.max(source.cols(), source.rows());
+            Mat work = source;
+            if (longEdge > ANALYSIS_MAX_EDGE) {
+                double scale = (double) ANALYSIS_MAX_EDGE / longEdge;
+                scaled = new Mat();
+                opencv_imgproc.resize(source, scaled,
+                        new Size(Math.max(1, (int) Math.round(source.cols() * scale)),
+                                Math.max(1, (int) Math.round(source.rows() * scale))),
+                        0, 0, opencv_imgproc.INTER_AREA);
+                work = scaled;
             }
-            double neutralRatio = sampledCount == 0 ? 0.0 : (double) neutralSamples.size() / sampledCount;
-
-            CalibrationMethod method;
-            double[] gains;
-            if (neutralRatio < ScanThresholds.MIN_NEUTRAL_RATIO || neutralSamples.isEmpty()) {
-                method = CalibrationMethod.NONE;
-                gains = new double[] {1.0, 1.0, 1.0};
-            } else {
-                method = CalibrationMethod.SUBSTRATE_WB;
-                WhiteBalanceSolver.Gains solved = WhiteBalanceSolver.fallback(neutralSamples);
-                gains = solved.toArray();
-            }
-
-            // --- Buoc 2: ap gain cho TOAN BO pixel ROI, dung XYZ Mat + gom substrateLab (S6 buoc 2)
-            // va do lech mau trung tinh sau hieu chinh (proxy cho calibration_residual_de00).
-            try (Mat xyzMat = new Mat(height, width, opencv_core.CV_64FC3)) {
-                List<Lab> substrateCandidates = new ArrayList<>();
-                double residualChromaSum = 0.0;
-                int residualCount = 0;
-
-                for (int y = 0; y < height; y++) {
-                    for (int x = 0; x < width; x++) {
-                        RgbLinear raw = readLinearRgb(source, x, y);
-                        RgbLinear calibrated = raw.times(gains[0], gains[1], gains[2]);
-                        var xyz = ColorSpace.linearRgbToXyz(calibrated);
-                        DoublePointer ptr = new DoublePointer(xyzMat.ptr(y, x));
-                        ptr.put(0, xyz.x());
-                        ptr.put(1, xyz.y());
-                        ptr.put(2, xyz.z());
-
-                        Lab lab = ColorSpace.xyzToLab(xyz);
-                        if (lab.chroma() < 8.0) {
-                            substrateCandidates.add(lab);
-                        }
-                        if (x % NEUTRAL_SAMPLE_STRIDE == 0 && y % NEUTRAL_SAMPLE_STRIDE == 0
-                                && lab.chroma() < ScanThresholds.SUBSTRATE_CHROMA_MAX_NEUTRAL
-                                && lab.l() >= ScanThresholds.SUBSTRATE_L_MIN
-                                && lab.l() <= ScanThresholds.SUBSTRATE_L_MAX) {
-                            residualChromaSum += lab.chroma();
-                            residualCount++;
-                        }
-                    }
-                }
-
-                Lab substrateLab = substrateCandidates.isEmpty()
-                        ? new Lab(70.0, 0.0, 0.0)
-                        : RobustStats.medianPerChannel(substrateCandidates);
-                double residualProxy = residualCount == 0 ? 3.0 : residualChromaSum / residualCount;
-
-                OpenCvXyzFrame xyzFrame = new OpenCvXyzFrame(xyzMat.clone());
-                return new CalibrationResult(xyzFrame, method, gains, neutralRatio, residualProxy, substrateLab);
+            return calibrateOn(work);
+        } finally {
+            if (scaled != null) {
+                scaled.close();
             }
         }
     }
 
-    /** Đọc một pixel BGR 8-bit và khử gamma sang linear RGB (thứ tự kênh Mat là BGR). */
-    private RgbLinear readLinearRgb(Mat bgrMat, int x, int y) {
-        BytePointer p = new BytePointer(bgrMat.ptr(y, x));
-        int b = p.get(0) & 0xFF;
-        int g = p.get(1) & 0xFF;
-        int r = p.get(2) & 0xFF;
-        return RgbLinear.ofSrgb8(r, g, b);
+    /** Bảng tra sRGB 8-bit → linear (cùng công thức {@link ColorSpace#srgb8ToLinear(int)}). */
+    private static final double[] LINEAR_LUT = buildLut();
+
+    private static double[] buildLut() {
+        double[] lut = new double[256];
+        for (int i = 0; i < 256; i++) {
+            lut[i] = ColorSpace.srgb8ToLinear(i);
+        }
+        return lut;
+    }
+
+    private CalibrationResult calibrateOn(Mat source) {
+        int width = source.cols();
+        int height = source.rows();
+        // Đọc cả ảnh BGR một lần (Mat liên tục sau decode/clone/resize).
+        Mat contiguous = source.isContinuous() ? source : source.clone();
+        byte[] bgr = new byte[width * height * 3];
+        try {
+            contiguous.data().get(bgr);
+        } finally {
+            if (contiguous != source) {
+                contiguous.close();
+            }
+        }
+
+        // --- Buoc 1: lay mau tim pixel "nen trung tinh" (S4b) de uoc luong gain.
+        List<RgbLinear> neutralSamples = new ArrayList<>();
+        long sampledCount = 0;
+        for (int y = 0; y < height; y += NEUTRAL_SAMPLE_STRIDE) {
+            for (int x = 0; x < width; x += NEUTRAL_SAMPLE_STRIDE) {
+                sampledCount++;
+                int i = (y * width + x) * 3;
+                RgbLinear linear = new RgbLinear(LINEAR_LUT[bgr[i + 2] & 0xFF],
+                        LINEAR_LUT[bgr[i + 1] & 0xFF], LINEAR_LUT[bgr[i] & 0xFF]);
+                Lab lab = ColorSpace.linearRgbToLab(linear);
+                if (lab.chroma() < ScanThresholds.SUBSTRATE_CHROMA_MAX_NEUTRAL
+                        && lab.l() >= ScanThresholds.SUBSTRATE_L_MIN
+                        && lab.l() <= ScanThresholds.SUBSTRATE_L_MAX) {
+                    neutralSamples.add(linear);
+                }
+            }
+        }
+        double neutralRatio = sampledCount == 0 ? 0.0 : (double) neutralSamples.size() / sampledCount;
+
+        CalibrationMethod method;
+        double[] gains;
+        if (neutralRatio < ScanThresholds.MIN_NEUTRAL_RATIO || neutralSamples.isEmpty()) {
+            method = CalibrationMethod.NONE;
+            gains = new double[] {1.0, 1.0, 1.0};
+        } else {
+            method = CalibrationMethod.SUBSTRATE_WB;
+            WhiteBalanceSolver.Gains solved = WhiteBalanceSolver.fallback(neutralSamples);
+            gains = solved.toArray();
+        }
+
+        // --- Buoc 2: ap gain cho TOAN BO pixel ROI -> XYZ (ghi hang loat) + gom substrateLab (S6 buoc 2)
+        // va do lech mau trung tinh sau hieu chinh (proxy cho calibration_residual_de00).
+        double[] xyzOut = new double[width * height * 3];
+        List<Lab> substrateCandidates = new ArrayList<>();
+        double residualChromaSum = 0.0;
+        int residualCount = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int i = (y * width + x) * 3;
+                RgbLinear calibrated = new RgbLinear(LINEAR_LUT[bgr[i + 2] & 0xFF] * gains[0],
+                        LINEAR_LUT[bgr[i + 1] & 0xFF] * gains[1], LINEAR_LUT[bgr[i] & 0xFF] * gains[2]);
+                var xyz = ColorSpace.linearRgbToXyz(calibrated);
+                xyzOut[i] = xyz.x();
+                xyzOut[i + 1] = xyz.y();
+                xyzOut[i + 2] = xyz.z();
+
+                Lab lab = ColorSpace.xyzToLab(xyz);
+                if (lab.chroma() < 8.0) {
+                    substrateCandidates.add(lab);
+                }
+                if (x % NEUTRAL_SAMPLE_STRIDE == 0 && y % NEUTRAL_SAMPLE_STRIDE == 0
+                        && lab.chroma() < ScanThresholds.SUBSTRATE_CHROMA_MAX_NEUTRAL
+                        && lab.l() >= ScanThresholds.SUBSTRATE_L_MIN
+                        && lab.l() <= ScanThresholds.SUBSTRATE_L_MAX) {
+                    residualChromaSum += lab.chroma();
+                    residualCount++;
+                }
+            }
+        }
+
+        Lab substrateLab = substrateCandidates.isEmpty()
+                ? new Lab(70.0, 0.0, 0.0)
+                : RobustStats.medianPerChannel(substrateCandidates);
+        double residualProxy = residualCount == 0 ? 3.0 : residualChromaSum / residualCount;
+
+        Mat xyzMat = new Mat(height, width, opencv_core.CV_64FC3);
+        new DoublePointer(xyzMat.data()).put(xyzOut);
+        OpenCvXyzFrame xyzFrame = new OpenCvXyzFrame(xyzMat);
+        return new CalibrationResult(xyzFrame, method, gains, neutralRatio, residualProxy, substrateLab);
     }
 }

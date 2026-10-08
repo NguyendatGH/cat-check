@@ -13,6 +13,9 @@ import com.catcheck.identity.domain.UserAccount;
 import com.catcheck.identity.domain.UserIdentity;
 import com.catcheck.identity.domain.port.UserAccountRepository;
 import com.catcheck.identity.domain.port.UserIdentityRepository;
+import com.catcheck.media.api.ImageStorage;
+import com.catcheck.media.api.ImageUpload;
+import com.catcheck.media.api.StorageKey;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -53,6 +56,7 @@ public class ProfileService {
     private final AuditLogService auditLogService;
     private final Clock clock;
     private final Path avatarDirectory;
+    private final ImageStorage imageStorage;
 
     public ProfileService(UserAccountRepository accountRepository,
                           UserIdentityRepository identityRepository,
@@ -61,13 +65,15 @@ public class ProfileService {
                           Clock clock,
                           @org.springframework.beans.factory.annotation.Value(
                                   "${catcheck.identity.avatar-storage-dir:target/avatars}")
-                          String avatarDirectory) {
+                          String avatarDirectory,
+                          ImageStorage imageStorage) {
         this.accountRepository = accountRepository;
         this.identityRepository = identityRepository;
         this.piiCipher = piiCipher;
         this.auditLogService = auditLogService;
         this.clock = clock;
         this.avatarDirectory = Path.of(avatarDirectory);
+        this.imageStorage = imageStorage;
     }
 
     /** B1 — ho so day du cua chinh minh. */
@@ -219,16 +225,16 @@ public class ProfileService {
             throw new BusinessRuleException(IdentityErrorCode.AVATAR_INVALID);
         }
 
-        String storageKey = userId + "/" + UUID.randomUUID() + extensionOf(contentType);
-        try {
-            Path target = avatarDirectory.resolve(storageKey);
-            Files.createDirectories(target.getParent());
-            Files.write(target, content);
-        } catch (IOException ex) {
-            throw new UncheckedIOException("Khong luu duoc anh dai dien", ex);
-        }
+        var stored = imageStorage.put(AVATAR_NAMESPACE,
+                new ImageUpload(new java.io.ByteArrayInputStream(content), null, contentType, content.length));
+        String storageKey = stored.key().value();
+        StorageProvider provider = StorageProvider.valueOf(stored.provider());
+        UserAccount previous = accountRepository.findById(userId).orElse(null);
 
-        accountRepository.updateAvatar(userId, storageKey, StorageProvider.LOCAL);
+        accountRepository.updateAvatar(userId, storageKey, provider);
+        if (previous != null && previous.avatarStorageKey() != null) {
+            removeAvatarFile(previous.avatarStorageKey());
+        }
         return storageKey;
     }
 
@@ -240,9 +246,18 @@ public class ProfileService {
         if (account.avatarStorageKey() == null) {
             throw new NotFoundException(IdentityErrorCode.NOT_FOUND);
         }
+        String key = account.avatarStorageKey();
+        if (isManagedKey(key)) {
+            try (java.io.InputStream in = imageStorage.open(new StorageKey(key))
+                    .orElseThrow(() -> new NotFoundException(IdentityErrorCode.NOT_FOUND))) {
+                return new AvatarData(in.readAllBytes(), contentTypeOf(key));
+            } catch (IOException ex) {
+                throw new UncheckedIOException("Khong doc duoc anh dai dien", ex);
+            }
+        }
         try {
-            byte[] content = Files.readAllBytes(avatarDirectory.resolve(account.avatarStorageKey()));
-            return new AvatarData(content, contentTypeOf(account.avatarStorageKey()));
+            byte[] content = Files.readAllBytes(avatarDirectory.resolve(key));
+            return new AvatarData(content, contentTypeOf(key));
         } catch (IOException ex) {
             throw new UncheckedIOException("Khong doc duoc anh dai dien", ex);
         }
@@ -254,13 +269,28 @@ public class ProfileService {
         UserAccount account = accountRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(IdentityErrorCode.UNAUTHENTICATED));
         if (account.avatarStorageKey() != null) {
-            try {
-                Files.deleteIfExists(avatarDirectory.resolve(account.avatarStorageKey()));
-            } catch (IOException ex) {
-                throw new UncheckedIOException("Khong xoa duoc anh dai dien", ex);
-            }
+            removeAvatarFile(account.avatarStorageKey());
         }
         accountRepository.updateAvatar(userId, null, null);
+    }
+
+    private static final String AVATAR_NAMESPACE = "user-avatar";
+
+    /** Khoa moi (qua ImageStorage) bat dau bang namespace; khoa cu {userId}/{uuid} nam o thu muc local rieng. */
+    private static boolean isManagedKey(String key) {
+        return key.startsWith(AVATAR_NAMESPACE + "/");
+    }
+
+    private void removeAvatarFile(String key) {
+        if (isManagedKey(key)) {
+            imageStorage.delete(new StorageKey(key));
+            return;
+        }
+        try {
+            Files.deleteIfExists(avatarDirectory.resolve(key));
+        } catch (IOException ex) {
+            throw new UncheckedIOException("Khong xoa duoc anh dai dien", ex);
+        }
     }
 
     private byte[] decryptPhone(UserAccount account) {
@@ -307,7 +337,8 @@ public class ProfileService {
             boolean emailVerified,
             boolean hasPassword,
             List<String> identities,
-            Instant createdAt) {
+            Instant createdAt,
+            boolean hasAvatar) {
 
         static ProfileView of(UserAccount account, byte[] phone) {
             return new ProfileView(
@@ -322,7 +353,8 @@ public class ProfileService {
                     account.hasVerifiedEmail(),
                     true,
                     List.of(),
-                    account.createdAt());
+                    account.createdAt(),
+                    account.avatarStorageKey() != null);
         }
     }
 

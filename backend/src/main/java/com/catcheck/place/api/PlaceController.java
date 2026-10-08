@@ -38,6 +38,15 @@ public class PlaceController {
         return service.search(query, kind, area, latitude, longitude, limit).stream().map(PlaceResponse::from).toList();
     }
 
+    /** Phòng khám thú y thật quanh vị trí người dùng (OpenStreetMap), xếp gần → xa. */
+    @GetMapping("/nearby")
+    @Operation(operationId = "listNearbyPlaces")
+    public List<PlaceResponse> nearby(@RequestParam Double latitude,
+                                      @RequestParam Double longitude,
+                                      @RequestParam(defaultValue = "10") int radiusKm) {
+        return service.nearbyExternal(latitude, longitude, radiusKm * 1000).stream().map(PlaceResponse::from).toList();
+    }
+
     @GetMapping("/{placeId}")
     @Operation(operationId = "getPlace")
     public PlaceResponse detail(@PathVariable UUID placeId) { return PlaceResponse.from(service.detail(placeId)); }

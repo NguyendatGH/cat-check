@@ -227,7 +227,8 @@ public class PrivacyController {
                         item.retentionPolicyCode(),
                         item.storageLocation(),
                         item.crossBorder(),
-                        item.recipient()))
+                        item.recipient(),
+                        item.retentionDays()))
                 .toList();
         return ResponseEntity.ok(PageView.of(items, items.size(), null, false));
     }

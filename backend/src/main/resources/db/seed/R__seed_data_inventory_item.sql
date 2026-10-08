@@ -29,138 +29,138 @@ INSERT INTO data_inventory_item (code, category_vi, description_vi, description_
                                  storage_location, cross_border, recipient, active)
 VALUES
     ('D1', 'Tài khoản',
-     'Họ tên / tên hiển thị (`app_user.full_name`) — định danh tài khoản, xưng hô trong UI và PDF.',
+     'Họ tên / tên hiển thị — định danh tài khoản và xưng hô trong ứng dụng, báo cáo PDF.',
      'Account holder full name / display name.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D2', 'Tài khoản',
-     'Email (`app_user.email`) — đăng nhập, OTP xác thực, thông báo hệ thống, khôi phục mật khẩu. '
-         || 'Chuyển xuyên biên giới NẾU dùng email provider nước ngoài (p15 §15.6.4) — rà lại khi chốt nhà cung cấp.',
+     'Email — đăng nhập, mã xác thực (OTP), thông báo hệ thống, khôi phục mật khẩu. '
+         || 'Có thể được chuyển ra nước ngoài nếu nhà cung cấp dịch vụ gửi email đặt máy chủ ngoài Việt Nam.',
      'Account email address.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'PostgreSQL (VN)', true, 'Nhà cung cấp gửi email (chưa chốt — p15 §15.6.4)', true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', true, 'Nhà cung cấp dịch vụ gửi email', true),
 
     ('D3', 'Tài khoản',
-     'Số điện thoại (`app_user.phone`, tuỳ chọn) — liên hệ hỗ trợ, xác minh mã kích hoạt. Mã hoá at-rest.',
+     'Số điện thoại (tuỳ chọn) — liên hệ hỗ trợ, xác minh mã kích hoạt. Được mã hoá khi lưu trữ.',
      'Optional phone number.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D4', 'Tài khoản',
-     'Hash mật khẩu (`app_user.password_hash`) — xác thực.',
+     'Mật khẩu (chỉ lưu dạng băm một chiều, không lưu mật khẩu gốc) — dùng để xác thực đăng nhập.',
      'Password hash.',
      'BASIC', 'CONTRACT', ARRAY []::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D5', 'Tài khoản',
-     'Định danh Google OAuth (`google_sub`, `google_email`, `google_picture_url`) — đăng nhập Google.',
+     'Thông tin định danh từ tài khoản Google (mã tài khoản, email, ảnh) — dùng khi đăng nhập bằng Google.',
      'Google OAuth identifiers.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'PostgreSQL (VN)', true, 'Google LLC (OAuth)', true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', true, 'Google LLC (OAuth)', true),
 
     ('D6', 'Tài khoản',
      'Ảnh đại diện người dùng — hình ảnh của cá nhân (Đ3.6 NĐ356).',
      'User avatar image.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'Local storage (VN)', false, NULL, true),
+     'Máy chủ lưu trữ tại Việt Nam', false, NULL, true),
 
     ('D7', 'Hồ sơ mèo',
-     'Thông tin hồ sơ mèo (`cat.name`, giống, giới tính, ngày sinh/tuổi, cân nặng, triệt sản) — '
-         || 'tạo hồ sơ theo dõi riêng từng bé, dựng baseline cá thể.',
+     'Thông tin hồ sơ mèo (tên, giống, giới tính, ngày sinh hoặc tuổi, cân nặng, triệt sản) — '
+         || 'tạo hồ sơ theo dõi riêng từng bé và làm mức tham chiếu cho từng cá thể.',
      'Cat profile attributes.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D8', 'Hồ sơ mèo',
-     'Ảnh đại diện của mèo (`cat.avatar`) — nhận diện hồ sơ trong UI. Xem cảnh báo p15 §15.2.5.',
+     'Ảnh đại diện của mèo — nhận diện hồ sơ trong ứng dụng. Bạn nên chọn ảnh không có người hoặc thông tin cá nhân.',
      'Cat avatar image.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'Local storage (VN)', false, NULL, true),
+     'Máy chủ lưu trữ tại Việt Nam', false, NULL, true),
 
     ('D9', 'Hồ sơ mèo',
-     'Khảo sát sức khoẻ lúc onboarding (bệnh nền, chế độ ăn, tần suất đi vệ sinh…) — cá nhân hoá '
-         || 'baseline và rule cảnh báo. Là dữ liệu của MÈO, KHÔNG phải dữ liệu sức khoẻ của người (p15 §15.2.3).',
+     'Khảo sát lúc tạo hồ sơ (tình trạng sẵn có, chế độ ăn, tần suất đi vệ sinh…) — cá nhân hoá '
+         || 'mức tham chiếu và quy tắc nhắc nhở. Đây là thông tin về mèo, không phải thông tin sức khoẻ của người dùng.',
      'Cat onboarding health survey.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D10', 'Ảnh chụp cát',
-     'File ảnh gốc do user tải lên — phân tích màu để ước lượng pH, cho user xem lại/khiếu nại kết quả. '
-         || 'EXIF bị gỡ trước khi lưu; nếu còn EXIF GPS thì trở thành dữ liệu nhạy cảm Đ4.1.h.',
+     'Ảnh gốc bạn tải lên — dùng phân tích màu để ước lượng pH, cho bạn xem lại hoặc phản hồi kết quả. '
+         || 'Thông tin vị trí và metadata EXIF được gỡ khỏi ảnh trước khi lưu.',
      'Raw litter photo uploaded by the user.',
      'BASIC', 'CONSENT', ARRAY ['SCAN_IMAGE_RETAIN']::varchar(48)[],
-     'Thư mục local trên server VN (Phase 1)', false, NULL, true),
+     'Máy chủ lưu trữ tại Việt Nam', false, NULL, true),
 
     ('D11', 'Ảnh chụp cát',
-     'Bản sao ảnh dùng cải thiện thuật toán — KHÔNG còn là dữ liệu cá nhân sau khi khử nhận dạng (Đ2.1 Luật BVDLCN), '
-         || 'nhưng vẫn kiểm kê vì bản thân việc khử nhận dạng là một mục đích xử lý cần consent riêng.',
+     'Bản sao ảnh đã khử nhận dạng dùng để cải thiện thuật toán nhận diện màu. Chỉ thực hiện khi bạn đồng ý riêng '
+         || 'cho mục đích này; bạn có thể rút lại đồng ý bất cứ lúc nào.',
      'De-identified image copy used to tune the colour pipeline.',
      'BASIC', 'CONSENT', ARRAY ['ALGO_IMPROVEMENT']::varchar(48)[],
-     'Bucket riêng (VN)', false, NULL, true),
+     'Kho lưu trữ riêng tại Việt Nam', false, NULL, true),
 
     ('D12', 'Ảnh chụp cát',
-     'Metadata ảnh: `taken_at`, `device_hint`, kích thước, cờ `exif_stripped` — chẩn đoán lỗi chụp, hướng dẫn user.',
+     'Thông tin kỹ thuật của ảnh (thời điểm chụp, gợi ý loại thiết bị, kích thước, đã gỡ EXIF hay chưa) — chẩn đoán lỗi chụp và hướng dẫn bạn chụp lại.',
      'Scan image metadata.',
      'BASIC', 'CONTRACT', ARRAY []::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D13', 'Kết quả scan',
-     'Kết quả phân tích: `ph_value`, `ph_band`, `classification`, Lab trung gian, `confidence`, '
-         || '`warning_flags`, thời điểm quét, `cat_id` — hiển thị kết quả, lịch sử, xu hướng, cảnh báo, xuất PDF.',
+     'Kết quả phân tích: giá trị pH ước lượng, nhóm phân loại, độ tin cậy, các cảnh báo chất lượng ảnh, '
+         || 'thời điểm quét và bé mèo được quét — hiển thị kết quả, lịch sử, xu hướng, nhắc nhở và xuất báo cáo PDF.',
      'Scan analysis results.',
      'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D14', 'Lịch sử dùng app',
-     'Log hành vi trong sản phẩm: màn hình đã mở, tính năng đã dùng, thời điểm, tần suất quét. '
-         || 'RỦI RO bị xếp dữ liệu nhạy cảm theo Đ4.1.l — xem p15 §15.2.4.',
+     'Nhật ký sử dụng ứng dụng: màn hình đã mở, tính năng đã dùng, thời điểm, tần suất quét — '
+         || 'chỉ thu thập khi bạn đồng ý, dùng để cải thiện sản phẩm.',
      'In-product activity log.',
      'BASIC', 'CONSENT', ARRAY ['PRODUCT_ANALYTICS']::varchar(48)[],
-     'PostgreSQL / analytics tự vận hành (VN)', false, NULL, true),
+     'Hệ thống phân tích tự vận hành tại Việt Nam', false, NULL, true),
 
     ('D15', 'Credit & entitlement',
      'Lô credit, sổ cái credit, lượt đổi mã kích hoạt, gói đang dùng — cấp phát và tiêu credit, gating tính năng.',
      'Credit batches, ledger and entitlement.',
      'BASIC', 'CONTRACT', ARRAY []::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D16', 'Push notification',
-     'Đăng ký nhận push (`push_subscription`): `fid`/`legacy_token`, nhãn thiết bị, user agent, `last_seen_at`.',
+     'Đăng ký nhận thông báo đẩy: mã định danh thiết bị, nhãn thiết bị, trình duyệt và lần hoạt động gần nhất.',
      'Web push subscription records.',
      'BASIC', 'CONSENT', ARRAY ['HEALTH_REMINDER_PUSH']::varchar(48)[],
-     'PostgreSQL (VN) + hạ tầng Google', true, 'Google LLC (Firebase Cloud Messaging)', true),
+     'Cơ sở dữ liệu tại Việt Nam và hạ tầng Google', true, 'Google LLC (Firebase Cloud Messaging)', true),
 
     ('D17', 'Push notification',
-     'Nội dung payload thông báo gửi đi — truyền tải nội dung nhắc. CatCheck giữ log gửi 90 ngày.',
+     'Nội dung thông báo gửi đến thiết bị của bạn (nhắc nhở). CatCheck giữ nhật ký gửi 90 ngày.',
      'Push notification payload.',
      'BASIC', 'CONSENT', ARRAY ['HEALTH_REMINDER_PUSH']::varchar(48)[],
-     'Log (VN) + transit qua Google', true, 'Google LLC (Firebase Cloud Messaging)', true),
+     'Nhật ký tại Việt Nam, truyền qua hạ tầng Google', true, 'Google LLC (Firebase Cloud Messaging)', true),
 
     ('D18', 'Log & bảo mật',
-     'Access log: địa chỉ IP, user agent, `request_id`, thời điểm, endpoint, mã lỗi — bảo mật, chống lạm dụng, '
-         || 'điều tra sự cố, rate limit (Đ19.1.a).',
+     'Nhật ký truy cập: địa chỉ IP, trình duyệt, thời điểm, đường dẫn và mã lỗi — bảo mật, chống lạm dụng, '
+         || 'điều tra sự cố và giới hạn tần suất yêu cầu.',
      'HTTP access and security logs.',
      'BASIC', 'CONTRACT', ARRAY []::varchar(48)[],
-     'Log store (VN)', false, NULL, true),
+     'Hệ thống nhật ký tại Việt Nam', false, NULL, true),
 
     ('D19', 'Log & bảo mật',
-     '`audit_log` — nhật ký admin truy cập dữ liệu người dùng; chứng minh tuân thủ và truy vết nội bộ (Đ37).',
+     'Nhật ký các thao tác của quản trị viên trên dữ liệu người dùng — chứng minh tuân thủ và truy vết nội bộ. Bạn có thể xem các lần truy cập vào dữ liệu của mình.',
      'Admin access audit log.',
      'BASIC', 'CONTRACT', ARRAY []::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true),
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
 
     ('D20', 'Log & bảo mật',
-     '`security_incident` — hồ sơ sự cố lộ/mất dữ liệu; nghĩa vụ báo cáo và lưu hồ sơ (Đ29.1.c NĐ356).',
+     'Hồ sơ sự cố lộ hoặc mất dữ liệu — nghĩa vụ báo cáo và lưu hồ sơ theo quy định (Đ29.1.c NĐ356).',
      'Security incident records.',
      'BASIC', 'LEGAL_OBLIGATION', ARRAY []::varchar(48)[],
-     'PostgreSQL + lưu trữ ngoại tuyến (VN)', false, NULL, true),
+     'Cơ sở dữ liệu và lưu trữ ngoại tuyến tại Việt Nam', false, NULL, true),
 
     ('D21', 'Consent',
-     '`consent_record` — bằng chứng đồng ý. Nghĩa vụ chứng minh thuộc về CatCheck (Đ6.2 NĐ356).',
+     'Bản ghi các lựa chọn đồng ý của bạn — CatCheck có nghĩa vụ chứng minh việc đã được đồng ý (Đ6.2 NĐ356).',
      'Consent evidence records.',
      'BASIC', 'LEGAL_OBLIGATION', ARRAY []::varchar(48)[],
-     'PostgreSQL (VN)', false, NULL, true)
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true)
 
 ON CONFLICT (code) DO UPDATE SET
     category_vi      = EXCLUDED.category_vi,

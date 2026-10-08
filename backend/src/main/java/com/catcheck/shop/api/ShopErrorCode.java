@@ -9,7 +9,10 @@ public enum ShopErrorCode implements ErrorCode {
     PRODUCT_NOT_FOUND("shop/product-not-found", HttpStatus.NOT_FOUND),
     CART_EMPTY("shop/cart-empty", HttpStatus.CONFLICT),
     ORDER_NOT_FOUND("shop/order-not-found", HttpStatus.NOT_FOUND),
-    STOCK_UNAVAILABLE("shop/stock-unavailable", HttpStatus.CONFLICT);
+    STOCK_UNAVAILABLE("shop/stock-unavailable", HttpStatus.CONFLICT),
+    PRODUCT_SKU_DUPLICATE("shop/product-sku-duplicate", HttpStatus.CONFLICT),
+    PRODUCT_INVALID("shop/product-invalid", HttpStatus.BAD_REQUEST),
+    ADMIN_ROLE_REQUIRED("shop/admin-role-required", HttpStatus.FORBIDDEN);
 
     private final String slug;
     private final HttpStatus status;

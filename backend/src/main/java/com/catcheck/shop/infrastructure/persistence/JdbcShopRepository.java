@@ -1,6 +1,8 @@
 package com.catcheck.shop.infrastructure.persistence;
 
 import com.catcheck.shop.api.ShopErrorCode;
+import com.catcheck.shop.domain.AdminProduct;
+import com.catcheck.shop.domain.AdminProductDraft;
 import com.catcheck.shop.domain.CartLine;
 import com.catcheck.shop.domain.Order;
 import com.catcheck.shop.domain.Product;
@@ -49,7 +51,9 @@ public class JdbcShopRepository implements ShopRepository {
 
     @Override
     public void setCartLine(UUID userId, UUID productId, int quantity) {
-        if (product(productId).isEmpty()) throw new com.catcheck.shared.error.NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND);
+        Product product = product(productId)
+                .orElseThrow(() -> new com.catcheck.shared.error.NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND));
+        if (quantity > product.stockQuantity()) throw new ConflictException(ShopErrorCode.STOCK_UNAVAILABLE);
         jdbc.update("""
                 INSERT INTO shop_cart_line (user_id, product_id, quantity) VALUES (?, ?, ?)
                 ON CONFLICT (user_id, product_id) DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = now()
@@ -102,8 +106,48 @@ public class JdbcShopRepository implements ShopRepository {
 
     private Order mapOrder(ResultSet rs, UUID userId) throws SQLException {
         UUID id = rs.getObject("id", UUID.class);
-        List<CartLine> lines = jdbc.query("SELECT p.id, p.sku, l.product_name AS name, '' AS description, p.image_url, l.unit_price_vnd AS price_vnd, NULL AS compare_at_price_vnd, 0 AS stock_quantity, l.quantity FROM shop_order_line l JOIN shop_product p ON p.id = l.product_id WHERE l.order_id = ?", (child, row) -> new CartLine(product(child), child.getInt("quantity")), id);
+        List<CartLine> lines = jdbc.query("SELECT p.id, p.sku, l.product_name AS name, p.description, p.image_url, l.unit_price_vnd AS price_vnd, p.compare_at_price_vnd, p.stock_quantity, l.quantity FROM shop_order_line l JOIN shop_product p ON p.id = l.product_id WHERE l.order_id = ?", (child, row) -> new CartLine(product(child), child.getInt("quantity")), id);
         return new Order(id, rs.getString("order_code"), rs.getString("status"), rs.getString("payment_method"), rs.getString("receiver_name"), rs.getString("receiver_phone"), rs.getString("shipping_address"), rs.getLong("subtotal_vnd"), rs.getLong("discount_vnd"), rs.getLong("shipping_fee_vnd"), rs.getLong("total_vnd"), lines, instant(rs, "created_at"));
+    }
+
+    private static final String ADMIN_COLS = "id, sku, name, description, image_url, price_vnd, compare_at_price_vnd, stock_quantity, status, updated_at";
+
+    @Override
+    public List<AdminProduct> adminProducts() {
+        return jdbc.query("SELECT " + ADMIN_COLS + " FROM shop_product ORDER BY updated_at DESC, id DESC", (rs, row) -> adminProduct(rs));
+    }
+
+    @Override
+    @Transactional
+    public AdminProduct adminCreate(AdminProductDraft d) {
+        try {
+            return jdbc.query("INSERT INTO shop_product (sku, name, description, image_url, price_vnd, compare_at_price_vnd, stock_quantity, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING " + ADMIN_COLS,
+                    (rs, row) -> adminProduct(rs), d.sku(), d.name(), d.description(), d.imageUrl(), d.priceVnd(), d.compareAtPriceVnd(), d.stockQuantity(), d.status()).getFirst();
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            throw new ConflictException(ShopErrorCode.PRODUCT_SKU_DUPLICATE);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Optional<AdminProduct> adminUpdate(UUID id, AdminProductDraft d) {
+        return jdbc.query("UPDATE shop_product SET name = ?, description = ?, image_url = ?, price_vnd = ?, compare_at_price_vnd = ?, stock_quantity = ?, status = ? WHERE id = ? RETURNING " + ADMIN_COLS,
+                (rs, row) -> adminProduct(rs), d.name(), d.description(), d.imageUrl(), d.priceVnd(), d.compareAtPriceVnd(), d.stockQuantity(), d.status(), id).stream().findFirst();
+    }
+
+    @Override
+    @Transactional
+    public Optional<AdminProduct> adminSetStatus(UUID id, String status) {
+        return jdbc.query("UPDATE shop_product SET status = ? WHERE id = ? RETURNING " + ADMIN_COLS,
+                (rs, row) -> adminProduct(rs), status, id).stream().findFirst();
+    }
+
+    private AdminProduct adminProduct(ResultSet rs) throws SQLException {
+        long compare = rs.getLong("compare_at_price_vnd");
+        boolean compareWasNull = rs.wasNull();
+        return new AdminProduct(rs.getObject("id", UUID.class), rs.getString("sku"), rs.getString("name"), rs.getString("description"),
+                rs.getString("image_url"), rs.getLong("price_vnd"), compareWasNull ? null : compare, rs.getInt("stock_quantity"),
+                rs.getString("status"), instant(rs, "updated_at"));
     }
 
     private Product product(ResultSet rs) throws SQLException {

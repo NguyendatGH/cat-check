@@ -95,3 +95,11 @@ Bộ test kiến trúc nằm ở `src/test/java/com/catcheck/architecture/`:
 `V4.1__shedlock.sql` KHÔNG khớp literal string "V4b" mà `spec/parts/p4-domain-model-erd.md`
 §4.9.2 dùng — xem comment đầu file đó để biết lý do bắt buộc (Flyway không chấp nhận chữ cái ở
 phần version). Đã đề nghị owner cập nhật spec.
+
+## Lưu trữ ảnh (local / Cloudinary)
+
+`catcheck.storage.provider` = `local` | `cloudinary` | `auto` (mặc định `auto`, env `CATCHECK_STORAGE_PROVIDER`).
+`auto` dùng Cloudinary khi có đủ `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+(thư mục gốc tuỳ chọn `CLOUDINARY_FOLDER`, mặc định `catcheck`), ngược lại dùng thư mục local và log WARN.
+`cloudinary` mà thiếu biến thì app dừng lúc khởi động. Ảnh upload với `type=authenticated` (không công khai);
+khoá ảnh cũ còn nằm ở đĩa local vẫn đọc được.

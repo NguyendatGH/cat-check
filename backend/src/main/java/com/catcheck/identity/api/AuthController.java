@@ -123,7 +123,8 @@ public class AuthController {
         if (principal instanceof com.catcheck.identity.application.AuthPrincipal auth) {
             ProfileService.ProfileView profile = profileService.profile(auth.userId());
             SessionUser user = new SessionUser(
-                    profile.id(), profile.email(), profile.fullName(), null,
+                    profile.id(), profile.email(), profile.fullName(),
+                    profile.hasAvatar() ? "/api/v1/users/me/avatar" : null,
                     profile.locale(), profile.timezone(), profile.status(),
                     profile.onboardingStatus(), profile.emailVerified(), profile.hasPassword(),
                     profile.identities());

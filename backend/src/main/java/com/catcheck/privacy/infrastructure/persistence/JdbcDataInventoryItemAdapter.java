@@ -17,9 +17,9 @@ import java.util.List;
 public class JdbcDataInventoryItemAdapter implements DataInventoryItemPort {
 
     private static final String COLUMNS = """
-            code, category_vi, description_vi, description_en, sensitivity, legal_basis,
-            purpose_codes, retention_policy_code, storage_location, cross_border, recipient,
-            active, created_at
+            d.code, d.category_vi, d.description_vi, d.description_en, d.sensitivity, d.legal_basis,
+            d.purpose_codes, d.retention_policy_code, d.storage_location, d.cross_border, d.recipient,
+            d.active, d.created_at, rp.retention_days
             """;
 
     private final JdbcTemplate jdbc;
@@ -32,9 +32,10 @@ public class JdbcDataInventoryItemAdapter implements DataInventoryItemPort {
     public List<DataInventoryItem> findAllActive() {
         return jdbc.query("""
                 SELECT\s""" + COLUMNS + """
-                  FROM data_inventory_item
-                 WHERE active
-                 ORDER BY code
+                  FROM data_inventory_item d
+                  LEFT JOIN retention_policy rp ON rp.code = d.retention_policy_code
+                 WHERE d.active
+                 ORDER BY d.code
                 """, (rs, rowNum) -> new DataInventoryItem(
                         RowReaders.requiredString(rs, "code"),
                         RowReaders.requiredString(rs, "category_vi"),
@@ -48,6 +49,7 @@ public class JdbcDataInventoryItemAdapter implements DataInventoryItemPort {
                         rs.getBoolean("cross_border"),
                         RowReaders.string(rs, "recipient"),
                         rs.getBoolean("active"),
-                        RowReaders.requiredInstant(rs, "created_at")));
+                        RowReaders.requiredInstant(rs, "created_at"),
+                        (Integer) rs.getObject("retention_days")));
     }
 }

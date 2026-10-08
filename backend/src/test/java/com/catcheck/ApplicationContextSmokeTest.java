@@ -111,11 +111,11 @@ class ApplicationContextSmokeTest {
                 Integer.class);
         Integer policyCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM policy_version WHERE policy_type IN "
-                        + "('TERMS', 'PRIVACY', 'MEDICAL_DISCLAIMER') AND locale = 'vi'",
+                        + "('TERMS', 'PRIVACY', 'COOKIE', 'MEDICAL_DISCLAIMER') AND locale = 'vi'",
                 Integer.class);
 
         assertThat(packageCount).isEqualTo(5);
         assertThat(consentPurposeCount).isEqualTo(12);
-        assertThat(policyCount).isEqualTo(3);
+        assertThat(policyCount).isEqualTo(4);
     }
 }

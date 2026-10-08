@@ -105,14 +105,25 @@ public class JdbcCommunityRepository implements CommunityRepository {
     @Override
     public boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active) {
         if (active) {
-            return jdbc.update("INSERT INTO community_reaction (post_id, user_id, reaction) VALUES (?, ?, ?) ON CONFLICT (post_id, user_id) DO UPDATE SET reaction = EXCLUDED.reaction", postId, userId, reaction) == 1;
+            return jdbc.update("INSERT INTO community_reaction (post_id, user_id, reaction) VALUES (?, ?, ?) ON CONFLICT (post_id, user_id, reaction) DO NOTHING", postId, userId, reaction) >= 0;
         }
         return jdbc.update("DELETE FROM community_reaction WHERE post_id = ? AND user_id = ? AND reaction = ?", postId, userId, reaction) == 1;
     }
 
     @Override
-    public void report(UUID userId, UUID postId, UUID commentId, String reason, String details) {
-        jdbc.update("INSERT INTO community_report (post_id, comment_id, reporter_user_id, reason, details) VALUES (?, ?, ?, ?, ?)", postId, commentId, userId, reason, details);
+    public boolean reportTargetExists(UUID postId, UUID commentId) {
+        if (postId != null) {
+            return Boolean.TRUE.equals(jdbc.queryForObject(
+                    "SELECT EXISTS (SELECT 1 FROM community_post WHERE id = ? AND status = 'PUBLISHED')", Boolean.class, postId));
+        }
+        return Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM community_comment WHERE id = ? AND status = 'PUBLISHED')", Boolean.class, commentId));
+    }
+
+    @Override
+    public boolean report(UUID userId, UUID postId, UUID commentId, String reason, String details) {
+        return jdbc.update("INSERT INTO community_report (post_id, comment_id, reporter_user_id, reason, details) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING",
+                postId, commentId, userId, reason, details) == 1;
     }
 
     @Override

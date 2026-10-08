@@ -16,6 +16,7 @@ import java.util.List;
  * @param storageLocation    nơi lưu trữ
  * @param crossBorder        true = chuyển ra nước ngoài
  * @param recipient          bên thứ ba nhận dữ liệu
+ * @param retentionDays      số ngày lưu theo retention_policy; vắng khi chưa có chính sách hoặc theo vòng đời tài khoản
  */
 public record DataInventoryView(
         String code,
@@ -27,6 +28,7 @@ public record DataInventoryView(
         String retentionPolicyCode,
         String storageLocation,
         boolean crossBorder,
-        String recipient
+        String recipient,
+        Integer retentionDays
 ) {
 }
