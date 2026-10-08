@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../cn";
 
 export interface StepperProps {
   /** Bước hiện tại (1-based). */
@@ -28,7 +28,7 @@ export function Stepper({ current, total, label, className }: StepperProps) {
           <span className="truncate">{label}</span>
         </p>
         {isComplete ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-success-bg px-2 py-0.5 text-overline font-semibold text-success-text">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-success-bg px-2 py-0.5 text-overline text-success-text">
             <Check size={11} strokeWidth={3} aria-hidden="true" />
             {percent}%
           </span>

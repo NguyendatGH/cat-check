@@ -67,6 +67,11 @@ export interface CatCardProps {
   primaryLabel?: string;
   archivedLabel?: string;
   ageLabel?: string;
+  /**
+   * Nhãn vai trò hiện thành badge dưới tên (mockup `10`: "Mèo chính" / "Mèo phụ") — tính từ
+   * `isPrimary` ở nơi gọi. Bỏ trống thì không vẽ badge.
+   */
+  roleLabel?: string;
   onSelect?: (cat: Cat) => void;
   className?: string;
 }
@@ -79,6 +84,7 @@ export function CatCard({
   primaryLabel,
   archivedLabel,
   ageLabel,
+  roleLabel,
   onSelect,
   className,
 }: CatCardProps) {
@@ -97,7 +103,14 @@ export function CatCard({
         className,
       )}
     >
-      <CatAvatar src={cat.avatarUrl} name={cat.name} size={variant === "compact" ? "sm" : "md"} />
+      {/* Thẻ đang chọn có nền `chip-bg` trùng nền avatar chữ cái — đổi avatar sang nền trắng
+          để vòng tròn không "biến mất". */}
+      <CatAvatar
+        src={cat.avatarUrl}
+        name={cat.name}
+        size={variant === "compact" ? "sm" : "md"}
+        className={selected ? "bg-surface" : undefined}
+      />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-body font-semibold text-text-primary">{cat.name}</span>
@@ -105,10 +118,15 @@ export function CatCard({
             <Crown className="size-3.5 shrink-0 text-secondary-text-on" aria-label={primaryLabel} />
           ) : null}
         </span>
-        {variant === "detailed" ? (
+        {variant === "detailed" && (cat.breedName ?? ageLabel) ? (
           <span className="truncate text-caption text-text-secondary">
             {[cat.breedName, ageLabel].filter(Boolean).join(" · ")}
           </span>
+        ) : null}
+        {roleLabel ? (
+          <Badge tone={cat.isPrimary ? "brand" : "neutral"} className="mt-1 w-fit">
+            {roleLabel}
+          </Badge>
         ) : null}
         {isArchived && archivedLabel ? (
           <Badge tone="neutral" className="mt-1 w-fit">

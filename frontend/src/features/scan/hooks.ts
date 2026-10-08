@@ -1,12 +1,13 @@
 import {
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
 import type { Cat } from "@/entities/cat";
-import type { ScanAnalysisDetail, ScanConfig, ScanResult } from "@/entities/scan-result";
+import type { ScanAnalysisDetail, ScanConfig, ScanListItem, ScanListPage, ScanResult } from "@/entities/scan-result";
 import { apiFetch, apiSubmitScan, listActiveCats } from "./api";
 import type { DisputeResult, ReassignResult, SubmitScanMetadata } from "./types";
 
@@ -22,6 +23,7 @@ export const scanKeys = {
   detail: (scanId: string) => [...scanKeys.all, "detail", scanId] as const,
   byRequest: (scanRequestId: string) => [...scanKeys.all, "byRequest", scanRequestId] as const,
   activeCats: () => [...scanKeys.all, "activeCats"] as const,
+  recentByCat: (catId: string, limit: number) => [...scanKeys.all, "recentByCat", catId, limit] as const,
 };
 
 /** E12 — tham số/ngưỡng client (kích thước ảnh tối đa, precheck...). */
@@ -52,6 +54,10 @@ export function useSubmitScan(): UseMutationResult<ScanResult, Error, { metadata
         queryClient.setQueryData(scanKeys.detail(result.scanId), result);
       }
       queryClient.setQueryData(scanKeys.byRequest(result.scanRequestId), result);
+      void queryClient.invalidateQueries({ queryKey: [...scanKeys.all, "recentByCat"] });
+      // Số dư/sổ credit (`features/credit`, khoá `['credit', …]`) đổi ngay khi lượt quét được lưu —
+      // chỉ là khoá chuỗi dùng chung, không import chéo feature.
+      void queryClient.invalidateQueries({ queryKey: ["credit"] });
     },
   });
 }
@@ -96,6 +102,7 @@ export function useReassignScanCat(
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: scanKeys.detail(scanId) });
+      void queryClient.invalidateQueries({ queryKey: [...scanKeys.all, "recentByCat"] });
     },
   });
 }
@@ -125,7 +132,50 @@ export function useClearScanDispute(scanId: string): UseMutationResult<undefined
 
 /** E8 — xoá mềm một lần quét + xoá cứng file ảnh. */
 export function useDeleteScan(scanId: string): UseMutationResult<undefined, Error, void> {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch<undefined>(`/scans/${scanId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...scanKeys.all, "recentByCat"] });
+    },
   });
+}
+
+/**
+ * E2 `GET /scans?catId=…&limit=…` — vài lượt quét MỚI NHẤT của một bé (đã sắp giảm dần theo
+ * `capturedAt`, đã loại `INCONCLUSIVE` phía server). Dùng cho dải "các lần quét gần đây" ở màn
+ * kết quả và dòng "quét gần nhất" ở màn chọn mèo — `GET /cats` KHÔNG trả `lastScanAt`.
+ */
+function fetchRecentCatScans(catId: string, limit: number): Promise<ScanListItem[]> {
+  const params = new URLSearchParams({ catId, limit: String(limit) });
+  return apiFetch<ScanListPage>(`/scans?${params.toString()}`).then((page) => page.items);
+}
+
+export function useRecentCatScans(catId: string | null | undefined, limit: number): UseQueryResult<ScanListItem[]> {
+  return useQuery({
+    queryKey: scanKeys.recentByCat(catId ?? "", limit),
+    queryFn: () => fetchRecentCatScans(catId ?? "", limit),
+    enabled: Boolean(catId),
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Lượt quét gần nhất của TỪNG bé trong danh sách — `undefined` khi đang tải/lỗi (không đoán),
+ * `null` khi bé thật sự chưa có lượt quét nào.
+ */
+export function useLatestScanByCat(catIds: string[]): Record<string, ScanListItem | null | undefined> {
+  const results = useQueries({
+    queries: catIds.map((catId) => ({
+      queryKey: scanKeys.recentByCat(catId, 1),
+      queryFn: () => fetchRecentCatScans(catId, 1),
+      staleTime: 30 * 1000,
+    })),
+  });
+  const byCat: Record<string, ScanListItem | null | undefined> = {};
+  catIds.forEach((catId, index) => {
+    const items = results[index]?.data;
+    byCat[catId] = items === undefined ? undefined : (items[0] ?? null);
+  });
+  return byCat;
 }

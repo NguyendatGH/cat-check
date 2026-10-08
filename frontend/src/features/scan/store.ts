@@ -25,6 +25,8 @@ interface ScanCaptureStore {
   setFile: (file: File | null) => void;
   resetCapture: () => void;
   startNewRequest: () => void;
+  /** Lượt thử MỚI cho cùng bé/khay đang chọn (sau INCONCLUSIVE hoặc "Quét lần mới"): đổi `scanRequestId`, bỏ ảnh cũ. */
+  startNewAttempt: () => void;
 }
 
 function newRequestId(): string {
@@ -57,6 +59,11 @@ export const useScanCaptureStore = create<ScanCaptureStore>((set, get) => ({
     const prev = get().previewUrl;
     if (prev) URL.revokeObjectURL(prev);
     set({ file: null, previewUrl: null });
+  },
+  startNewAttempt: () => {
+    const prev = get().previewUrl;
+    if (prev) URL.revokeObjectURL(prev);
+    set({ scanRequestId: newRequestId(), file: null, previewUrl: null });
   },
   startNewRequest: () => {
     const prev = get().previewUrl;

@@ -39,7 +39,9 @@
     "needScan": "Cần quét kiểm tra",
     "planFor": "Kế hoạch cho {{name}}",
     "planPickLabel": "Chọn lịch nhắc muốn chỉnh",
-    "syncCalendar": "Đồng bộ vào Lịch Apple / Google"
+    "syncCalendar": "Đồng bộ vào Lịch Apple / Google",
+    "nextReminderLabel": "Lần nhắc tiếp theo",
+    "sourceLabel": "Nguồn tạo lịch"
   },
   "web": {
     "eyebrow": "Nhắc nhở theo dõi",
@@ -74,7 +76,9 @@
     "weekday7": "CN",
     "statTotal": "Tổng lịch nhắc",
     "statActive": "Đang bật",
-    "statOverdue": "Quá hạn"
+    "statOverdue": "Quá hạn",
+    "viewCreditsCta": "Xem credit",
+    "forAccount": "Áp dụng cho cả tài khoản"
   },
   "form": {
     "catLabel": "Chọn bé mèo",

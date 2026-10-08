@@ -27,6 +27,7 @@ import {
   useHealthSurveyDefinition,
   useOnboardingStore,
   usePhBands,
+  usePrimaryCat,
   useSubmitSurvey,
   EMPTY_SURVEY_ANSWERS,
   type CreatedCat,
@@ -244,7 +245,11 @@ export function OnboardingHealthSurveyPage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
 
-  const { createdCat, surveyAnswers, setSurveyAnswers, setSurveySkipped, setStep } = useOnboardingStore();
+  const { createdCat: storeCat, surveyAnswers, setSurveyAnswers, setSurveySkipped, setStep } = useOnboardingStore();
+  // Store chỉ sống trong phiên trang — tải lại giữa chừng thì lấy hồ sơ chính (`isPrimary`,
+  // chính là mèo vừa tạo ở bước 1) từ `GET /cats`, thay vì khoá nút "Tiếp tục" vĩnh viễn.
+  const primaryCat = usePrimaryCat(!storeCat);
+  const createdCat = storeCat ?? primaryCat.data ?? null;
   const submitSurvey = useSubmitSurvey(createdCat?.id ?? "");
   const { data: phBands } = usePhBands();
   // F6 — bộ câu hỏi THẬT. Thứ tự, kiểu (SINGLE/MULTI) và danh sách lựa chọn đều của server.

@@ -14,6 +14,7 @@ import {
   useConfirmPasswordReset,
   type ResetPasswordFieldValues,
 } from "@/features/auth";
+import { AuthCard } from "./AuthCard";
 
 /**
  * `/auth/reset-password` (p9 §9.4.3 #6) — bước cuối quên mật khẩu. Cần `passwordResetTicket`
@@ -41,20 +42,22 @@ export function ResetPasswordPage() {
 
   if (!ticket) {
     return (
-      <EmptyState
-        title={t("resetPassword.missingTicket.title")}
-        description={t("resetPassword.missingTicket.description")}
-        action={
-          <Button
-            type="button"
-            onClick={() => {
-              void navigate("/auth/forgot-password");
-            }}
-          >
-            {t("resetPassword.missingTicket.cta")}
-          </Button>
-        }
-      />
+      <AuthCard>
+        <EmptyState
+          title={t("resetPassword.missingTicket.title")}
+          description={t("resetPassword.missingTicket.description")}
+          action={
+            <Button
+              type="button"
+              onClick={() => {
+                void navigate("/auth/forgot-password");
+              }}
+            >
+              {t("resetPassword.missingTicket.cta")}
+            </Button>
+          }
+        />
+      </AuthCard>
     );
   }
 
@@ -79,7 +82,7 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <AuthCard>
       <header className="flex flex-col gap-1 text-center">
         <h1 className="text-h2 font-bold text-text-primary">{t("resetPassword.title")}</h1>
         <p className="text-caption text-text-secondary">{t("resetPassword.subtitle")}</p>
@@ -111,6 +114,6 @@ export function ResetPasswordPage() {
           {t("resetPassword.submit")}
         </Button>
       </form>
-    </div>
+    </AuthCard>
   );
 }

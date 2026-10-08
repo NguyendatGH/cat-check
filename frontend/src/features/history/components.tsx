@@ -107,12 +107,12 @@ export function CatSwitcherBar({
         </span>
         <span
           className={cn(
-            "flex items-center gap-1 text-small",
+            "flex items-start gap-1 text-small",
             statusTone === "normal" ? "text-ph-normal-text" : "text-text-tertiary",
           )}
         >
           <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">{status}</span>
+          <span className="min-w-0">{status}</span>
         </span>
       </div>
       <button

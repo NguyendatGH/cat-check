@@ -169,3 +169,18 @@ export interface ScanConfig {
   minResultConfidence: number;
   activeChart: { code: string | null; version: number; isPlaceholder: boolean };
 }
+
+/**
+ * Số lượt quét **hiển thị được** của một `ScanSummary`.
+ *
+ * Vì sao cần hàm này: `GET /scans/summary` (E3) đếm MỌI bản ghi `scan`, kể cả
+ * `INCONCLUSIVE` — bản ghi giữ lại để audit nhưng `GET /scans` (E2) loại hẳn ra
+ * (`JdbcScanQueryRepository.findHistory`: `sa.classification <> 'INCONCLUSIVE'`), và
+ * `GET /scans/{id}` cũng trả 404 cho chúng. Hệ quả: màn nào lấy `summary.count` làm "tổng
+ * bản ghi" sẽ luôn lớn hơn số dòng người dùng thật sự nhìn thấy và bấm được.
+ *
+ * Mọi chỗ nói "tổng lượt quét" PHẢI dùng hàm này để một bộ dữ liệu chỉ có một con số.
+ */
+export function displayableScanCount(summary: Pick<ScanSummary, "count" | "inconclusiveCount">): number {
+  return Math.max(0, summary.count - summary.inconclusiveCount);
+}

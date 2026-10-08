@@ -46,7 +46,7 @@ export function NotificationPreferencesForm({ className }: { className?: string 
 
   if (query.isPending) {
     return (
-      <p className={cn("flex items-center gap-2 text-caption text-text-secondary", className)}>
+      <p className={`flex items-center gap-2 text-caption text-text-secondary ${className ?? ""}`}>
         <Loader2 size={15} className="animate-spin" aria-hidden="true" />
         {t("common:actions.loading")}
       </p>
@@ -57,10 +57,7 @@ export function NotificationPreferencesForm({ className }: { className?: string 
     const unavailable = isApiError(query.error) && (query.error.status === 403 || query.error.status === 501);
     return (
       <p
-        className={cn(
-          "flex items-start gap-2 rounded-xl bg-warning-bg px-3.5 py-2.5 text-caption text-warning-text",
-          className,
-        )}
+        className={`flex items-start gap-2 rounded-xl bg-warning-bg px-3.5 py-2.5 text-caption text-warning-text ${className ?? ""}`}
       >
         <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
         {unavailable ? t("notifications.unavailable") : t("notifications.saveFailed")}
@@ -202,7 +199,7 @@ export function NotificationPreferencesForm({ className }: { className?: string 
 
       <p
         aria-live="polite"
-        className={cn("flex items-center gap-1.5 text-caption", update.isError ? "text-danger" : "text-success-text")}
+        className={`flex items-center gap-1.5 text-caption ${update.isError ? "text-danger" : "text-success-text"}`}
       >
         {update.isPending ? (
           <>

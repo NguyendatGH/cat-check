@@ -84,7 +84,7 @@ export function InstallPage() {
         <p className="pt-1 text-body text-text-secondary">{t("settings:install.lead")}</p>
       </header>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           {/* ---------- Luồng cài tự động (chỉ Chromium) ---------- */}
           <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md">
@@ -155,7 +155,7 @@ export function InstallPage() {
         </div>
 
         {/* ---------- Cột phụ: trạng thái cửa sổ hiện tại + lưu ý ---------- */}
-        <aside className="flex w-full flex-col gap-5 lg:w-[360px] lg:shrink-0">
+        <aside className="flex w-full flex-col gap-5 xl:w-[360px] xl:shrink-0">
           {standalone ? (
             <section className="flex flex-col gap-2 rounded-2xl bg-success-bg p-5">
               <h2 className="flex items-center gap-2 text-body font-bold text-success-text">

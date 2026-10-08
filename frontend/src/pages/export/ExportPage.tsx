@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { Download } from "lucide-react";
 import { Button, Card, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { isApiError } from "@/shared/api/errors";
+import { useFormatCatAge } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import {
   CatPickerStep,
@@ -35,6 +36,16 @@ export function ExportPage() {
   const { data: cats, isPending, isError, refetch } = useActiveCatsForExport();
   const wizard = useExportWizardStore();
   const requestExport = useRequestExport();
+  const formatAge = useFormatCatAge();
+  const { catId: selectedCatId, setCat } = wizard;
+
+  // Chưa chọn bé (vào thẳng `/export`, không qua hồ sơ một bé) → chọn sẵn mèo mặc định
+  // (`isPrimary`) như mockup `10`; tài khoản một bé thì chính bé đó.
+  useEffect(() => {
+    if (selectedCatId || !cats || cats.length === 0) return;
+    const fallback = cats.find((c) => c.isPrimary) ?? cats[0];
+    setCat({ id: fallback.id, name: fallback.name });
+  }, [cats, selectedCatId, setCat]);
 
   const handleSubmit = () => {
     if (!wizard.catId) return;
@@ -120,9 +131,11 @@ export function ExportPage() {
               }}
               primaryLabel={t("wizard.step1.primaryLabel")}
               secondaryLabel={t("wizard.step1.secondaryLabel")}
-              // Mockup `10` xếp 2 cột vì có 2 bé mèo; 1 bé mà vẫn 2 cột thì thẻ chỉ còn nửa
-              // bề ngang và tên/giống bị cắt (`…`). Một bé → giữ mặc định 1 cột full width.
-              className={cats.length > 1 ? "grid grid-cols-2 gap-3" : undefined}
+              ageLabelFor={(cat) => formatAge(cat.ageMonths) ?? undefined}
+              // Mockup `10` xếp 2 cột, nhưng ở 390px mỗi thẻ chỉ còn ~170px và tuổi bị cắt
+              // ("4 tuổi 4 thá…"). Một cột full width để tên/tuổi/badge luôn đọc trọn; tablet
+              // trở lên mới chia 2 cột.
+              className={cats.length > 1 ? "grid grid-cols-1 gap-3 md:grid-cols-2" : undefined}
             />
           )}
         </section>

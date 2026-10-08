@@ -22,8 +22,8 @@ import {
  *
  * Nối API thật: `POST /account/password` (B6), `GET|POST|DELETE /account/mfa/totp*`
  * (B13-B17), `GET|DELETE /auth/sessions` + `POST /auth/sessions/revoke-all` (A14-A16).
- * Thiết kế `Web - 16` chỉ có một dòng "Bảo mật & Y sinh (ISO)" ở cột điều hướng, không có
- * frame chi tiết — trang này dựng theo đúng tone card/Token của bộ thiết kế.
+ * Thiết kế `Web - 16` chỉ có một lối vào "Bảo mật tài khoản" ở cột điều hướng, không có frame
+ * chi tiết — trang này dựng theo đúng tone card/token của bộ thiết kế.
  *
  * Trang nằm trong `TaskLayout`: layout cấp `px-4 py-6` + hộp 944px, trang không tự thêm.
  */
@@ -39,6 +39,8 @@ export function SettingsSecurityPage() {
   const changePassword = useChangePassword();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  // Khớp ràng buộc backend `ChangePasswordRequest.newPassword` (8..72 ký tự).
+  const newPasswordInvalid = newPassword.length > 0 && (newPassword.length < 8 || newPassword.length > 72);
 
   const { data: totp } = useTotpStatus();
   const totpInit = useTotpInit();
@@ -48,7 +50,7 @@ export function SettingsSecurityPage() {
   const [totpCode, setTotpCode] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
 
-  const { data: sessions, isPending: sessionsPending } = useSessions();
+  const { data: sessions, isPending: sessionsPending, isError: sessionsError } = useSessions();
   const revokeSession = useRevokeSession();
   const revokeAll = useRevokeAllSessions();
 
@@ -66,7 +68,7 @@ export function SettingsSecurityPage() {
         <p className="pt-1 text-body text-text-secondary">{t("security.intro")}</p>
       </header>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           {/* ---------- Đổi mật khẩu (B6) ---------- */}
           <form
@@ -87,7 +89,7 @@ export function SettingsSecurityPage() {
             className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-brand-md"
           >
             <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
-              <KeyRound size={18} className="text-primary-dark" aria-hidden="true" />
+              <KeyRound size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
               {t("security.sectionPassword")}
             </h2>
 
@@ -104,7 +106,8 @@ export function SettingsSecurityPage() {
               label={t("security.newPassword")}
               type="password"
               autoComplete="new-password"
-              helperText={t("security.changePasswordNote")}
+              helperText={newPasswordInvalid ? undefined : t("security.changePasswordNote")}
+              error={newPasswordInvalid ? t("security.newPasswordLength") : undefined}
               value={newPassword}
               onChange={(event) => {
                 setNewPassword(event.target.value);
@@ -115,7 +118,7 @@ export function SettingsSecurityPage() {
               <Button
                 type="submit"
                 size="md"
-                disabled={currentPassword.length === 0 || newPassword.length === 0}
+                disabled={currentPassword.length === 0 || newPassword.length === 0 || newPasswordInvalid}
                 loading={changePassword.isPending}
               >
                 {t("security.changePasswordSubmit")}
@@ -129,7 +132,9 @@ export function SettingsSecurityPage() {
                 ) : changePassword.isError ? (
                   <span className="flex items-center gap-1.5 text-danger">
                     <AlertTriangle size={14} aria-hidden="true" />
-                    {t("security.changePasswordFailed")}
+                    {isApiError(changePassword.error) && changePassword.error.status === 400
+                      ? t("security.changePasswordInvalidNew")
+                      : t("security.changePasswordFailed")}
                   </span>
                 ) : null}
               </p>
@@ -140,7 +145,7 @@ export function SettingsSecurityPage() {
           <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
-                <Monitor size={18} className="text-primary-dark" aria-hidden="true" />
+                <Monitor size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
                 {t("security.sectionSessions")}
               </h2>
               {otherSessions.length > 0 ? (
@@ -161,9 +166,14 @@ export function SettingsSecurityPage() {
                 <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                 {t("common:actions.loading")}
               </p>
+            ) : sessionsError ? (
+              <p className="flex items-start gap-1.5 text-caption text-danger">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                {t("security.sessionsLoadFailed")}
+              </p>
             ) : (
               <ul className="flex flex-col gap-2">
-                {(sessions?.items ?? []).map((session) => (
+                {sessions.items.map((session) => (
                   <li key={session.id} className="flex items-center gap-3 rounded-xl bg-background-alt/60 p-3">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-primary-dark">
                       <Monitor size={17} aria-hidden="true" />
@@ -204,22 +214,22 @@ export function SettingsSecurityPage() {
         </div>
 
         {/* ---------- TOTP (B13-B17) ---------- */}
-        <section className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md lg:w-[360px] lg:shrink-0">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
-              <ShieldCheck size={18} className="text-primary-dark" aria-hidden="true" />
-              {t("security.sectionMfa")}
-            </h2>
-            <span
-              className={
-                totpActive
-                  ? "shrink-0 whitespace-nowrap rounded-full bg-success-bg px-3 py-1 text-caption font-semibold text-success-text"
-                  : "shrink-0 whitespace-nowrap rounded-full bg-background-alt px-3 py-1 text-caption font-semibold text-text-secondary"
-              }
-            >
-              {totpActive ? t("security.mfaStatusActive") : t("security.mfaStatusNone")}
-            </span>
-          </div>
+        <section className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md xl:w-[360px] xl:shrink-0">
+          {/* Tiêu đề một dòng riêng, nhãn trạng thái xuống dòng dưới: cột 360px không đủ chỗ
+              cho cả hai trên một hàng — để chung thì tiêu đề bị bẻ đôi. */}
+          <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
+            <ShieldCheck size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
+            {t("security.sectionMfa")}
+          </h2>
+          <span
+            className={
+              totpActive
+                ? "w-fit whitespace-nowrap rounded-full bg-success-bg px-3 py-1 text-caption font-semibold text-success-text"
+                : "w-fit whitespace-nowrap rounded-full bg-background-alt px-3 py-1 text-caption font-semibold text-text-secondary"
+            }
+          >
+            {totpActive ? t("security.mfaStatusActive") : t("security.mfaStatusNone")}
+          </span>
           <p className="text-caption leading-relaxed text-text-secondary">{t("security.mfaBody")}</p>
 
           {totpActive ? (

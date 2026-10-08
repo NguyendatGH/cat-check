@@ -96,6 +96,21 @@ export function useConsentPurposes(): UseQueryResult<ConsentPurposeOption[]> {
   });
 }
 
+/**
+ * `GET /system/status` (công khai, `PublicSystemStatusController`) — chỉ lấy `buildVersion`
+ * cho huy hiệu phiên bản ở màn đăng nhập (M1 01b). Không hard-code số phiên bản ở FE.
+ */
+export function useBuildVersion(): UseQueryResult<string | null> {
+  return useQuery({
+    queryKey: ["system", "status", "buildVersion"],
+    queryFn: async () => {
+      const status = await apiFetch<{ buildVersion?: string | null }>("/system/status");
+      return status.buildVersion ?? null;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
 /* ---------------- A6/A7 — Đăng nhập / đăng xuất ---------------- */
 
 export function useLogin(): UseMutationResult<
@@ -211,6 +226,28 @@ export function useUpdateProfile(): UseMutationResult<ProfileResponse, Error, Up
         method: "PATCH",
         body: JSON.stringify(payload),
       }),
+  });
+}
+
+/* ---------------- B4/B5 — Ảnh đại diện người dùng ---------------- */
+
+export const MY_AVATAR_PATH = "/api/v1/users/me/avatar";
+
+/** `PUT /users/me/avatar` (multipart `file`, JPEG/PNG/WebP ≤ 5MB). Trả `{ avatarUrl }`. */
+export function useUploadMyAvatar(): UseMutationResult<{ avatarUrl: string }, Error, File> {
+  return useMutation({
+    mutationFn: (file) => {
+      const form = new FormData();
+      form.append("file", file);
+      return apiFetch<{ avatarUrl: string }>("/users/me/avatar", { method: "PUT", body: form });
+    },
+  });
+}
+
+/** `DELETE /users/me/avatar` (204). */
+export function useRemoveMyAvatar(): UseMutationResult<undefined, Error, void> {
+  return useMutation({
+    mutationFn: () => apiFetch<undefined>("/users/me/avatar", { method: "DELETE" }),
   });
 }
 

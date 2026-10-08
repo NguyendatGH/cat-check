@@ -3,10 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { Camera, LineChart } from "lucide-react";
 import { Button, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
-import { CatAvatar } from "@/entities/cat";
+import { CatAvatar, useFormatCatAge } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { findBandForPh, PhGaugeBar, usePhBands } from "@/entities/ph-bands";
+import { displayableScanCount } from "@/entities/scan-result";
 import type { ScanListItem } from "@/entities/scan-result";
+import { useExportWizardStore } from "@/features/export";
 import {
   CatSwitcherBar,
   ExportCtaCard,
@@ -37,6 +39,7 @@ export function CatHistoryPage() {
   const { data: cat } = useCat(catId);
   const { data: bands } = usePhBands();
   const { data: summary } = useScanSummary(catId);
+  const formatAge = useFormatCatAge();
   const {
     data: history,
     isPending,
@@ -71,11 +74,18 @@ export function CatHistoryPage() {
     [t],
   );
 
+  const setExportCat = useExportWizardStore((s) => s.setCat);
+  /** Xuất hồ sơ PDF với bé đang xem đã được chọn sẵn ở bước 1. */
+  const openExport = () => {
+    if (cat) setExportCat({ id: cat.id, name: cat.name });
+    void navigate("/export");
+  };
+
   // Dải của trung vị 30 ngày — dùng cho dòng trạng thái ở thanh chuyển bé và nhãn cạnh
   // "Trung bình". Tra từ `bands` (API), không hard-code ngưỡng.
   const medianBand = summary?.median != null ? findBandForPh(bands ?? [], summary.median) : null;
   const catMeta = [
-    cat?.ageMonths != null ? t("switcher.ageLabel", { months: cat.ageMonths }) : null,
+    formatAge(cat?.ageMonths),
     cat
       ? t(`form.sex.${cat.sex === "MALE" ? "male" : cat.sex === "FEMALE" ? "female" : "unknown"}`, { ns: "cat" })
       : null,
@@ -123,13 +133,15 @@ export function CatHistoryPage() {
 
         {summary && summary.count > 0 ? (
           <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4">
-            <div className="flex items-start justify-between gap-2">
+            {/* Tiêu đề và chip trung bình tự xuống hàng khi chật — trước đây chip `shrink-0` ép
+                "Phổ pH gần đây" vỡ thành bốn dòng ở 390px. */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 text-body font-bold text-text-primary">
                 <LineChart className="size-4 shrink-0 text-primary" aria-hidden="true" />
                 {t("spectrum.title")}
               </p>
               {summary.median !== null ? (
-                <span className="shrink-0 rounded-full bg-chip-bg px-2.5 py-1 text-small font-semibold text-primary-dark">
+                <span className="rounded-full bg-chip-bg px-2.5 py-1 text-small font-semibold text-primary-dark">
                   {medianBand
                     ? t("spectrum.averageWithBand", { value: summary.median.toFixed(1), label: medianBand.label })
                     : t("spectrum.average", { value: summary.median.toFixed(1) })}
@@ -145,7 +157,7 @@ export function CatHistoryPage() {
           value={filter}
           onChange={setFilter}
           labels={{
-            ALL: summary?.count ? t("filters.allWithCount", { count: summary.count }) : t("filters.ALL"),
+            ALL: summary ? t("filters.allWithCount", { count: displayableScanCount(summary) }) : t("filters.ALL"),
             ABNORMAL: t("filters.ABNORMAL"),
             DISPUTED: t("filters.DISPUTED"),
           }}
@@ -213,9 +225,7 @@ export function CatHistoryPage() {
           title={t("export.title")}
           description={t("export.description")}
           ctaLabel={t("export.cta")}
-          onExport={() => {
-            void navigate("/export");
-          }}
+          onExport={openExport}
         />
       </div>
     );
@@ -233,6 +243,7 @@ export function CatHistoryPage() {
           summary={summary}
           groups={groups}
           totalLoaded={items.length}
+          totalRecords={summary ? displayableScanCount(summary) : null}
           filter={filter}
           onFilterChange={setFilter}
           isPending={isPending}
@@ -251,8 +262,9 @@ export function CatHistoryPage() {
           onStartScan={() => {
             void navigate("/scan/select-cat");
           }}
-          onExport={() => {
-            void navigate("/export");
+          onExport={openExport}
+          onOpenTrends={() => {
+            void navigate(`/cats/${catId ?? ""}/trends`);
           }}
           monthLabel={monthLabel}
           timestampLabel={timestampLabel}

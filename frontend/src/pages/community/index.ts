@@ -1,5 +1,6 @@
 /**
- * Barrel của module trang Cộng đồng (Phase 2 — UI + mock data, chưa có API; xem `mockData.ts`).
+ * Barrel của module trang Cộng đồng. Toàn bộ nội dung render từ Community API thật
+ * (`features/community`) — không còn dữ liệu dựng tay.
  * Router do session chính nối, ở đây chỉ export component.
  */
 export { CommunityFeedPage } from "./CommunityFeedPage";

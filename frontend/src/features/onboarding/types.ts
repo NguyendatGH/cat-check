@@ -97,25 +97,41 @@ export const EMPTY_SURVEY_ANSWERS: SurveyAnswers = {
   symptoms: [],
 };
 
+/**
+ * Một lô trong `GET /credits/balance` — khớp `BalanceResponse.BatchResponse` của backend.
+ *
+ * Bug thật đã sửa: bản cũ khai `id`/`packageName`/`remaining` (không tồn tại trong response)
+ * và `CreditBalance.totalAvailable` (server trả `availableBalance`), nên màn Hoàn tất luôn
+ * đọc `undefined`. Cùng hợp đồng với `features/credit/types.ts`.
+ */
 export interface CreditBatch {
-  id: string;
+  batchId: string;
   packageCode: string;
-  packageName: string;
   initialAmount: number;
-  remaining: number;
+  remainingAmount: number;
   activatedAt: string;
   expiresAt: string;
+  remainingSeconds: number;
 }
 
 export interface CreditBalance {
-  totalAvailable: number;
+  availableBalance: number;
+  trialScansUsed: number;
   trialScansRemaining: number;
   batches: CreditBatch[];
 }
 
+/**
+ * `POST /activations` — khớp `ActivationResponse` của backend (phẳng, KHÔNG bọc `{batch,
+ * balance}`). Bản cũ đọc `result.batch.packageName` ⇒ TypeError ngay sau khi mã đã bị tiêu
+ * thụ thành công, màn hình báo "Đã có lỗi xảy ra" dù gói đã được kích hoạt.
+ */
 export interface ActivationResult {
-  batch: CreditBatch;
-  balance: CreditBalance;
+  packageCode: string;
+  packageName: string;
+  creditsGranted: number;
+  expiresAt: string;
+  balanceAfter: number;
 }
 
 /**

@@ -15,8 +15,9 @@ export function WebRegisterSteps({
 }: {
   current: 1 | 2 | 3 | 4;
   /**
-   * Bước 1 (Figma Web-01c, thẻ 1184x228) có thêm hàng tiêu đề onboarding + chứng nhận và
-   * thanh % phía dưới; các bước sau (Web-01c-2, thẻ 1184x104) chỉ có dải 4 bước.
+   * Bước 1 (Figma Web-01c, thẻ 1184x228) có thêm hàng tiêu đề và thanh % phía dưới; các bước
+   * sau (Web-01c-2, thẻ 1184x104) chỉ có dải 4 bước. Chip "ISO/IEC 27001" của mockup đã bỏ —
+   * không có chứng nhận nào như vậy.
    */
   withHeader?: boolean;
 }) {
@@ -37,12 +38,6 @@ export function WebRegisterSteps({
             </span>
             <h2 className="text-[20px] font-extrabold leading-7 text-primary-dark">{t("web.steps.headerTitle")}</h2>
           </div>
-          <span className="flex shrink-0 items-center gap-2 rounded-xl bg-background-alt px-3.5 py-2">
-            <img src={stepCheck} alt="" className="h-[10.021px] w-[13.583px]" />
-            <span className="text-[11px] font-semibold tracking-[0.4px] text-text-secondary">
-              {t("web.steps.headerCert")}
-            </span>
-          </span>
         </div>
       ) : null}
 

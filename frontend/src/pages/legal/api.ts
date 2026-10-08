@@ -21,6 +21,8 @@ interface ProblemDetail {
   instance: string;
   code?: string;
   params?: Record<string, unknown>;
+  /** Backend đặt mã lỗi ở `errorCode` (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
+  errorCode?: string;
 }
 
 function readCsrfToken(): string | null {
@@ -58,7 +60,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
       response.status,
-      problem?.code,
+      problem?.errorCode ?? problem?.code,
     );
   }
 

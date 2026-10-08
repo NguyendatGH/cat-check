@@ -15,8 +15,9 @@ export interface TopBarProps {
   actions?: ReactNode;
 }
 
-const HEADER_SHELL =
-  "sticky top-0 z-[var(--z-sticky-header)] w-full bg-[rgba(250,248,255,0.8)] shadow-[0px_1px_8px_0px_rgba(0,0,0,0.04)] backdrop-blur-md";
+// `rgba(250,248,255,.8)` chính là `--color-background` ở 80% và `0 1px 8px rgba(0,0,0,.04)`
+// nằm trong họ shadow trung tính của p10 §2.5 — dùng token thay vì viết lại giá trị.
+const HEADER_SHELL = "sticky top-0 z-[var(--z-sticky-header)] w-full bg-background/80 shadow-xs backdrop-blur-md";
 
 /**
  * Thanh trên cùng dùng chung — khớp Figma (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw): 2 biến thể
@@ -31,10 +32,10 @@ export function TopBar({ variant, title, onBack, actions }: TopBarProps) {
       <header className={HEADER_SHELL}>
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-[0px_2px_4px_rgba(47,79,178,0.15)]">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-brand-md">
               <LogoPawIcon size={17} />
             </div>
-            <h1 className="text-[18px] font-bold tracking-[-0.45px] text-primary-dark">CATCHECK</h1>
+            <h1 className="text-h3 font-bold tracking-[-0.45px] text-primary-dark">CATCHECK</h1>
           </div>
           <div className="flex items-center gap-2">{actions}</div>
         </div>
@@ -59,7 +60,7 @@ export function TopBar({ variant, title, onBack, actions }: TopBarProps) {
         >
           <ArrowLeft size={20} aria-hidden="true" />
         </button>
-        <h1 className="truncate px-14 text-[17px] font-semibold text-text-primary">{title}</h1>
+        <h1 className="truncate px-14 text-body font-semibold text-text-primary">{title}</h1>
         {actions ? <div className="absolute right-2 flex items-center">{actions}</div> : null}
       </div>
     </header>

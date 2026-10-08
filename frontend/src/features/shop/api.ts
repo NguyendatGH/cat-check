@@ -13,8 +13,13 @@ export interface ShopProductApi {
   compareAtPriceVnd: number | null;
   stockQuantity: number;
 }
+export interface CartLineApi {
+  product: ShopProductApi;
+  quantity: number;
+  totalVnd: number;
+}
 export interface CartApi {
-  lines: Array<{ product: ShopProductApi; quantity: number; totalVnd: number }>;
+  lines: CartLineApi[];
   subtotalVnd: number;
   shippingFeeVnd: number;
   totalVnd: number;
@@ -31,7 +36,8 @@ export interface OrderApi {
   discountVnd: number;
   shippingFeeVnd: number;
   totalVnd: number;
-  lines: Array<{ product: ShopProductApi; quantity: number; totalVnd: number }>;
+  /** Dòng đơn: `product.description` rỗng, `compareAtPriceVnd` null, `stockQuantity` 0 (backend không đọc lại). */
+  lines: CartLineApi[];
   createdAt: string;
 }
 
@@ -66,6 +72,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+/**
+ * Id sản phẩm/đơn hàng là UUID. Gửi chuỗi khác lên backend thì nhận 500 (lỗi ép kiểu path
+ * variable chưa được map) — nên chặn ở client và coi như "không tìm thấy".
+ */
+export function isShopId(value: string | undefined): value is string {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 export function listShopProducts() {
   return request<ShopProductApi[]>("/shop/products");
 }
@@ -80,6 +94,10 @@ export function setShopCartLine(productId: string, quantity: number) {
 }
 export function removeShopCartLine(productId: string) {
   return request<CartApi>(`/cart/${productId}`, { method: "DELETE" });
+}
+/** `DELETE /api/v1/cart` — 204, không trả body. */
+export function clearShopCart() {
+  return request<undefined>("/cart", { method: "DELETE" });
 }
 export function createShopOrder(payload: {
   paymentMethod: string;

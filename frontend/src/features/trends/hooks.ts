@@ -31,12 +31,13 @@ export function useCatTrends(catId: string | undefined, range: TrendRange): UseQ
 }
 
 /**
- * Chuỗi điểm để vẽ: bỏ lần quét `INCONCLUSIVE` (`phValue === null`) và sắp theo thời gian
+ * Chuỗi điểm để vẽ: bỏ lần quét `INCONCLUSIVE` (API BỎ HẲN key `phValue`, không trả `null`
+ * ⇒ phải lọc theo `typeof === "number"`, không so `!== null`) và sắp theo thời gian
  * tăng dần. Điểm cuối được đánh dấu `isLatest` cho chú giải "lần đo gần nhất".
  */
 export function toTrendPoints(points: CatTrendPoint[] | undefined): TrendPoint[] {
   const measured = (points ?? [])
-    .filter((p): p is CatTrendPoint & { phValue: number } => p.phValue !== null)
+    .filter((p): p is CatTrendPoint & { phValue: number } => typeof p.phValue === "number")
     .sort((a, b) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime());
   return measured.map((p, index) => ({
     date: p.capturedAt,

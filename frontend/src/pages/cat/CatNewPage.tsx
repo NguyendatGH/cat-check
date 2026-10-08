@@ -101,7 +101,8 @@ export function CatNewPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    // Desktop: form nằm trong một thẻ trắng (như các màn TaskLayout khác) thay vì trôi trên nền.
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:rounded-3xl lg:bg-surface lg:p-8 lg:shadow-xs">
       <h1 className="text-h2 font-bold text-text-primary">{t("pages.new.title")}</h1>
 
       <CatFormFields

@@ -81,12 +81,21 @@ export interface Cat {
   createdAt: string;
   updatedAt: string;
   /**
-   * Trường tóm tắt tuỳ chọn — D1 (`GET /cats`) trả kèm theo p8 §8.4.4, nguồn từ module scan
-   * (A6). Có thể vắng/`null` cho tới khi scan wiring xong; UI phải xử lý được cả hai.
+   * Tóm tắt lần quét gần nhất — `GET /cats` (D1) trả sẵn từ module scan. `null` khi bé chưa có
+   * lần quét nào đã phân tích. KHÔNG có số pH ở đây: cần `phValue` thì đọc `GET /scans`.
    */
-  lastScanAt?: string | null;
-  lastClassification?: string | null;
-  unacknowledgedFlagCount?: number;
+  lastScanAt: string | null;
+  lastClassification: string | null;
+  unacknowledgedFlagCount: number | null;
+}
+
+/** Lần quét gần nhất của một bé dùng cho thẻ/bảng — gộp field của `GET /cats` + `GET /scans`. */
+export interface CatLastScan {
+  capturedAt: string;
+  classification: string;
+  bandCode: string;
+  /** `null` khi chưa tải được `GET /scans` (hoặc scan không có pH). */
+  phValue: number | null;
 }
 
 /** D8 — kết quả đặt mèo chính: `{catId, previousPrimaryCatId}` (p8 "Nhóm D còn lại"). */

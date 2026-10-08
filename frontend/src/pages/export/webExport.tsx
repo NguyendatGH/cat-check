@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
-import type { Cat } from "@/entities/cat";
+import { useFormatCatAge, type Cat } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import {
   CatPickerStep,
@@ -32,6 +32,9 @@ import { resolveExportRange } from "./rangeLabel";
  * DỮ LIỆU THẬT: D1 `GET /cats` (chọn mèo) + J1 `POST /exports` (tạo job). Ba mã lỗi nghiệp vụ
  * của J1 đều được vẽ thành trạng thái thật: `EXPORT_RANGE_INVALID` (400),
  * `EXPORT_NO_DATA` (422), `EXPORT_JOB_IN_PROGRESS` (409).
+ *
+ * Tiêu đề/nhãn ở khối xem trước khớp CHÍNH file PDF backend sinh ra (`PdfDocumentBuilder`:
+ * "HỒ SƠ THEO DÕI SỨC KHỎE TIẾT NIỆU", logo "CatCheck") — không còn "CATCHECK VET" của mockup.
  *
  * ĐÃ BỎ so với mockup: nút "Gửi Email trực tiếp đến Phòng khám" và "In tóm tắt" (không có
  * endpoint, module phòng khám thuộc phase sau), badge "Đạt chuẩn hồ sơ thú y", dòng
@@ -92,10 +95,11 @@ export function WebExportScreen({
   onSubmit,
 }: WebExportScreenProps) {
   const { t } = useTranslation(["export", "scan", "common"]);
+  const formatAge = useFormatCatAge();
 
   const header = (
     <div className="max-w-[620px]">
-      <p className="text-overline font-bold tracking-[0.4px] text-primary-dark">{t("web.eyebrow")}</p>
+      <p className="text-overline font-bold uppercase tracking-[0.4px] text-primary-dark">{t("web.eyebrow")}</p>
       <h1 className="pt-1 text-[26px] font-bold leading-8 tracking-[-0.5px] text-primary-dark">{t("web.title")}</h1>
       <p className="pt-2 text-caption leading-relaxed text-text-secondary">{t("web.subtitle")}</p>
     </div>
@@ -177,6 +181,7 @@ export function WebExportScreen({
                 onSelect={onSelectCat}
                 primaryLabel={t("wizard.step1.primaryLabel")}
                 secondaryLabel={t("wizard.step1.secondaryLabel")}
+                ageLabelFor={(cat) => formatAge(cat.ageMonths) ?? undefined}
                 // 1 bé mèo mà vẫn ép 2 cột thì tên/giống bị cắt — xem `ExportPage.tsx`.
                 className={cats.length > 1 ? "grid grid-cols-2 gap-3" : undefined}
               />

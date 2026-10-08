@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Crown } from "lucide-react";
 import { Badge } from "@/shared/ui";
-import { CatAvatar, type Cat } from "@/entities/cat";
+import { CatAvatar, useFormatCatAge, type Cat } from "@/entities/cat";
 import { cn } from "@/shared/lib/cn";
 import iconNeuteredCheck from "@/shared/assets/icons/web-cat/profile-neutered-check.svg";
 import iconMicrochip from "@/shared/assets/icons/web-cat/profile-microchip.svg";
@@ -29,10 +29,12 @@ export interface CatProfileHeroProps {
 
 export function CatProfileHero({ cat, menu, extraTiles, className }: CatProfileHeroProps) {
   const { t, i18n } = useTranslation("cat");
+  const formatAge = useFormatCatAge();
+  const ageLabel = formatAge(cat.ageMonths);
 
   const sexLabel = t(`form.sex.${cat.sex === "MALE" ? "male" : cat.sex === "FEMALE" ? "female" : "unknown"}`);
   const identityLine = [
-    cat.ageMonths !== null ? t("detail.ageLabel", { months: cat.ageMonths }) : null,
+    ageLabel,
     sexLabel,
     cat.breedName ?? cat.breedOther,
     cat.weightKg !== null ? t("detail.weightLabel", { weight: cat.weightKg }) : null,
@@ -45,9 +47,7 @@ export function CatProfileHero({ cat, menu, extraTiles, className }: CatProfileH
   const tiles: { label: string; value: string; foot: string | null }[] = [
     {
       label: t("web.profile.sexAndAge"),
-      value: [sexLabel, cat.ageMonths !== null ? t("detail.ageLabel", { months: cat.ageMonths }) : null]
-        .filter(Boolean)
-        .join(" • "),
+      value: [sexLabel, ageLabel].filter(Boolean).join(" • "),
       foot: birthLabel ? t("web.profile.bornAt", { date: birthLabel }) : null,
     },
     {

@@ -1,89 +1,128 @@
 {
-  "mobile": {
-    "safetyTitle": "LƯU Ý AN TOÀN CỘNG ĐỒNG",
-    "tabs": {
-      "all": "Tất cả bài viết",
-      "qa": "Hỏi & Đáp (Q&A)",
-      "tips": "Mẹo chăm sóc"
-    },
-    "composeFab": "Đăng bài viết",
-    "detailTitle": "Chi tiết thảo luận"
+  "disclaimer": "CatCheck hỗ trợ theo dõi màu cát và chỉ số pH tại nhà, không thay thế bác sĩ thú y. Khi bé có dấu hiệu bất thường, hãy đưa bé đến cơ sở thú y.",
+  "category": {
+    "ALL": "Tất cả",
+    "QA": "Hỏi & đáp",
+    "TIP": "Mẹo chăm sóc",
+    "EXPERIENCE": "Kinh nghiệm"
   },
-  "web": {
-    "askVetCta": "Đặt câu hỏi cho Bác Sĩ",
-    "tabs": {
-      "all": "Tất cả thảo luận",
-      "vetQa": "Hỏi đáp Bác sĩ Thú y",
-      "colorTips": "Kinh nghiệm đọc màu cát",
-      "nutrition": "Dinh dưỡng & Tiết niệu",
-      "clinicReview": "Review phòng khám"
-    },
-    "composer": {
-      "placeholder": "Hỏi bác sĩ thú y hoặc chia sẻ tình trạng hạt cát hôm nay…",
-      "tagsLabel": "NHÃN BỆNH LÝ:",
-      "attachPhoto": "Ảnh khay cát",
-      "attachScan": "Kết quả quét AI",
-      "attachRecord": "Hồ sơ khám",
-      "submit": "Đăng thảo luận"
-    },
-    "rail": {
-      "topicsTitle": "Chủ Đề Y Khoa Tuần Này",
-      "rulesTitle": "Quy Chuẩn Cộng Đồng ISFM"
-    }
+  "rules": {
+    "title": "Quy tắc cộng đồng",
+    "intro": "Vài điều giúp cộng đồng giữ được sự hữu ích:",
+    "respect": "Tôn trọng nhau, không phán xét cách nuôi của người khác.",
+    "noDiagnosis": "Chia sẻ quan sát của mình, không chẩn đoán thay bác sĩ thú y.",
+    "privacy": "Không chia sẻ thông tin cá nhân của bạn hoặc của người khác."
+  },
+  "feed": {
+    "title": "Cộng đồng CatCheck",
+    "subtitle": "Nơi người nuôi mèo chia sẻ kinh nghiệm quan sát màu cát và chỉ số pH tại nhà.",
+    "postCount": "{{formattedCount}} bài viết",
+    "newPostCta": "Đăng bài mới",
+    "noticeTitle": "Lưu ý khi tham gia cộng đồng",
+    "filterLabel": "Lọc theo chuyên mục",
+    "composeFab": "Đăng bài viết",
+    "composerPlaceholder": "Chia sẻ quan sát hoặc đặt câu hỏi với cộng đồng…",
+    "composerSubmit": "Đăng thảo luận",
+    "loadMore": "Xem thêm bài viết",
+    "loadingMore": "Đang tải thêm…",
+    "loadMoreError": "Không tải thêm được bài viết. Vui lòng thử lại."
+  },
+  "empty": {
+    "title": "Chưa có bài viết nào",
+    "body": "Cộng đồng còn trống. Hãy là người đầu tiên chia sẻ — một thắc mắc, một quan sát về màu cát, hay một mẹo nhỏ bạn tự rút ra khi chăm bé.",
+    "cta": "Đăng bài đầu tiên",
+    "filterTitle": "Chưa có bài viết trong mục này",
+    "filterBody": "Thử xem mục “Tất cả”, hoặc tự mở đầu một thảo luận mới."
   },
   "post": {
     "like": "Thích",
     "comment": "Bình luận",
     "share": "Chia sẻ",
-    "save": "Lưu bài viết",
-    "bookmark": "Lưu bài viết",
-    "moreOptions": "Tuỳ chọn bài viết",
-    "openThread": "Mở thảo luận"
+    "bookmark": "Lưu",
+    "bookmarked": "Đã lưu",
+    "bookmarkLabel": "Lưu bài viết",
+    "postedAt": "Đăng {{time}}",
+    "more": "Tuỳ chọn khác",
+    "shareCopied": "Đã sao chép liên kết bài viết.",
+    "shareFailed": "Không sao chép được liên kết. Vui lòng thử lại.",
+    "reactionError": "Không cập nhật được lượt thích/lưu. Vui lòng thử lại."
   },
   "detail": {
+    "pageTitle": "Bài viết cộng đồng",
     "backToFeed": "Quay lại cộng đồng",
-    "breadcrumbRoot": "Cộng đồng y khoa",
-    "savePost": "Lưu bài viết",
-    "sharePost": "Chia sẻ",
-    "pinnedByVet": "Ghim bởi bác sĩ",
-    "commentsTitle": "Thảo luận từ cộng đồng Sen",
-    "noComments": "Chưa có bình luận nào.",
-    "commentSend": "Gửi",
-    "sortLabel": "Sắp xếp:",
-    "commentPlaceholder": "Chia sẻ kinh nghiệm hoặc đặt câu hỏi với BS. Lan Phương và các sen khác…",
-    "commentAttachPhoto": "Ảnh khay cát",
-    "commentAttachScan": "Mã scan AI",
-    "commentSubmit": "Gửi bình luận",
-    "commentReply": "Trả lời",
-    "commentLike": "Thích",
-    "mobileCommentPlaceholder": "Viết bình luận…",
-    "mobileAttachPhoto": "Đính kèm ảnh",
-    "mobileAttachEmoji": "Chèn biểu tượng cảm xúc",
-    "mobileSend": "Gửi bình luận"
+    "breadcrumb": "Đường dẫn",
+    "commentsTitle": "Thảo luận từ cộng đồng",
+    "commentCount": "{{formattedCount}} bình luận",
+    "noComments": "Chưa có bình luận nào. Hãy là người đầu tiên góp ý cho bài viết này.",
+    "commentLabel": "Bình luận của bạn",
+    "commentPlaceholder": "Chia sẻ kinh nghiệm hoặc đặt câu hỏi với tác giả…",
+    "commentPlaceholderShort": "Viết bình luận…",
+    "commentSend": "Gửi bình luận",
+    "commentSending": "Đang gửi…",
+    "commentTooLong": "Bình luận tối đa {{max}} ký tự.",
+    "commentError": "Không gửi được bình luận. Vui lòng thử lại.",
+    "notFoundTitle": "Không tìm thấy bài viết",
+    "notFoundBody": "Bài viết không tồn tại hoặc đã bị gỡ khỏi cộng đồng.",
+    "errorTitle": "Không tải được bài viết",
+    "errorBody": "Đã có lỗi khi tải nội dung. Vui lòng thử lại sau."
+  },
+  "report": {
+    "action": "Báo cáo vi phạm",
+    "titlePost": "Báo cáo bài viết",
+    "titleComment": "Báo cáo bình luận",
+    "description": "Đội kiểm duyệt sẽ xem xét nội dung này theo quy tắc cộng đồng.",
+    "reasonLabel": "Lý do báo cáo",
+    "reasons": {
+      "SPAM": "Spam hoặc quảng cáo",
+      "MISLEADING": "Thông tin sai lệch, gây hiểu nhầm",
+      "HARASSMENT": "Xúc phạm hoặc quấy rối",
+      "PRIVACY": "Lộ thông tin cá nhân",
+      "OTHER": "Lý do khác"
+    },
+    "detailsLabel": "Mô tả thêm",
+    "detailsOptional": "Không bắt buộc",
+    "detailsRequired": "Bắt buộc khi chọn “Lý do khác”",
+    "detailsPlaceholder": "Nội dung này vi phạm ở điểm nào?",
+    "reasonMissing": "Vui lòng chọn một lý do.",
+    "detailsMissing": "Vui lòng mô tả ngắn lý do.",
+    "detailsTooLong": "Mô tả tối đa {{max}} ký tự.",
+    "cancel": "Huỷ",
+    "submit": "Gửi báo cáo",
+    "submitting": "Đang gửi…",
+    "success": "Đã gửi báo cáo tới đội kiểm duyệt. Cảm ơn bạn.",
+    "errors": {
+      "duplicate": "Bạn đã báo cáo nội dung này rồi.",
+      "notFound": "Nội dung không còn tồn tại.",
+      "generic": "Không gửi được báo cáo. Vui lòng thử lại."
+    }
   },
   "newPost": {
-    "title": "Đăng thảo luận mới",
-    "subtitle": "Mô tả màu hạt cát và chỉ số pH bạn quan sát được để cộng đồng và bác sĩ dễ hỗ trợ.",
-    "phase2Notice": "Bài viết sẽ được hiển thị sau khi hệ thống xác nhận nội dung và quyền truy cập của tài khoản.",
-    "titleLabel": "Tiêu đề thảo luận",
-    "titlePlaceholder": "Ví dụ: Hạt cát chuyển xanh nhạt sau 1 ngày có phải do thức ăn mới?",
-    "bodyLabel": "Nội dung chia sẻ",
-    "bodyPlaceholder": "Hỏi bác sĩ thú y hoặc chia sẻ tình trạng hạt cát hôm nay…",
+    "title": "Đăng bài mới",
+    "subtitle": "Mô tả quan sát của bạn thật cụ thể để cộng đồng dễ góp ý.",
+    "publishNotice": "Bài viết hiển thị công khai ngay sau khi đăng. Nội dung vi phạm quy tắc có thể bị báo cáo và gỡ bởi đội kiểm duyệt.",
     "categoryLabel": "Chuyên mục",
-    "tagsLabel": "NHÃN BỆNH LÝ:",
-    "attachLabel": "Đính kèm",
-    "guidelinesTitle": "Quy Chuẩn Cộng Đồng ISFM",
-    "submit": "Đăng thảo luận",
-    "submitting": "Đang gửi…",
-    "cancel": "Huỷ bỏ"
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Tóm tắt điều bạn muốn chia sẻ",
+    "bodyLabel": "Nội dung",
+    "bodyPlaceholder": "Bạn quan sát được điều gì? Bé có thay đổi gì trong ăn uống hay sinh hoạt không?",
+    "tagsLabel": "Thẻ",
+    "tagsHint": "Cách nhau bằng dấu phẩy, tối đa {{max}} thẻ, không bắt buộc.",
+    "tagsPlaceholder": "màu cát, đổi hạt",
+    "counter": "{{count}}/{{max}}",
+    "errors": {
+      "titleRequired": "Vui lòng nhập tiêu đề.",
+      "bodyRequired": "Vui lòng nhập nội dung.",
+      "tooManyTags": "Tối đa {{max}} thẻ.",
+      "tagTooLong": "Mỗi thẻ tối đa {{max}} ký tự.",
+      "submit": "Không đăng được bài viết. Vui lòng kiểm tra nội dung và thử lại.",
+      "session": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi thử lại."
+    },
+    "submit": "Đăng bài",
+    "submitting": "Đang đăng…",
+    "cancel": "Huỷ"
   },
   "api": {
-    "empty": "Chưa có bài viết nào.",
-    "loading": "Đang tải bảng tin cộng đồng…",
-    "error": "Không thể tải bảng tin cộng đồng. Vui lòng thử lại sau."
-  },
-  "feedback": {
-    "loading": "Đang tải…",
-    "error": "Không thể tải nội dung. Vui lòng thử lại sau."
+    "error": "Không thể tải bảng tin cộng đồng.",
+    "errorBody": "Vui lòng kiểm tra kết nối và thử lại."
   }
 }

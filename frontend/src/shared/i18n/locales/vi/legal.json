@@ -443,6 +443,38 @@
       "title": "Nhật ký truy cập dữ liệu",
       "intro": "Những lượt đọc hoặc thay đổi dữ liệu của bạn do người khác thực hiện (quản trị viên, cán bộ bảo vệ dữ liệu, tiến trình hệ thống) được ghi lại ở đây.",
       "actor": "Người/tiến trình thực hiện: {{actor}}",
+      "actors": {
+        "USER": "Chính bạn",
+        "ADMIN": "Quản trị viên",
+        "DPO": "Cán bộ bảo vệ dữ liệu",
+        "SYSTEM": "Hệ thống",
+        "JOB": "Tiến trình tự động"
+      },
+      "results": {
+        "SUCCESS": "Thành công",
+        "DENIED": "Bị từ chối",
+        "ERROR": "Gặp lỗi"
+      },
+      "actions": {
+        "generic": "Truy cập dữ liệu của bạn",
+        "ADMIN_USER_VIEW": "Xem hồ sơ tài khoản của bạn",
+        "ADMIN_USER_SEARCH": "Tìm thấy tài khoản của bạn trong tra cứu",
+        "ADMIN_USER_CATS_VIEW": "Xem danh sách hồ sơ mèo của bạn",
+        "ADMIN_USER_SCANS_VIEW": "Xem lịch sử quét của bạn",
+        "ADMIN_USER_CREDITS_VIEW": "Xem số dư lượt quét của bạn",
+        "ADMIN_USER_SESSIONS_VIEW": "Xem các phiên đăng nhập của bạn",
+        "ADMIN_USER_SESSIONS_REVOKE": "Đăng xuất một phiên đăng nhập của bạn",
+        "ADMIN_SCAN_IMAGE_VIEW": "Xem ảnh một lần quét của bạn",
+        "ADMIN_SCAN_REASSIGNED": "Chuyển một lần quét sang hồ sơ mèo khác",
+        "ADMIN_PII_UNMASKED": "Xem thông tin liên hệ chưa che của bạn",
+        "ADMIN_LOCK_ACCOUNT": "Khoá tài khoản của bạn",
+        "ADMIN_UNLOCK_ACCOUNT": "Mở khoá tài khoản của bạn",
+        "ADMIN_MFA_RESET_REQUESTED": "Yêu cầu đặt lại xác thực hai bước của bạn",
+        "ADMIN_ROLE_GRANTED": "Cấp quyền cho tài khoản của bạn",
+        "ADMIN_ROLE_REVOKED": "Thu hồi quyền của tài khoản của bạn",
+        "ADMIN_NOTIFICATION_OUTBOX_VIEW": "Xem thông báo đã gửi cho bạn",
+        "ADMIN_OUTBOX_RESEND": "Gửi lại một thông báo cho bạn"
+      },
       "empty": "Chưa có lượt truy cập nào được ghi nhận.",
       "pendingNote": "Máy chủ đã mở đường đọc nhật ký nhưng chưa nối vào kho audit, nên danh sách hiện luôn trống. Trống ở đây là trống thật — không có dòng mẫu nào."
     }

@@ -1,5 +1,5 @@
 import { forwardRef, type HTMLAttributes } from "react";
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../cn";
 import { badgeVariants, type BadgeVariantProps } from "./Badge.variants";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement>, BadgeVariantProps {}

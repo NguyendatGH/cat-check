@@ -1,6 +1,6 @@
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import * as RadixTabs from "@radix-ui/react-tabs";
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../cn";
 
 /** Tabs — bọc @radix-ui/react-tabs. */
 export const Tabs = RadixTabs.Root;
@@ -38,6 +38,15 @@ export const TabsContent = forwardRef<
   ComponentRef<typeof RadixTabs.Content>,
   ComponentPropsWithoutRef<typeof RadixTabs.Content>
 >(({ className, ...props }, ref) => (
-  <RadixTabs.Content ref={ref} className={cn("pt-4 focus-visible:outline-none", className)} {...props} />
+  // Radix gán `tabIndex=0` cho Content nên nó nằm trong luồng Tab: `outline-none` ở đây
+  // (ghi đè fallback focus ring toàn cục) = mất dấu focus khi điều hướng bàn phím (p10 §10.3).
+  <RadixTabs.Content
+    ref={ref}
+    className={cn(
+      "pt-4 focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
+      className,
+    )}
+    {...props}
+  />
 ));
 TabsContent.displayName = "TabsContent";

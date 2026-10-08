@@ -31,6 +31,7 @@ import {
   dueState,
   formatDateTime,
   buildReminderPatch,
+  useNextRunLabel,
   reminderFormSchema,
   toReminderForm,
   useScheduleLabel,
@@ -55,6 +56,7 @@ export function ReminderDetailPage() {
   const updateReminder = useUpdateReminder();
   const deleteReminder = useDeleteReminder();
   const scheduleLabel = useScheduleLabel();
+  const nextRunLabel = useNextRunLabel();
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -229,7 +231,7 @@ export function ReminderDetailPage() {
         </div>
 
         {/* Panel tóm tắt 360px ở desktop — cùng khuôn `SettingsSecurityPage`. */}
-        <aside className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md lg:w-[360px] lg:shrink-0">
+        <aside className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md lg:sticky lg:top-6 lg:w-[360px] lg:shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-h3 font-bold text-text-primary">{t(`type.${reminder.type}`)}</h2>
             <StatusChip reminder={reminder} due={due} />
@@ -251,7 +253,7 @@ export function ReminderDetailPage() {
 
           <dl className="flex flex-col gap-2 rounded-xl bg-background-alt p-3">
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-small text-text-secondary">{t("list.nextRunLabel")}</dt>
+              <dt className="text-small text-text-secondary">{nextRunLabel(reminder)}</dt>
               <dd className="text-caption font-bold text-text-primary">
                 {reminder.nextRunAt === undefined ? t("list.nextRunUnknown") : formatDateTime(reminder.nextRunAt)}
               </dd>
@@ -275,12 +277,16 @@ export function ReminderDetailPage() {
               <dd className="text-caption text-text-primary">{scheduleLabel(reminder)}</dd>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-small text-text-secondary">{t("source.USER")}</dt>
+              <dt className="text-small text-text-secondary">{t("list.sourceLabel")}</dt>
               <dd className="text-caption text-text-primary">{t(`source.${reminder.source}`)}</dd>
             </div>
           </dl>
 
-          <DueChip due={due} />
+          {due.kind === "none" ? null : (
+            <div className="flex">
+              <DueChip due={due} />
+            </div>
+          )}
 
           <AddToCalendarLink href={reminderCalendarUrl(reminder.id)} className="w-full" />
 

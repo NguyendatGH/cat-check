@@ -111,7 +111,9 @@ export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }:
               handleKeyDown(index, event);
             }}
             className={cn(
-              "h-14 w-full min-w-0 rounded-xl bg-surface text-center text-h3 font-bold text-text-primary shadow-xs lg:rounded-lg",
+              // Web: ô nằm trên thẻ trắng (Figma Web-01c-2: ô nền tím nhạt) — nền `surface` sẽ chìm
+              // mất, chỉ ô đang focus còn thấy viền.
+              "h-14 w-full min-w-0 rounded-xl bg-surface text-center text-h3 font-bold text-text-primary shadow-xs lg:rounded-lg lg:bg-background-alt lg:text-primary-dark lg:shadow-none",
               "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
               error && "outline outline-2 outline-danger",
             )}
@@ -166,7 +168,7 @@ export function PasswordField({ className, label, error, helperText, id, ...prop
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : helperText ? helperId : undefined}
           className={cn(
-            "h-12 w-full rounded-xl bg-surface pl-11 pr-11 text-body text-text-primary shadow-xs",
+            "h-12 w-full rounded-xl border border-border-strong bg-surface pl-11 pr-11 text-body text-text-primary shadow-xs",
             "placeholder:text-text-tertiary",
             "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
             "disabled:cursor-not-allowed disabled:opacity-50",

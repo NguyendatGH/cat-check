@@ -479,3 +479,32 @@ export interface AdminMaintenance {
   until: string | null;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------- sản phẩm cửa hàng
+
+export const SHOP_PRODUCT_STATUSES = ["DRAFT", "PUBLISHED", "ARCHIVED"] as const;
+export type AdminProductStatus = (typeof SHOP_PRODUCT_STATUSES)[number];
+
+export interface AdminProduct {
+  id: string;
+  sku: string;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  priceVnd: number;
+  compareAtPriceVnd: number | null;
+  stockQuantity: number;
+  status: AdminProductStatus;
+  updatedAt: string;
+}
+
+export interface AdminProductPayload {
+  sku: string;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  priceVnd: number;
+  compareAtPriceVnd: number | null;
+  stockQuantity: number;
+  status: AdminProductStatus;
+}

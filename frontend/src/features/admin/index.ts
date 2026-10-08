@@ -32,6 +32,10 @@ export {
   useDownloadActivationBatchCsv,
   useAdminPackagePlans,
   useUpdateAdminPackagePlan,
+  useAdminProducts,
+  useCreateAdminProduct,
+  useUpdateAdminProduct,
+  useSetAdminProductStatus,
   useAdminJobRuns,
   useAdminOutbox,
   useAdminAuditLogs,
@@ -74,7 +78,11 @@ export {
 } from "./components";
 export type { MissingApiEndpoint, MissingApiNoticeProps } from "./components";
 
+export { validateProductForm, emptyProductForm, formatProductVnd, productToForm, formToPayload } from "./productForm";
+export type { ProductFormValues, ProductFormErrors } from "./productForm";
+
 export {
+  SHOP_PRODUCT_STATUSES,
   CHART_STATUSES,
   PRODUCT_LINES,
   CARE_TIP_STATUSES,
@@ -114,6 +122,9 @@ export type {
   IssuedActivationBatch,
   AdminPlanFeatures,
   AdminPackagePlan,
+  AdminProduct,
+  AdminProductPayload,
+  AdminProductStatus,
   UpdateAdminPackagePlanPayload,
   AdminJobRun,
   AdminOutboxEntry,

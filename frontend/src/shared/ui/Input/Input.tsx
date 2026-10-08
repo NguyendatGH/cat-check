@@ -1,5 +1,5 @@
 import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from "react";
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../cn";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -46,13 +46,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             className={cn(
-              "h-12 w-full rounded-xl bg-surface px-4 text-body text-text-primary shadow-xs",
+              // p10 §10.1: viền của thành phần TƯƠNG TÁC phải đạt 3:1 (WCAG 1.4.11) —
+              // `shadow-xs` (đen 5%) không vẽ được ranh giới ô nhập; `border-border` chỉ
+              // 1.62:1 nên phải là `border-border-strong` (3.04:1).
+              "h-12 w-full rounded-xl border border-border-strong bg-surface px-4 text-body text-text-primary",
               leftIcon && "pl-11",
               rightSlot && "pr-11",
               "placeholder:text-text-tertiary",
               "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
               "disabled:cursor-not-allowed disabled:opacity-50",
-              error && "outline outline-2 outline-danger",
+              // Lỗi dùng BORDER chứ không dùng `outline`: `outline` trùng đúng thuộc tính
+              // focus ring, nên khi focus vào ô đang lỗi thì dấu hiệu lỗi biến mất.
+              error && "border-2 border-danger",
               className,
             )}
             {...props}

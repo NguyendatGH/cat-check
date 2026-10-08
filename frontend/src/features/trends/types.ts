@@ -11,10 +11,10 @@ export type TrendRange = "7D" | "30D" | "90D";
 
 export const TREND_RANGE_DAYS: Record<TrendRange, number> = { "7D": 7, "30D": 30, "90D": 90 };
 
-/** @see CatTrendsResponse.Point — `phValue` là `null` khi lần quét đó `INCONCLUSIVE`. */
+/** @see CatTrendsResponse.Point — `phValue` vắng mặt (hoặc `null`) khi lần quét đó `INCONCLUSIVE`. */
 export interface CatTrendPoint {
   capturedAt: string;
-  phValue: number | null;
+  phValue?: number | null;
   classification: string;
   confidence: number | null;
   nearBoundary: boolean;

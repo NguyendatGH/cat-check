@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import {
   BellRing,
   ChevronRight,
@@ -15,6 +17,7 @@ import { findBandForPh, PhGaugeBar, phTokenStyle, type PhBand } from "@/entities
 import type { ScanSummary } from "@/entities/scan-result";
 import type { CatSummaryResponse } from "@/features/cat";
 import { useScanHistory } from "@/features/history";
+import { useReminders } from "@/features/reminder";
 
 /**
  * Các khối TỔNG QUAN của `/cats/:catId` ở MOBILE — dựng theo mockup
@@ -28,10 +31,42 @@ import { useScanHistory } from "@/features/history";
  *  - `GET /reference/ph-bands`→ nhãn/màu/ngưỡng của dải.
  *
  * KHÁC MOCKUP CÓ CHỦ ĐÍCH: ô "Chuỗi theo dõi (14 ngày)" của mockup không có endpoint nào
- * tính streak → thay bằng "Tỉ lệ trong ngưỡng" (số thật). Ô "Lần nhắc tiếp theo" giữ đúng
- * khung nhưng `nextReminderAt` luôn `null` ở MVP (nhắc lịch thuộc M5) nên hiển thị trạng
- * thái rỗng thật, không bịa ngày.
+ * tính streak → thay bằng "Tỉ lệ trong ngưỡng" (số thật).
+ *
+ * Ô "Lần nhắc tiếp theo" đọc `GET /reminders?catId=…&active=true` (I1) — KHÔNG đọc
+ * `summary.nextReminderAt`: backend luôn trả `null` ở trường đó dù module nhắc lịch đã chạy.
+ * Trước đây ô này in "sẽ bật ở bản cập nhật sau" — hứa một tính năng thật ra đã có.
  */
+
+/* ================================================================== Lịch nhắc kế tiếp */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Lịch nhắc đang bật có `nextRunAt` sớm nhất của bé; `null` khi bé chưa có lịch nào. */
+export function useNextReminder(catId: string): { nextRunAt: string | null; isPending: boolean } {
+  const { data, isPending, isError } = useReminders({ catId, active: true });
+  let nextRunAt: string | null = null;
+  for (const reminder of data?.items ?? []) {
+    if (!reminder.active || !reminder.nextRunAt) continue;
+    if (nextRunAt === null || Date.parse(reminder.nextRunAt) < Date.parse(nextRunAt)) nextRunAt = reminder.nextRunAt;
+  }
+  return { nextRunAt, isPending: isPending && !isError };
+}
+
+/** Giá trị + dòng phụ của ô "Lần nhắc tiếp theo", dùng chung mobile/desktop. */
+export function useReminderStatText(nextRunAt: string | null): { value: string; foot: string } {
+  const { t, i18n } = useTranslation("cat");
+  if (!nextRunAt) return { value: t("overview.statReminderNone"), foot: t("overview.statReminderFoot") };
+  const at = new Date(nextRunAt);
+  const days = Math.ceil((at.getTime() - Date.now()) / DAY_MS);
+  return {
+    value: days <= 0 ? t("overview.statReminderToday") : t("overview.statReminderInDays", { count: days }),
+    foot: t("overview.statReminderAt", {
+      date: at.toLocaleDateString(i18n.language),
+      time: at.toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit" }),
+    }),
+  };
+}
 
 const isBound = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
@@ -45,7 +80,7 @@ export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary:
   // tra thẳng theo code trước rồi mới rơi về dò theo giá trị pH.
   const band =
     (lastScan ? bands.find((b) => b.code === lastScan.classification) : undefined) ??
-    (phValue !== null ? findBandForPh(bands, phValue) : undefined) ??
+    (phValue != null ? findBandForPh(bands, phValue) : undefined) ??
     null;
   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
 
@@ -71,7 +106,7 @@ export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary:
         </span>
       </div>
 
-      {phValue === null ? (
+      {phValue == null ? (
         <>
           <p className="pt-2 text-h3 font-bold text-text-primary">{t("overview.biomarkerNoDataTitle")}</p>
           <p className="pt-1 text-caption leading-relaxed text-text-secondary">{t("overview.biomarkerNoDataBody")}</p>
@@ -104,6 +139,7 @@ function StatTile({
   value,
   unit,
   foot,
+  action,
   tone = "default",
 }: {
   label: string;
@@ -111,6 +147,7 @@ function StatTile({
   value: string;
   unit?: string;
   foot: string;
+  action?: ReactNode;
   tone?: "default" | "normal";
 }) {
   return (
@@ -128,19 +165,24 @@ function StatTile({
         {unit ? <span className="pl-1 text-caption text-text-secondary">{unit}</span> : null}
       </p>
       <p className="pt-0.5 text-small text-text-tertiary">{foot}</p>
+      {action ? <div className="pt-1.5">{action}</div> : null}
     </div>
   );
 }
 
 export function CatStatGrid({
+  catId,
   summary,
   scanSummary,
 }: {
+  catId: string;
   summary: CatSummaryResponse | undefined;
   scanSummary: ScanSummary | undefined;
 }) {
   const { t } = useTranslation("cat");
   const dash = "—";
+  const { nextRunAt, isPending: reminderPending } = useNextReminder(catId);
+  const reminder = useReminderStatText(nextRunAt);
 
   const inRange = summary?.inRangeRatio30d != null ? `${String(Math.round(summary.inRangeRatio30d * 100))}%` : dash;
   const median = scanSummary?.median != null ? scanSummary.median.toFixed(1) : dash;
@@ -169,8 +211,18 @@ export function CatStatGrid({
       <StatTile
         label={t("overview.statReminder")}
         icon={BellRing}
-        value={t("overview.statReminderNone")}
-        foot={t("overview.statReminderFoot")}
+        value={reminderPending ? dash : reminder.value}
+        foot={reminderPending ? "" : reminder.foot}
+        action={
+          reminderPending ? null : (
+            <Link
+              to={nextRunAt ? "/reminders" : "/reminders/new"}
+              className="text-small font-semibold text-primary-dark hover:underline"
+            >
+              {nextRunAt ? t("overview.statReminderManage") : t("overview.statReminderCta")}
+            </Link>
+          )
+        }
       />
     </div>
   );

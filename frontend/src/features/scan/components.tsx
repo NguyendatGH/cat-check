@@ -20,7 +20,7 @@ import type { Cat } from "@/entities/cat";
 import { CatAvatar } from "@/entities/cat";
 import type { PhBand } from "@/entities/ph-bands";
 import { PhBadge, phTokenStyle } from "@/entities/ph-bands";
-import type { QualityFlag, ScanResult, TriggeredFlag } from "@/entities/scan-result";
+import type { CaptureSource, QualityFlag, ScanListItem, ScanResult, TriggeredFlag } from "@/entities/scan-result";
 
 /**
  * UI cho `features/scan` — component nghiệp vụ ghép `entities/ph-bands` (màu/nhãn pH) +
@@ -35,7 +35,8 @@ import type { QualityFlag, ScanResult, TriggeredFlag } from "@/entities/scan-res
 
 export interface CaptureTriggerProps {
   previewUrl: string | null;
-  onFileSelected: (file: File | null) => void;
+  /** `source` cho biết ảnh tới từ camera hay thư viện — gửi đúng `captureSource` lên E1. */
+  onFileSelected: (file: File | null, source?: CaptureSource) => void;
   guideText: string;
   retakeLabel: string;
   cameraLabel: string;
@@ -77,9 +78,9 @@ export function CaptureTrigger({
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (source: CaptureSource) => (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
-    onFileSelected(file);
+    onFileSelected(file, source);
     e.target.value = "";
   };
 
@@ -203,20 +204,56 @@ export function CaptureTrigger({
         accept="image/*"
         capture="environment"
         className="sr-only"
-        onChange={handleChange}
+        onChange={handleChange("CAMERA")}
       />
-      <input ref={galleryInputRef} type="file" accept="image/*" className="sr-only" onChange={handleChange} />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={handleChange("GALLERY")}
+      />
     </div>
   );
 }
 
 /* ---------------- AnalyzingState ---------------- */
 
-export function AnalyzingState({ text }: { text: string }) {
+export interface AnalyzingStateProps {
+  text: string;
+  /** Ảnh vừa gửi (Web/M-03a) — phủ mờ phía sau vòng quay để người dùng biết ảnh nào đang xử lý. */
+  previewUrl?: string | null;
+  /** Dòng phụ dưới câu chính, VD "Mỗi lần phân tích dùng 1 lượt quét…". */
+  note?: string;
+  className?: string;
+}
+
+/** Trạng thái đang phân tích (Web/M-03a, biến thể spinner không xác định — `fetch` không báo tiến độ tải lên). */
+export function AnalyzingState({ text, previewUrl, note, className }: AnalyzingStateProps) {
   return (
-    <div className="flex flex-col items-center gap-4 px-6 py-16 text-center" role="status" aria-live="polite">
-      <span className="size-12 animate-spin rounded-full border-4 border-border border-t-primary" aria-hidden="true" />
+    <div
+      className={cn("flex flex-col items-center gap-4 px-6 py-16 text-center", className)}
+      role="status"
+      aria-live="polite"
+    >
+      {previewUrl ? (
+        <span className="relative size-40 overflow-hidden rounded-2xl bg-background-alt">
+          <img src={previewUrl} alt="" className="size-full object-cover opacity-60" />
+          <span className="absolute inset-0 flex items-center justify-center bg-surface/40">
+            <span
+              className="size-12 animate-spin rounded-full border-4 border-border border-t-primary"
+              aria-hidden="true"
+            />
+          </span>
+        </span>
+      ) : (
+        <span
+          className="size-12 animate-spin rounded-full border-4 border-border border-t-primary"
+          aria-hidden="true"
+        />
+      )}
       <p className="text-body text-text-secondary">{text}</p>
+      {note ? <p className="max-w-sm text-caption text-text-tertiary">{note}</p> : null}
     </div>
   );
 }
@@ -603,25 +640,65 @@ export interface InconclusiveNoticeProps {
   retryHint?: string;
   retryLabel: string;
   onRetry: () => void;
+  /** Dải `INCONCLUSIVE` của API — vẽ pill nhãn đúng như Web/M-03b (nhãn từ server, không viết cứng). */
+  band?: PhBand;
+  /** Cờ chất lượng server trả về; BLOCKING xếp lên đầu. */
+  flags?: QualityFlag[];
+  /** Dòng cuối, VD "Số dư giữ nguyên: 5 credit." — chỉ truyền khi có số thật. */
+  footnote?: string;
+  className?: string;
 }
 
-export function InconclusiveNotice({ title, description, retryHint, retryLabel, onRetry }: InconclusiveNoticeProps) {
+/** Màn "Chưa đủ dữ liệu" (Web/M-03b). Không trừ credit — câu chữ nói rõ điều đó. */
+export function InconclusiveNotice({
+  title,
+  description,
+  retryHint,
+  retryLabel,
+  onRetry,
+  band,
+  flags = [],
+  footnote,
+  className,
+}: InconclusiveNoticeProps) {
+  const sortedFlags = flags
+    .slice()
+    .sort((a, b) => Number(b.severity === "BLOCKING") - Number(a.severity === "BLOCKING"));
   return (
-    <div className="flex flex-col items-center gap-4 px-4 py-10 text-center">
+    <div className={cn("flex flex-col items-center gap-3 px-4 py-10 text-center", className)}>
       <HelpCircle className="size-12 text-text-tertiary" aria-hidden="true" />
+      {band ? <PhBadge band={band} /> : null}
       <div className="flex flex-col gap-1">
         <p className="text-h3 font-bold text-text-primary">{title}</p>
-        <p className="max-w-sm text-caption text-text-secondary">{description}</p>
-        {retryHint ? <p className="max-w-sm text-caption text-text-tertiary">{retryHint}</p> : null}
+        <p className="max-w-md text-caption text-text-secondary">{description}</p>
       </div>
-      <Button type="button" variant="primary" onClick={onRetry}>
+      {sortedFlags.length > 0 ? <QualityFlagList flags={sortedFlags} className="w-full max-w-md text-left" /> : null}
+      {retryHint ? <p className="max-w-md text-caption text-text-tertiary">{retryHint}</p> : null}
+      <Button type="button" variant="primary" className="w-full max-w-xs" onClick={onRetry}>
         {retryLabel}
       </Button>
+      {footnote ? <p className="text-caption text-text-tertiary">{footnote}</p> : null}
     </div>
   );
 }
 
 /* ---------------- Chọn mèo (mockup `05`) ---------------- */
+
+/** "Hôm nay 08:42" / "Hôm qua 21:40" / "28/09 07:05" — chân thẻ chọn mèo (mockup `05`). */
+function relativeScanTime(
+  date: Date,
+  locale: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(date);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const dayMs = 24 * 60 * 60 * 1000;
+  if (date.getTime() >= startOfToday.getTime()) return t("selectCat.lastScanToday", { time });
+  if (date.getTime() >= startOfToday.getTime() - dayMs) return t("selectCat.lastScanYesterday", { time });
+  const day = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit" }).format(date);
+  return t("selectCat.lastScanAt", { date: `${day} ${time}` });
+}
 
 /** Vòng tròn chọn ở mép phải mỗi thẻ — tick đậm khi đang chọn (mockup `05`). */
 function SelectionDot({ selected }: { selected: boolean }) {
@@ -644,6 +721,13 @@ export interface SelectCatOptionProps {
   onSelect: () => void;
   /** Dải pH (API) — để đổi `lastClassification` thành nhãn/màu thật, không tự đặt tên. */
   bands: PhBand[];
+  /**
+   * Lượt quét gần nhất của bé (E2 `GET /scans?catId=…&limit=1`) — `GET /cats` KHÔNG trả
+   * `lastScanAt`, nên thiếu prop này thẻ từng ghi "Chưa có lượt quét nào" cho cả bé đã quét
+   * hàng chục lần. `undefined` = chưa biết (đang tải/lỗi) ⇒ không khẳng định gì; `null` = chưa
+   * từng quét.
+   */
+  latestScan?: ScanListItem | null;
   className?: string;
 }
 
@@ -652,7 +736,7 @@ export interface SelectCatOptionProps {
  * nặng, và chân thẻ hiển thị kết quả quét gần nhất. Mọi trường đều có thể vắng trong dữ liệu
  * thật (`Cat` cho phép `null`) — thiếu thì bỏ dòng đó, KHÔNG điền giá trị mẫu.
  */
-export function SelectCatOption({ cat, selected, onSelect, bands, className }: SelectCatOptionProps) {
+export function SelectCatOption({ cat, selected, onSelect, bands, latestScan, className }: SelectCatOptionProps) {
   const { t, i18n } = useTranslation("scan");
 
   const sexLabel =
@@ -673,14 +757,14 @@ export function SelectCatOption({ cat, selected, onSelect, bands, className }: S
     .filter((part): part is string => Boolean(part))
     .join(" • ");
 
-  const lastBand = bands.find((band) => band.code === cat.lastClassification);
-  const lastScanLabel = cat.lastScanAt
-    ? t("selectCat.lastScanAt", {
-        date: new Intl.DateTimeFormat(i18n.language, { dateStyle: "short", timeStyle: "short" }).format(
-          new Date(cat.lastScanAt),
-        ),
-      })
-    : t("selectCat.noScanYet");
+  const lastScanAt = latestScan?.capturedAt ?? cat.lastScanAt ?? null;
+  const lastBand = bands.find((band) => band.code === (latestScan?.bandCode ?? cat.lastClassification));
+  const lastPh = latestScan && isFiniteNumber(latestScan.phValue) ? latestScan.phValue : null;
+  const lastScanLabel = lastScanAt
+    ? relativeScanTime(new Date(lastScanAt), i18n.language, t)
+    : latestScan === null
+      ? t("selectCat.noScanYet")
+      : null;
 
   return (
     <button
@@ -714,21 +798,29 @@ export function SelectCatOption({ cat, selected, onSelect, bands, className }: S
         <SelectionDot selected={selected} />
       </span>
 
-      <span className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background-alt px-3 py-2">
-        {lastBand ? (
-          <span className="inline-flex items-center gap-1.5 text-caption text-text-secondary">
-            <span
-              className={cn("size-2.5 shrink-0 rounded-full", phTokenStyle(lastBand.colorToken).solid)}
-              aria-hidden="true"
-            />
-            {lastBand.label}
-          </span>
-        ) : null}
-        <span className="inline-flex items-center gap-1.5 text-caption text-text-secondary">
-          <Clock className="size-3.5 shrink-0" aria-hidden="true" />
-          {lastScanLabel}
+      {lastScanLabel || lastBand ? (
+        <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-background-alt px-3 py-2">
+          {lastBand ? (
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-small text-text-secondary">
+              <span
+                className={cn("size-2.5 shrink-0 rounded-full", phTokenStyle(lastBand.colorToken).solid)}
+                aria-hidden="true"
+              />
+              <span className="truncate">
+                {lastPh !== null
+                  ? t("selectCat.lastResult", { label: lastBand.label, value: lastPh.toFixed(1) })
+                  : lastBand.label}
+              </span>
+            </span>
+          ) : null}
+          {lastScanLabel ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-small text-text-secondary">
+              <Clock className="size-3.5 shrink-0" aria-hidden="true" />
+              {lastScanLabel}
+            </span>
+          ) : null}
         </span>
-      </span>
+      ) : null}
     </button>
   );
 }

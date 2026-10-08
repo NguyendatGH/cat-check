@@ -53,7 +53,15 @@
       "READY": "Báo cáo đã sẵn sàng",
       "FAILED": "Tạo báo cáo thất bại",
       "EXPIRED": "Đường dẫn tải đã hết hạn"
-    }
+    },
+    "expiresIn": "Còn {{days}} ngày {{hours}} giờ để tải",
+    "expiresInHours": "Còn {{hours}} giờ để tải",
+    "failedHint": "Có lỗi khi tạo báo cáo. Bạn thử tạo lại bản xuất nhé.",
+    "expiredHint": "File đã hết hạn tải.",
+    "retry": "Thử lại",
+    "recreate": "Tạo lại",
+    "backToCat": "Quay lại hồ sơ bé",
+    "progressLabel": "Tiến trình tạo báo cáo"
   },
   "state": {
     "noDataTitle": "Không đủ dữ liệu",
@@ -65,9 +73,9 @@
     "rangeInvalidDescription": "Khoảng thời gian không hợp lệ: ngày bắt đầu phải trước ngày kết thúc và không vượt quá hôm nay."
   },
   "web": {
-    "eyebrow": "HỒ SƠ CHIA SẺ BÁC SĨ THÚ Y",
+    "eyebrow": "Báo cáo PDF theo dõi tại nhà",
     "title": "Xuất Hồ sơ Sức khoẻ",
-    "subtitle": "Cấu hình báo cáo PDF theo bé mèo, khoảng thời gian và các mục nội dung để gửi cho bác sĩ thú y.",
+    "subtitle": "Chọn bé mèo, khoảng thời gian và các mục nội dung để tạo báo cáo PDF mang theo khi đưa bé đi khám thú y.",
     "step1": "Chọn bé mèo",
     "step1Hint": "Hồ sơ đang theo dõi",
     "step2": "Giai đoạn theo dõi",
@@ -79,8 +87,8 @@
     "rangeToFormat": "dd 'Th'MM, yyyy",
     "previewTitle": "Xem trước báo cáo",
     "previewFormat": "Khổ A4",
-    "previewWatermark": "CATCHECK VET",
-    "reportTitle": "BÁO CÁO THEO DÕI TIẾT NIỆU MÈO CATCHECK",
+    "previewWatermark": "CatCheck",
+    "reportTitle": "HỒ SƠ THEO DÕI SỨC KHỎE TIẾT NIỆU",
     "reportDescription": "Tổng hợp phân bố pH theo ngày trong {{range}}, kèm {{count}} mục nội dung đã chọn.",
     "reportDescriptionNamed": "Tổng hợp phân bố pH theo ngày của {{name}} trong {{range}}, kèm {{count}} mục nội dung đã chọn.",
     "submit": "Tạo & Tải file PDF",

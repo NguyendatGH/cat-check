@@ -45,7 +45,8 @@
       "EXPIRE": "Hết hạn lô credit",
       "REFUND": "Hoàn credit",
       "ADJUST": "Điều chỉnh bởi quản trị viên"
-    }
+    },
+    "balanceAfter": "Số dư sau: {{count}}"
   },
   "entitlement": {
     "sectionTitle": "Quyền tính năng hiện tại",
@@ -90,9 +91,10 @@
     "validity": "hạn {{days}} ngày",
     "weight": "{{value}} kg cát",
     "catsLimit": "Tối đa {{count}} hồ sơ mèo",
-    "catsUnlimited": "Không giới hạn số hồ sơ mèo",
+    "catsUnlimited": "Không giới hạn số hồ sơ mèo theo gói",
     "emptyTitle": "Chưa có gói nào đang mở bán",
     "emptyDescription": "Khi có gói mới, danh mục sẽ hiện ở đây.",
-    "errorTitle": "Không tải được danh mục gói"
+    "errorTitle": "Không tải được danh mục gói",
+    "currentBadge": "Gói hiện tại"
   }
 }

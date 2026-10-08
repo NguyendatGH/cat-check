@@ -17,120 +17,118 @@
     }
   },
   "web": {
-    "heroTitle": "Cài đặt Tài khoản & Hệ thống Giám sát CATCHECK",
-    "heroBody": "Quản lý tài khoản, thiết bị khay cát, kết nối dữ liệu thú y và quyền riêng tư y sinh theo tiêu chuẩn lâm sàng phòng ngừa.",
+    "heroTitle": "Cài đặt tài khoản",
+    "heroBody": "Quản lý thông tin tài khoản, bé mèo, thông báo và bảo mật.",
     "exportCta": "Xuất dữ liệu",
-    "isfmCta": "Chứng thực ISFM",
-    "navLabel": "Danh mục thiết lập",
-    "navHeading": "Danh mục thiết lập",
+    "navLabel": "Mục trong trang cài đặt",
+    "navHeading": "Mục trong trang",
     "nav": {
-      "profile": "Hồ sơ tài khoản & Chủ nuôi",
-      "cats": "Quản lý Bé Mèo",
-      "device": "Khay cát & CleanBox IoT",
-      "reminders": "Lịch nhắc & Tần suất pH",
-      "vetSharing": "Chia sẻ Bác sĩ & Viện",
-      "security": "Bảo mật & Y sinh (ISO)",
-      "subscription": "Gói Cát SmartSand Pro"
+      "account": "Thông tin tài khoản",
+      "cats": "Bé mèo của bạn",
+      "notifications": "Thông báo và cảnh báo",
+      "more": "Bảo mật và quyền riêng tư"
     },
     "catCount": "{{count}} bé",
-    "designOnly": "Khối giao diện theo thiết kế — chưa có backend",
-    "mockBadge": "Dữ liệu mẫu",
-    "outOfScope": "Ngoài phạm vi",
-    "standardTitle": "Tiêu chuẩn Y tế",
-    "certificateLabel": "Mã chứng chỉ:",
-    "accountTitle": "Thông tin tài khoản chủ nuôi",
-    "accountSubtitle": "Thông tin xác thực danh tính người chịu trách nhiệm chăm sóc cho mèo",
+    "accountTitle": "Thông tin tài khoản",
+    "accountSubtitle": "Thông tin đăng nhập và liên lạc của chủ nuôi",
     "edit": "Chỉnh sửa",
     "fieldName": "Họ và tên",
-    "fieldEmail": "Email liên lạc",
-    "fieldPhone": "Số điện thoại khẩn cấp",
-    "fieldVetMember": "Hội viên thú y",
-    "primaryGuardian": "Chủ nuôi chính (Primary Guardian)",
+    "fieldEmail": "Email đăng nhập",
+    "fieldPhone": "Số điện thoại",
+    "fieldMemberSince": "Ngày tạo tài khoản",
     "emailVerified": "Đã xác thực OTP",
     "emailUnverified": "Chưa xác thực",
     "phoneEmpty": "Chưa cập nhật",
-    "phoneNote": "Dùng cho cảnh báo SMS khẩn cấp",
-    "deviceTitle": "Thiết bị & Tích hợp Khay Cát Thông Minh",
-    "deviceSubtitle": "Giám sát thông số quang học thực thời và kết nối phần cứng CleanBox",
-    "deviceMeta": "{{location}} • MAC: {{mac}}",
-    "alertsTitle": "Cấu hình Lịch nhắc & Cảnh báo Sức khỏe",
-    "alertsSubtitle": "Chọn kênh nhận tin và loại cảnh báo bạn muốn theo dõi",
-    "thresholdsLegend": "Ngưỡng báo động màu cát & dấu hiệu lâm sàng",
-    "vetSharingTitle": "Uỷ quyền Hồ sơ Y tế Thú cưng",
-    "vetSharingSubtitle": "Chia sẻ dữ liệu theo dõi trực tiếp cho phòng khám để đối chiếu tiền sử",
-    "vetManageAccess": "Quản lý quyền truy cập",
-    "vetDoctor": "Bác sĩ phụ trách:",
-    "vetUpdatedAt": "Cập nhật gần nhất:",
-    "vetToken": "Mã token: {{token}}",
-    "subscriptionTitle": "Đăng ký nhận cát tự động (Subscription)",
-    "subscriptionSubtitle": "Giao hạt vi khoáng đổi màu định kỳ tận nhà, đảm bảo độ chuẩn xác xét nghiệm",
-    "subCurrentPlan": "Gói hiện tại",
-    "subNextDelivery": "Kỳ giao kế tiếp",
-    "subAddress": "Địa chỉ giao hàng mặc định"
+    "catsTitle": "Bé mèo của bạn",
+    "catsSubtitle": "Danh sách bé mèo đang theo dõi trong tài khoản",
+    "catsAdd": "Thêm bé mèo",
+    "catsManage": "Quản lý hồ sơ bé mèo",
+    "catsEmpty": "Chưa có bé mèo nào trong tài khoản. Thêm bé đầu tiên để bắt đầu theo dõi.",
+    "catLastScanPh": "· pH {{value}}",
+    "alertsTitle": "Thông báo và cảnh báo",
+    "alertsSubtitle": "Chọn kênh nhận tin và loại thông báo bạn muốn nhận",
+    "remindersTitle": "Lịch nhắc quét định kỳ",
+    "remindersManage": "Quản lý lịch nhắc",
+    "remindersNone": "Chưa có lịch nhắc quét nào đang bật",
+    "remindersActive": "{{count}} lịch nhắc quét đang bật",
+    "remindersActiveNext": "{{count}} lịch nhắc quét đang bật · lần nhắc kế tiếp {{next}}",
+    "moreTitle": "Bảo mật và quyền riêng tư",
+    "moreSubtitle": "Mật khẩu, xác thực hai lớp, ngôn ngữ hiển thị và dữ liệu cá nhân",
+    "links": {
+      "security": {
+        "title": "Bảo mật tài khoản",
+        "note": "Mật khẩu, xác thực hai lớp, thiết bị đang đăng nhập"
+      },
+      "privacy": {
+        "title": "Quyền riêng tư và dữ liệu",
+        "note": "Đồng ý xử lý dữ liệu, yêu cầu truy xuất và xoá tài khoản"
+      },
+      "language": {
+        "title": "Ngôn ngữ hiển thị",
+        "note": "Tiếng Việt hoặc English"
+      },
+      "reminders": {
+        "title": "Lịch nhắc theo dõi",
+        "note": "Đặt lịch nhắc quét định kỳ cho từng bé mèo"
+      },
+      "export": {
+        "title": "Xuất hồ sơ sức khoẻ",
+        "note": "Tạo báo cáo PDF để gửi bác sĩ thú y"
+      }
+    },
+    "logout": "Đăng xuất"
   },
   "mobile": {
     "catCompanions": "{{count}} bé mèo đồng hành",
     "editAccount": "Chỉnh sửa tài khoản",
-    "catsTitle": "Hồ sơ bé mèo đã đăng ký",
-    "catsSubtitle": "Theo dõi chỉ thị sinh học sức khoẻ",
+    "catsTitle": "Bé mèo của bạn",
+    "catsSubtitle": "Danh sách bé mèo đang theo dõi trong tài khoản",
     "catsAdd": "Thêm bé mèo",
-    "catsManage": "Quản lý hồ sơ & Chỉ số chuẩn",
+    "catsManage": "Quản lý hồ sơ bé mèo",
     "catsEmpty": "Chưa có bé mèo nào trong tài khoản. Thêm bé đầu tiên để bắt đầu theo dõi.",
     "catNoScan": "Chưa quét lần nào",
-    "groupMonitoring": "Cài đặt Theo dõi & Phần cứng",
-    "groupData": "Dữ liệu & Hồ sơ Thú y",
-    "groupSupport": "Hỗ trợ & Cộng đồng",
+    "groupMonitoring": "Theo dõi và nhắc nhở",
+    "groupData": "Dữ liệu và bảo mật",
+    "groupSupport": "Hỗ trợ và cộng đồng",
     "rows": {
       "reminders": {
-        "title": "Lịch nhắc nhở Quét",
-        "note": "Đặt tần suất quét màu cát định kỳ"
+        "title": "Lịch nhắc theo dõi",
+        "note": "Đặt lịch nhắc quét định kỳ cho từng bé mèo"
       },
       "notifications": {
-        "title": "Thông báo & Cảnh báo",
-        "note": "Chọn kênh nhận tin và loại cảnh báo"
-      },
-      "device": {
-        "title": "Khay cát & CleanBox IoT"
+        "title": "Thông báo và cảnh báo",
+        "note": "Chọn kênh nhận tin và loại thông báo"
       },
       "export": {
-        "title": "Xuất Hồ sơ Sức khỏe",
-        "note": "Báo cáo PDF gửi bác sĩ thú y"
-      },
-      "clinic": {
-        "title": "Phòng khám Thú y liên kết"
+        "title": "Xuất hồ sơ sức khoẻ",
+        "note": "Tạo báo cáo PDF để gửi bác sĩ thú y"
       },
       "security": {
-        "title": "Bảo mật & Sao lưu dữ liệu",
-        "note": "Mật khẩu, xác thực 2 lớp, thiết bị đăng nhập"
+        "title": "Bảo mật tài khoản",
+        "note": "Mật khẩu, xác thực hai lớp, thiết bị đang đăng nhập"
       },
       "privacy": {
-        "title": "Quyền riêng tư tài khoản",
-        "note": "Đồng ý xử lý dữ liệu & nhật ký truy cập"
+        "title": "Quyền riêng tư và dữ liệu",
+        "note": "Đồng ý xử lý dữ liệu, yêu cầu truy xuất và xoá tài khoản"
       },
       "language": {
         "title": "Ngôn ngữ hiển thị",
-        "note": "Tiếng Việt / English"
+        "note": "Tiếng Việt hoặc English"
       },
       "guides": {
-        "title": "Hỏi đáp & Video hướng dẫn",
-        "note": "Video chỉ dẫn đọc màu hạt cát"
-      },
-      "hotline": {
-        "title": "Hotline & Trợ lý Điều dưỡng Thú y",
-        "note": "Tổng đài hỗ trợ người nuôi"
+        "title": "Cộng đồng người nuôi",
+        "note": "Hỏi đáp và chia sẻ kinh nghiệm chăm mèo"
       },
       "contact": {
         "title": "Liên hệ CatCheck",
         "note": "Gửi câu hỏi hoặc phản ánh dịch vụ"
       }
     },
-    "call": "Gọi",
-    "disclaimerTitle": "Lưu ý theo dõi, không chẩn đoán",
-    "disclaimerBody": "CATCHECK cung cấp tính năng theo dõi xu hướng hoá sinh qua màu cát vệ sinh thông minh. Các chỉ số chỉ mang tính chất phát hiện sớm để phòng bệnh, không thay thế cho xét nghiệm nước tiểu hay kết luận chẩn đoán lâm sàng của bác sĩ thú y.",
+    "disclaimerTitle": "Theo dõi, không chẩn đoán",
+    "disclaimerBody": "CatCheck theo dõi xu hướng pH qua màu hạt cát chỉ thị. Kết quả chỉ dùng để nhận ra thay đổi sớm, không thay thế xét nghiệm nước tiểu hay kết luận của bác sĩ thú y.",
     "legalTerms": "Điều khoản sử dụng",
     "legalPrivacy": "Chính sách quyền riêng tư",
-    "legalSafety": "Tiêu chuẩn an toàn",
-    "versionLine": "CATCHECK phiên bản {{version}} • Thiết kế vì tình yêu thương mèo cưng.",
+    "legalSafety": "Miễn trừ y tế",
     "logout": "Đăng xuất",
     "exportAction": "Xuất"
   },
@@ -185,6 +183,7 @@
   },
   "profile": {
     "intro": "Thông tin định danh của chủ nuôi. Email dùng để đăng nhập và nhận cảnh báo.",
+    "logoutHelp": "Kết thúc phiên đăng nhập trên thiết bị này.",
     "sectionBasic": "Thông tin cơ bản",
     "sectionEmail": "Email đăng nhập",
     "sectionIdentities": "Tài khoản liên kết",
@@ -192,7 +191,7 @@
     "fullNamePlaceholder": "Nguyễn Văn A",
     "phone": "Số điện thoại",
     "phonePlaceholder": "09xx xxx xxx",
-    "phoneHelp": "Dùng cho cảnh báo khẩn cấp. Để trống nếu bạn không muốn cung cấp.",
+    "phoneHelp": "Số liên hệ, không bắt buộc — để trống nếu bạn không muốn cung cấp.",
     "timezone": "Múi giờ",
     "save": "Lưu thay đổi",
     "saved": "Đã lưu thay đổi.",
@@ -220,7 +219,13 @@
       "fullNameMax": "Họ tên tối đa 120 ký tự.",
       "phoneInvalid": "Số điện thoại không hợp lệ.",
       "emailInvalid": "Email không hợp lệ."
-    }
+    },
+    "loadFailed": "Không tải được hồ sơ. Vui lòng thử lại.",
+    "sectionAvatar": "Ảnh đại diện",
+    "avatarHelp": "Ảnh hiển thị ở góc trên của ứng dụng. Chỉ bạn nhìn thấy ảnh này.",
+    "avatarSaved": "Đã cập nhật ảnh đại diện.",
+    "avatarRemoved": "Đã gỡ ảnh đại diện.",
+    "avatarFailed": "Chưa cập nhật được ảnh đại diện. Vui lòng thử lại."
   },
   "security": {
     "intro": "Mật khẩu, xác thực hai lớp và danh sách thiết bị đang đăng nhập.",
@@ -255,7 +260,10 @@
     "sessionRevoke": "Đăng xuất",
     "sessionRevokeAll": "Đăng xuất mọi thiết bị khác",
     "sessionEmpty": "Không có phiên nào khác.",
-    "sessionLimitNote": "Tối đa 5 phiên cùng lúc. Chạm trần thì lần đăng nhập mới sẽ bị từ chối."
+    "sessionLimitNote": "Tối đa 5 phiên cùng lúc. Chạm trần thì lần đăng nhập mới sẽ bị từ chối.",
+    "sessionsLoadFailed": "Không tải được danh sách thiết bị đang đăng nhập.",
+    "newPasswordLength": "Mật khẩu mới cần từ 8 đến 72 ký tự.",
+    "changePasswordInvalidNew": "Mật khẩu mới chưa hợp lệ. Hãy dùng từ 8 đến 72 ký tự."
   },
   "language": {
     "intro": "Ngôn ngữ áp dụng cho giao diện và nội dung thông báo gửi tới bạn.",
@@ -265,7 +273,8 @@
     "optionEnNote": "Bản dịch đang hoàn thiện — một số nội dung vẫn hiển thị tiếng Việt",
     "current": "Đang dùng",
     "saveFailed": "Không lưu được ngôn ngữ lên tài khoản, vui lòng thử lại.",
-    "savedLocalOnly": "Đã đổi ngôn ngữ trên thiết bị này."
+    "savedLocalOnly": "Đã đổi ngôn ngữ trên thiết bị này.",
+    "saved": "Đã lưu ngôn ngữ cho tài khoản."
   },
   "install": {
     "lead": "Thêm CatCheck vào màn hình chính để mở nhanh như một ứng dụng: chạy toàn màn hình, có biểu tượng riêng, không phải gõ lại địa chỉ.",
@@ -294,5 +303,42 @@
     "note1": "Đây chỉ là lối tắt chạy toàn màn hình. Tài khoản, dữ liệu và quyền camera giữ nguyên như khi mở bằng trình duyệt.",
     "note2": "CatCheck vẫn cần mạng để gửi ảnh quét và tải kết quả — thêm vào màn hình chính không làm app chạy ngoại tuyến.",
     "note3": "Muốn gỡ thì xoá biểu tượng khỏi màn hình chính như một ứng dụng bình thường."
+  },
+  "privacy": {
+    "showAll": "Xem tất cả ({{count}})",
+    "showLess": "Thu gọn",
+    "notApplicable": "—",
+    "surface": {
+      "register": "Đăng ký tài khoản",
+      "privacy_center": "Trung tâm quyền riêng tư",
+      "onboarding": "Thiết lập ban đầu",
+      "scan_first": "Trước lần quét đầu tiên",
+      "cookie_banner": "Thông báo cookie"
+    },
+    "retention": {
+      "INACTIVE_ACCOUNT": "Theo quy định về tài khoản không hoạt động",
+      "SCAN_IMAGE_RAW": "Theo hạn lưu ảnh quét",
+      "SCAN_ANALYSIS_LIFECYCLE": "Theo vòng đời kết quả quét",
+      "ACTIVITY_LOG": "Theo hạn lưu nhật ký sử dụng",
+      "PUSH_SUBSCRIPTION_IDLE": "Theo hạn đăng ký thông báo đẩy không còn dùng",
+      "NOTIFICATION_SEND_LOG": "Theo hạn lưu nhật ký gửi thông báo",
+      "AUDIT_LOG": "Theo hạn lưu nhật ký kiểm toán",
+      "SECURITY_INCIDENT": "Theo hạn lưu hồ sơ sự cố bảo mật",
+      "CONSENT_RECORD": "Theo hạn lưu bằng chứng đồng ý"
+    },
+    "missing": {
+      "evidence": "Tải tệp bằng chứng đồng ý — chức năng này chưa có đường gọi trên máy chủ. Trong lúc chờ, gói dữ liệu ở mục \"Lấy một bản sao dữ liệu của bạn\" có kèm lịch sử đồng ý.",
+      "retention": "Máy chủ mới trả mã chính sách lưu trữ, chưa trả thời hạn lưu bằng chữ cho từng nhóm dữ liệu.",
+      "restriction": "Trạng thái tạm ngừng ở trên là suy ra từ danh sách yêu cầu, máy chủ chưa có đường đọc trạng thái trực tiếp.",
+      "communityChoice": "Lựa chọn giữ hay xoá nội dung cộng đồng khi xoá tài khoản — máy chủ chưa mở đường cho lựa chọn này."
+    },
+    "gaps": {
+      "evidence": "Tải tệp bằng chứng đồng ý.",
+      "retention": "Thời hạn lưu trữ theo từng nhóm dữ liệu.",
+      "restrictionState": "Đọc thẳng trạng thái tạm ngừng xử lý.",
+      "communityChoice": "Lựa chọn giữ hay xoá nội dung cộng đồng khi xoá tài khoản."
+    },
+    "deletionDerivedNote": "Ngày thực thi ở trên là suy ra từ ngày gửi yêu cầu cộng 7 ngày ân hạn, không phải giá trị do máy chủ trả.",
+    "requestsNoContent": "Biểu mẫu này chỉ mở hồ sơ và cấp mã tra cứu. Phần mô tả chi tiết, vui lòng gửi qua email cho bộ phận bảo vệ dữ liệu cá nhân, kèm mã tra cứu."
   }
 }

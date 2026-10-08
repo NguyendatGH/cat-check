@@ -11,7 +11,7 @@
   },
   "chart": {
     "title": "Đường cong pH Nước tiểu",
-    "subtitle": "Theo dõi chỉ thị sinh học liên tục qua cát",
+    "subtitle": "Giá trị pH của các lần quét màu hạt cát trong kỳ",
     "averageLabel": "Trung bình trong kỳ",
     "empty": "Chưa đủ dữ liệu để vẽ xu hướng trong khoảng thời gian này.",
     "dateFormat": "dd 'Th'MM",
@@ -24,7 +24,7 @@
     "latestLegend": "{{date}}: lần đo gần nhất"
   },
   "distribution": {
-    "title": "Phân bố Chỉ thị Sinh học",
+    "title": "Phân bố phân loại pH",
     "description": "Phân loại tích luỹ qua các lần quét trong kỳ đã chọn",
     "totalChip": "Tổng {{count}} lần quét",
     "countLabel": "{{count}} lần",
@@ -35,10 +35,10 @@
     "empty": "Chưa có lần quét nào trong kỳ này."
   },
   "actions": {
-    "scheduleCheck": "Lên lịch Kiểm tra Định kỳ"
+    "scheduleCheck": "Đặt lịch nhắc quét định kỳ"
   },
   "export": {
-    "cta": "Xuất Báo cáo Tóm tắt cho Bác sĩ (PDF)"
+    "cta": "Xuất hồ sơ PDF để mang theo khi đi khám"
   },
   "state": {
     "emptyTitle": "Chưa có đủ dữ liệu",
@@ -46,23 +46,21 @@
     "loadError": "Không tải được dữ liệu xu hướng. Vui lòng thử lại."
   },
   "web": {
-    "eyebrow": "HỆ THỐNG PHÂN TÍCH ISFM • THEO DÕI THỜI GIAN THỰC",
-    "title": "Xu hướng & Phân tích Quang phổ Nước tiểu",
-    "subtitle": "Theo dõi động thái sinh hóa niệu, giải mã độ kiềm-axit tự động qua phản ứng phân tử của hạt cát hữu cơ sinh học ISFM.",
-    "versionPill": "v3.4 MedTech AI",
-    "exportCta": "Xuất Excel / PDF",
-    "shareVetCta": "Chia sẻ Bác sĩ",
-    "kpiAvgLabel": "ĐỘ PH TRUNG BÌNH",
+    "eyebrow": "Xu hướng pH theo thời gian",
+    "title": "Xu hướng & Phân tích pH nước tiểu",
+    "subtitle": "Tổng hợp giá trị pH đo được từ màu hạt cát chỉ thị qua các lần quét trong kỳ đã chọn. Đây là quan sát tại nhà, không thay thế ý kiến bác sĩ thú y.",
+    "exportCta": "Xuất hồ sơ PDF",
+    "kpiAvgLabel": "ĐỘ PH TRUNG VỊ",
     "kpiAvgFootReal": "Trung vị pH của các lần quét trong kỳ",
-    "kpiPassLabel": "TỶ LỆ ĐẠT CHUẨN",
-    "kpiPassFootReal": "{{inRange}}/{{count}} lần quét nằm trong dải an toàn",
+    "kpiPassLabel": "TỈ LỆ TRONG KHOẢNG THAM CHIẾU",
+    "kpiPassFootReal": "{{inRange}}/{{count}} lần quét nằm trong khoảng tham chiếu",
     "kpiScansLabel": "SỐ LẦN QUÉT TRONG KỲ",
     "kpiScansFoot": "Tính theo khoảng thời gian đang chọn",
     "kpiLowConfLabel": "LẦN ĐO ĐỘ TIN CẬY THẤP",
     "kpiLowConfFoot": "Nên quét lại ở nơi đủ sáng để tăng độ chính xác",
-    "chartTitle": "Biến thiên Quang Phổ pH Thực Nghiệm",
-    "chartSubtitle": "Dữ liệu cảm biến Bio-Colorimeter quang phổ tự động liên tục",
-    "chartFootTitle": "Hệ chuẩn Bio-Colorimeter quang phổ tự động hóa",
+    "chartTitle": "Biến thiên pH theo thời gian",
+    "chartSubtitle": "Mỗi điểm là một lần quét có kết luận trong kỳ đã chọn",
+    "chartFootTitle": "Chất lượng số đo trong kỳ",
     "chartConfidenceReal": "Độ tin cậy trung bình: {{percent}}%",
     "chartConfidenceEmpty": "Chưa có số đo độ tin cậy trong kỳ",
     "chartVersions": "Bảng màu hiệu chuẩn: v{{versions}}",
@@ -76,25 +74,27 @@
     "summaryMedian": "Trung vị pH",
     "summaryInRange": "Trong khoảng tham chiếu",
     "summaryInRangeValue": "{{inRange}}/{{count}} lần",
-    "logTitle": "Nhật Ký Giải Mã Quang Phổ Chi Tiết",
-    "logSubtitle": "Lưu trữ ảnh trích xuất từ dải sắc tố bio-bead của khay cát thông minh",
+    "logTitle": "Nhật ký các lần quét trong kỳ",
+    "logSubtitle": "Mỗi dòng là một lần quét có kết luận, mới nhất ở trên cùng",
     "logFilter": "Tất cả trạng thái",
     "logFilterLabel": "Lọc nhật ký theo dải pH",
     "logRefresh": "Làm mới",
     "colTime": "THỜI GIAN QUÉT",
-    "colSample": "MẪU HẠT CHỤP THỰC TẾ",
-    "colPh": "ĐỘ PH GIẢI MÃ",
-    "colStatus": "TRẠNG THÁI SINH HỌC",
+    "colSample": "ĐỘ TIN CẬY",
+    "colPh": "ĐỘ PH",
+    "colStatus": "PHÂN LOẠI",
     "logFooterReal": "Hiển thị {{shown}} trên tổng số {{total}} lần quét trong kỳ",
     "logNearBoundary": "Gần ranh giới dải",
-    "logAutoScan": "Quét tự động",
     "logConfidence": "{{percent}}%",
     "phUnit": "pH",
     "valueUnavailable": "—",
     "lockedCta": "Xem các gói",
     "lockedNote": "Xu hướng pH theo thời gian nằm trong gói có tính năng theo dõi xu hướng.",
-    "emptyHint": "Hãy quét thêm vài lần để hệ thống dựng được đường cong pH.",
+    "emptyHint": "Hãy quét thêm vài lần để dựng được đường biến thiên pH.",
     "retry": "Thử lại",
-    "logEmpty": "Chưa có lần quét nào trong kỳ này."
+    "logEmpty": "Chưa có lần quét nào trong kỳ này.",
+    "eyebrowNamed": "Xu hướng pH của {{name}}",
+    "historyCta": "Lịch sử quét",
+    "logDisputed": "Chủ nuôi báo kết quả chưa đúng"
   }
 }

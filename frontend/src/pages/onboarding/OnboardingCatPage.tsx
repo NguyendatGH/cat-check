@@ -104,8 +104,10 @@ function CatIdCardPreview({
 }: CatIdCardPreviewProps) {
   const { t } = useTranslation("onboarding");
   const normalBand = bands.find((b) => b.severity === "NORMAL");
-  const firstBand = bands.at(0);
-  const lastBand = bands.at(-1);
+  // Nhãn 2 đầu thang lấy từ dải CÓ biên — INCONCLUSIVE ("chưa đủ dữ liệu") không phải đầu thang.
+  const ranged = bands.filter((b) => typeof b.phMin === "number" || typeof b.phMax === "number");
+  const firstBand = ranged.at(0);
+  const lastBand = ranged.at(-1);
 
   return (
     <div className="flex flex-col gap-5 rounded-3xl bg-gradient-to-br from-primary-dark to-primary p-6 shadow-brand-xl">
@@ -453,8 +455,9 @@ export function OnboardingCatPage() {
         <fieldset className="flex flex-col gap-3">
           <legend className="sr-only">{t("cat.sex.label")}</legend>
           <FieldLabel required>{t("cat.sex.label")}</FieldLabel>
-          {/* M1 01c-3: 2 thẻ lớn mỗi hàng, có icon giới tính + mô tả phụ. */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          {/* 3 thẻ cùng một hàng, icon trên — 2 cột (M1 01c-3) để thẻ "Chưa rõ" mồ côi ở hàng
+              2, còn icon trái ở 3 cột thì "Chưa xác định" bị bẻ dòng. */}
+          <div className="grid grid-cols-3 gap-3">
             {SEX_OPTIONS.map(({ value, icon }) => (
               <OptionCard
                 key={value}
@@ -468,6 +471,7 @@ export function OnboardingCatPage() {
                 title={t(`cat.sex.${value.toLowerCase()}`)}
                 description={t(`cat.sex.${value.toLowerCase()}Desc`)}
                 icon={icon}
+                layout="stack"
               />
             ))}
           </div>
@@ -480,11 +484,11 @@ export function OnboardingCatPage() {
             updateCatDraft({ neutered: checked });
           }}
           label={t("cat.neutered.label")}
-          description={watchedSex === "MALE" && !neutered ? t("cat.neutered.warning") : undefined}
-          warn={watchedSex === "MALE" && !neutered}
         />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* `md:` chứ không `sm:` (sm = 375px): ở 390px hai cột làm ô ngày sinh native bị cắt
+            mất "yyyy". */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <FieldLabel htmlFor="birthDate">{t("cat.birthDate.label")}</FieldLabel>
             {/* M1 01c-3: icon lịch bên trái, cùng khung với ô cân nặng. */}

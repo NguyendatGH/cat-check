@@ -2,6 +2,7 @@
 // PHẢI qua file này (boundaries/entry-point).
 export type {
   Cat,
+  CatLastScan,
   CatSex,
   CatStatus,
   CatBreed,
@@ -20,6 +21,8 @@ export type {
   PrimaryCatResult,
 } from "./model";
 export { CLINICAL_SIGNS } from "./model";
+export { resolveCatLastScan } from "./lastScan";
 export { useCatStore } from "./store";
 export { CatAvatar, CatCard } from "./components";
+export { splitCatAge, useFormatCatAge } from "./age";
 export type { CatAvatarProps, CatCardProps } from "./components";

@@ -3,16 +3,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { User, Mail, Gift, Cross, ArrowRight, Globe, ShieldCheck, Tag, SquarePlus } from "lucide-react";
+import { User, Mail, Gift, Cross, ArrowRight, ShieldCheck, SquarePlus, Cat, Package } from "lucide-react";
 import { Button, Input, Badge, Stepper } from "@/shared/ui";
+import { usePackageCatalog } from "@/features/credit";
 import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
 import { WebRegisterSteps } from "./WebRegisterSteps";
-import signupCat from "@/shared/assets/images/web-auth/signup-cat.png";
 import signupPortalBadge from "@/shared/assets/icons/web-auth/signup-portal-badge.svg";
-import voucherBadge from "@/shared/assets/icons/web-auth/voucher-badge.svg";
-import voucherGift from "@/shared/assets/icons/web-auth/voucher-gift.svg";
-import copyIcon from "@/shared/assets/icons/web-auth/copy.svg";
 import previewEye from "@/shared/assets/icons/web-auth/preview-eye.svg";
 import value1Alert from "@/shared/assets/icons/web-auth/value1-alert.svg";
 import value2Chart from "@/shared/assets/icons/web-auth/value2-chart.svg";
@@ -31,14 +28,49 @@ import {
 } from "@/features/auth";
 
 /**
- * Xem trước hồ sơ mèo ở cột phải bản web (Figma 16:6949) — MOCK THEO THIẾT KẾ.
- * Ở bước này người dùng chưa tạo mèo nên không có dữ liệu thật để hiển thị.
+ * Thẻ nhấn vàng đầu cột phải (vị trí thẻ voucher của Figma 16:6949). Không có API khuyến
+ * mãi nên không dựng voucher; thay bằng danh mục gói thật `GET /reference/packages`
+ * (`features/credit`) — mỗi gói kèm số lượt quét và hạn dùng do backend trả.
  */
-const SIGNUP_PREVIEW_MOCK = {
-  catName: "Luna (Mèo Anh Lông Ngắn)",
-  catMeta: "Cái • 2 Tuổi",
-  chipId: "Mã chip định danh: #VN-CAT-9042",
-} as const;
+function SignupPackagesCard() {
+  const { t } = useTranslation("auth");
+  const { data: packages, isPending, isError } = usePackageCatalog();
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-secondary p-6">
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex items-center gap-2 rounded-full bg-surface px-3 py-1 shadow-xs">
+          <Package size={14} aria-hidden="true" className="text-secondary-text-on" />
+          <span className="text-[11px] font-bold tracking-[0.4px] text-secondary-text-on">
+            {t("web.signup.packagesBadge")}
+          </span>
+        </span>
+      </div>
+      <h3 className="pt-4 text-[20px] font-extrabold leading-7 text-secondary-text-on">
+        {t("web.signup.packagesTitle")}
+      </h3>
+      <p className="pt-1 text-[14px] leading-5 text-secondary-text-on opacity-90">{t("web.signup.packagesBody")}</p>
+      {isPending ? (
+        <div className="mt-4 h-24 animate-pulse rounded-xl bg-[rgba(255,255,255,0.45)]" aria-hidden="true" />
+      ) : isError || packages.length === 0 ? (
+        <p className="mt-4 rounded-xl bg-[rgba(255,255,255,0.45)] p-3 text-[13px] text-secondary-text-on">
+          {t("web.signup.packagesError")}
+        </p>
+      ) : (
+        <ul className="mt-4 flex flex-col divide-y divide-secondary-text-on/10 rounded-xl bg-[rgba(255,255,255,0.45)] px-3 backdrop-blur-[6px]">
+          {packages.map((pkg) => (
+            <li key={pkg.code} className="flex items-center justify-between gap-3 py-2">
+              <span className="min-w-0 truncate text-[13px] font-bold text-secondary-text-on">{pkg.name}</span>
+              <span className="shrink-0 text-[12px] font-semibold text-secondary-text-on">
+                {t("web.signup.packageCredits", { count: pkg.creditAmount, days: pkg.creditValidityDays })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /**
  * `/auth/register` (p9 §9.4.3 #3, M1 01c-1 · W1 Web-01c) — chỉ bước "tài khoản chủ nuôi",
@@ -53,7 +85,7 @@ const SIGNUP_PREVIEW_MOCK = {
  * (p15) nên GIỮ LẠI, thu gọn sau 1 toggle ẩn/hiện để không phá bố cục gốc.
  */
 export function RegisterPage() {
-  const { t } = useTranslation(["auth", "common"]);
+  const { t } = useTranslation(["auth", "common", "legal"]);
   const navigate = useNavigate();
   const setPendingRegistration = useAuthFlowStore((s) => s.setPendingRegistration);
   const register = useRegister();
@@ -142,10 +174,6 @@ export function RegisterPage() {
                   <Badge tone="brand" className="bg-secondary px-2 py-0 text-overline text-secondary-text-on">
                     {t("register.hero.idBadge")}
                   </Badge>
-                  <span className="inline-flex items-center gap-1 text-overline font-semibold text-success-text">
-                    <ShieldCheck size={13} aria-hidden="true" />
-                    {t("register.hero.safetyBadge")}
-                  </span>
                 </div>
                 <h1 className="pt-1.5 text-[17px] font-bold leading-snug text-text-primary">
                   {t("register.hero.title")}
@@ -254,10 +282,6 @@ export function RegisterPage() {
                   <span className="truncate">{t("register.fields.referralCode.label")}</span>
                   <SquarePlus size={14} className="shrink-0 text-primary" aria-hidden="true" />
                 </label>
-                <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-overline font-semibold text-secondary-text-on">
-                  <Tag size={10} aria-hidden="true" />
-                  {t("register.fields.referralCode.promoBadge")}
-                </span>
               </div>
               <Input
                 id="referralCodeRaw"
@@ -358,75 +382,44 @@ export function RegisterPage() {
             </span>
             <div>
               <p className="text-caption font-bold text-text-primary">{t("register.securityBadge.title")}</p>
-              <p className="flex items-center gap-1 pt-0.5 text-[11px] leading-[17px] tracking-[0.2px] text-text-secondary">
-                <Globe size={11} aria-hidden="true" className="shrink-0 text-verified-deep" />
+              <p className="pt-0.5 text-[11px] leading-[17px] tracking-[0.2px] text-text-secondary">
                 {t("register.securityBadge.description")}
               </p>
             </div>
           </div>
         </div>
 
-        {/* ══ Cột phải CHỈ CÓ Ở WEB (Figma 16:6949): ưu đãi + xem trước hồ sơ + giá trị ══ */}
+        {/* ══ Cột phải CHỈ CÓ Ở WEB (Figma 16:6949) — giữ 3 thẻ của thiết kế, thay nội dung tự
+            đặt (voucher CHAO_SEN -15%, hồ sơ mèo "Luna" mẫu, "cảnh báo sớm sỏi thận") bằng dữ
+            liệu thật: danh mục gói từ `GET /reference/packages`, khung hồ sơ trống của bước 3,
+            và mô tả đúng chức năng sản phẩm. ══ */}
         <aside className="hidden lg:col-span-5 lg:flex lg:flex-col lg:gap-6">
-          {/* Voucher — nội dung mock theo thiết kế, chưa có API khuyến mãi */}
-          <div className="relative overflow-hidden rounded-3xl bg-secondary p-6">
-            <div className="flex items-start justify-between">
-              <span className="flex items-center gap-2 rounded-full bg-surface px-3 py-1 shadow-xs">
-                <img src={voucherBadge} alt="" className="size-[14px]" />
-                <span className="text-[11px] font-bold tracking-[0.4px] text-secondary-text-on">
-                  {t("web.signup.voucherBadge")}
-                </span>
-              </span>
-              <img src={voucherGift} alt="" className="size-6" />
-            </div>
-            <h3 className="pt-4 text-[20px] font-extrabold leading-7 text-secondary-text-on">
-              {t("web.signup.voucherTitle")}
-            </h3>
-            <p className="pt-1 text-[14px] leading-5 text-secondary-text-on opacity-90">
-              {t("web.signup.voucherBody")}
-            </p>
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-[rgba(255,255,255,0.45)] p-3 backdrop-blur-[6px]">
-              <span className="flex flex-col">
-                <span className="text-[10px] font-semibold tracking-[0.4px] text-secondary-text-on">
-                  {t("web.signup.voucherCodeLabel")}
-                </span>
-                <span className="text-[18px] font-extrabold tracking-[0.5px] text-secondary-text-on">
-                  {t("web.signup.voucherCode")}
-                </span>
-              </span>
-              <span className="flex items-center gap-1.5 rounded-xl bg-primary-dark px-3 py-1.5 text-[12px] font-bold text-white shadow-xs">
-                <img src={copyIcon} alt="" className="size-3 brightness-0 invert" />
-                {t("web.signup.voucherCopy")}
-              </span>
-            </div>
-          </div>
+          <SignupPackagesCard />
 
-          {/* Xem trước hồ sơ bé mèo — mock theo thiết kế (chưa tạo mèo ở bước này) */}
+          {/* Xem trước hồ sơ bé mèo — ở bước này chưa có mèo nên chỉ hiện khung trống */}
           <div className="rounded-3xl bg-surface p-6 shadow-xs">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <img src={previewEye} alt="" className="h-[15.833px] w-[16.667px]" />
                 <span className="text-[14px] font-bold tracking-[0.2px] text-text-primary">
                   {t("web.signup.previewTitle")}
                 </span>
               </span>
-              <span className="rounded-full bg-chip-bg px-2.5 py-1 text-[11px] font-bold tracking-[0.4px] text-primary-dark">
+              <span className="shrink-0 rounded-full bg-chip-bg px-2.5 py-1 text-[11px] font-bold tracking-[0.4px] text-primary-dark">
                 {t("web.signup.previewNext")}
               </span>
             </div>
             <div className="mt-4 flex items-center gap-4 rounded-xl bg-deco-backdrop p-4">
-              <img src={signupCat} alt="" className="size-16 shrink-0 rounded-2xl object-cover shadow-xs" />
+              <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl border-2 border-dashed border-border-strong bg-surface text-primary">
+                <Cat size={28} aria-hidden="true" />
+              </span>
               <div className="min-w-0">
-                <p className="text-[18px] font-bold leading-6 text-text-primary">{SIGNUP_PREVIEW_MOCK.catName}</p>
-                <p className="text-[14px] leading-5 text-text-secondary">{SIGNUP_PREVIEW_MOCK.catMeta}</p>
-                <p className="pt-1 text-[11px] font-semibold tracking-[0.4px] text-primary-dark">
-                  {SIGNUP_PREVIEW_MOCK.chipId}
-                </p>
+                <p className="text-[16px] font-bold leading-6 text-text-primary">{t("web.signup.previewEmptyTitle")}</p>
+                <p className="text-[13px] leading-5 text-text-secondary">{t("web.signup.previewEmptyBody")}</p>
               </div>
             </div>
           </div>
 
-          {/* 3 giá trị khoa học */}
           <div className="rounded-3xl bg-surface p-6 shadow-xs">
             <h4 className="text-[16px] font-bold text-text-primary">{t("web.signup.valuesTitle")}</h4>
             <div className="mt-4 flex flex-col gap-3">
@@ -461,6 +454,10 @@ export function RegisterPage() {
                 </div>
               ))}
             </div>
+            <p className="mt-4 flex items-start gap-2 text-[12px] leading-[18px] text-text-tertiary">
+              <ShieldCheck size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
+              {t("disclaimer.footerLine.text", { ns: "legal" })}
+            </p>
           </div>
         </aside>
       </div>

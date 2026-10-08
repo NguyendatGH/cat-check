@@ -9,6 +9,7 @@ import {
   isValidActivationCode,
   toCanonicalCode,
   useActivateCode,
+  useCreditBalance,
   useOnboardingStore,
 } from "@/features/onboarding";
 import { isApiError } from "@/shared/api";
@@ -16,13 +17,15 @@ import { isApiError } from "@/shared/api";
 /**
  * Bước 4/5 — Kích hoạt gói (p9 §9.4.6 C05: không có màn design gốc, dựng theo
  * đặc tả tối thiểu). Nhập mã `CC-<PKG>-<10 ký tự Crockford>` (p5 §5.9), validate
- * định dạng client-side, bỏ qua được (trial 3 lần — p5 R6).
+ * định dạng client-side, bỏ qua được. Số lần quét thử còn lại đọc từ `GET /credits/balance`
+ * (`trialScansRemaining`), không ghi cứng "3 lần" như DSL Web-01c-4b.
  */
 export function OnboardingActivatePage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
   const { setStep, setActivation } = useOnboardingStore();
   const activateCode = useActivateCode();
+  const { data: balance } = useCreditBalance();
 
   const [code, setCode] = useState("");
   const [formatError, setFormatError] = useState<string | null>(null);
@@ -50,9 +53,9 @@ export function OnboardingActivatePage() {
       const result = await activateCode.mutateAsync(toCanonicalCode(code));
       setActivation(result);
       setSuccess({
-        packageName: result.batch.packageName,
-        credits: result.batch.initialAmount,
-        expiresAt: result.batch.expiresAt,
+        packageName: result.packageName,
+        credits: result.creditsGranted,
+        expiresAt: result.expiresAt,
       });
     } catch (error) {
       if (isApiError(error)) {
@@ -187,7 +190,15 @@ export function OnboardingActivatePage() {
             <Button type="button" variant="tertiary" size="md" className="w-full" onClick={onSkip}>
               {t("activate.skip")}
             </Button>
-            <p className="text-small text-text-tertiary">{t("activate.skipHint")}</p>
+            {balance ? (
+              <p className="text-center text-small text-text-tertiary">
+                {balance.trialScansRemaining > 0
+                  ? t("activate.skipHint", { count: balance.trialScansRemaining })
+                  : balance.availableBalance > 0
+                    ? t("activate.skipHintBalance", { count: balance.availableBalance })
+                    : t("activate.skipHintNone")}
+              </p>
+            ) : null}
           </div>
         </div>
       }

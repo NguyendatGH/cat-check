@@ -684,6 +684,16 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "/admin/products",
+            element: (
+              <RequireRole roles={["ADMIN_CATALOG", "ADMIN_SUPER"]}>
+                <PageSuspense>
+                  <LazyPages.adminProducts />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+          {
             path: "/admin/ph-color-chart",
             element: (
               <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>

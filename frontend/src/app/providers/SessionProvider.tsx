@@ -7,6 +7,7 @@ interface RawSessionUser {
   id: string;
   email: string;
   fullName: string;
+  avatarUrl?: string | null;
   onboardingStatus: "ACCOUNT_ONLY" | "CAT_CREATED" | "SURVEY_DONE_OR_SKIPPED" | "COMPLETED";
 }
 interface RawSessionResponse {
@@ -43,6 +44,7 @@ function toSessionUser(raw: RawSessionResponse): SessionUser | null {
     id: user.id,
     email: user.email,
     displayName: user.fullName,
+    avatarUrl: user.avatarUrl ?? null,
     roles: raw.roles as SessionUser["roles"],
     onboarding: {
       completed: ONBOARDING_DONE.has(user.onboardingStatus),

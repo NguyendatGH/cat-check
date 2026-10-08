@@ -89,11 +89,17 @@ export function SettingsLanguagePage() {
           );
         })}
 
-        <p aria-live="polite" className="pt-1 text-caption">
+        {/* Vùng thông báo chỉ chiếm chỗ khi có nội dung — để trống thì thẻ không bị dư đáy. */}
+        <p aria-live="polite" className="text-caption empty:hidden">
           {updateProfile.isError ? (
-            <span className="flex items-center gap-1.5 text-warning-text">
-              <AlertTriangle size={14} aria-hidden="true" />
+            <span className="flex items-start gap-1.5 text-warning-text">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
               {t("language.savedLocalOnly")} {t("language.saveFailed")}
+            </span>
+          ) : updateProfile.isSuccess ? (
+            <span className="flex items-center gap-1.5 text-success-text">
+              <Check size={14} className="shrink-0" aria-hidden="true" />
+              {t("language.saved")}
             </span>
           ) : null}
         </p>

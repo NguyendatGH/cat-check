@@ -47,8 +47,35 @@ const DAY_MS = 24 * HOUR_MS;
 /** Khoảng cách ngày ứng với 3 ô preset của frame 09 ("Mỗi ngày" / "Mỗi 3 ngày" / "Hàng tuần"). */
 export const PRESET_INTERVALS = [1, 3, 7] as const;
 
+/** `08:00 09/10/2026` — gọn hơn `dateStyle: "medium"` ("08:00 9 thg 10, 2026") vốn bị cắt `…` trong ô 390px. */
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" });
+  return new Date(iso).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Nhãn "lần … tiếp theo" theo LOẠI lịch: chỉ `SCAN_ROUTINE` là nhắc QUÉT; `CREDIT_EXPIRY` /
+ * `SURVEY_FOLLOWUP` là nhắc hệ thống — gọi chúng là "Lần quét tiếp theo" là nói sai.
+ */
+export function useNextRunLabel(): (reminder: Pick<Reminder, "type">) => string {
+  const { t } = useTranslation("reminder");
+  return (reminder) => (reminder.type === "SCAN_ROUTINE" ? t("list.nextRunLabel") : t("list.nextReminderLabel"));
+}
+
+/**
+ * Hành động chính của một lịch đến hạn, theo loại lịch: nhắc quét → `/scan`; nhắc hạn gói →
+ * `/credits`; nhắc khảo sát → trang chi tiết lịch. Trước đây mọi thẻ đều "Quét ngay", kể cả
+ * lịch nhắc hạn gói.
+ */
+export function reminderAction(reminder: Pick<Reminder, "type" | "id">): { to: string; labelKey: string } {
+  if (reminder.type === "SCAN_ROUTINE") return { to: "/scan", labelKey: "web.scanNowCta" };
+  if (reminder.type === "CREDIT_EXPIRY") return { to: "/credits", labelKey: "web.viewCreditsCta" };
+  return { to: `/reminders/${reminder.id}`, labelKey: "list.openDetail" };
 }
 
 export function formatDate(iso: string): string {
@@ -187,7 +214,7 @@ export function ReminderStatusLine({
   return (
     <p
       className={cn(
-        "flex items-center gap-1.5 pt-0.5 text-caption font-bold",
+        "flex items-center gap-1.5 pt-0.5 text-small font-bold",
         overdue ? "text-danger-text" : "text-success-text",
       )}
     >
@@ -449,6 +476,14 @@ export function firstFieldErrors(error: z.ZodError): Record<string, string> {
 
 // ─── Mảnh form ───────────────────────────────────────────────────────────────────────────
 
+/**
+ * `<legend>` mặc định được trình duyệt vẽ ĐÈ lên mép trên của `<fieldset>` (nằm ngoài padding)
+ * ⇒ tiêu đề "Tần suất theo dõi" lòi nửa ra ngoài thẻ trắng. `float-left` biến nó thành phần tử
+ * thường (không còn là "rendered legend"), nên trong fieldset `flex-col` nó nằm gọn trong thẻ
+ * như frame 09 — vẫn giữ đúng ngữ nghĩa nhóm cho trình đọc màn hình.
+ */
+const LEGEND_CLASS = "float-left flex w-full flex-wrap items-center justify-between gap-2";
+
 function FieldError({ messageKey }: { messageKey?: string }) {
   const { t } = useTranslation("reminder");
   if (messageKey === undefined) return null;
@@ -499,7 +534,7 @@ export function FrequencyPicker({
 
   return (
     <fieldset className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-brand-md">
-      <legend className="flex w-full flex-wrap items-center justify-between gap-2 px-1">
+      <legend className={LEGEND_CLASS}>
         <span className="flex items-center gap-2 text-h3 font-bold text-text-primary">
           <Repeat size={18} className="text-primary-dark" aria-hidden="true" />
           {t("form.frequencyTitle")}
@@ -666,7 +701,7 @@ export function TimeWindowPicker({
 
   return (
     <fieldset className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-brand-md">
-      <legend className="flex w-full flex-wrap items-center justify-between gap-2 px-1">
+      <legend className={LEGEND_CLASS}>
         <span className="flex items-center gap-2 text-h3 font-bold text-text-primary">
           <Clock size={18} className="text-primary-dark" aria-hidden="true" />
           {t("form.timeTitle")}
@@ -751,9 +786,11 @@ export function ChannelPicker({ value, errorKey, onChange }: ChannelPickerProps)
   const { t } = useTranslation("reminder");
   return (
     <fieldset className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-brand-md">
-      <legend className="flex items-center gap-2 px-1 text-h3 font-bold text-text-primary">
-        <Bell size={18} className="text-primary-dark" aria-hidden="true" />
-        {t("form.channelTitle")}
+      <legend className={LEGEND_CLASS}>
+        <span className="flex items-center gap-2 text-h3 font-bold text-text-primary">
+          <Bell size={18} className="text-primary-dark" aria-hidden="true" />
+          {t("form.channelTitle")}
+        </span>
       </legend>
       <p className="text-caption text-text-secondary">{t("form.channelHint")}</p>
 
@@ -854,15 +891,15 @@ export function CatSelect({ value, options, disabled = false, loading = false, e
 
 /** Tiêu đề trang dùng chung — mobile dùng `text-h2`, desktop nở lên `text-h1`. */
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+  // Nút phụ (VD "+ Thêm lịch nhắc") đứng cùng hàng với TIÊU ĐỀ; mô tả trải hết bề ngang bên
+  // dưới. Trước đây mô tả nằm chung cột với tiêu đề nên ở 390px bị ép còn ~200px, xuống 4 dòng.
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0 flex-1">
-        <h1 className="text-h2 font-bold text-text-primary lg:text-h1">{title}</h1>
-        {subtitle === undefined ? null : (
-          <p className="pt-1 text-caption text-text-secondary lg:text-body">{subtitle}</p>
-        )}
+    <header className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 text-h2 font-bold text-text-primary lg:text-h1">{title}</h1>
+        {action}
       </div>
-      {action}
+      {subtitle === undefined ? null : <p className="text-caption text-text-secondary lg:text-body">{subtitle}</p>}
     </header>
   );
 }

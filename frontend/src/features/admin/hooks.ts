@@ -32,6 +32,9 @@ import type {
   IssueActivationBatchPayload,
   IssuedActivationBatch,
   AdminPackagePlan,
+  AdminProduct,
+  AdminProductPayload,
+  AdminProductStatus,
   UpdateAdminPackagePlanPayload,
   AdminJobRun,
   AdminOutboxEntry,
@@ -107,15 +110,21 @@ export const adminKeys = {
   maintenance: ["admin", "maintenance"] as const,
 };
 
-export function useUpdateAdminMaintenance(): UseMutationResult<AdminMaintenance, Error, {
-  active: boolean;
-  until: string | null;
-  reason: string;
-}> {
+export function useUpdateAdminMaintenance(): UseMutationResult<
+  AdminMaintenance,
+  Error,
+  {
+    active: boolean;
+    until: string | null;
+    reason: string;
+  }
+> {
   return useMutation({
-    mutationFn: (payload) => adminFetch<AdminMaintenance>("/admin/system/maintenance", {
-      method: "PUT", json: payload,
-    }),
+    mutationFn: (payload) =>
+      adminFetch<AdminMaintenance>("/admin/system/maintenance", {
+        method: "PUT",
+        json: payload,
+      }),
   });
 }
 
@@ -127,42 +136,65 @@ export function useAdminMfaResetRequests(): UseQueryResult<AdminMfaResetRequest[
   });
 }
 
-export function useRequestAdminMfaReset(): UseMutationResult<AdminMfaResetRequest, Error, { userId: string; reason: string }> {
+export function useRequestAdminMfaReset(): UseMutationResult<
+  AdminMfaResetRequest,
+  Error,
+  { userId: string; reason: string }
+> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ userId, reason }) =>
       adminFetch<AdminMfaResetRequest>(`/admin/users/${encodeURIComponent(userId)}/mfa/totp/reset`, {
-        method: "POST", json: { reason },
+        method: "POST",
+        json: { reason },
       }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: adminKeys.mfaResetRequests }); },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.mfaResetRequests });
+    },
   });
 }
 
 export function useApproveAdminMfaReset(): UseMutationResult<AdminMfaResetRequest, Error, string> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (requestId) => adminFetch<AdminMfaResetRequest>(
-      `/admin/totp-reset-requests/${encodeURIComponent(requestId)}/approve`, { method: "POST" }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: adminKeys.mfaResetRequests }); },
+    mutationFn: (requestId) =>
+      adminFetch<AdminMfaResetRequest>(`/admin/totp-reset-requests/${encodeURIComponent(requestId)}/approve`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.mfaResetRequests });
+    },
   });
 }
 
-export function useGrantAdminRole(): UseMutationResult<unknown, Error, { userId: string; role: string; reason: string }> {
+export function useGrantAdminRole(): UseMutationResult<
+  unknown,
+  Error,
+  { userId: string; role: string; reason: string }
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role, reason }) => adminFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/roles`, {
-      method: "POST", json: { role, reason },
-    }),
-    onSuccess: (_, variables) => { void queryClient.invalidateQueries({ queryKey: adminKeys.userDetail(variables.userId) }); },
+    mutationFn: ({ userId, role, reason }) =>
+      adminFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/roles`, {
+        method: "POST",
+        json: { role, reason },
+      }),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.userDetail(variables.userId) });
+    },
   });
 }
 
 export function useRevokeAdminRole(): UseMutationResult<unknown, Error, { userId: string; role: string }> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role }) => adminFetch<unknown>(
-      `/admin/users/${encodeURIComponent(userId)}/roles/${encodeURIComponent(role)}`, { method: "DELETE" }),
-    onSuccess: (_, variables) => { void queryClient.invalidateQueries({ queryKey: adminKeys.userDetail(variables.userId) }); },
+    mutationFn: ({ userId, role }) =>
+      adminFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/roles/${encodeURIComponent(role)}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.userDetail(variables.userId) });
+    },
   });
 }
 
@@ -176,8 +208,10 @@ export function useAdminRetentionPolicies(): UseQueryResult<AdminRetentionPolicy
 
 export function useDryRunAdminRetentionPolicy(): UseMutationResult<AdminRetentionDryRun, Error, string> {
   return useMutation({
-    mutationFn: (code) => adminFetch<AdminRetentionDryRun>(
-      `/admin/privacy/retention-policies/${encodeURIComponent(code)}/dry-run`, { method: "POST" }),
+    mutationFn: (code) =>
+      adminFetch<AdminRetentionDryRun>(`/admin/privacy/retention-policies/${encodeURIComponent(code)}/dry-run`, {
+        method: "POST",
+      }),
   });
 }
 
@@ -254,9 +288,11 @@ export function useCreateAdminPrivacyRequest(): UseMutationResult<
 > {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload) => adminFetch<AdminDsarRequest>("/admin/privacy/requests", {
-      method: "POST", json: payload,
-    }),
+    mutationFn: (payload) =>
+      adminFetch<AdminDsarRequest>("/admin/privacy/requests", {
+        method: "POST",
+        json: payload,
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "privacy-requests"] });
     },
@@ -270,9 +306,10 @@ export function useTransitionAdminPrivacyRequest(): UseMutationResult<
 > {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ requestId, ...payload }) => adminFetch<AdminDsarRequest>(
-      `/admin/privacy/requests/${encodeURIComponent(requestId)}/transition`, {
-        method: "POST", json: payload,
+    mutationFn: ({ requestId, ...payload }) =>
+      adminFetch<AdminDsarRequest>(`/admin/privacy/requests/${encodeURIComponent(requestId)}/transition`, {
+        method: "POST",
+        json: payload,
       }),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "privacy-requests"] });
@@ -880,5 +917,60 @@ export function useAdminConsentPurposes(): UseQueryResult<PrivacyPage<ConsentPur
     queryKey: adminKeys.consentPurposes,
     queryFn: () => adminFetch<PrivacyPage<ConsentPurposeItem>>("/privacy/purposes"),
     retry: false,
+  });
+}
+
+// ---------------------------------------------------------- sản phẩm cửa hàng
+
+const ADMIN_PRODUCTS_KEY = ["admin", "shop-products"] as const;
+
+export function useAdminProducts(): UseQueryResult<AdminProduct[]> {
+  return useQuery({
+    queryKey: ADMIN_PRODUCTS_KEY,
+    queryFn: () => adminFetch<AdminProduct[]>("/admin/shop/products"),
+    retry: false,
+  });
+}
+
+export function useCreateAdminProduct(): UseMutationResult<AdminProduct, Error, AdminProductPayload> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload) => adminFetch<AdminProduct>("/admin/shop/products", { method: "POST", json: payload }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_PRODUCTS_KEY });
+    },
+  });
+}
+
+export function useUpdateAdminProduct(): UseMutationResult<
+  AdminProduct,
+  Error,
+  { id: string; payload: AdminProductPayload }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }) =>
+      adminFetch<AdminProduct>(`/admin/shop/products/${encodeURIComponent(id)}`, { method: "PUT", json: payload }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_PRODUCTS_KEY });
+    },
+  });
+}
+
+export function useSetAdminProductStatus(): UseMutationResult<
+  AdminProduct,
+  Error,
+  { id: string; status: AdminProductStatus }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }) =>
+      adminFetch<AdminProduct>(`/admin/shop/products/${encodeURIComponent(id)}/status`, {
+        method: "PATCH",
+        json: { status },
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_PRODUCTS_KEY });
+    },
   });
 }

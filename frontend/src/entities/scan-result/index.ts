@@ -20,3 +20,4 @@ export type {
   ScanAnalysisDetail,
   ScanConfig,
 } from "./model";
+export { displayableScanCount } from "./model";

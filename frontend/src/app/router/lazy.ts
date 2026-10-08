@@ -108,6 +108,7 @@ export const LazyPages = {
   adminActivationCodes: lazy(() =>
     import("@/pages/admin/AdminActivationCodesPage").then((m) => ({ default: m.AdminActivationCodesPage })),
   ),
+  adminProducts: lazy(() => import("@/pages/admin/AdminProductsPage").then((m) => ({ default: m.AdminProductsPage }))),
   adminPackages: lazy(() => import("@/pages/admin/AdminPackagesPage").then((m) => ({ default: m.AdminPackagesPage }))),
   adminPhColorChart: lazy(() =>
     import("@/pages/admin/AdminPhColorChartPage").then((m) => ({ default: m.AdminPhColorChartPage })),

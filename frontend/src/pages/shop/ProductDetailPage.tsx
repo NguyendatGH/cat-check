@@ -1,679 +1,327 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useParams } from "react-router";
-import {
-  ArrowRight,
-  Award,
-  BadgeCheck,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  ClipboardCheck,
-  Droplet,
-  HelpCircle,
-  Layers,
-  Loader2,
-  Leaf,
-  Maximize2,
-  MessageCircle,
-  Minus,
-  PawPrint,
-  Plus,
-  RefreshCw,
-  ScanLine,
-  ShieldCheck,
-  ShoppingCart,
-  Star,
-  Truck,
-  Wind,
-} from "lucide-react";
+import { Link, useParams } from "react-router";
+import { ChevronRight, Info, Loader2, PackageSearch, ShoppingCart } from "lucide-react";
+import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
-import { getShopProduct } from "@/features/shop";
-import {
-  MOCK_COLOR_INDICATORS,
-  MOCK_PACK_SIZES,
-  MOCK_PRODUCT_DETAIL as MOCK_P,
-  MOCK_PURCHASE_MODES,
-  MOCK_REVIEWS,
-  MOCK_SPEC_TABLE,
-  MOCK_VET_QUOTE,
-  formatVnd,
-} from "./mockData";
-import { useShopCart } from "./useShopCart";
+import { EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
+import { isShopId, useShopProduct, useShopProducts, type ShopProductApi } from "@/features/shop";
+import { discountPercent, formatVnd, maxOrderQuantity } from "./shopFormat";
+import { CareNoteCard, CartShortcut, PhBandScale, PriceRow, ProductGlyph, QuantityStepper, StockChip } from "./shopUi";
+import { useAddToCart } from "./useCartActions";
 
 /**
- * `/shop/products/:productId` — Chi tiết sản phẩm.
+ * `/shop/products/:productId` — Chi tiết sản phẩm (design `Web - 14b` / mobile `14.a`).
  *
- * Từ `lg`: bản WEB (`16:1592`, 1280×3126) — hero 2 cột (gallery trái / mua hàng phải), rồi
- * các section full-width: cơ chế đổi màu, quy trình 4 bước, bảng so sánh gói, đánh giá.
- * Dưới `lg`: bản MOBILE (`1:4974`, 390×2504) — xếp 1 cột và thay khối combo CleanBox bằng
- * "Hình thức mua hàng" + "Kích thước & Công thức" + bảng "Tiêu chuẩn công thức" + trích dẫn
- * bác sĩ, với thanh mua dính đáy. Dữ liệu mock, xem `mockData.ts`.
+ * CHỈ hiển thị field `GET /api/v1/shop/products/{id}` trả thật: `sku`, `name`, `description`,
+ * `imageUrl`, `priceVnd`, `compareAtPriceVnd`, `stockQuantity`.
  *
- * ⚠️ Bảng "màu cát ↔ tình trạng" KHÔNG phải nguyên văn thiết kế: mục "Màu Đỏ Gạch / Cam"
- * trong Figma hứa phát hiện tế bào máu, mâu thuẫn quyết định #8 của owner ("Chỉ pH. Không
- * phát hiện máu") nên đã viết lại sang ngôn ngữ quan sát pH — xem ghi chú đầu `mockData.ts`.
+ * Đã gỡ khỏi mockup (tuyên bố chưa kiểm chứng hoặc không có API): gallery ảnh, điểm/số lượt
+ * đánh giá và review, "120+ phòng khám khuyên dùng", chip freeship/giao 2H, lựa chọn combo/
+ * size/định kỳ, chip "100% đậu nành/khử mùi 99%/không bụi 99,9%", khối "cơ chế phát hiện bệnh"
+ * (thay bằng dải pH tham chiếu của API ở cùng vị trí), "hướng dẫn 4 bước", hộp chat bác sĩ.
+ * Bảng "So sánh các gói" giữ vị trí nhưng chỉ so các field thật của catalogue (giá, giá gốc,
+ * tồn kho).
  */
 
-const SPEC_ICONS = [Leaf, Droplet, Wind, ShieldCheck] as const;
-const STEP_ICONS = [Layers, PawPrint, ScanLine, ClipboardCheck] as const;
+function DetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 px-4 py-5 lg:flex-row lg:px-0 lg:py-0" aria-hidden="true">
+      <SkeletonLoader className="aspect-[4/3] w-full rounded-2xl lg:w-[42%]" />
+      <div className="flex flex-1 flex-col gap-3">
+        <SkeletonLoader className="h-6 w-40 rounded-full" />
+        <SkeletonLoader className="h-9 w-3/4 rounded-lg" />
+        <SkeletonLoader className="h-4 w-full rounded" />
+        <SkeletonLoader className="h-24 w-full rounded-2xl" />
+      </div>
+    </div>
+  );
+}
 
-const TONE_STYLES = {
-  success: { chip: "bg-success-bg text-success-text", dot: "bg-success" },
-  primary: { chip: "bg-chip-bg text-primary-dark", dot: "bg-primary" },
-  warning: { chip: "bg-warning-bg text-warning-text", dot: "bg-warning" },
-  danger: { chip: "bg-danger-bg text-danger-text", dot: "bg-danger" },
-} as const;
-
-export function ProductDetailPage() {
+/** Bảng so sánh các sản phẩm của catalogue — cột là sản phẩm, hàng là field thật của API. */
+function CatalogCompare({ current, products }: { current: ShopProductApi; products: ShopProductApi[] }) {
   const { t } = useTranslation("shop");
-  const navigate = useNavigate();
-  const { productId } = useParams<{ productId: string }>();
-  const productQuery = useQuery({
-    queryKey: ["shop", "product", productId],
-    queryFn: () => getShopProduct(productId ?? ""),
-    enabled: Boolean(productId),
-    staleTime: 60_000,
-  });
-  const add = useShopCart((s) => s.add);
-  const [activeImage, setActiveImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  /** Hai lựa chọn chỉ có ở bản mobile — thuần hiển thị, KHÔNG đổi giá đang hiện. */
-  const [purchaseMode, setPurchaseMode] = useState<string>(MOCK_PURCHASE_MODES[0].id);
-  const [packSize, setPackSize] = useState<string>(MOCK_PACK_SIZES[1].id);
-  if (productQuery.isPending) {
-    return (
-      <p className="flex items-center gap-2 px-4 py-6 text-caption text-text-secondary">
-        <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-        {t("checkout.placing")}
-      </p>
-    );
-  }
-  if (productQuery.isError) {
-    return <p className="px-4 py-6 text-caption text-danger-text">{t("checkout.error")}</p>;
-  }
-  const product = productQuery.data;
-  const P = {
-    ...MOCK_P,
-    id: product.id,
-    title: product.name,
-    description: product.description,
-    price: product.priceVnd,
-    compareAtPrice: product.compareAtPriceVnd ?? product.priceVnd,
-    gallery: [product.imageUrl ?? ""],
-  };
-  const addToCart = () => {
-    add({
-      id: P.id,
-      name: P.title,
-      subtitle: P.topBadges[0],
-      imageUrl: P.gallery[0],
-      unitPrice: P.price,
-      quantity,
-    });
-  };
+  const rows: { key: string; render: (p: ShopProductApi) => string }[] = [
+    { key: "price", render: (p) => formatVnd(p.priceVnd) },
+    {
+      key: "compareAt",
+      render: (p) => (p.compareAtPriceVnd && p.compareAtPriceVnd > p.priceVnd ? formatVnd(p.compareAtPriceVnd) : "—"),
+    },
+    {
+      key: "discount",
+      render: (p) => {
+        const percent = discountPercent(p.priceVnd, p.compareAtPriceVnd);
+        return percent > 0 ? t("product.discount", { percent }) : "—";
+      },
+    },
+    {
+      key: "stock",
+      render: (p) =>
+        p.stockQuantity > 0 ? t("compare.stockValue", { count: p.stockQuantity }) : t("product.outOfStock"),
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-5 px-4 py-5 lg:px-0">
-      {/* Breadcrumb */}
-      <nav className="flex flex-wrap items-center gap-1 text-[12px] text-text-secondary">
-        <Link to="/shop" className="hover:text-primary-dark">
-          {P.breadcrumb[0]}
-        </Link>
-        {P.breadcrumb.slice(1).map((crumb, i) => (
-          <span key={crumb} className="flex items-center gap-1">
-            <ChevronRight size={12} aria-hidden="true" />
-            <span className={i === P.breadcrumb.length - 2 ? "font-semibold text-text-primary" : ""}>{crumb}</span>
-          </span>
-        ))}
-      </nav>
+    <section className="rounded-2xl bg-surface p-5 shadow-brand-md md:p-6">
+      <h2 className="text-[18px] font-bold text-text-primary md:text-[20px]">{t("compare.title")}</h2>
+      <p className="pt-1 text-[12px] text-text-secondary">{t("compare.subtitle")}</p>
 
-      {/* Hero 2 cột */}
-      <div className="flex flex-col gap-6 lg:flex-row">
-        {/* Gallery */}
-        <div className="min-w-0 lg:w-[46%]">
-          <div className="relative overflow-hidden rounded-2xl bg-surface shadow-brand-md">
-            <img src={P.gallery[activeImage]} alt="" className="aspect-[4/3] w-full object-cover" />
-            <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-surface/95 px-2.5 py-1 text-[10px] font-bold text-text-primary shadow-xs">
-              <ShieldCheck size={11} className="text-success" aria-hidden="true" />
-              {P.imageBadge}
-            </span>
-            <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-surface/95 px-2.5 py-1 text-[10px] font-semibold text-text-secondary shadow-xs">
-              <Maximize2 size={11} aria-hidden="true" />
-              {t("detail.galleryZoom")}
-            </span>
-          </div>
-          {/* Thiết kế có 4 thumbnail và ảnh lớn là phần tử riêng -> bỏ qua `gallery[0]`. */}
-          <div className="grid grid-cols-4 gap-2 pt-2">
-            {P.gallery.slice(1).map((src, i) => (
-              <button
-                key={src}
-                type="button"
-                onClick={() => {
-                  setActiveImage(i + 1);
-                }}
-                className={cn(
-                  "overflow-hidden rounded-xl border-2 transition-colors",
-                  i + 1 === activeImage ? "border-primary" : "border-transparent hover:border-border",
-                )}
-              >
-                <img src={src} alt="" className="aspect-[4/3] w-full object-cover" />
-              </button>
-            ))}
-          </div>
-
-          {/* Dải chỉ số + tư vấn */}
-          <div className="mt-3 rounded-2xl bg-surface p-4 shadow-brand-md">
-            <p className="flex flex-wrap items-center gap-2 border-b border-border pb-2.5 text-[11px] font-bold text-primary-dark">
-              <Droplet size={12} aria-hidden="true" />
-              {P.indicatorStrip}
-              <span className="font-normal text-text-tertiary">{P.indicatorStripNote}</span>
-            </p>
-            <div className="flex items-start gap-3 pt-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark">
-                <MessageCircle size={16} aria-hidden="true" />
-              </span>
+      {/* Mobile: danh sách thẻ (bảng nhiều cột không đọc được ở 390px). */}
+      <ul className="flex flex-col gap-3 pt-4 md:hidden">
+        {products.map((p) => {
+          const isCurrent = p.id === current.id;
+          return (
+            <li
+              key={p.id}
+              className={cn(
+                "flex gap-3 rounded-xl p-3",
+                isCurrent ? "bg-chip-bg/60 ring-1 ring-primary/30" : "bg-background-alt/60",
+              )}
+            >
+              <ProductGlyph sku={p.sku} imageUrl={p.imageUrl} className="size-14 shrink-0" iconSize={22} />
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-text-primary">{P.consultTitle}</p>
-                <p className="pt-0.5 text-[11px] text-text-secondary">{P.consultBody}</p>
+                {isCurrent ? (
+                  <p className="text-[13px] font-bold leading-snug text-text-primary">{p.name}</p>
+                ) : (
+                  <Link
+                    to={`/shop/products/${p.id}`}
+                    className="block text-[13px] font-bold leading-snug text-text-primary hover:text-primary-dark"
+                  >
+                    {p.name}
+                  </Link>
+                )}
+                <PriceRow product={p} className="pt-1" />
+                <div className="pt-1.5">
+                  <StockChip stockQuantity={p.stockQuantity} />
+                </div>
               </div>
-              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-text-on">
-                {P.consultBadge}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2 pt-3 md:flex-row">
-              <button
-                type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-background-alt px-3 py-2.5 text-[12px] font-semibold text-text-primary hover:bg-chip-bg"
-              >
-                <HelpCircle size={14} aria-hidden="true" />
-                {t("detail.faqCta")}
-              </button>
-              <button
-                type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-dark px-3 py-2.5 text-[12px] font-bold text-white hover:bg-primary"
-              >
-                <MessageCircle size={14} aria-hidden="true" />
-                {t("detail.chatCta")}
-              </button>
-            </div>
-          </div>
-        </div>
+            </li>
+          );
+        })}
+      </ul>
 
-        {/* Cột mua hàng */}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap gap-2">
-            {P.topBadges.map((b) => (
-              <span key={b} className="rounded-full bg-chip-bg px-2.5 py-1 text-[10px] font-semibold text-primary-dark">
-                {b}
-              </span>
-            ))}
-          </div>
-          <h1 className="pt-3 text-[24px] font-bold leading-tight text-text-primary lg:text-[28px]">{P.title}</h1>
-          <p className="pt-2.5 text-[13px] leading-relaxed text-text-secondary">{P.description}</p>
-
-          <div className="flex flex-wrap items-center gap-2 pt-3">
-            <span className="flex items-center gap-0.5" aria-hidden="true">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Star key={i} size={13} className="text-secondary" fill="currentColor" />
+      {/* Web: bảng so sánh, cột sản phẩm đang xem được tô như cột "khuyên dùng" của design. */}
+      <div className="hidden pt-5 md:block">
+        <table className="w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-xl text-[13px]">
+          <thead>
+            <tr className="bg-background-alt/70">
+              <th scope="col" className="w-[22%] px-4 py-3 text-left text-[12px] font-semibold text-text-secondary">
+                {t("compare.attribute")}
+              </th>
+              {products.map((p) => (
+                <th
+                  key={p.id}
+                  scope="col"
+                  className={cn(
+                    "px-4 py-3 text-left align-top text-[13px] font-bold leading-snug",
+                    p.id === current.id ? "text-primary-dark" : "text-text-primary",
+                  )}
+                >
+                  {p.id === current.id ? (
+                    <span className="block">{p.name}</span>
+                  ) : (
+                    <Link to={`/shop/products/${p.id}`} className="block hover:text-primary-dark hover:underline">
+                      {p.name}
+                    </Link>
+                  )}
+                  <span className="block pt-0.5 text-[11px] font-medium text-text-tertiary">
+                    {p.id === current.id ? t("compare.viewing") : p.sku}
+                  </span>
+                </th>
               ))}
-            </span>
-            <span className="text-[13px] font-bold text-text-primary">{P.rating}</span>
-            <span className="text-[12px] text-text-secondary">{P.ratingNote}</span>
-          </div>
-          <p className="flex items-center gap-1.5 pt-1.5 text-[12px] text-success-text">
-            <ShieldCheck size={13} aria-hidden="true" />
-            {P.clinicNote}
-          </p>
-
-          {/* Giá */}
-          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-surface p-4 shadow-brand-md">
-            <span className="text-[26px] font-bold text-primary-dark">{formatVnd(P.price)}</span>
-            <s className="text-[13px] text-text-tertiary">{formatVnd(P.compareAtPrice)}</s>
-            <span className="rounded-lg bg-danger-bg px-2 py-1 text-[11px] font-bold text-danger-text">
-              {P.discountLabel}
-            </span>
-            <span className="flex items-center gap-1.5 rounded-lg bg-chip-bg px-2.5 py-1.5 text-[11px] font-semibold text-primary-dark">
-              <Truck size={12} aria-hidden="true" />
-              {P.shipNote}
-            </span>
-            <p className="w-full text-[11px] text-text-tertiary">{P.priceFootnote}</p>
-          </div>
-
-          {/* Hình thức mua hàng — chỉ bản mobile (`1:4974`) */}
-          <fieldset className="pt-5 lg:hidden">
-            <div className="flex items-center justify-between gap-3">
-              <legend className="contents">
-                <span className="text-[17px] font-bold text-text-primary">{t("detail.purchaseModeTitle")}</span>
-              </legend>
-              <span className="flex items-center gap-1.5 text-[12px] font-semibold text-secondary-text-on">
-                <RefreshCw size={13} aria-hidden="true" />
-                {t("detail.purchaseModeNote")}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2.5 pt-3">
-              {MOCK_PURCHASE_MODES.map((mode) => {
-                const selected = purchaseMode === mode.id;
-                return (
-                  <label
-                    key={mode.id}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key}>
+                <th scope="row" className="border-t border-border px-4 py-3 text-left font-medium text-text-secondary">
+                  {t(`compare.rows.${row.key}`)}
+                </th>
+                {products.map((p) => (
+                  <td
+                    key={p.id}
                     className={cn(
-                      "flex cursor-pointer gap-3 rounded-xl p-3.5 transition-colors",
-                      selected
-                        ? "border-l-4 border-primary-dark bg-surface shadow-brand-md"
-                        : "bg-surface/70 hover:bg-surface",
+                      "border-t border-border px-4 py-3",
+                      p.id === current.id ? "bg-chip-bg/40 font-bold text-primary-dark" : "text-text-primary",
                     )}
                   >
-                    <input
-                      type="radio"
-                      name="purchase-mode"
-                      value={mode.id}
-                      checked={selected}
-                      onChange={() => {
-                        setPurchaseMode(mode.id);
-                      }}
-                      className="sr-only"
-                    />
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2",
-                        selected ? "border-primary-dark" : "border-chip-bg",
-                      )}
-                    >
-                      {selected ? <span className="size-2 rounded-full bg-primary-dark" /> : null}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-start justify-between gap-2">
-                        <span
-                          className={cn(
-                            "text-[14px] font-bold leading-snug",
-                            selected ? "text-text-primary" : "text-text-secondary",
-                          )}
-                        >
-                          {mode.title}
-                        </span>
-                        {mode.badge ? (
-                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-secondary-text-on">
-                            <Star size={10} fill="currentColor" aria-hidden="true" />
-                            {mode.badge}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="block pt-1 text-[12px] leading-relaxed text-text-secondary">{mode.body}</span>
-                      <span className="block pt-1.5 text-[15px] font-bold text-primary-dark">
-                        {formatVnd(mode.price)}
-                        <span className="pl-1 text-[12px] font-normal text-text-tertiary">{mode.priceUnit}</span>
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          {/* Kích thước & Công thức — chỉ bản mobile (`1:4974`) */}
-          <fieldset className="pt-5 lg:hidden">
-            <div className="flex items-center justify-between gap-3">
-              <legend className="contents">
-                <span className="text-[17px] font-bold text-text-primary">{t("detail.packSizeTitle")}</span>
-              </legend>
-              <button type="button" className="text-[12px] font-semibold text-primary hover:underline">
-                {t("detail.packSizeGuide")}
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 pt-3">
-              {MOCK_PACK_SIZES.map((size) => {
-                const selected = packSize === size.id;
-                return (
-                  <label
-                    key={size.id}
-                    className={cn(
-                      "relative cursor-pointer rounded-xl p-3 transition-colors",
-                      selected ? "bg-chip-bg" : "bg-surface hover:bg-background-alt",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="pack-size"
-                      value={size.id}
-                      checked={selected}
-                      onChange={() => {
-                        setPackSize(size.id);
-                      }}
-                      className="sr-only"
-                    />
-                    {selected ? (
-                      <CheckCircle2 size={15} className="absolute right-2.5 top-2.5 text-primary" aria-hidden="true" />
-                    ) : null}
-                    <span
-                      className={cn(
-                        "block pr-5 text-[13px] font-bold",
-                        selected ? "text-primary-dark" : "text-text-primary",
-                      )}
-                    >
-                      {size.title}
-                    </span>
-                    <span className="block pt-0.5 text-[12px] leading-snug text-text-secondary">{size.detail}</span>
-                    <span
-                      className={cn(
-                        "block pt-2 text-[15px] font-bold",
-                        selected ? "text-primary-dark" : "text-text-primary",
-                      )}
-                    >
-                      {formatVnd(size.price)}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          {/* Combo — chỉ bản web (`16:1592`) */}
-          <p className="hidden pt-4 text-[12px] font-semibold text-text-primary lg:block">{P.comboLabel}</p>
-          <label className="mt-2 hidden cursor-pointer items-start gap-3 rounded-xl bg-surface p-3 shadow-xs lg:flex">
-            <input type="radio" name="combo" className="mt-1 size-4 accent-[var(--color-primary)]" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-semibold text-text-primary">{P.comboOption.name}</span>
-              <span className="block text-[11px] text-text-secondary">{P.comboOption.detail}</span>
-            </span>
-            <span className="shrink-0 text-[14px] font-bold text-primary-dark">{formatVnd(P.comboOption.price)}</span>
-          </label>
-
-          {/* Mua — bản web; bản mobile dùng thanh dính đáy ở cuối trang */}
-          <div className="hidden flex-wrap items-center gap-2 pt-4 lg:flex">
-            <span className="inline-flex items-center gap-1 rounded-xl bg-surface px-2 py-2 shadow-xs">
-              <button
-                type="button"
-                aria-label={t("cartPanel.decrease")}
-                onClick={() => {
-                  setQuantity((q) => Math.max(1, q - 1));
-                }}
-                className="flex size-6 items-center justify-center rounded text-text-secondary hover:bg-background-alt"
-              >
-                <Minus size={13} aria-hidden="true" />
-              </button>
-              <span className="min-w-6 text-center text-[13px] font-bold text-text-primary">{quantity}</span>
-              <button
-                type="button"
-                aria-label={t("cartPanel.increase")}
-                onClick={() => {
-                  setQuantity((q) => q + 1);
-                }}
-                className="flex size-6 items-center justify-center rounded text-text-secondary hover:bg-background-alt"
-              >
-                <Plus size={13} aria-hidden="true" />
-              </button>
-            </span>
-            <button
-              type="button"
-              onClick={addToCart}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-chip-bg px-4 py-2.5 text-[13px] font-semibold text-primary-dark hover:bg-info"
-            >
-              <ShoppingCart size={14} aria-hidden="true" />
-              {t("detail.addToCart")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                addToCart();
-                void navigate("/checkout");
-              }}
-              className="flex flex-1 items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-[13px] font-bold text-white shadow-brand-md hover:bg-primary-dark"
-            >
-              {t("detail.buyNow")}
-            </button>
-          </div>
-
-          <p className="mt-2.5 hidden flex-wrap items-center justify-between gap-2 rounded-xl bg-secondary/15 px-3 py-2 text-[11px] font-semibold text-secondary-text-on lg:flex">
-            <span>{P.subscribeNote}</span>
-            <span>{P.subscribeSaving}</span>
-          </p>
-
-          <div className="grid grid-cols-2 gap-2 pt-3 md:grid-cols-4">
-            {P.specs.map((s, i) => {
-              const Icon = SPEC_ICONS[i] ?? Droplet;
-              return (
-                <div key={s.title} className="rounded-xl bg-surface p-2.5 text-center shadow-xs">
-                  <Icon size={14} className="mx-auto text-primary-dark" aria-hidden="true" />
-                  <p className="pt-1 text-[11px] font-bold text-text-primary">{s.title}</p>
-                  <p className="text-[10px] text-text-secondary">{s.body}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Cơ chế đổi màu */}
-      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
-        <span className="text-[10px] font-bold tracking-[0.5px] text-primary">{P.mechanismEyebrow}</span>
-        <div className="flex flex-col gap-2 pt-1 lg:flex-row lg:items-end lg:justify-between">
-          <h2 className="max-w-[440px] text-[22px] font-bold leading-tight text-text-primary">{P.mechanismTitle}</h2>
-          <p className="text-[11px] text-text-secondary">{P.mechanismRange}</p>
-        </div>
-        <div className="grid gap-3 pt-5 sm:grid-cols-2 xl:grid-cols-4">
-          {MOCK_COLOR_INDICATORS.map((c) => {
-            const tone = TONE_STYLES[c.tone];
-            return (
-              <div key={c.name} className="flex flex-col rounded-xl bg-background-alt/60 p-4">
-                <div className="flex items-center justify-between">
-                  <span className={cn("flex size-7 items-center justify-center rounded-lg", tone.chip)}>
-                    <span className={cn("size-2.5 rounded-full", tone.dot)} aria-hidden="true" />
-                  </span>
-                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", tone.chip)}>
-                    {c.statusLabel}
-                  </span>
-                </div>
-                <p className="pt-2.5 text-[14px] font-bold text-text-primary">{c.name}</p>
-                <p className="text-[11px] font-semibold text-text-secondary">{c.range}</p>
-                <p className="flex-1 pt-2 text-[11px] leading-relaxed text-text-secondary">{c.body}</p>
-                <p className={cn("mt-3 rounded-lg px-2 py-1.5 text-[10px] font-semibold", tone.chip)}>{c.footer}</p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Quy trình 4 bước */}
-      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
-        <h2 className="text-[20px] font-bold text-text-primary">{t("detail.stepsTitle")}</h2>
-        <div className="grid gap-3 pt-4 sm:grid-cols-2 xl:grid-cols-4">
-          {P.steps.map((s, i) => {
-            const StepIcon = STEP_ICONS[i] ?? Layers;
-            return (
-              <div key={s.no} className="rounded-xl bg-background-alt/60 p-4">
-                <span className="flex items-center justify-between">
-                  <span className="text-[22px] font-bold text-border-strong">{s.no}</span>
-                  <StepIcon size={16} className="text-primary" aria-hidden="true" />
-                </span>
-                <p className="pt-1 text-[13px] font-bold text-text-primary">{s.title}</p>
-                <p className="pt-1 text-[11px] leading-relaxed text-text-secondary">{s.body}</p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* So sánh gói */}
-      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
-        <h2 className="text-[20px] font-bold text-text-primary">{t("detail.comparisonTitle")}</h2>
-        <div className="overflow-x-auto pt-4">
-          <table className="w-full min-w-[640px] border-collapse text-[12px]">
-            <thead>
-              <tr className="border-b border-border">
-                {P.comparisonHeaders.map((h, i) => (
-                  <th
-                    key={h}
-                    className={cn(
-                      "px-3 py-2.5 text-left font-bold",
-                      i === 2 ? "text-primary-dark" : "text-text-primary",
-                    )}
-                  >
-                    {h}
-                  </th>
+                    {row.render(p)}
+                  </td>
                 ))}
               </tr>
-            </thead>
-            <tbody>
-              {P.comparisonRows.map((row) => (
-                <tr key={row.label} className="border-b border-border/60">
-                  <td className="px-3 py-2.5 text-text-secondary">{row.label}</td>
-                  {row.values.map((v, i) => (
-                    <td
-                      key={`${row.label}-${String(i)}`}
-                      className={cn("px-3 py-2.5", i === 1 ? "font-semibold text-primary-dark" : "text-text-primary")}
-                    >
-                      {v === "yes" ? <Check size={15} className="text-success" aria-label="Có" /> : v}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
-      {/* Tiêu chuẩn công thức + trích dẫn bác sĩ — chỉ bản mobile (`1:4974`) */}
-      <section className="rounded-2xl bg-surface p-4 shadow-brand-md lg:hidden">
-        <h2 className="text-[17px] font-bold text-text-primary">{t("detail.specTableTitle")}</h2>
-        <dl className="pt-1">
-          {MOCK_SPEC_TABLE.map((row) => (
-            <div
-              key={row.label}
-              className="flex items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0 last:pb-0"
-            >
-              <dt className="shrink-0 text-[13px] text-text-secondary">{row.label}</dt>
-              <dd
-                className={cn(
-                  "text-right text-[13px] font-bold",
-                  row.tone === "success" ? "text-success-text" : "text-text-primary",
-                )}
-              >
-                {row.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+export function ProductDetailPage() {
+  const { productId } = useParams<{ productId: string }>();
+  // `key` theo sản phẩm: chuyển sang sản phẩm khác (bảng so sánh) thì số lượng chọn về 1.
+  return <ProductDetailView key={productId} productId={productId} />;
+}
 
-      <section className="rounded-2xl bg-chip-bg/60 p-4 lg:hidden">
-        <div className="flex items-center gap-3">
-          <img src={MOCK_VET_QUOTE.photoUrl} alt="" className="size-12 shrink-0 rounded-full object-cover" />
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[15px] font-bold text-text-primary">
-              {MOCK_VET_QUOTE.name}
-              <BadgeCheck size={15} className="shrink-0 text-primary" aria-hidden="true" />
-            </p>
-            <p className="text-[12px] text-text-secondary">{MOCK_VET_QUOTE.org}</p>
-          </div>
-        </div>
-        <blockquote className="pt-3 text-[13px] italic leading-relaxed text-text-secondary">
-          “{MOCK_VET_QUOTE.quote}”
-        </blockquote>
-        <button
-          type="button"
-          className="flex items-center gap-1.5 pt-3 text-[13px] font-bold text-primary hover:underline"
-        >
-          {MOCK_VET_QUOTE.cta}
-          <ArrowRight size={14} aria-hidden="true" />
-        </button>
-      </section>
+function ProductDetailView({ productId }: { productId: string | undefined }) {
+  const { t } = useTranslation("shop");
+  const validId = isShopId(productId);
+  const productQuery = useShopProduct(productId);
+  const productsQuery = useShopProducts();
+  const { add, pendingProductId } = useAddToCart();
+  const [quantity, setQuantity] = useState(1);
 
-      {/* Đánh giá */}
-      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
-        <span className="text-[10px] font-bold tracking-[0.5px] text-primary">{P.reviewsEyebrow}</span>
-        <div className="flex flex-col gap-3 pt-1 lg:flex-row lg:items-center lg:justify-between">
-          <h2 className="text-[22px] font-bold leading-tight text-text-primary">{P.reviewsTitle}</h2>
-          <div className="flex items-center gap-3">
-            <span className="text-right">
-              <span className="block text-[22px] font-bold text-primary-dark">{P.reviewsScore}</span>
-              <span className="block text-[10px] text-text-secondary">{P.reviewsScoreNote}</span>
+  const notFound = !validId || (isApiError(productQuery.error) && productQuery.error.status === 404);
+
+  if (notFound) {
+    return (
+      <EmptyState
+        icon={<PackageSearch size={22} />}
+        title={t("detail.notFound")}
+        description={t("detail.notFoundBody")}
+        action={
+          <Link
+            to="/shop"
+            className="inline-flex rounded-xl bg-primary-dark px-5 py-3 text-[13px] font-bold text-white hover:bg-primary"
+          >
+            {t("detail.backToShopCta")}
+          </Link>
+        }
+        className="mx-4 mt-5 rounded-2xl bg-surface shadow-brand-md lg:mx-0 lg:mt-0"
+      />
+    );
+  }
+  if (productQuery.isPending) return <DetailSkeleton />;
+  if (productQuery.isError) {
+    return (
+      <ErrorState
+        title={t("detail.error")}
+        onRetry={() => {
+          void productQuery.refetch();
+        }}
+        className="mx-4 mt-5 rounded-2xl bg-surface shadow-brand-md lg:mx-0 lg:mt-0"
+      />
+    );
+  }
+
+  const product = productQuery.data;
+  const percent = discountPercent(product.priceVnd, product.compareAtPriceVnd);
+  const maxQuantity = maxOrderQuantity(product.stockQuantity);
+  const outOfStock = maxQuantity === 0;
+  const selected = Math.min(quantity, Math.max(1, maxQuantity));
+  const pending = pendingProductId === product.id;
+  const catalog = productsQuery.data ?? [];
+
+  return (
+    <div className="flex flex-col gap-5 px-4 py-5 lg:px-0 lg:py-0">
+      {/* Breadcrumb — hai mức thật: cửa hàng và tên sản phẩm của API. */}
+      <nav
+        aria-label={t("detail.breadcrumb")}
+        className="flex flex-wrap items-center gap-1 text-[12px] text-text-secondary"
+      >
+        <Link to="/shop" className="hover:text-primary-dark">
+          {t("detail.backToShop")}
+        </Link>
+        <ChevronRight size={12} aria-hidden="true" />
+        <span className="font-semibold text-text-primary">{product.name}</span>
+      </nav>
+
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-8">
+        {/* Cột trái: ảnh thật của API nếu có, không thì ô biểu tượng theo SKU */}
+        <ProductGlyph
+          sku={product.sku}
+          imageUrl={product.imageUrl}
+          className="aspect-[16/10] w-full rounded-2xl shadow-brand-md md:aspect-[16/9] lg:aspect-[4/3] lg:w-[42%] lg:shrink-0"
+          iconSize={72}
+          showSku
+        />
+
+        {/* Cột phải: thông tin mua hàng */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex rounded-full bg-chip-bg px-2.5 py-1 text-[11px] font-bold text-primary-dark">
+              {t("product.skuLabel", { sku: product.sku })}
             </span>
+            <StockChip stockQuantity={product.stockQuantity} />
+          </div>
+          <h1 className="pt-3 text-[24px] font-bold leading-tight text-text-primary lg:text-[30px]">{product.name}</h1>
+          <p className="pt-2.5 text-[14px] leading-relaxed text-text-secondary">{product.description}</p>
+
+          <div className="mt-4 rounded-2xl bg-surface p-4 shadow-brand-md">
+            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-[28px] font-bold leading-none text-primary-dark">
+                {formatVnd(product.priceVnd)}
+              </span>
+              {product.compareAtPriceVnd && product.compareAtPriceVnd > product.priceVnd ? (
+                <s className="text-[14px] text-text-tertiary">{formatVnd(product.compareAtPriceVnd)}</s>
+              ) : null}
+              {percent > 0 ? (
+                <span className="rounded-lg bg-danger-bg px-2 py-1 text-[11px] font-bold text-danger-text">
+                  {t("product.discount", { percent })}
+                </span>
+              ) : null}
+            </span>
+            <p className="flex items-start gap-1.5 pt-2.5 text-[12px] leading-relaxed text-text-tertiary">
+              <Info size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+              {t("detail.priceNote")}
+            </p>
+          </div>
+
+          {/* Mua: số lượng (trần = tồn kho thật, tối đa 99) + thêm giỏ + mua ngay. Đặt
+              trong luồng trang thay vì thanh dính đáy: bottom nav của AppLayout (có nút "Quét"
+              nhô lên) sẽ che thanh dính ở mobile. */}
+          <div className="flex items-center gap-2 pt-4">
+            <QuantityStepper
+              value={selected}
+              max={Math.max(1, maxQuantity)}
+              onChange={setQuantity}
+              className={outOfStock ? "pointer-events-none opacity-50" : undefined}
+            />
             <button
               type="button"
-              className="rounded-xl bg-chip-bg px-4 py-2 text-[12px] font-semibold text-primary-dark hover:bg-info"
+              disabled={outOfStock || pending}
+              onClick={() => {
+                void add(product, selected);
+              }}
+              aria-label={t("detail.addToCart")}
+              className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-chip-bg px-3 text-[13px] font-semibold text-primary-dark hover:bg-info disabled:cursor-not-allowed disabled:opacity-50 md:flex-1 md:px-4"
             >
-              {t("detail.writeReview")}
+              {pending ? (
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <ShoppingCart size={16} aria-hidden="true" />
+              )}
+              <span className="hidden md:inline">{t("detail.addToCart")}</span>
+            </button>
+            <button
+              type="button"
+              disabled={outOfStock || pending}
+              onClick={() => {
+                void add(product, selected, { goToCheckout: true });
+              }}
+              className="flex h-11 min-w-0 flex-1 items-center justify-center rounded-xl bg-primary-dark px-4 text-[14px] font-bold text-white shadow-brand-md hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="truncate">
+                {outOfStock
+                  ? t("product.outOfStock")
+                  : t("detail.buyNowWithPrice", { price: formatVnd(product.priceVnd * selected) })}
+              </span>
             </button>
           </div>
-        </div>
-        <div className="grid gap-4 pt-5 lg:grid-cols-3">
-          {MOCK_REVIEWS.map((r) => (
-            <article key={r.id} className="flex flex-col rounded-xl bg-background-alt/60 p-4">
-              <div className="flex items-start gap-2">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
-                  {r.initials}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-bold text-text-primary">{r.author}</p>
-                  <p className="truncate text-[10px] text-text-secondary">{r.meta}</p>
-                </div>
-                <span className="shrink-0 text-[10px] text-text-tertiary">{r.time}</span>
-              </div>
-              <span className="flex gap-0.5 pt-2" aria-hidden="true">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <Star key={i} size={11} className="text-secondary" fill="currentColor" />
-                ))}
-              </span>
-              <p className="flex-1 pt-2 text-[11px] leading-relaxed text-text-secondary">{r.body}</p>
-              <img src={r.imageUrl} alt="" className="mt-3 aspect-[4/3] w-full rounded-lg object-cover" />
-              <p className="flex items-center gap-1.5 pt-2 text-[10px] font-semibold text-success-text">
-                <Award size={11} aria-hidden="true" />
-                {r.caption}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+          {!outOfStock && selected >= maxQuantity ? (
+            <p className="pt-2 text-[12px] text-text-tertiary">{t("detail.maxQuantity", { count: maxQuantity })}</p>
+          ) : null}
 
-      {/* Thanh mua dính đáy — chỉ bản mobile (`1:4974`) */}
-      <div className="sticky bottom-0 -mx-4 -mb-5 flex items-center gap-2.5 border-t border-border bg-surface px-4 py-3 shadow-top lg:hidden">
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-background-alt px-1.5 py-1.5">
-          <button
-            type="button"
-            aria-label={t("cartPanel.decrease")}
-            onClick={() => {
-              setQuantity((q) => Math.max(1, q - 1));
-            }}
-            className="flex size-7 items-center justify-center rounded-lg text-text-secondary hover:bg-surface"
-          >
-            <Minus size={15} aria-hidden="true" />
-          </button>
-          <span className="min-w-5 text-center text-[14px] font-bold text-text-primary">{quantity}</span>
-          <button
-            type="button"
-            aria-label={t("cartPanel.increase")}
-            onClick={() => {
-              setQuantity((q) => q + 1);
-            }}
-            className="flex size-7 items-center justify-center rounded-lg text-text-secondary hover:bg-surface"
-          >
-            <Plus size={15} aria-hidden="true" />
-          </button>
-        </span>
-        <button
-          type="button"
-          onClick={addToCart}
-          aria-label={t("detail.addToCart")}
-          className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark hover:bg-info"
-        >
-          <ShoppingCart size={18} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            addToCart();
-            void navigate("/checkout");
-          }}
-          className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-dark px-4 py-3 text-[14px] font-bold text-white shadow-brand-md hover:bg-primary"
-        >
-          <span className="truncate">
-            {t("detail.buyNowShort")} • {formatVnd(P.price * quantity)}
-          </span>
-        </button>
+          <CartShortcut className="mt-4" />
+        </div>
       </div>
+
+      {/* Vị trí "Cơ chế phát hiện" của design: dải pH tham chiếu từ `GET /reference/ph-bands`. */}
+      <PhBandScale />
+
+      {catalog.length > 1 ? <CatalogCompare current={product} products={catalog} /> : null}
+
+      <CareNoteCard />
     </div>
   );
 }

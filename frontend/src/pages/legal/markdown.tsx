@@ -42,6 +42,19 @@ export function extractMarkdownHeadings(source: string): MarkdownHeading[] {
   return headings;
 }
 
+/**
+ * Bỏ dòng `# Tiêu đề` ĐẦU TIÊN của `content_md` khi nó trùng `title` của API — trang đã in
+ * `title` thành `h1`, để nguyên thì tiêu đề lặp hai lần liền nhau (vd "Tuyên bố miễn trừ y tế").
+ */
+export function stripLeadingTitle(source: string, title: string): string {
+  const lines = source.replace(/\r\n/g, "\n").split("\n");
+  const first = lines.findIndex((line) => line.trim() !== "");
+  if (first === -1) return source;
+  const match = /^#\s+(.*)$/.exec(lines[first] ?? "");
+  if (!match || match[1].replace(/\*\*/g, "").trim() !== title.trim()) return source;
+  return lines.slice(first + 1).join("\n");
+}
+
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, index) => {

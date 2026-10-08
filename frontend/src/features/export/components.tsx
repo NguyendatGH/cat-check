@@ -6,6 +6,7 @@ import {
   Clock,
   Download,
   FileWarning,
+  Hourglass,
   IdCard,
   LineChart,
   Loader2,
@@ -63,15 +64,19 @@ export interface CatPickerStepProps {
   onSelect: (cat: Cat) => void;
   primaryLabel: string;
   secondaryLabel: string;
+  /** Tuổi đã định dạng của từng bé (mockup `10`: "Luna 3 tuổi 2 tháng") — từ `ageMonths` của API. */
+  ageLabelFor?: (cat: Cat) => string | undefined;
   className?: string;
 }
 
+/** Thẻ chọn bé (mockup `10`): ảnh · tên · giống/tuổi · badge "Mèo chính"/"Mèo phụ" theo `isPrimary`. */
 export function CatPickerStep({
   cats,
   selectedCatId,
   onSelect,
   primaryLabel,
   secondaryLabel,
+  ageLabelFor,
   className,
 }: CatPickerStepProps) {
   return (
@@ -82,7 +87,8 @@ export function CatPickerStep({
           cat={cat}
           selected={cat.id === selectedCatId}
           onSelect={onSelect}
-          primaryLabel={cat.isPrimary ? primaryLabel : secondaryLabel}
+          ageLabel={ageLabelFor?.(cat)}
+          roleLabel={cat.isPrimary ? primaryLabel : secondaryLabel}
         />
       ))}
     </div>
@@ -282,51 +288,100 @@ export function ReportPreviewThumbnail({ watermark, className }: ReportPreviewTh
 /* ---------------- ExportJobStatusCard ---------------- */
 
 const STATUS_META: Record<ExportJob["status"], { icon: typeof Clock; tone: string }> = {
-  QUEUED: { icon: Clock, tone: "text-text-tertiary" },
+  QUEUED: { icon: Hourglass, tone: "text-text-tertiary" },
   RUNNING: { icon: Loader2, tone: "text-primary" },
   READY: { icon: CheckCircle2, tone: "text-ph-normal-text" },
   FAILED: { icon: FileWarning, tone: "text-danger-text" },
-  EXPIRED: { icon: FileWarning, tone: "text-text-tertiary" },
+  EXPIRED: { icon: Clock, tone: "text-text-tertiary" },
 };
 
 export interface ExportJobStatusCardProps {
   job: ExportJob;
   statusLabel: string;
   documentCodeLabel: string;
+  /** "12 trang · 38 lượt quét" — chỉ khi `READY` và backend đã trả `pageCount`/`scanCount`. */
   pageCountLabel?: string;
+  /** "Còn 6 ngày 04 giờ để tải" — tính từ `expiresAt` của job. */
+  expiryLabel?: string;
+  /** Câu giải thích dưới tiêu đề cho `FAILED`/`EXPIRED`. */
+  hint?: string;
+  /** Nhãn a11y của thanh tiến trình (QUEUED/RUNNING). */
+  progressLabel: string;
   downloadLabel: string;
   downloadHref: string;
+  /** Nút tạo lại (`FAILED` → "Thử lại", `EXPIRED` → "Tạo lại"). */
+  retryLabel?: string;
+  onRetry?: () => void;
   className?: string;
 }
 
+/**
+ * Thẻ trạng thái job xuất PDF — frame `M-10a` / `Web - 10a` (design/figma-plugin `30-core.js`,
+ * `x1_exportCard`): icon · tiêu đề trạng thái · mã hồ sơ · thanh tiến trình (đang chạy) ·
+ * số trang/lượt quét + hạn tải + nút tải (sẵn sàng) · lời nhắn + nút tạo lại (lỗi/hết hạn).
+ *
+ * `failureReason` của backend KHÔNG được in ra: chuỗi đó viết tiếng Việt không dấu ("Co loi
+ * khi sinh bao cao…") — dùng câu i18n tương đương thay thế.
+ */
 export function ExportJobStatusCard({
   job,
   statusLabel,
   documentCodeLabel,
   pageCountLabel,
+  expiryLabel,
+  hint,
+  progressLabel,
   downloadLabel,
   downloadHref,
+  retryLabel,
+  onRetry,
   className,
 }: ExportJobStatusCardProps) {
   const meta = STATUS_META[job.status];
   const Icon = meta.icon;
+  const inProgress = job.status === "QUEUED" || job.status === "RUNNING";
   return (
     <Card padding="lg" className={cn("flex flex-col items-center gap-4 text-center", className)}>
       <Icon className={cn("size-12", meta.tone, job.status === "RUNNING" && "animate-spin")} aria-hidden="true" />
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-center gap-2">
         <p className="text-h3 font-bold text-text-primary">{statusLabel}</p>
         {job.documentCode ? (
           <Badge tone="neutral">
             {documentCodeLabel}: {job.documentCode}
           </Badge>
         ) : null}
-        {pageCountLabel ? <p className="text-caption text-text-secondary">{pageCountLabel}</p> : null}
       </div>
+
+      {inProgress ? (
+        // Backend không trả phần trăm — thanh chạy vô định (indeterminate), không bịa số %.
+        <div
+          role="progressbar"
+          aria-label={progressLabel}
+          aria-busy="true"
+          className="h-2 w-full overflow-hidden rounded-full bg-chip-bg"
+        >
+          <div className="h-full w-2/5 animate-pulse rounded-full bg-primary" />
+        </div>
+      ) : null}
+
+      {pageCountLabel ? <p className="text-caption text-text-secondary">{pageCountLabel}</p> : null}
+      {expiryLabel ? <p className="-mt-2 text-caption text-text-tertiary">{expiryLabel}</p> : null}
+      {hint ? (
+        <p className={cn("text-caption", job.status === "FAILED" ? "text-danger-text" : "text-text-secondary")}>
+          {hint}
+        </p>
+      ) : null}
+
       {job.status === "READY" ? (
-        <a href={downloadHref} download className={cn(buttonVariants({ variant: "primary" }), "gap-2")}>
+        <a href={downloadHref} download className={cn(buttonVariants({ variant: "primary" }), "w-full gap-2")}>
           <Download className="size-4" aria-hidden="true" />
           {downloadLabel}
         </a>
+      ) : null}
+      {retryLabel && onRetry ? (
+        <button type="button" onClick={onRetry} className={cn(buttonVariants({ variant: "primary" }), "w-full")}>
+          {retryLabel}
+        </button>
       ) : null}
     </Card>
   );

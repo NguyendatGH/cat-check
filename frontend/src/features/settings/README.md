@@ -1,6 +1,6 @@
 # features/settings
 
-- Làm gì: Hồ sơ cá nhân, bảo mật, ngôn ngữ, quyền riêng tư.
-- Route dùng: /settings, /settings/profile, /settings/security, /settings/language, /account/privacy, /install
+- Làm gì: tuỳ chọn thông báo của tài khoản (B11/B12 `GET|PUT /account/notification-preferences`).
+- Route dùng: /settings (khối "Thông báo và cảnh báo"), /settings/notifications — qua `pages/settings/NotificationPreferencesForm.tsx`.
 - Entitlement: Không cần entitlement
-- Trạng thái: khung M0 (P1) — chưa có business logic thật, chỉ README + index.ts tối giản.
+- Trạng thái: đã nối API thật. Hồ sơ/bảo mật/ngôn ngữ dùng hook của `features/auth`; quyền riêng tư dùng `features/privacy`.

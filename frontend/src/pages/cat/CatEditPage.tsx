@@ -68,10 +68,12 @@ export function CatEditPage() {
       coatColor: cat.coatColor ?? "",
       sex: cat.sex,
       neutered: cat.neutered ?? false,
-      ageMode: cat.approxAgeMonths !== null && cat.birthDate === null ? "approx" : "birthDate",
+      // API BỎ HẲN key khi giá trị rỗng (không trả `null`) ⇒ so `!= null`, không `!== null`:
+      // `undefined !== null` biến thành chuỗi "undefined" và làm form im lặng không gửi được.
+      ageMode: cat.approxAgeMonths != null && cat.birthDate == null ? "approx" : "birthDate",
       birthDate: cat.birthDate ?? "",
-      approxAgeMonths: cat.approxAgeMonths !== null ? String(cat.approxAgeMonths) : "",
-      weightKg: cat.weightKg !== null ? String(cat.weightKg) : "",
+      approxAgeMonths: cat.approxAgeMonths != null ? String(cat.approxAgeMonths) : "",
+      weightKg: cat.weightKg != null ? String(cat.weightKg) : "",
       notes: cat.notes ?? "",
     });
   }, [cat, reset]);
@@ -148,7 +150,8 @@ export function CatEditPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    // Desktop: form nằm trong một thẻ trắng (như các màn TaskLayout khác) thay vì trôi trên nền.
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:rounded-3xl lg:bg-surface lg:p-8 lg:shadow-xs">
       <h1 className="text-h2 font-bold text-text-primary">{t("pages.edit.title")}</h1>
 
       <CatFormFields

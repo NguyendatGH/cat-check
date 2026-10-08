@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bot, ExternalLink, Send } from "lucide-react";
 import { Button } from "@/shared/ui";
+import { isApiError } from "@/shared/api/errors";
 import { chatWithAssistant, type AiChatResponse } from "@/features/assistant";
 
 export function AssistantPage() {
@@ -26,20 +27,27 @@ export function AssistantPage() {
       setConversationId(response.conversationId);
       setTurns((current) => [...current, { role: "assistant", text: response.answer, response }]);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("error"));
+      // Không hiện thẳng `cause.message`: khi server không trả ProblemDetail, message là chuỗi
+      // kỹ thuật tiếng Anh ("Request failed with status 502"). Chỉ dùng `detail` của server cho
+      // lỗi 4xx (câu đã được bản địa hoá theo `Accept-Language`); 5xx/lỗi mạng → câu chung.
+      setError(isApiError(cause) && cause.status < 500 && cause.code ? cause.message : t("error"));
+      setTurns((current) => current.slice(0, -1));
+      setMessage(value);
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+    // `AppLayout` không cấp padding ở mobile ⇒ trang tự chừa lề `px-4` + khoảng đầu trang; trước
+    // đây icon tiêu đề dính sát mép trái màn 390px và thẻ chat tràn hết bề ngang.
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-6 pt-5 lg:p-0">
       <header>
-        <div className="flex items-center gap-3">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-white">
+        <div className="flex items-start gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
             <Bot size={23} aria-hidden="true" />
           </span>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-h2 font-bold text-text-primary">{t("title")}</h1>
             <p className="text-body text-text-secondary">{t("description")}</p>
           </div>
@@ -47,6 +55,7 @@ export function AssistantPage() {
       </header>
       <section
         className="flex min-h-[55vh] flex-col gap-4 rounded-3xl bg-surface p-4 shadow-brand-md sm:p-6"
+        aria-busy={pending}
         aria-live="polite"
       >
         {turns.length === 0 ? (

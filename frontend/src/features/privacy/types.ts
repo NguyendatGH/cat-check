@@ -61,10 +61,15 @@ export interface DataInventoryView {
   sensitivity: "BASIC" | "SENSITIVE";
   legalBasis: "CONSENT" | "CONTRACT" | "LEGAL_OBLIGATION" | "VITAL_INTEREST";
   purposes: string[];
-  retentionPolicyCode: string;
+  /**
+   * VẮNG hẳn khỏi JSON khi nhóm dữ liệu chưa gắn chính sách lưu trữ — server bật
+   * `default-property-inclusion: non_null`, nên không bao giờ là `null` thật.
+   */
+  retentionPolicyCode?: string;
   storageLocation: string;
   crossBorder: boolean;
-  recipient: string | null;
+  /** Vắng khi không chuyển cho bên thứ ba nào (cùng lý do `non_null`). */
+  recipient?: string | null;
 }
 
 export type DsarRequestType =
@@ -111,10 +116,8 @@ export interface ExportStatusView {
  * p15 §15.4). Tên trường theo đúng cột `audit_log` lọc theo `subject_user_id`
  * (V15__ops.sql K0) — `actor_type`/`actor_role`/`action`/`result`/`occurred_at`.
  *
- * ⚠️ **Backend hôm nay trả `{"items": []}` CỐ ĐỊNH** —
- * `AccountController#accessLog` còn là `Map.of("items", List.of())`, chờ W3 nối
- * `AuditLogService.queryBySubject(userId)`. UI vì vậy luôn ở trạng thái rỗng; KHÔNG dựng
- * dòng mẫu nào để lấp chỗ.
+ * Endpoint trả dữ liệu thật từ audit log. `action` là mã thô — hiển thị qua
+ * `accessLogActionKey` (nhãn i18n), không in thẳng ra UI.
  *
  * Audit log không bao giờ chứa PII thô (p4 §4.6.4) nên không có tên/email ở đây, và client
  * cũng không được log lại nội dung dòng nào.

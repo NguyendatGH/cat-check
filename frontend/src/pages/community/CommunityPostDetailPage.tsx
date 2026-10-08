@@ -1,1043 +1,387 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useParams } from "react-router";
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Bookmark,
-  Bot,
-  Building2,
-  Calendar,
-  Camera,
-  ChevronDown,
-  CornerUpLeft,
-  Heart,
-  Home,
-  Image as ImageIcon,
-  MessageSquare,
-  MoreHorizontal,
-  PhoneCall,
-  ScanLine,
-  Send,
-  Share2,
-  ShieldCheck,
-  Siren,
-  Smile,
-  Sparkles,
-  Star,
-  Stethoscope,
-  ThumbsUp,
-  ZoomIn,
-} from "lucide-react";
+import { Link, useParams } from "react-router";
+import { ArrowLeft, Bookmark, ChevronRight, FileQuestion, Send, Share2 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { createCommunityComment, getCommunityPost, setCommunityReaction } from "@/features/community";
+import { formatNumber } from "@/shared/lib/format/formatNumber";
+import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
+import { isApiError } from "@/shared/api/errors";
+import { EmptyState, ErrorState, SkeletonLoader, toast } from "@/shared/ui";
+import { useSessionStore } from "@/entities/user";
 import {
-  DESIGN_MOCK_CASE_PROFILE,
-  DESIGN_MOCK_RAIL_MARK,
-  DESIGN_MOCK_COMMENTS,
-  DESIGN_MOCK_COMMENTS_META,
-  DESIGN_MOCK_EMERGENCY_CARD,
-  DESIGN_MOCK_MOBILE_THREAD,
-  DESIGN_MOCK_SIMILAR_CASES,
-  DESIGN_MOCK_THREAD,
-  DESIGN_MOCK_VET_OPINION,
-  DESIGN_MOCK_VET_PROFILE,
-  type MockBodySegment,
-  type MockPhGauge,
-  type MockTone,
-} from "./mockData";
+  COMMUNITY_LIMITS,
+  useCommunityPost,
+  useCommunityReaction,
+  useCreateCommunityComment,
+  type CommunityCommentApi,
+  type CommunityPostApi,
+} from "@/features/community";
+import {
+  AuthorAvatar,
+  AuthorMeta,
+  ContentMenu,
+  PostActions,
+  PostCardSkeleton,
+  RelativeTime,
+  RulesCard,
+  TagChips,
+  useSharePost,
+} from "./parts";
 
 /**
- * `/community/posts/:postId` — chi tiết một thảo luận.
+ * `/community/posts/:postId` — chi tiết bài viết (design `Web - Chi tiết Thảo luận…` + mobile
+ * `Chi tiết Thảo luận Cộng đồng`).
  *
- * Hai cây DOM tách rời (giống `CatTrendsPage` + `webTrends.tsx`):
- *  - `< lg`: `Chi tiết Thảo luận Cộng đồng` — thẻ bài viết + thước chuyển dịch pH, ghi chú
- *    chuyên môn dạng trích dẫn, danh sách bình luận, ô soạn bình luận dính đáy trên bottom nav.
- *  - `>= lg`: `Web - Chi tiết Thảo luận Ca Bệnh & Ý kiến Bác sĩ Thú y` — breadcrumb, cột
- *    trái (bài viết + ý kiến chuyên môn + bình luận), cột phải 296px (hồ sơ bác sĩ, hồ sơ
- *    lâm sàng ca bệnh, ca tương tự, báo động cấp cứu).
+ * NGUỒN DỮ LIỆU: 100% `GET /api/v1/community/posts/{id}` (bài + bình luận); thích/lưu qua
+ * `POST …/reactions`, bình luận qua `POST …/comments`, báo cáo qua `POST /community/reports`.
+ * Đã BỎ so với design vì API không có: thẻ bác sĩ + chỉ số tư vấn, hồ sơ ca bệnh của bé, "ca
+ * tương tự", hotline cấp cứu, khối "phân tích AI"/pH gắn trong bài, ý kiến chuyên môn ghim,
+ * huy hiệu người dùng, thích/trả lời từng bình luận, sắp xếp bình luận. Cột phải thay bằng quy
+ * tắc cộng đồng trung tính.
  *
- * KHÔNG tự thêm padding ngang ở `lg` — `AppLayout` đã cấp hộp nội dung 944px kèm padding.
- *
- * DỮ LIỆU: 100% mock (`mockData.ts`). `:postId` hiện KHÔNG dùng để tra cứu gì vì Phase 1
- * không có bảng `post`/`comment` lẫn API (p4, mục Phase 2) — mọi route id đều hiển thị cùng
- * một thảo luận mẫu của thiết kế.
+ * `AppLayout` không cấp padding ngang dưới `lg` nên trang tự thêm `px-4`.
  */
+export function CommunityPostDetailPage() {
+  const { postId } = useParams<{ postId: string }>();
+  if (!postId) return <NotFound />;
+  return <PostDetail postId={postId} />;
+}
 
-const TONE_CHIP: Record<MockTone, string> = {
-  primary: "bg-chip-bg text-primary-dark",
-  secondary: "bg-secondary/35 text-secondary-text-on",
-  success: "bg-success-bg text-success-text",
-  danger: "bg-danger-bg text-danger-text",
-  neutral: "bg-background-alt text-text-secondary",
-};
-
-const TONE_TEXT: Record<MockTone, string> = {
-  primary: "text-primary-dark",
-  secondary: "text-secondary-text-on",
-  success: "text-success-text",
-  danger: "text-danger-text",
-  neutral: "text-text-secondary",
-};
-
-const PH_CHIP_TONE: Record<MockTone, string> = {
-  primary: "bg-chip-bg text-primary-dark",
-  secondary: "bg-secondary text-secondary-text-on",
-  success: "bg-success-bg text-success-text",
-  danger: "bg-danger-bg text-danger-text",
-  neutral: "bg-background-alt text-text-secondary",
-};
-
-function BodyText({ segments, className }: { segments: readonly MockBodySegment[]; className?: string }) {
+function BackLink() {
+  const { t } = useTranslation("community");
   return (
-    <p className={className}>
-      {segments.map((seg, i) =>
-        seg.kind === "text" ? (
-          <span key={`t${String(i)}`}>{seg.value}</span>
-        ) : (
-          <span
-            key={`${seg.value}-${String(i)}`}
-            className={cn("mx-0.5 inline-block rounded px-1.5 py-0.5 text-[13px] font-bold", PH_CHIP_TONE[seg.tone])}
-          >
-            {seg.value}
-          </span>
-        ),
-      )}
-    </p>
+    <Link
+      to="/community"
+      className="flex min-h-11 items-center gap-2 self-start text-[14px] font-semibold text-primary-dark hover:underline"
+    >
+      <ArrowLeft size={18} aria-hidden="true" />
+      {t("detail.backToFeed")}
+    </Link>
   );
 }
 
-/** Thước pH ngang: gradient toan → chuẩn → kiềm, chấm ở vị trí lấy từ mock. */
-function PhScale({ gauge }: { gauge: MockPhGauge }) {
+function NotFound() {
+  const { t } = useTranslation("community");
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="relative h-3 rounded-full bg-gradient-to-r from-secondary via-success to-primary">
-        <span
-          className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-primary-darker shadow-xs"
-          style={{ left: `${String(gauge.markerPercent)}%` }}
-          aria-hidden="true"
-        />
-      </div>
-      <div className="flex items-center justify-between text-[10px] leading-tight">
-        <span className="text-text-tertiary">{gauge.lowLabel}</span>
-        <span className="font-bold text-success-text">{gauge.idealLabel}</span>
-        <span className="text-primary-dark">{gauge.highLabel}</span>
+    <div className="flex flex-col gap-4 px-4 py-4 lg:p-0">
+      <BackLink />
+      <EmptyState
+        icon={<FileQuestion size={22} />}
+        title={t("detail.notFoundTitle")}
+        description={t("detail.notFoundBody")}
+        className="rounded-2xl bg-surface shadow-brand-md"
+      />
+    </div>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-4 px-4 py-4 lg:p-0" role="status" aria-busy="true">
+      <SkeletonLoader className="h-5 w-48" />
+      <div className="flex items-start gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-5">
+          <PostCardSkeleton />
+          <PostCardSkeleton />
+        </div>
+        <SkeletonLoader shape="card" className="hidden h-72 w-[296px] shrink-0 rounded-2xl lg:block" />
       </div>
     </div>
   );
 }
 
-/* =============================== BẢN MOBILE (< lg) =============================== */
-
-function MobileThread() {
+/** Breadcrumb + Lưu/Chia sẻ ở đầu trang (desktop), nút quay lại (mobile). */
+function DetailTopBar({ post }: { post: CommunityPostApi }) {
   const { t } = useTranslation("community");
-  const navigate = useNavigate();
-  const thread = DESIGN_MOCK_MOBILE_THREAD;
+  const reaction = useCommunityReaction();
+  const share = useSharePost();
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-24 pt-3">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center gap-4">
+      <div className="lg:hidden">
+        <BackLink />
+      </div>
+      <nav aria-label={t("detail.breadcrumb")} className="hidden min-w-0 flex-1 lg:block">
+        <ol className="flex min-w-0 items-center gap-1.5 text-[13px] text-text-secondary">
+          <li className="shrink-0">
+            <Link to="/community" className="font-semibold hover:text-primary-dark hover:underline">
+              {t("feed.title")}
+            </Link>
+          </li>
+          <ChevronRight size={14} className="shrink-0 text-text-tertiary" aria-hidden="true" />
+          <li className="shrink-0">{t(`category.${post.category}`, { defaultValue: post.category })}</li>
+          <ChevronRight size={14} className="shrink-0 text-text-tertiary" aria-hidden="true" />
+          <li
+            className="min-w-0 truncate rounded-md bg-chip-bg px-2 py-0.5 font-semibold text-primary-dark"
+            aria-current="page"
+          >
+            {post.title}
+          </li>
+        </ol>
+      </nav>
+      <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
         <button
           type="button"
           onClick={() => {
-            void navigate(-1);
+            reaction.mutate(
+              { postId: post.id, reaction: "BOOKMARK", active: !post.bookmarked },
+              {
+                onError: () => {
+                  toast.error(t("post.reactionError"));
+                },
+              },
+            );
           }}
-          aria-label={t("mobile.detailTitle")}
-          className="-ml-2 flex size-10 items-center justify-center rounded-full text-text-primary hover:bg-background-alt"
+          aria-pressed={post.bookmarked}
+          className={cn(
+            "flex min-h-11 items-center gap-2 rounded-xl bg-surface px-4 text-[13px] font-semibold shadow-xs hover:bg-background-alt",
+            post.bookmarked ? "text-primary-dark" : "text-text-primary",
+          )}
         >
-          <ArrowLeft size={19} aria-hidden="true" />
+          <Bookmark size={16} fill={post.bookmarked ? "currentColor" : "none"} aria-hidden="true" />
+          {post.bookmarked ? t("post.bookmarked") : t("post.bookmarkLabel")}
         </button>
-        <h1 className="flex-1 text-[17px] font-bold text-text-primary">{t("mobile.detailTitle")}</h1>
         <button
           type="button"
-          aria-label={t("post.moreOptions")}
-          className="-mr-2 flex size-10 items-center justify-center rounded-full text-text-secondary hover:bg-background-alt"
+          onClick={() => {
+            void share(post);
+          }}
+          className="flex min-h-11 items-center gap-2 rounded-xl bg-surface px-4 text-[13px] font-semibold text-text-primary shadow-xs hover:bg-background-alt"
         >
-          <MoreHorizontal size={18} aria-hidden="true" />
-        </button>
-      </div>
-
-      <article className="rounded-2xl bg-surface p-4 shadow-brand-md">
-        <div className="flex items-start gap-3">
-          <img src={thread.author.avatarUrl} alt="" className="size-12 shrink-0 rounded-full object-cover" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold leading-tight text-text-primary">{thread.author.name}</p>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
-                  TONE_CHIP[thread.author.roleBadgeTone],
-                )}
-              >
-                <BadgeCheck size={10} aria-hidden="true" />
-                {thread.author.roleBadge}
-              </span>
-              <span className="text-[11px] text-text-tertiary">{thread.author.meta}</span>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article className="rounded-2xl bg-surface p-4 shadow-brand-md">
-        <BodyText segments={thread.body} className="text-[15px] leading-relaxed text-text-primary" />
-
-        <div className="mt-4 rounded-xl bg-background-alt p-3">
-          <div className="flex items-start justify-between gap-2">
-            <span className="flex items-start gap-2">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-white">
-                <Sparkles size={13} aria-hidden="true" />
-              </span>
-              <span className="max-w-[140px] text-[12px] font-bold leading-tight text-primary-dark">
-                {thread.dataCard.title}
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-on-primary-subtle px-2.5 py-1.5 text-[11px] font-bold text-primary-dark">
-              <span className="size-2 rounded-full bg-success-strong" aria-hidden="true" />
-              {thread.dataCard.statusLabel}
-            </span>
-          </div>
-
-          <div className="mt-3 rounded-lg bg-surface p-3">
-            <div className="flex items-start justify-between gap-3">
-              <span className="text-[13px] text-text-secondary">{thread.dataCard.shiftLabel}</span>
-              <span className="flex shrink-0 items-baseline gap-1.5 text-[18px] font-bold">
-                <span className="text-secondary-text-on">{thread.dataCard.shiftFrom}</span>
-                <span className="text-text-tertiary" aria-hidden="true">
-                  {"\u2192"}
-                </span>
-                <span className="text-success-text">{thread.dataCard.shiftTo}</span>
-              </span>
-            </div>
-            <div className="pt-3">
-              <div className="relative h-2 rounded-full bg-gradient-to-r from-secondary via-success to-primary">
-                <span
-                  className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-primary-darker shadow-xs"
-                  style={{ left: `${String(thread.dataCard.markerPercent)}%` }}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="flex items-center justify-between pt-1.5 text-[10px]">
-                <span className="text-text-tertiary">{thread.dataCard.lowLabel}</span>
-                <span className="font-bold text-success-text">{thread.dataCard.idealLabel}</span>
-                <span className="text-text-tertiary">{thread.dataCard.highLabel}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative mt-4 overflow-hidden rounded-xl">
-          <img src={thread.photo.url} alt="" className="aspect-[326/256] w-full object-cover" />
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1.5 rounded-full bg-primary-darker/80 px-2.5 py-1 text-[11px] font-semibold text-white">
-            <span className="size-1.5 rounded-full bg-secondary" aria-hidden="true" />
-            {thread.photo.caption}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-5 pt-4 text-[13px] text-text-secondary">
-          <span className="flex items-center gap-1.5">
-            <Heart size={16} aria-hidden="true" />
-            {thread.likeCount}
-            <span className="sr-only">{t("post.like")}</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MessageSquare size={16} aria-hidden="true" />
-            {thread.commentCount}
-            <span className="sr-only">{t("post.comment")}</span>
-          </span>
-          <span className="ml-auto flex items-center gap-1.5">
-            <Bookmark size={16} aria-hidden="true" />
-            {thread.saveLabel}
-          </span>
-        </div>
-      </article>
-
-      <section className="rounded-2xl bg-deco-backdrop p-4">
-        <div className="flex items-start gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white">
-            <Stethoscope size={16} aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-[17px] font-bold leading-tight text-primary-dark">{thread.expertNote.title}</h2>
-            <p className="pt-0.5 text-[12px] leading-relaxed text-text-secondary">{thread.expertNote.subtitle}</p>
-          </div>
-        </div>
-        <blockquote className="mt-3 rounded-lg bg-surface/90 p-3 text-[13px] leading-relaxed text-text-primary">
-          {thread.expertNote.quote}
-        </blockquote>
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-primary-dark">
-            <ShieldCheck size={12} aria-hidden="true" />
-            {thread.expertNote.verifyLabel}
-          </span>
-          <span className="text-[11px] font-bold text-primary-dark">{thread.expertNote.linkLabel}</span>
-        </div>
-      </section>
-
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[17px] font-bold text-text-primary">
-          {thread.commentsTitle} <span className="font-normal text-text-tertiary">{thread.commentsCount}</span>
-        </h2>
-        <span className="flex items-center gap-1 text-[12px] text-text-secondary">
-          {t("detail.sortLabel")}
-          <span className="font-bold text-primary-dark">{thread.sortValue}</span>
-          <ChevronDown size={12} aria-hidden="true" />
-        </span>
-      </div>
-
-      {thread.comments.map((comment) => (
-        <article key={comment.id} className="rounded-2xl bg-surface p-4 shadow-brand-md">
-          <div className="flex items-start gap-3">
-            <img src={comment.author.avatarUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[15px] font-bold text-text-primary">{comment.author.name}</span>
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-bold",
-                    TONE_CHIP[comment.author.roleBadgeTone],
-                  )}
-                >
-                  {comment.author.roleBadge}
-                </span>
-              </div>
-              <p className="pt-0.5 text-[11px] text-text-tertiary">{comment.author.meta}</p>
-            </div>
-            <button
-              type="button"
-              aria-label={t("post.moreOptions")}
-              className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-text-tertiary hover:bg-background-alt"
-            >
-              <MoreHorizontal size={15} aria-hidden="true" />
-            </button>
-          </div>
-          <p className="pl-13 pt-2 text-[13px] leading-relaxed text-text-primary">{comment.body}</p>
-          <div className="flex items-center justify-between pl-13 pt-3">
-            <span className="text-[12px] font-semibold text-text-secondary">{t("detail.commentReply")}</span>
-            <span
-              className={cn(
-                "flex items-center gap-1.5 text-[12px] font-bold",
-                comment.likeTone === "secondary" ? "text-secondary-text-on" : "text-text-secondary",
-              )}
-            >
-              <ThumbsUp size={14} aria-hidden="true" />
-              {comment.likeCount}
-            </span>
-          </div>
-        </article>
-      ))}
-
-      {/* Ô soạn bình luận dính đáy, nằm ngay trên bottom nav 64px của AppLayout. */}
-      <div className="fixed inset-x-0 bottom-16 z-[var(--z-dropdown)] mx-auto flex w-full max-w-[480px] items-center gap-2 bg-background px-4 py-3">
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-background-alt px-4 py-2.5">
-          <span className="sr-only">{t("detail.mobileCommentPlaceholder")}</span>
-          <input
-            type="text"
-            placeholder={thread.composerPlaceholder}
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-tertiary"
-          />
-          <button
-            type="button"
-            aria-label={t("detail.mobileAttachPhoto")}
-            className="flex size-7 shrink-0 items-center justify-center text-text-secondary"
-          >
-            <Camera size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={t("detail.mobileAttachEmoji")}
-            className="flex size-7 shrink-0 items-center justify-center text-text-secondary"
-          >
-            <Smile size={16} aria-hidden="true" />
-          </button>
-        </label>
-        <button
-          type="button"
-          aria-label={t("detail.mobileSend")}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-brand-md"
-        >
-          <Send size={17} aria-hidden="true" />
+          <Share2 size={16} aria-hidden="true" />
+          {t("post.share")}
         </button>
       </div>
     </div>
   );
 }
 
-/* =============================== BẢN DESKTOP (>= lg) =============================== */
-
-function WebPostCard() {
+function PostArticle({ post }: { post: CommunityPostApi }) {
   const { t } = useTranslation("community");
-  const thread = DESIGN_MOCK_THREAD;
-
   return (
-    <article className="rounded-2xl bg-surface p-8 shadow-brand-md">
-      <div className="flex items-start gap-3">
-        <img src={thread.author.avatarUrl} alt="" className="size-12 shrink-0 rounded-full object-cover" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[16px] font-bold text-text-primary">{thread.author.name}</span>
-            <span
-              className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", TONE_CHIP[thread.author.roleBadgeTone])}
-            >
-              {thread.author.roleBadge}
-            </span>
-          </div>
-          <p className="pt-1 text-[12px] leading-relaxed text-text-secondary">{thread.author.meta}</p>
-        </div>
-        <span className="flex shrink-0 items-center gap-2 rounded-xl bg-success-bg px-3 py-2 text-[11px] font-bold leading-tight text-success-text">
-          <BadgeCheck size={14} className="shrink-0" aria-hidden="true" />
-          {thread.verifiedBadge}
-        </span>
-      </div>
+    <article className="rounded-2xl bg-surface p-4 shadow-brand-md lg:p-7">
+      <header className="flex items-start gap-3">
+        <AuthorAvatar name={post.authorName} size="lg" />
+        <AuthorMeta name={post.authorName} category={post.category} createdAt={post.createdAt} large />
+        <ContentMenu target={{ postId: post.id }} label={t("post.more")} />
+      </header>
 
-      <div className="flex flex-wrap gap-2 pt-4">
-        {thread.tags.map((tag) => (
-          <span
-            key={tag}
-            className={cn(
-              "rounded-md px-2 py-1 text-[11px] font-semibold",
-              tag === thread.highlightTag ? "bg-secondary text-secondary-text-on" : "bg-chip-bg text-primary-dark",
-            )}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
+      <TagChips tags={post.tags} className="pt-4" />
 
-      <h1 className="pt-3 text-[22px] font-bold leading-snug text-text-primary">{thread.title}</h1>
-      <p className="pt-2 text-[14px] leading-relaxed text-text-secondary">{thread.body}</p>
+      <h1 className="break-words pt-4 text-[20px] font-bold leading-snug text-text-primary lg:text-[26px]">
+        {post.title}
+      </h1>
+      <p className="whitespace-pre-wrap break-words pt-3 text-[15px] leading-relaxed text-text-primary lg:text-[16px]">
+        {post.body}
+      </p>
 
-      <div className="grid gap-4 pt-4 md:grid-cols-[minmax(0,264fr)_minmax(0,264fr)]">
-        <div className="overflow-hidden rounded-xl bg-background-alt">
-          <div className="relative">
-            <img src={thread.photo.url} alt="" className="aspect-[264/224] w-full object-cover" />
-            <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-primary-darker/80 px-2.5 py-1 text-[11px] font-semibold text-white">
-              <span className="size-1.5 rounded-full bg-secondary" aria-hidden="true" />
-              {thread.photo.caption}
-            </span>
-            <span className="absolute bottom-2 right-2 rounded-full bg-primary-darker/50 px-2.5 py-1 text-[11px] font-semibold text-white">
-              {thread.photo.chip}
-            </span>
-          </div>
-          <p className="flex items-center justify-between gap-2 p-3 text-[12px] font-semibold text-text-secondary">
-            <span className="flex items-center gap-1.5">
-              <ZoomIn size={14} className="text-primary-dark" aria-hidden="true" />
-              {thread.zoomNote.title}
-            </span>
-            <span className="shrink-0 text-[11px] font-normal text-text-tertiary">{thread.zoomNote.meta}</span>
-          </p>
-        </div>
+      {post.imageUrl ? <img src={post.imageUrl} alt="" className="mt-5 w-full rounded-xl object-cover" /> : null}
 
-        <div className="flex flex-col gap-3 rounded-xl bg-background-alt p-4">
-          <div className="flex items-start justify-between gap-2">
-            <span className="flex items-start gap-2">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-dark text-white">
-                <Bot size={15} aria-hidden="true" />
-              </span>
-              <span className="max-w-[110px] text-[14px] font-bold leading-tight text-text-primary">
-                {thread.analysis.title}
-              </span>
-            </span>
-            <span className="shrink-0 rounded-full bg-chip-bg px-2.5 py-1 text-[11px] font-semibold text-primary-dark">
-              {thread.analysis.confidence}
-            </span>
-          </div>
-
-          <div className="rounded-lg bg-surface p-3">
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[10px] font-bold tracking-[0.5px] text-text-tertiary">
-                {thread.analysis.metricLabel}
-              </span>
-              <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-[11px] font-bold leading-tight text-secondary-text-on">
-                {thread.analysis.statusLabel}
-              </span>
-            </div>
-            <p className="pt-1 text-[30px] font-bold leading-none text-primary-dark">{thread.analysis.gauge.value}</p>
-            <p className="pt-2 text-[11px] text-text-tertiary">{thread.analysis.referenceLabel}</p>
-          </div>
-
-          <PhScale gauge={thread.analysis.gauge} />
-
-          <div className="flex items-start justify-between gap-2 text-[11px]">
-            <span className="text-text-tertiary">{thread.analysis.sampleId}</span>
-            <span className="shrink-0 text-right font-semibold text-primary-dark">{thread.analysis.algorithm}</span>
-          </div>
-          <div className="flex items-start justify-between gap-2 text-[11px]">
-            <span className="flex items-center gap-1.5 text-text-secondary">
-              <BadgeCheck size={12} className="shrink-0 text-success" aria-hidden="true" />
-              {thread.analysis.lightCheck}
-            </span>
-            <span className="shrink-0 font-semibold text-primary-dark">{thread.analysis.chartLink}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="-mx-8 -mb-8 mt-6 rounded-b-2xl bg-background-alt/60 px-8 py-4">
-        <div className="flex flex-wrap items-center gap-6 text-[13px] font-semibold text-text-secondary">
-          <span className="flex items-center gap-1.5">
-            <Heart size={16} className="text-danger" fill="currentColor" aria-hidden="true" />
-            {thread.likeCount} {t("post.like")}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MessageSquare size={16} aria-hidden="true" />
-            {thread.commentCount} {t("post.comment")}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Share2 size={16} aria-hidden="true" />
-            {thread.shareCount} {t("post.share")}
-          </span>
-        </div>
-        <p className="flex items-center gap-1.5 pt-2 text-[12px] text-success-text">
-          <Bookmark size={13} aria-hidden="true" />
-          {thread.savedNote}
-        </p>
-      </div>
+      {/* Desktop: Lưu/Chia sẻ đã nằm ở thanh đầu trang (như design web) ⇒ ẩn bản trùng ở chân bài. */}
+      <PostActions post={post} secondaryClassName="lg:hidden" className="mt-5 border-t border-border/60 pt-3" />
     </article>
   );
 }
 
-function WebVetOpinion() {
-  const vet = DESIGN_MOCK_VET_OPINION;
+function CommentItem({ comment }: { comment: CommunityCommentApi }) {
+  const { t } = useTranslation("community");
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-surface p-8 pl-10 shadow-brand-md">
-      <span
-        className="absolute inset-y-0 left-0 w-2 bg-gradient-to-b from-primary-dark via-verified-deep to-secondary-text-on"
-        aria-hidden="true"
-      />
-      <div className="flex items-start gap-3">
-        <img src={vet.avatarUrl} alt="" className="size-14 shrink-0 rounded-full object-cover" />
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[18px] font-bold leading-tight text-primary-dark">{vet.name}</h2>
-          <span className="mt-1 inline-block rounded-md bg-primary-dark px-2 py-0.5 text-[10px] font-bold tracking-[0.4px] text-white">
-            {vet.advisorBadge}
-          </span>
-          <p className="pt-1.5 text-[12px] leading-relaxed text-text-secondary">{vet.org}</p>
-          <p className="pt-1 text-[11px] italic text-text-tertiary">{vet.timestamp}</p>
+    <li className="flex gap-3 border-t border-border/60 pt-4 first:border-t-0 first:pt-0">
+      <AuthorAvatar name={comment.authorName} size="sm" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-2">
+          <p className="min-w-0 flex-1">
+            <span className="block truncate text-[14px] font-bold leading-tight text-text-primary">
+              {comment.authorName}
+            </span>
+            <span className="block pt-0.5 text-[12px] text-text-tertiary">
+              <RelativeTime value={comment.createdAt} />
+            </span>
+          </p>
+          <ContentMenu target={{ commentId: comment.id }} label={t("post.more")} />
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[11px] font-bold text-secondary-text-on">
-            <ShieldCheck size={12} aria-hidden="true" />
-            {vet.opinionBadge}
-          </span>
-          <span className="text-[10px] text-text-tertiary">{vet.verifyCode}</span>
-        </div>
+        <p className="whitespace-pre-wrap break-words pt-2 text-[14px] leading-relaxed text-text-primary lg:text-[15px]">
+          {comment.body}
+        </p>
       </div>
-
-      <div className="mt-4 rounded-xl bg-background-alt p-4">
-        <p className="text-[14px] leading-relaxed text-text-primary">{vet.greeting}</p>
-        <p className="pt-3 text-[14px] leading-relaxed text-text-primary">{vet.explanation}</p>
-      </div>
-
-      <div className="mt-4 rounded-xl bg-chip-bg/60 p-4">
-        <h3 className="flex items-center gap-2 text-[15px] font-bold text-primary-dark">
-          <Stethoscope size={16} aria-hidden="true" />
-          {vet.stepsTitle}
-        </h3>
-        <ol className="flex flex-col gap-3 pt-3">
-          {vet.steps.map((step) => (
-            <li key={step.no} className="flex gap-3">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-dark text-[11px] font-bold text-white">
-                {step.no}
-              </span>
-              <p className="text-[13px] leading-relaxed text-text-secondary">
-                <span className="font-bold text-primary-dark">{step.title}</span> {step.body}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 pt-4">
-        <span className="flex items-center gap-2 rounded-xl bg-success-bg px-4 py-2.5 text-[12px] font-semibold text-success-text">
-          <ThumbsUp size={14} aria-hidden="true" />
-          {vet.helpfulLabel}
-        </span>
-        <span className="flex items-center gap-2 rounded-xl bg-deco-backdrop px-4 py-2.5 text-[12px] font-semibold text-text-secondary">
-          <CornerUpLeft size={14} aria-hidden="true" />
-          {vet.askMoreLabel}
-        </span>
-      </div>
-      <button
-        type="button"
-        className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-primary-dark px-5 py-3 text-[13px] font-bold text-white hover:bg-primary"
-      >
-        <Calendar size={15} aria-hidden="true" />
-        {vet.bookingLabel}
-      </button>
-    </section>
+    </li>
   );
 }
 
-function WebComments() {
+/**
+ * Ô bình luận — MỘT form duy nhất: mobile ghim đáy (trên bottom nav, như design mobile),
+ * desktop nằm trong khối bình luận kèm avatar người đang đăng nhập (như design web).
+ */
+function CommentComposer({ postId }: { postId: string }) {
   const { t } = useTranslation("community");
-  return (
-    <section className="rounded-2xl bg-surface p-8 shadow-brand-md">
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-[19px] font-bold leading-tight text-text-primary">{t("detail.commentsTitle")}</h2>
-        <span className="rounded-lg bg-chip-bg px-2.5 py-1 text-[11px] font-bold text-primary-dark">
-          {DESIGN_MOCK_COMMENTS_META.countBadge}
-        </span>
-        <span className="ml-auto flex items-center gap-1.5 text-[12px] text-text-secondary">
-          {t("detail.sortLabel")}
-          <span className="font-bold text-text-primary">{DESIGN_MOCK_COMMENTS_META.sortValue}</span>
-          <ChevronDown size={13} aria-hidden="true" />
-        </span>
-      </div>
+  const displayName = useSessionStore((s) => s.user?.displayName ?? "");
+  const isDesktop = useBreakpoint("lg");
+  const create = useCreateCommunityComment(postId);
+  const [value, setValue] = useState("");
+  const inputId = useId();
+  const max = COMMUNITY_LIMITS.comment;
+  const trimmed = value.trim();
+  const tooLong = trimmed.length > max;
 
-      <div className="mt-4 flex gap-3 rounded-xl bg-background-alt p-4">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white">
-          <Stethoscope size={15} aria-hidden="true" />
+  const submit = () => {
+    if (!trimmed || tooLong || create.isPending) return;
+    create.mutate(trimmed, {
+      onSuccess: () => {
+        setValue("");
+      },
+    });
+  };
+
+  const message = tooLong ? t("detail.commentTooLong", { max }) : create.isError ? t("detail.commentError") : null;
+
+  return (
+    <form
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
+      className={cn(
+        "fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[var(--z-dropdown)] mx-auto w-full max-w-[480px] border-t border-border bg-surface/95 px-4 py-2.5 backdrop-blur-md",
+        "lg:static lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-2xl lg:border-0 lg:bg-background-alt lg:p-4 lg:backdrop-blur-none",
+      )}
+    >
+      <div className="flex items-end gap-2 lg:items-start lg:gap-3">
+        <span className="hidden lg:block">
+          <AuthorAvatar name={displayName} />
         </span>
         <div className="min-w-0 flex-1">
-          <label className="block">
-            <span className="sr-only">{t("detail.commentPlaceholder")}</span>
-            <textarea
-              rows={2}
-              placeholder={t("detail.commentPlaceholder")}
-              className="w-full resize-none rounded-xl bg-surface px-4 py-3 text-[13px] text-text-primary outline-none placeholder:text-text-tertiary"
-            />
+          <label htmlFor={inputId} className="sr-only">
+            {t("detail.commentLabel")}
           </label>
-          <div className="flex flex-wrap items-center gap-4 pt-3">
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-secondary">
-              <ImageIcon size={14} aria-hidden="true" />
-              {t("detail.commentAttachPhoto")}
-            </span>
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-secondary">
-              <ScanLine size={14} aria-hidden="true" />
-              {t("detail.commentAttachScan")}
-            </span>
+          <textarea
+            id={inputId}
+            rows={1}
+            value={value}
+            onChange={(event) => {
+              setValue(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                event.preventDefault();
+                submit();
+              }
+            }}
+            placeholder={isDesktop ? t("detail.commentPlaceholder") : t("detail.commentPlaceholderShort")}
+            aria-invalid={tooLong ? true : undefined}
+            aria-describedby={message ? `${inputId}-msg` : undefined}
+            className={cn(
+              "block h-11 w-full resize-none rounded-full border border-border-strong bg-background-alt px-4 py-2.5 text-[14px] leading-snug text-text-primary placeholder:text-text-tertiary",
+              "lg:h-24 lg:rounded-xl lg:bg-surface lg:py-3",
+              "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
+              tooLong && "border-2 border-danger",
+            )}
+          />
+          {message ? (
+            <p id={`${inputId}-msg`} role="alert" className="pt-1.5 text-[12px] font-medium text-danger-text">
+              {message}
+            </p>
+          ) : null}
+          <div className="hidden justify-end pt-3 lg:flex">
             <button
-              type="button"
-              className="ml-auto rounded-xl bg-primary-dark px-5 py-2.5 text-[12px] font-bold text-white hover:bg-primary"
+              type="submit"
+              disabled={!trimmed || tooLong || create.isPending}
+              className="flex min-h-11 items-center gap-2 rounded-xl bg-primary-dark px-5 text-[14px] font-bold text-white shadow-brand-md hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t("detail.commentSubmit")}
+              <Send size={15} aria-hidden="true" />
+              {create.isPending ? t("detail.commentSending") : t("detail.commentSend")}
             </button>
           </div>
         </div>
+        <button
+          type="submit"
+          disabled={!trimmed || tooLong || create.isPending}
+          aria-label={create.isPending ? t("detail.commentSending") : t("detail.commentSend")}
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white shadow-brand-md hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50 lg:hidden"
+        >
+          <Send size={17} aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function CommentsSection({
+  postId,
+  total,
+  comments,
+}: {
+  postId: string;
+  total: number;
+  comments: CommunityCommentApi[];
+}) {
+  const { t } = useTranslation("community");
+  return (
+    <section className="rounded-2xl bg-surface p-4 shadow-brand-md lg:p-7" aria-labelledby="community-comments-title">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <h2 id="community-comments-title" className="text-[17px] font-bold text-text-primary lg:text-[20px]">
+          {t("detail.commentsTitle")}
+        </h2>
+        <span className="rounded-full bg-chip-bg px-2.5 py-0.5 text-[12px] font-bold text-primary-dark">
+          {t("detail.commentCount", { count: total, formattedCount: formatNumber(total) })}
+        </span>
       </div>
 
-      <ul className="flex flex-col divide-y divide-border/50">
-        {DESIGN_MOCK_COMMENTS.map((comment) => (
-          <li key={comment.id} className="py-5">
-            <div className="flex items-start gap-3">
-              <img src={comment.author.avatarUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[14px] font-bold text-text-primary">{comment.author.name}</span>
-                  {comment.author.roleBadge ? (
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-[10px] font-bold",
-                        TONE_CHIP[comment.author.roleBadgeTone ?? "neutral"],
-                      )}
-                    >
-                      {comment.author.roleBadge}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="pt-0.5 text-[11px] text-text-tertiary">{comment.author.meta}</p>
-              </div>
-              <button
-                type="button"
-                aria-label={t("post.moreOptions")}
-                className="flex size-7 shrink-0 items-center justify-center rounded-full text-text-tertiary hover:bg-background-alt"
-              >
-                <MoreHorizontal size={15} aria-hidden="true" />
-              </button>
-            </div>
+      {/* Mobile: form ghim đáy (fixed) nên khung bọc không chiếm chỗ; desktop: nằm ngay dưới tiêu đề. */}
+      <div className="lg:pt-5">
+        <CommentComposer postId={postId} />
+      </div>
 
-            <p className="pl-13 pt-3 text-[13px] leading-relaxed text-text-primary">{comment.body}</p>
-
-            <div className="flex items-center gap-5 pl-13 pt-3 text-[12px] font-semibold text-text-secondary">
-              <span className="flex items-center gap-1.5">
-                <ThumbsUp size={13} aria-hidden="true" />
-                {comment.likeCount} {t("detail.commentLike")}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CornerUpLeft size={13} aria-hidden="true" />
-                {t("detail.commentReply")}
-              </span>
-            </div>
-
-            {comment.reply ? (
-              <div className="ml-13 mt-4 rounded-xl border-l-2 border-primary bg-background-alt p-4">
-                <p className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-[13px] font-bold text-primary-dark">{comment.reply.name}</span>
-                  <span className="text-[11px] text-text-tertiary">{comment.reply.meta}</span>
-                </p>
-                <p className="pt-2 text-[13px] leading-relaxed text-text-secondary">{comment.reply.body}</p>
-              </div>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-
-      <button
-        type="button"
-        className="w-full rounded-xl bg-background-alt px-4 py-3 text-[13px] font-bold text-primary-dark hover:bg-chip-bg"
-      >
-        {DESIGN_MOCK_COMMENTS_META.moreCta}
-      </button>
+      {comments.length > 0 ? (
+        <ul className="flex flex-col gap-4 pt-4 lg:pt-6">
+          {comments.map((item) => (
+            <CommentItem key={item.id} comment={item} />
+          ))}
+        </ul>
+      ) : (
+        <p className="pt-3 text-[13px] leading-relaxed text-text-secondary lg:pt-5">{t("detail.noComments")}</p>
+      )}
     </section>
   );
 }
 
-/** Đường pH 7 ngày ở cột phải — toạ độ `y` (%) lấy nguyên từ mock, không tính ngưỡng ở đây. */
-function MiniPhLine() {
-  const pts = DESIGN_MOCK_CASE_PROFILE.historyPoints;
-  const path = pts
-    .map((p, i) => `${i === 0 ? "M" : "L"}${String((i / (pts.length - 1)) * 100)},${String(p.y)}`)
-    .join(" ");
-  const last = pts[pts.length - 1];
-  return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-14 w-full" aria-hidden="true">
-      <path d={path} fill="none" stroke="currentColor" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-      {pts.map((p, i) => (
-        <circle
-          key={p.label}
-          cx={(i / (pts.length - 1)) * 100}
-          cy={p.y}
-          r="2"
-          fill="currentColor"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-      <circle cx={100} cy={last.y} r="3.5" className="fill-secondary" vectorEffect="non-scaling-stroke" />
-    </svg>
-  );
-}
-
-function WebRail() {
+function PostDetail({ postId }: { postId: string }) {
   const { t } = useTranslation("community");
-  const vet = DESIGN_MOCK_VET_PROFILE;
-  const profile = DESIGN_MOCK_CASE_PROFILE;
+  const detail = useCommunityPost(postId);
 
-  return (
-    <div className="flex flex-col gap-4">
-      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
-        <img src={DESIGN_MOCK_RAIL_MARK} alt="" className="mx-auto mb-4 h-10 w-15 object-contain" />
-        <div className="flex items-start gap-3">
-          <img src={vet.avatarUrl} alt="" className="size-14 shrink-0 rounded-2xl object-cover" />
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold leading-tight text-text-primary">{vet.name}</p>
-            <p className="pt-1 text-[11px] font-semibold leading-tight text-primary-dark">{vet.membership}</p>
-            <p className="pt-0.5 text-[11px] text-text-tertiary">{vet.experience}</p>
-          </div>
-        </div>
+  if (detail.isPending) return <DetailSkeleton />;
 
-        <div className="mt-3 grid grid-cols-3 rounded-xl bg-background-alt px-2 py-2">
-          {vet.stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className={cn("text-[14px] font-bold leading-tight", TONE_TEXT[stat.tone])}>{stat.value}</p>
-              <p className="pt-0.5 text-[10px] text-text-tertiary">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        <p className="flex items-start gap-2 pt-3 text-[11px] leading-relaxed text-text-secondary">
-          <Calendar size={13} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
-          <span>
-            {vet.scheduleLabel} <span className="font-bold text-text-primary">{vet.scheduleValue}</span>
-          </span>
-        </p>
-        <p className="flex items-start gap-2 pt-1.5 text-[11px] leading-relaxed text-text-secondary">
-          <Building2 size={13} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
-          {vet.clinic}
-        </p>
-
-        <button
-          type="button"
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary-dark px-4 py-2.5 text-[12px] font-bold text-white hover:bg-primary"
-        >
-          <MessageSquare size={14} aria-hidden="true" />
-          {vet.messageCta}
-        </button>
-        <button
-          type="button"
-          className="mt-2 w-full rounded-xl bg-chip-bg px-4 py-2.5 text-[12px] font-semibold text-primary-dark hover:bg-info"
-        >
-          {vet.articlesCta}
-        </button>
-      </section>
-
-      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="max-w-[140px] text-[11px] font-bold tracking-[0.4px] text-text-tertiary">{profile.title}</h2>
-          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-secondary-text-on">
-            {profile.catBadge}
-          </span>
-        </div>
-
-        <div className="mt-3 flex items-center gap-3 rounded-xl bg-background-alt p-2.5">
-          <img src={profile.catPhotoUrl} alt="" className="size-11 shrink-0 rounded-lg object-cover" />
-          <div className="min-w-0">
-            <p className="text-[14px] font-bold leading-tight text-text-primary">{profile.catName}</p>
-            <p className="pt-0.5 text-[11px] text-text-secondary">{profile.catMeta}</p>
-          </div>
-        </div>
-
-        <dl className="flex flex-col divide-y divide-border/50 pt-2">
-          {profile.rows.map((row) => (
-            <div key={row.label} className="flex items-start justify-between gap-3 py-2">
-              <dt className="text-[11px] text-text-secondary">{row.label}</dt>
-              <dd
-                className={cn(
-                  "shrink-0 text-right text-[11px] font-bold",
-                  row.highlight ? "text-primary-dark" : "text-text-primary",
-                )}
-              >
-                {row.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="mt-2 rounded-xl bg-background-alt p-3">
-          <p className="flex flex-wrap items-baseline justify-between gap-2 text-[11px] text-text-secondary">
-            {profile.historyTitle}
-            <span className="font-bold text-primary-dark">{profile.historyToday}</span>
-          </p>
-          <div className="pt-2 text-primary">
-            <MiniPhLine />
-          </div>
-          <div className="flex items-center justify-between pt-1 text-[10px] text-text-tertiary">
-            {profile.historyPoints.map((point, i) => (
-              <span
-                key={point.label}
-                className={i === profile.historyPoints.length - 1 ? "font-bold text-primary" : ""}
-              >
-                {point.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl bg-surface p-6 shadow-brand-md">
-        <h2 className="flex items-center gap-2 text-[15px] font-bold text-text-primary">
-          <Star size={15} className="text-secondary" fill="currentColor" aria-hidden="true" />
-          {DESIGN_MOCK_SIMILAR_CASES.title}
-        </h2>
-        <ul className="flex flex-col gap-2 pt-3">
-          {DESIGN_MOCK_SIMILAR_CASES.items.map((item) => (
-            <li key={item.tag} className="rounded-xl bg-background-alt p-3">
-              <div className="flex items-start justify-between gap-2">
-                <span className="min-w-0 truncate text-[11px] font-bold text-primary-dark">{item.tag}</span>
-                <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold", TONE_CHIP[item.badgeTone])}>
-                  {item.badge}
-                </span>
-              </div>
-              <p className="pt-1 text-[12px] font-semibold leading-snug text-text-primary">{item.title}</p>
-              <p className="flex flex-wrap items-center gap-1.5 pt-1.5 text-[10px] text-text-tertiary">
-                {item.meta}
-                <span className="size-1 rounded-full bg-border-strong" aria-hidden="true" />
-                {item.interest}
-              </p>
-            </li>
-          ))}
-        </ul>
-        <p className="pt-3 text-[11px] font-bold text-primary-dark">{DESIGN_MOCK_SIMILAR_CASES.libraryCta}</p>
-      </section>
-
-      <section className="rounded-2xl bg-gradient-to-br from-primary-dark to-primary p-6">
-        <h2 className="flex items-center gap-2 text-[15px] font-bold leading-tight text-white">
-          <Siren size={16} className="shrink-0 text-secondary" aria-hidden="true" />
-          {DESIGN_MOCK_EMERGENCY_CARD.title}
-        </h2>
-        <p className="pt-2 text-[11px] leading-relaxed text-on-primary-subtle">{DESIGN_MOCK_EMERGENCY_CARD.body}</p>
-        <p className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-secondary px-3 py-2.5 text-center text-[12px] font-bold text-secondary-text-on">
-          <PhoneCall size={14} className="shrink-0" aria-hidden="true" />
-          {DESIGN_MOCK_EMERGENCY_CARD.hotline}
-        </p>
-      </section>
-
-      <p className="sr-only">{t("detail.pinnedByVet")}</p>
-    </div>
-  );
-}
-
-function WebThread() {
-  const { t } = useTranslation("community");
-  const thread = DESIGN_MOCK_THREAD;
-
-  return (
-    <div className="flex flex-col gap-5">
-      <nav className="flex flex-wrap items-center gap-3 text-[12px] text-text-secondary">
-        <Link to="/community" className="flex items-center gap-1.5 font-semibold hover:text-primary-dark">
-          <Home size={13} aria-hidden="true" />
-          {thread.breadcrumb[0]}
-        </Link>
-        <span aria-hidden="true">{"\u203A"}</span>
-        <span>{thread.breadcrumb[1]}</span>
-        <span aria-hidden="true">{"\u203A"}</span>
-        <span className="rounded-md bg-chip-bg px-2 py-1 text-[11px] font-bold text-primary-dark">
-          {thread.caseCode}
-        </span>
-
-        <span className="ml-auto flex items-center gap-2 rounded-full bg-success-bg px-3 py-1.5 text-[11px] font-semibold text-success-text">
-          <span className="size-2 rounded-full bg-success" aria-hidden="true" />
-          {thread.onlineBadge}
-        </span>
-        <span className="flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[11px] font-semibold text-text-secondary">
-          <Bookmark size={13} aria-hidden="true" />
-          {t("detail.savePost")}
-        </span>
-        <span className="flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[11px] font-semibold text-text-secondary">
-          <Share2 size={13} aria-hidden="true" />
-          {t("detail.sharePost")}
-        </span>
-      </nav>
-
-      <div className="flex items-start gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-5">
-          <WebPostCard />
-          <WebVetOpinion />
-          <WebComments />
-        </div>
-        <div className="w-[296px] shrink-0">
-          <WebRail />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RealCommunityPostDetail({ postId }: { postId: string }) {
-  const { t } = useTranslation("community");
-  const queryClient = useQueryClient();
-  const [comment, setComment] = useState("");
-  const [saving, setSaving] = useState(false);
-  const detail = useQuery({
-    queryKey: ["community", "post", postId],
-    queryFn: () => getCommunityPost(postId),
-    staleTime: 30_000,
-  });
-  if (detail.isPending) {
-    return <p className="p-4 text-caption text-text-secondary">{t("feedback.loading")}</p>;
-  }
   if (detail.isError) {
-    return <p className="rounded-xl bg-danger-bg p-4 text-caption text-danger-text">{t("feedback.error")}</p>;
-  }
-  const { post, comments } = detail.data;
-  const toggleReaction = async (reaction: "LIKE" | "BOOKMARK") => {
-    await setCommunityReaction(post.id, reaction, reaction === "LIKE" ? !post.liked : !post.bookmarked);
-    await queryClient.invalidateQueries({ queryKey: ["community", "post", postId] });
-  };
-  return (
-    <div className="flex max-w-3xl flex-col gap-4">
-      <Link to="/community" className="flex items-center gap-1.5 text-caption font-semibold text-primary-dark">
-        <ArrowLeft size={14} aria-hidden="true" />
-        {t("detail.backToFeed")}
-      </Link>
-      <article className="rounded-2xl bg-surface p-5 shadow-brand-md">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-caption font-semibold text-text-secondary">
-              {post.authorName} · {post.category}
-            </p>
-            <h1 className="pt-1 text-[22px] font-bold text-text-primary">{post.title}</h1>
-          </div>
-          <button
-            type="button"
-            onClick={() => void toggleReaction("BOOKMARK")}
-            aria-label={t("post.bookmark")}
-            aria-pressed={post.bookmarked}
-          >
-            <Bookmark
-              size={18}
-              className={post.bookmarked ? "text-primary" : "text-text-tertiary"}
-              fill={post.bookmarked ? "currentColor" : "none"}
-            />
-          </button>
-        </div>
-        <p className="whitespace-pre-wrap pt-4 text-body leading-relaxed text-text-primary">{post.body}</p>
-        {post.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-2 pt-4">
-            {post.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-chip-bg px-2.5 py-1 text-small font-semibold text-primary-dark"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        <div className="flex items-center gap-4 border-t border-border pt-4 mt-4 text-caption text-text-secondary">
-          <button
-            type="button"
-            onClick={() => void toggleReaction("LIKE")}
-            className="inline-flex items-center gap-1.5 font-semibold"
-            aria-label={t("post.like")}
-            aria-pressed={post.liked}
-          >
-            <Heart size={16} className={post.liked ? "text-danger" : ""} fill={post.liked ? "currentColor" : "none"} />{" "}
-            {post.likeCount}
-          </button>
-          <span>
-            <MessageSquare size={15} className="inline" /> {post.commentCount}
-          </span>
-        </div>
-      </article>
-      <section className="rounded-2xl bg-surface p-5 shadow-brand-md">
-        <h2 className="text-[16px] font-bold text-text-primary">{t("detail.commentsTitle")}</h2>
-        <div className="flex flex-col gap-3 pt-3">
-          {comments.map((item) => (
-            <article key={item.id} className="rounded-xl bg-background-alt p-3">
-              <p className="text-small font-bold text-text-primary">{item.authorName}</p>
-              <p className="whitespace-pre-wrap pt-1 text-caption leading-relaxed text-text-secondary">{item.body}</p>
-            </article>
-          ))}
-          {comments.length === 0 ? <p className="text-caption text-text-secondary">{t("detail.noComments")}</p> : null}
-        </div>
-        <form
-          className="flex gap-2 pt-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!comment.trim() || saving) return;
-            setSaving(true);
-            void createCommunityComment(post.id, comment.trim())
-              .then(() => {
-                setComment("");
-                return queryClient.invalidateQueries({ queryKey: ["community", "post", postId] });
-              })
-              .finally(() => {
-                setSaving(false);
-              });
+    if (isApiError(detail.error) && (detail.error.status === 404 || detail.error.status === 400)) return <NotFound />;
+    return (
+      <div className="flex flex-col gap-4 px-4 py-4 lg:p-0">
+        <BackLink />
+        <ErrorState
+          title={t("detail.errorTitle")}
+          description={t("detail.errorBody")}
+          onRetry={() => {
+            void detail.refetch();
           }}
-        >
-          <input
-            className="h-11 min-w-0 flex-1 rounded-xl bg-background-alt px-3 text-caption"
-            value={comment}
-            onChange={(event) => {
-              setComment(event.target.value);
-            }}
-            placeholder={t("detail.commentPlaceholder")}
-          />
-          <button
-            type="submit"
-            disabled={!comment.trim() || saving}
-            className="rounded-xl bg-primary-dark px-4 text-caption font-bold text-white disabled:opacity-50"
-          >
-            {t("detail.commentSend")}
-          </button>
-        </form>
-      </section>
-    </div>
-  );
-}
+          className="rounded-2xl bg-surface shadow-brand-md"
+        />
+      </div>
+    );
+  }
 
-export function CommunityPostDetailPage() {
-  const { postId } = useParams<{ postId: string }>();
-  if (postId) return <RealCommunityPostDetail postId={postId} />;
+  const { post, comments } = detail.data;
+
   return (
-    <>
-      <div className="lg:hidden">
-        <MobileThread />
+    <div className="flex flex-col gap-4 px-4 py-2 pb-20 lg:gap-5 lg:p-0">
+      <DetailTopBar post={post} />
+      <div className="flex items-start gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 lg:gap-5">
+          <PostArticle post={post} />
+          <CommentsSection postId={post.id} total={post.commentCount} comments={comments} />
+        </div>
+        <aside className="sticky top-[88px] hidden w-[296px] shrink-0 lg:block">
+          <RulesCard />
+        </aside>
       </div>
-      <div className="hidden lg:block">
-        <WebThread />
-      </div>
-    </>
+    </div>
   );
 }

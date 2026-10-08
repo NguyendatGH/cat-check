@@ -8,6 +8,7 @@ const ADMIN_NAV_ITEMS = [
   { to: ROUTE_PATTERNS.adminUsers, labelKey: "nav.users" },
   { to: ROUTE_PATTERNS.adminActivationCodes, labelKey: "nav.activationCodes" },
   { to: ROUTE_PATTERNS.adminPackages, labelKey: "nav.packages" },
+  { to: ROUTE_PATTERNS.adminProducts, labelKey: "nav.products" },
   { to: ROUTE_PATTERNS.adminPhColorChart, labelKey: "nav.phColorChart" },
   { to: ROUTE_PATTERNS.adminContent, labelKey: "nav.content" },
   { to: ROUTE_PATTERNS.adminAuditLog, labelKey: "nav.auditLog" },

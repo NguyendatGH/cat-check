@@ -141,7 +141,11 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-body font-medium text-text-primary">{t(`ledger.types.${entry.type}`)}</p>
-        <p className="text-small text-text-tertiary">{new Date(entry.createdAt).toLocaleString("vi-VN")}</p>
+        <p className="text-small text-text-tertiary">
+          {new Date(entry.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
+          {" · "}
+          {t("ledger.balanceAfter", { count: entry.balanceAfter })}
+        </p>
       </div>
       <p
         className={cn(

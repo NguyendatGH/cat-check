@@ -65,8 +65,7 @@
       "unknownDesc": "Chưa xác định"
     },
     "neutered": {
-      "label": "Đã triệt sản",
-      "warning": "Mèo đực chưa triệt sản có nguy cơ tắc niệu đạo và tinh thể struvite cao hơn."
+      "label": "Đã triệt sản"
     },
     "birthDate": {
       "label": "Ngày sinh",
@@ -211,7 +210,7 @@
     "submit": "Kích hoạt",
     "checking": "Đang kiểm tra…",
     "skip": "Bỏ qua, dùng thử trước",
-    "skipHint": "Bạn có 3 lần quét thử miễn phí, không cần kích hoạt.",
+    "skipHint": "Bạn còn {{count}} lần quét thử miễn phí, không cần kích hoạt.",
     "success": {
       "title": "Kích hoạt thành công",
       "packageLabel": "Gói",
@@ -225,7 +224,9 @@
       "invalid": "Mã kích hoạt không đúng. Kiểm tra lại mã in trên bao bì.",
       "alreadyUsed": "Mã này đã được sử dụng.",
       "expired": "Mã đã hết hạn kích hoạt."
-    }
+    },
+    "skipHintBalance": "Bạn đang có {{count}} lượt quét khả dụng.",
+    "skipHintNone": "Bạn đã dùng hết lần quét thử miễn phí."
   },
   "success": {
     "title": "Hoàn tất thiết lập",
@@ -259,11 +260,15 @@
       "title": "Lượt quét",
       "activated": "{{credits}} lượt quét · hạn dùng đến {{date}}",
       "trial": "Còn {{count}} lần quét thử miễn phí",
-      "none": "Chưa có lượt quét"
+      "none": "Chưa có lượt quét",
+      "available": "{{count}} lượt quét khả dụng"
     },
     "cta": "Vào trang chủ",
     "ctaScan": "Quét cát ngay",
-    "footer": "CatCheck hỗ trợ theo dõi sức khoẻ tại nhà — không chẩn đoán bệnh, không thay thế bác sĩ thú y."
+    "footer": "CatCheck hỗ trợ theo dõi sức khoẻ tại nhà — không chẩn đoán bệnh, không thay thế bác sĩ thú y.",
+    "loadingCat": "Đang tải hồ sơ bé mèo…",
+    "noCat": "Chưa tìm thấy hồ sơ bé mèo nào. Hãy quay lại bước Hồ sơ mèo để tạo hồ sơ.",
+    "noCatCta": "Tạo hồ sơ bé mèo"
   },
   "web": {
     "cat": {

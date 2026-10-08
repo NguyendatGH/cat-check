@@ -5,7 +5,7 @@ import { EmptyState, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api";
 import { usePolicyCurrent } from "./hooks";
-import { extractMarkdownHeadings, renderMarkdown } from "./markdown";
+import { extractMarkdownHeadings, renderMarkdown, stripLeadingTitle } from "./markdown";
 import { DocumentToc, LEGAL_ASIDE, LEGAL_ASIDE_CARD, LEGAL_COLUMN, LEGAL_SHELL, LEGAL_SPLIT } from "./shell";
 import type { PolicyCode } from "./types";
 
@@ -53,11 +53,15 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
           title={t(`pages.${policyCodeToPageKey(policyCode)}.title`)}
           description={notFound ? t("document.notPublishedYet") : t("document.loadError")}
         />
+        {/* Chưa có bản chính sách đã công bố (404 có chủ đích) vẫn hiện phần dữ kiện kỹ thuật
+            đi kèm — vd. bảng cookie thật đang đặt — thay vì để trang trống. */}
+        {notFound ? extra : null}
       </div>
     );
   }
 
-  const headings = data.contentMd ? extractMarkdownHeadings(data.contentMd) : [];
+  const body = data.contentMd ? stripLeadingTitle(data.contentMd, data.title) : null;
+  const headings = body ? extractMarkdownHeadings(body) : [];
   const versionLine = t("document.versionBanner", {
     version: data.version,
     date: new Date(data.effectiveFrom).toLocaleDateString("vi-VN"),
@@ -87,7 +91,7 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
           {before}
 
           {data.contentMd ? (
-            renderMarkdown(data.contentMd)
+            renderMarkdown(body ?? "")
           ) : data.contentUrl ? (
             <p className="text-body text-text-secondary">
               {t("document.hostedExternally")}{" "}

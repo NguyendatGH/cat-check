@@ -8,19 +8,14 @@ import {
   ClipboardList,
   Download,
   Droplet,
+  History,
+  ListChecks,
   RefreshCw,
   ScanLine,
-  Share2,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { PhBadge, PhGaugeBar, findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import { PhTrendChart, type CatTrendPoint, type CatTrendsResponse, type TrendRange } from "@/features/trends";
-
-import bead01 from "@/shared/assets/images/web-scan/bead-01.png";
-import bead02 from "@/shared/assets/images/web-scan/bead-02.png";
-import bead03 from "@/shared/assets/images/web-scan/bead-03.png";
-import bead04 from "@/shared/assets/images/web-scan/bead-04.png";
 
 /**
  * Bố cục DESKTOP (>= lg) cho màn Xu hướng & Phân tích — dựng từ bản export gốc của Figma
@@ -33,13 +28,16 @@ import bead04 from "@/shared/assets/images/web-scan/bead-04.png";
  * khoá gói (403 `FEATURE_NOT_IN_PLAN`), rỗng (chưa có lần quét nào trong kỳ), và có dữ liệu.
  * Ngưỡng/màu dải pH luôn đến từ API (`entities/ph-bands` + `bands` trong response) — tuyệt đối
  * không hard-code số pH.
+ *
+ * ĐÃ BỎ so với Figma (không có dữ liệu/tính năng thật đứng sau):
+ *  - ảnh "mẫu hạt chụp thực tế" gắn cho từng dòng nhật ký (`DESIGN_MOCK_BEADS`) — D13 không trả
+ *    ảnh, 4 ảnh minh hoạ xoay vòng trông như ảnh quét thật; cột này nay là độ tin cậy thật;
+ *  - pill "v3.4 MedTech AI", nút "Chia sẻ Bác sĩ" (không có tính năng chia sẻ), "Xuất Excel"
+ *    (backend chỉ sinh PDF), dòng phụ "Quét tự động" (mọi lần quét đều do người dùng chụp);
+ *  - eyebrow "HỆ THỐNG PHÂN TÍCH ISFM", "cảm biến Bio-Colorimeter", "phản ứng phân tử" — claim
+ *    không có bằng chứng (p15 REQ-CLAIM-02) và không đúng cách sản phẩm đo;
+ *  - thẻ "Nguy cơ FLUTD", "Hồng cầu ẩn & protein", "AI Vet Assistant" — chẩn đoán/không có API.
  */
-
-/**
- * CÒN LÀ MOCK THEO THIẾT KẾ — API không trả mục này: ảnh thumbnail hạt chỉ thị của từng lần
- * quét (D13 chỉ trả số liệu, không trả ảnh mẫu). 4 ảnh lấy từ chính bản export SVG của Figma.
- */
-const DESIGN_MOCK_BEADS = [bead01, bead02, bead03, bead04];
 
 /** Thứ Hai → Chủ nhật. `Date.UTC(2024, 0, 1)` là một thứ Hai, dùng làm mốc sinh nhãn thứ. */
 const WEEK_REF_UTC = Date.UTC(2024, 0, 1);
@@ -59,6 +57,11 @@ function formatPh(value: number | null | undefined, fallback: string): string {
 /** API BỎ HẲN key `phMin`/`phMax` ở dải mở — `!== null` không đủ, phải kiểm tra kiểu. */
 function finiteBound(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** Số NGÀY lịch (theo giờ máy) có ít nhất một lần quét — mẫu số của "lần quét / ngày có quét". */
+function countActiveDays(points: CatTrendPoint[]): number {
+  return new Set(points.map((p) => new Date(p.capturedAt).toDateString())).size;
 }
 
 /** Gom số lần quét theo thứ trong tuần, giữ đủ 7 cột kể cả thứ không có lần quét nào. */
@@ -83,6 +86,9 @@ function weekdayLabel(day: number): string {
 }
 
 export interface WebTrendsScreenProps {
+  catId: string;
+  catName: string | null;
+  onExport: () => void;
   bands: PhBand[];
   data: CatTrendsResponse | undefined;
   isPending: boolean;
@@ -95,6 +101,9 @@ export interface WebTrendsScreenProps {
 }
 
 export function WebTrendsScreen({
+  catId,
+  catName,
+  onExport,
   bands,
   data,
   isPending,
@@ -122,8 +131,10 @@ export function WebTrendsScreen({
 
   const medianBand = findBandForPh(bands, stats?.median);
   const passPercent = stats && stats.count > 0 ? Math.round((stats.inRangeCount / stats.count) * 100) : null;
-  const activeDays = weekdayBars.filter((b) => b.count > 0).length;
-  const avgPerDay = stats && activeDays > 0 ? (stats.count / activeDays).toFixed(1) : dash;
+  // Trước đây mẫu số là số THỨ có quét (tối đa 7), không phải số NGÀY có quét — kỳ 30/90 ngày
+  // vì vậy ra con số phóng đại. Nay chia đúng cho số ngày lịch có ít nhất một lần quét.
+  const activeDays = countActiveDays(points);
+  const avgPerDay = activeDays > 0 ? (points.length / activeDays).toFixed(1) : dash;
 
   const confidences = points.map((p) => p.confidence).filter((c): c is number => c !== null);
   const avgConfidence = confidences.length
@@ -155,30 +166,30 @@ export function WebTrendsScreen({
     // Frame Figma đặt khối tiêu đề + 2 CTA TRONG một thẻ trắng, không trôi trên nền trang.
     <Card className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-[620px]">
-        <p className="text-overline font-bold tracking-[0.4px] text-primary-dark">{t("web.eyebrow")}</p>
+        <p className="text-overline font-bold uppercase tracking-[0.4px] text-primary-dark">
+          {catName ? t("web.eyebrowNamed", { name: catName }) : t("web.eyebrow")}
+        </p>
         <h1 className="pt-1 text-[28px] font-bold leading-9 tracking-[-0.5px] text-primary-dark">{t("web.title")}</h1>
         <p className="pt-2 text-caption leading-relaxed text-text-secondary">{t("web.subtitle")}</p>
       </div>
-      <div className="flex shrink-0 items-start gap-3">
-        <span className="rounded-2xl bg-chip-bg px-3 py-2 text-caption font-semibold leading-tight text-primary-dark">
-          {t("web.versionPill")}
-        </span>
-        <div className="flex flex-col gap-2">
-          <Link
-            to="/export"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-caption font-semibold text-primary-dark shadow-xs"
-          >
-            <Download className="size-4 shrink-0" aria-hidden="true" />
-            {t("web.exportCta")}
-          </Link>
-          <Link
-            to="/export"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-caption font-bold text-white shadow-sm"
-          >
-            <Share2 className="size-4 shrink-0" aria-hidden="true" />
-            {t("web.shareVetCta")}
-          </Link>
-        </div>
+      {/* Hai nút đúng vị trí Figma, nhưng đều là tính năng CÓ THẬT: lịch sử quét của bé và
+          xuất hồ sơ PDF (J1, chọn sẵn bé này). */}
+      <div className="flex shrink-0 flex-col gap-2">
+        <Link
+          to={`/cats/${catId}/history`}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-caption font-semibold text-primary-dark shadow-xs"
+        >
+          <History className="size-4 shrink-0" aria-hidden="true" />
+          {t("web.historyCta")}
+        </Link>
+        <button
+          type="button"
+          onClick={onExport}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-caption font-bold text-white shadow-sm"
+        >
+          <Download className="size-4 shrink-0" aria-hidden="true" />
+          {t("web.exportCta")}
+        </button>
       </div>
     </Card>
   );
@@ -357,7 +368,7 @@ export function WebTrendsScreen({
           ) : (
             <PhTrendChart
               points={points
-                .filter((p): p is CatTrendPoint & { phValue: number } => p.phValue !== null)
+                .filter((p): p is CatTrendPoint & { phValue: number } => typeof p.phValue === "number")
                 .map((p) => ({ date: p.capturedAt, phValue: p.phValue }))}
               bands={bands}
               referenceBand={referenceBand}
@@ -430,7 +441,7 @@ export function WebTrendsScreen({
           <Card className="flex flex-col gap-3 bg-background-alt">
             <div className="flex items-start gap-2">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-dark text-white">
-                <Sparkles className="size-4" aria-hidden="true" />
+                <ListChecks className="size-4" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-body font-bold text-primary-dark">{t("web.summaryTitle")}</p>
@@ -521,10 +532,18 @@ export function WebTrendsScreen({
                   const band = bandForPoint(p);
                   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
                   const captured = new Date(p.capturedAt);
+                  // Dòng phụ chỉ in cờ THẬT của điểm (D13): gần ranh giới dải / chủ nuôi báo sai.
+                  const flags = [
+                    p.nearBoundary ? t("web.logNearBoundary") : null,
+                    p.disputed ? t("web.logDisputed") : null,
+                  ].filter(Boolean);
                   return (
                     // Mockup tô nền cả hàng cho lần quét "cần lưu ý" — dùng cờ `triggersAlert`
                     // THẬT của dải (API), không tự đặt ngưỡng.
-                    <tr key={p.capturedAt} className={cn("border-b border-border", band?.triggersAlert && style.bg)}>
+                    <tr
+                      key={`${p.capturedAt}-${String(i)}`}
+                      className={cn("border-b border-border", band?.triggersAlert && style.bg)}
+                    >
                       <td className="px-3 py-3">
                         <p className="text-caption font-bold text-text-primary">
                           {new Intl.DateTimeFormat("vi-VN", {
@@ -534,25 +553,27 @@ export function WebTrendsScreen({
                             minute: "2-digit",
                           }).format(captured)}
                         </p>
-                        <p className="text-[11px] text-text-secondary">
-                          {p.nearBoundary ? t("web.logNearBoundary") : t("web.logAutoScan")}
-                        </p>
+                        {flags.length > 0 ? (
+                          <p className="text-[11px] text-text-secondary">{flags.join(" • ")}</p>
+                        ) : null}
                       </td>
                       <td className="px-3 py-3">
-                        <span className="flex items-center gap-2">
-                          <img
-                            src={DESIGN_MOCK_BEADS[i % DESIGN_MOCK_BEADS.length]}
-                            alt=""
-                            className="size-9 shrink-0 rounded-full object-cover"
-                          />
-                          <span className="text-[11px] text-text-secondary">
-                            {p.confidence === null
-                              ? dash
-                              : t("web.logConfidence", {
-                                  percent: Math.round(p.confidence * 100),
-                                })}
+                        {/* Thanh độ tin cậy dựng từ `confidence` (0–1) của chính lần quét. */}
+                        {p.confidence === null ? (
+                          <span className="text-[11px] text-text-secondary">{dash}</span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-background-alt">
+                              <span
+                                className="block h-full rounded-full bg-primary"
+                                style={{ width: `${String(Math.round(p.confidence * 100))}%` }}
+                              />
+                            </span>
+                            <span className="text-[11px] font-semibold text-text-secondary">
+                              {t("web.logConfidence", { percent: Math.round(p.confidence * 100) })}
+                            </span>
                           </span>
-                        </span>
+                        )}
                       </td>
                       <td className="px-3 py-3">
                         <span className="text-body font-bold text-primary-dark">{formatPh(p.phValue, dash)}</span>{" "}

@@ -13,15 +13,20 @@ export const buttonVariants = cva(
       // primary-dark (#0D369A) chứ không phải primary (#2F4FB2) — primary chỉ dùng cho mảng
       // lớn (hero card, header). Secondary luôn có chữ tối trên nền vàng theo p10.
       variant: {
-        primary:
-          "bg-primary-dark text-white shadow-[0px_4px_6px_-1px_rgba(13,54,154,0.2),0px_2px_4px_-2px_rgba(13,54,154,0.2)] hover:bg-primary",
+        // `shadow-brand-lg` = đúng bộ shadow brand blue của p10 §2.5, thay cho chuỗi
+        // `shadow-[0px_4px_6px_-1px_rgba(13,54,154,.2),…]` viết cứng trước đây.
+        primary: "bg-primary-dark !text-white shadow-brand-lg hover:bg-primary",
         secondary: "bg-secondary text-secondary-text-on shadow-sm hover:bg-secondary-light",
         tertiary: "bg-transparent text-primary border border-border hover:bg-background-alt",
       },
+      // p10 §10.2: MỌI phần tử bấm được tối thiểu 44×44px. `sm` trước đây là `h-9` (36px)
+      // nên mọi nút "Thử lại" của `ErrorState` và các nút phụ đều dưới ngưỡng chạm.
+      // Dùng `min-h-[var(--touch-target-min)]` thay cho chiều cao cố định để nút vẫn co giãn
+      // được khi nội dung xuống dòng.
       size: {
-        sm: "h-9 px-3 text-caption gap-1.5",
-        md: "h-11 px-4 text-body",
-        lg: "h-[52px] px-6 text-body",
+        sm: "min-h-[var(--touch-target-min)] px-3 text-caption gap-1.5",
+        md: "min-h-[var(--touch-target-min)] px-4 text-body",
+        lg: "min-h-13 px-6 text-body",
       },
       loading: {
         true: "relative text-transparent",

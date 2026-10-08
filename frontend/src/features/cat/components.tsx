@@ -259,13 +259,25 @@ interface OptionCardProps {
   type?: "radio" | "checkbox";
   title: string;
   disabled?: boolean;
+  /** Đệm/khoảng cách hẹp hơn — cho hàng 3 lựa chọn ngắn ở bề ngang điện thoại. */
+  compact?: boolean;
 }
 
-export function OptionCard({ name, value, checked, onChange, type = "radio", title, disabled }: OptionCardProps) {
+export function OptionCard({
+  name,
+  value,
+  checked,
+  onChange,
+  type = "radio",
+  title,
+  disabled,
+  compact = false,
+}: OptionCardProps) {
   return (
     <label
       className={cn(
-        "relative flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 bg-surface p-3 transition-colors",
+        "relative flex min-h-11 cursor-pointer items-center rounded-xl border-2 bg-surface transition-colors",
+        compact ? "gap-2 px-2.5 py-2.5" : "gap-3 p-3",
         checked ? "border-primary bg-chip-bg" : "border-border hover:border-border-strong",
         disabled && "cursor-not-allowed opacity-50",
       )}
@@ -293,7 +305,9 @@ export function OptionCard({ name, value, checked, onChange, type = "radio", tit
           <span className={cn("bg-primary", type === "radio" ? "size-2.5 rounded-full" : "size-3 rounded-sm")} />
         ) : null}
       </span>
-      <span className="text-body font-medium text-text-primary">{title}</span>
+      <span className={cn("font-medium text-text-primary", compact ? "text-caption md:text-body" : "text-body")}>
+        {title}
+      </span>
     </label>
   );
 }
@@ -375,10 +389,13 @@ export function CatFormFields({
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-caption font-semibold text-text-secondary">{t("form.sex.label")}</legend>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Ba lựa chọn ngắn — giữ một hàng ở mọi bề ngang (bản compact), không để "Chưa rõ"
+            vỡ hai dòng ở 390px như trước. */}
+        <div className="grid grid-cols-3 gap-2 md:gap-3">
           {(["MALE", "FEMALE", "UNKNOWN"] as const).map((value) => (
             <OptionCard
               key={value}
+              compact
               name="sex"
               value={value}
               checked={sex === value}
@@ -406,7 +423,8 @@ export function CatFormFields({
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-caption font-semibold text-text-secondary">{t("form.ageMode.label")}</legend>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* `sm` của dự án là 375px — hai cột ở 390px làm "Chỉ biết tuổi ước lượng" vỡ dòng. */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <OptionCard
             name="ageMode"
             value="birthDate"
@@ -574,12 +592,12 @@ export function ConfirmDialog({
  *     p15 §15.7.2 P3): mặc định thu gọn, tự bung khi có `warning_flags`.
  * Copy đặt tại `cat.json` (`disclaimer.emergency.*`), KHÔNG bịa thêm chữ.
  */
-function EmergencyContent() {
+function EmergencyContent({ showTitle = true }: { showTitle?: boolean }) {
   const { t } = useTranslation("cat");
   const points = t("disclaimer.emergency.points", { returnObjects: true }) as string[];
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-body font-bold text-danger-text">{t("disclaimer.emergency.title")}</p>
+      {showTitle ? <p className="text-body font-bold text-danger-text">{t("disclaimer.emergency.title")}</p> : null}
       <p className="text-caption text-danger-text">{t("disclaimer.emergency.intro")}</p>
       <ul className="list-disc pl-5 text-caption text-danger-text">
         {points.map((point) => (
@@ -652,7 +670,7 @@ export function EmergencyDisclaimerBanner({ forceExpanded = false, className }: 
       </button>
       {expanded ? (
         <div className="mt-3">
-          <EmergencyContent />
+          <EmergencyContent showTitle={!forceExpanded} />
         </div>
       ) : null}
     </div>
@@ -677,7 +695,7 @@ export function ClinicalSignPicker({ value, onChange, error }: ClinicalSignPicke
   return (
     <fieldset className="flex flex-col gap-3">
       <legend className="text-body font-semibold text-text-primary">{t("clinicalSigns.form.signs.label")}</legend>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         {CLINICAL_SIGNS.map((sign) => (
           <label
             key={sign}

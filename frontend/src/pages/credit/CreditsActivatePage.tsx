@@ -7,7 +7,7 @@ import { isApiError } from "@/shared/api";
 import {
   ActivationCodeField,
   isValidActivationCode,
-  normalizeActivationCode,
+  formatActivationCode,
   useActivateCode,
   type ActivationResult,
 } from "@/features/credit";
@@ -47,7 +47,7 @@ export function CreditsActivatePage() {
       return;
     }
     try {
-      const result = await activateCode.mutateAsync(normalizeActivationCode(code));
+      const result = await activateCode.mutateAsync(formatActivationCode(code));
       setSuccess(result);
     } catch (error) {
       if (isApiError(error)) {

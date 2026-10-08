@@ -16,6 +16,7 @@ import {
   useVerifyOtp,
   type ForgotPasswordFieldValues,
 } from "@/features/auth";
+import { AuthCard } from "./AuthCard";
 
 const INITIAL_RESEND_COOLDOWN_SECONDS = 60;
 
@@ -94,7 +95,7 @@ export function ForgotPasswordPage() {
 
   if (step === "OTP") {
     return (
-      <div className="flex flex-col gap-6">
+      <AuthCard>
         <header className="flex flex-col gap-1 text-center">
           <h1 className="text-h2 font-bold text-text-primary">{t("forgotPassword.otpStep.title")}</h1>
           <p className="text-caption text-text-secondary">{t("forgotPassword.otpStep.subtitle", { email })}</p>
@@ -140,12 +141,12 @@ export function ForgotPasswordPage() {
         >
           {t("forgotPassword.otpStep.back")}
         </button>
-      </div>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <AuthCard>
       <header className="flex flex-col gap-1 text-center">
         <h1 className="text-h2 font-bold text-text-primary">{t("forgotPassword.title")}</h1>
         <p className="text-caption text-text-secondary">{t("forgotPassword.subtitle")}</p>
@@ -179,6 +180,6 @@ export function ForgotPasswordPage() {
           {t("forgotPassword.backToLogin")}
         </Link>
       </p>
-    </div>
+    </AuthCard>
   );
 }

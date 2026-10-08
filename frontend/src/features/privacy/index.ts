@@ -37,3 +37,4 @@ export type {
   PurposeView,
   StepUpMethod,
 } from "./types";
+export { accessLogActionKey, accessLogActorKey, accessLogResultKey } from "./accessLogLabels";

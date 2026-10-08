@@ -57,6 +57,9 @@ export function PhBadge({ band, className }: PhBadgeProps) {
   );
 }
 
+/** Phần thang vẽ thêm ngoài cận hữu hạn cho mỗi dải mở (tỉ lệ trên khoảng giữa hai cận). */
+const OPEN_END_PAD_RATIO = 0.3;
+
 export interface PhGaugeBarProps {
   /** Toàn bộ dải, đã sắp `sortOrder` (kết quả `usePhBands()`). */
   bands: PhBand[];
@@ -76,10 +79,22 @@ export function PhGaugeBar({ bands, value, domain, className }: PhGaugeBarProps)
   // trả `null` — nên phải lọc bằng `typeof === "number"`. Lọc bằng `!== null` thì
   // `undefined` lọt qua và `Math.min(..., undefined)` ra `NaN`, hỏng cả hai nhãn đầu thang.
   const isNumber = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
-  const lowerBounds = bands.map((b) => b.phMin).filter(isNumber);
-  const upperBounds = bands.map((b) => b.phMax).filter(isNumber);
-  const min = domain?.min ?? (lowerBounds.length ? Math.min(...lowerBounds) : 0);
-  const max = domain?.max ?? (upperBounds.length ? Math.max(...upperBounds) : 14);
+  // Dải KHÔNG có cận nào (VD `INCONCLUSIVE`) không phải một đoạn trên trục pH. Trước đây nó
+  // vẫn được vẽ với độ rộng 100% ⇒ tổng các đoạn thành 200%, flex co mọi đoạn lại một nửa và
+  // nửa phải của thanh thành một mảng màu "chưa xác định" — thang hiển thị sai hẳn.
+  const axisBands = bands
+    .filter((b) => isNumber(b.phMin) || isNumber(b.phMax))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const bounds = [...axisBands.map((b) => b.phMin), ...axisBands.map((b) => b.phMax)].filter(isNumber);
+  const innerMin = bounds.length ? Math.min(...bounds) : 0;
+  const innerMax = bounds.length ? Math.max(...bounds) : 14;
+  // Dải mở hai đầu (VD `LOW` chỉ có `phMax`) cần một khoảng nhìn thấy được ngoài cận hữu hạn,
+  // nếu không chúng có độ rộng 0 và giá trị pH rơi vào đó bị kẹp sát mép thang.
+  const pad = (innerMax - innerMin || 1) * OPEN_END_PAD_RATIO;
+  const hasOpenLow = axisBands.some((b) => !isNumber(b.phMin));
+  const hasOpenHigh = axisBands.some((b) => !isNumber(b.phMax));
+  const min = domain?.min ?? (hasOpenLow ? innerMin - pad : innerMin);
+  const max = domain?.max ?? (hasOpenHigh ? innerMax + pad : innerMax);
   const span = max - min || 1;
 
   const clampPercent = (ph: number) => Math.min(100, Math.max(0, ((ph - min) / span) * 100));
@@ -88,22 +103,19 @@ export function PhGaugeBar({ bands, value, domain, className }: PhGaugeBarProps)
     <div className={cn("flex flex-col gap-1", className)}>
       <div className="relative h-3 w-full overflow-hidden rounded-full" role="img" aria-hidden="true">
         <div className="flex h-full w-full">
-          {bands
-            .slice()
-            .sort((a, b) => a.sortOrder - b.sortOrder)
-            .map((band) => {
-              const segMin = band.phMin ?? min;
-              const segMax = band.phMax ?? max;
-              const widthPercent = Math.max(0, clampPercent(segMax) - clampPercent(segMin));
-              if (widthPercent <= 0) return null;
-              return (
-                <span
-                  key={band.code}
-                  style={{ width: `${String(widthPercent)}%` }}
-                  className={phTokenStyle(band.colorToken).solid}
-                />
-              );
-            })}
+          {axisBands.map((band) => {
+            const segMin = band.phMin ?? min;
+            const segMax = band.phMax ?? max;
+            const widthPercent = Math.max(0, clampPercent(segMax) - clampPercent(segMin));
+            if (widthPercent <= 0) return null;
+            return (
+              <span
+                key={band.code}
+                style={{ width: `${String(widthPercent)}%` }}
+                className={cn("shrink-0", phTokenStyle(band.colorToken).solid)}
+              />
+            );
+          })}
         </div>
         {value !== null && value !== undefined ? (
           <span

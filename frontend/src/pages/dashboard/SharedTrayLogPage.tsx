@@ -113,7 +113,10 @@ export function SharedTrayLogPage() {
             <MonthGroupHeader label={monthLabel(key)} count={t("sharedTray.countLabel", { count: scans.length })} />
             <ul className="flex flex-col gap-3">
               {scans.map((scan) => (
-                <li key={scan.scanId} className="flex flex-col gap-1.5">
+                // Thiết kế M-07b/Web-07b: nút "Gán cho một bé" nằm TRONG thẻ, ở hàng chân —
+                // không trôi lơ lửng dưới thẻ. `ScanTimelineItem` là một <button> nên hàng chân
+                // phải là anh em của nó (không lồng button), cùng chung một khung viền.
+                <li key={scan.scanId} className="overflow-hidden rounded-xl border border-border bg-surface">
                   <ScanTimelineItem
                     scan={scan}
                     bands={bands ?? []}
@@ -127,16 +130,19 @@ export function SharedTrayLogPage() {
                     onOpen={(scanId) => {
                       void navigate(`/scans/${scanId}`);
                     }}
+                    className="rounded-none border-0"
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigate(`/scan/${scan.scanId}/reassign-cat`);
-                    }}
-                    className="self-end rounded-md px-1 text-caption font-semibold text-primary hover:underline"
-                  >
-                    {t("sharedTray.assignCta")}
-                  </button>
+                  <div className="flex justify-end border-t border-border px-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigate(`/scan/${scan.scanId}/reassign-cat`);
+                      }}
+                      className="min-h-11 rounded-md px-1 text-caption font-semibold text-primary hover:underline"
+                    >
+                      {t("sharedTray.assignCta")}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -170,10 +176,10 @@ export function SharedTrayLogPage() {
         <p className="pt-1 text-body text-text-secondary">{t("sharedTray.lead")}</p>
       </header>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">{list}</div>
 
-        <aside className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md lg:w-[360px] lg:shrink-0">
+        <aside className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md xl:w-[360px] xl:shrink-0">
           <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
             <Users size={18} className="text-primary-dark" aria-hidden="true" />
             {t("sharedTray.bannerTitle")}

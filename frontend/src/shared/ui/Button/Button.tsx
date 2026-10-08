@@ -1,5 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../cn";
 import { buttonVariants, type ButtonVariantProps } from "./Button.variants";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, ButtonVariantProps {

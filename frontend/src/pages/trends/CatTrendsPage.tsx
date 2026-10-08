@@ -7,6 +7,7 @@ import { Button, buttonVariants, Card, ErrorState, SkeletonLoader } from "@/shar
 import { cn } from "@/shared/lib/cn";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { findBandForPh, PhBadge, phTokenStyle, usePhBands, type PhBand } from "@/entities/ph-bands";
+import { useExportWizardStore } from "@/features/export";
 import { useCat } from "@/features/history";
 import {
   DistributionBar,
@@ -36,6 +37,12 @@ export function CatTrendsPage() {
 
   const { data: cat } = useCat(catId);
   const { data: bands } = usePhBands();
+  const setExportCat = useExportWizardStore((s) => s.setCat);
+  /** Xuất hồ sơ PDF với bé đang xem đã được chọn sẵn ở bước 1. */
+  const openExport = () => {
+    if (cat) setExportCat({ id: cat.id, name: cat.name });
+    void navigate("/export");
+  };
   const webTrends = useCatTrends(catId, range);
   const { isPending, isError, refetch } = webTrends;
   const summary = webTrends.data?.stats;
@@ -233,9 +240,7 @@ export function CatTrendsPage() {
           <Button
             variant="secondary"
             leftIcon={<FileText className="size-4" />}
-            onClick={() => {
-              void navigate("/export");
-            }}
+            onClick={openExport}
           >
             {t("export.cta")}
           </Button>
@@ -255,6 +260,9 @@ export function CatTrendsPage() {
       {/* Desktop (>= lg): bố cục Figma 17:10514, số liệu lấy từ D13 thật. */}
       <div className="hidden lg:block">
         <WebTrendsScreen
+          catId={catId ?? ""}
+          catName={cat?.name ?? null}
+          onExport={openExport}
           bands={allBands}
           data={webTrends.data}
           isPending={webTrends.isPending}

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { CalendarClock, Camera, ChevronRight, Pause, Play } from "lucide-react";
+import { CalendarClock, Camera, ChevronRight, Pause, Play, Ticket } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { ErrorState, SkeletonLoader } from "@/shared/ui";
 import { reminderCalendarUrl, type Reminder } from "@/features/reminder";
@@ -13,7 +13,9 @@ import {
   StatusChip,
   dueState,
   formatDateTime,
+  reminderAction,
   timeWindow,
+  useNextRunLabel,
   useScheduleLabel,
 } from "./reminderUi";
 
@@ -128,6 +130,7 @@ export function WebRemindersScreen({
 }: WebRemindersScreenProps) {
   const { t } = useTranslation(["reminder", "common"]);
   const scheduleLabel = useScheduleLabel();
+  const nextRunLabel = useNextRunLabel();
   const now = new Date();
 
   const header = (
@@ -265,7 +268,11 @@ export function WebRemindersScreen({
                     className="flex gap-4 rounded-2xl border-l-4 border-secondary bg-surface p-4 shadow-xs"
                   >
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/30 text-secondary-text-on">
-                      <Camera size={18} aria-hidden="true" />
+                      {reminder.type === "CREDIT_EXPIRY" ? (
+                        <Ticket size={18} aria-hidden="true" />
+                      ) : (
+                        <Camera size={18} aria-hidden="true" />
+                      )}
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <div className="flex flex-wrap items-center gap-2">
@@ -275,22 +282,24 @@ export function WebRemindersScreen({
                           </span>
                         )}
                         <span className="text-small text-text-secondary">
-                          {t("web.forCat", { name: catLabel(reminder) })}
+                          {reminder.catId === undefined
+                            ? t("web.forAccount")
+                            : t("web.forCat", { name: catLabel(reminder) })}
                         </span>
                       </div>
                       <p className="text-body font-bold leading-snug text-text-primary">{t(`type.${reminder.type}`)}</p>
                       <p className="text-caption text-text-secondary">
                         {reminder.nextRunAt === undefined
                           ? t("list.nextRunUnknown")
-                          : `${t("list.nextRunLabel")}: ${formatDateTime(reminder.nextRunAt)}`}
+                          : `${nextRunLabel(reminder)}: ${formatDateTime(reminder.nextRunAt)}`}
                       </p>
                       <div className="flex flex-wrap items-center gap-2 pt-1">
                         <DueChip due={due} />
                         <Link
-                          to="/scan"
+                          to={reminderAction(reminder).to}
                           className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-dark px-4 py-2 text-caption font-bold text-white shadow-sm"
                         >
-                          {t("web.scanNowCta")}
+                          {t(reminderAction(reminder).labelKey)}
                         </Link>
                         <button
                           type="button"
@@ -318,41 +327,45 @@ export function WebRemindersScreen({
                 {t("web.upcomingEmpty")}
               </p>
             ) : (
-              upcoming.map((reminder) => (
-                <article
-                  key={reminder.id}
-                  className="flex flex-wrap items-center gap-4 rounded-2xl bg-surface p-4 shadow-xs"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark">
-                    <CalendarClock size={18} aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+              upcoming.map((reminder) => {
+                const due = dueState(reminder.nextRunAt, now.getTime());
+                return (
+                  /* Web-09 "Lịch nhắc tuần này": icon · (hàng chip → tiêu đề → mô tả) · nút bên
+                     phải. Trước đây chip "Còn N ngày" + 2 nút cùng chen vào hàng ngang với cột
+                     chữ, ép cột chữ còn ~140px nên mọi dòng xuống 2–3 hàng. Nay chip trạng thái
+                     lên hàng chip, hai nút xếp dọc trong cột cố định 172px. */
+                  <article key={reminder.id} className="flex items-start gap-4 rounded-2xl bg-surface p-4 shadow-xs">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark">
+                      <CalendarClock size={18} aria-hidden="true" />
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <DueChip due={due} />
+                        <StatusChip reminder={reminder} due={due} />
+                      </div>
                       <p className="text-body font-bold text-text-primary">{catLabel(reminder)}</p>
-                      <StatusChip reminder={reminder} due={dueState(reminder.nextRunAt, now.getTime())} />
+                      <p className="text-caption text-text-secondary">
+                        {`${scheduleLabel(reminder)} · ${t(`type.${reminder.type}`)}`}
+                      </p>
+                      <p className="text-small text-text-tertiary">
+                        {reminder.nextRunAt === undefined
+                          ? t("list.nextRunUnknown")
+                          : `${nextRunLabel(reminder)}: ${formatDateTime(reminder.nextRunAt)}`}
+                      </p>
                     </div>
-                    <p className="text-caption text-text-secondary">
-                      {`${scheduleLabel(reminder)} · ${t(`type.${reminder.type}`)}`}
-                    </p>
-                    <p className="text-small text-text-tertiary">
-                      {reminder.nextRunAt === undefined
-                        ? t("list.nextRunUnknown")
-                        : `${t("list.nextRunLabel")}: ${formatDateTime(reminder.nextRunAt)}`}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <DueChip due={dueState(reminder.nextRunAt, now.getTime())} />
-                    <AddToCalendarLink href={reminderCalendarUrl(reminder.id)} />
-                    <Link
-                      to={`/reminders/${reminder.id}`}
-                      className="inline-flex items-center justify-center gap-1 rounded-xl bg-primary-dark px-4 py-2.5 text-caption font-bold text-white shadow-sm"
-                    >
-                      {t("web.editCta")}
-                      <ChevronRight size={14} aria-hidden="true" />
-                    </Link>
-                  </div>
-                </article>
-              ))
+                    <div className="flex w-[172px] shrink-0 flex-col gap-2">
+                      <Link
+                        to={`/reminders/${reminder.id}`}
+                        className="inline-flex items-center justify-center gap-1 rounded-xl bg-primary-dark px-4 py-2.5 text-caption font-bold text-white shadow-sm"
+                      >
+                        {t("web.editCta")}
+                        <ChevronRight size={14} aria-hidden="true" />
+                      </Link>
+                      <AddToCalendarLink href={reminderCalendarUrl(reminder.id)} />
+                    </div>
+                  </article>
+                );
+              })
             )}
           </section>
 
@@ -391,10 +404,6 @@ export function WebRemindersScreen({
               ))}
             </section>
           ) : null}
-
-          {/* Panel "Cấu hình Tần suất" ở chân cột chính của `Web - 09` — cùng khối sửa nhanh
-              với bản mobile. */}
-          <ReminderQuickPlan reminders={reminders} catNameById={catNameById} />
         </div>
 
         {/* ── Cột phải ────────────────────────────────────────────────────────────────── */}
@@ -429,6 +438,14 @@ export function WebRemindersScreen({
           </section>
 
           <EducationCard withPhoto />
+        </div>
+
+        {/* Panel "Cấu hình Tần suất" của `Web - 09` — khối sửa nhanh dùng chung với bản
+            mobile. Trước đây nó nằm trong cột trái 8/12: form cao ~1300px kéo cột trái dài
+            gấp đôi cột phải và để lại hơn 1100px trống dưới lịch tháng. Nay nó chiếm trọn
+            bề ngang ở dưới (`wide`) nên ba khối chọn xếp ngang và hai cột trên cân nhau. */}
+        <div className="col-span-12">
+          <ReminderQuickPlan reminders={reminders} catNameById={catNameById} wide />
         </div>
       </div>
     </div>

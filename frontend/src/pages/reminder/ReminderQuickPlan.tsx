@@ -43,9 +43,15 @@ import {
 export interface ReminderQuickPlanProps {
   reminders: Reminder[];
   catNameById: Map<string, string>;
+  /**
+   * `true` khi khối này nằm trọn bề ngang (bản web, dưới hai cột) thay vì trong một cột hẹp.
+   * Ba khối chọn xếp ngang thay vì chồng dọc — nếu không thì một form cao ~1300px đẩy cột
+   * trái dài gấp đôi cột phải và để lại mảng trống lớn bên dưới lịch tháng.
+   */
+  wide?: boolean;
 }
 
-export function ReminderQuickPlan({ reminders, catNameById }: ReminderQuickPlanProps) {
+export function ReminderQuickPlan({ reminders, catNameById, wide = false }: ReminderQuickPlanProps) {
   const { t } = useTranslation(["reminder", "common"]);
   const updateReminder = useUpdateReminder();
 
@@ -57,8 +63,14 @@ export function ReminderQuickPlan({ reminders, catNameById }: ReminderQuickPlanP
   const [draft, setDraft] = useState<{ id: string; values: ReminderFormValues } | null>(null);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
-  const fallback = reminders.find((reminder) => reminder.active) ?? reminders.at(0);
-  const selected = (pickedId === null ? undefined : reminders.find((reminder) => reminder.id === pickedId)) ?? fallback;
+  // Khối này chỉnh NHỊP QUÉT (frame 09 "Tần suất theo dõi"). Có lịch `SCAN_ROUTINE` thì chỉ
+  // liệt kê chúng — lịch hệ thống như "Nhắc hạn gói" không có khung giờ và không phải nhịp quét,
+  // để nó làm lựa chọn mặc định thì khối mở ra với "Kế hoạch cho Lịch cấp tài khoản" và hai ô
+  // giờ trống.
+  const scanPlans = reminders.filter((reminder) => reminder.type === "SCAN_ROUTINE");
+  const plans = scanPlans.length > 0 ? scanPlans : reminders;
+  const fallback = plans.find((reminder) => reminder.active) ?? plans.at(0);
+  const selected = (pickedId === null ? undefined : plans.find((reminder) => reminder.id === pickedId)) ?? fallback;
 
   if (selected === undefined) return null;
 
@@ -98,7 +110,7 @@ export function ReminderQuickPlan({ reminders, catNameById }: ReminderQuickPlanP
 
   /** Góc phải tiêu đề "Tần suất Theo dõi" — frame 09: "Kế hoạch cho Luna". */
   const planTarget =
-    reminders.length > 1 ? (
+    plans.length > 1 ? (
       <select
         value={selected.id}
         aria-label={t("list.planPickLabel")}
@@ -106,9 +118,9 @@ export function ReminderQuickPlan({ reminders, catNameById }: ReminderQuickPlanP
           setPickedId(event.target.value);
           setErrors({});
         }}
-        className="h-9 max-w-[180px] rounded-xl bg-background-alt px-3 text-caption font-semibold text-primary-dark focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
+        className="h-9 max-w-full rounded-xl bg-background-alt px-3 text-caption font-semibold text-primary-dark focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
       >
-        {reminders.map((reminder) => (
+        {plans.map((reminder) => (
           <option key={reminder.id} value={reminder.id}>
             {t("list.planFor", { name: catLabel(reminder) })}
           </option>
@@ -126,8 +138,11 @@ export function ReminderQuickPlan({ reminders, catNameById }: ReminderQuickPlanP
         event.preventDefault();
         handleSubmit();
       }}
-      className="flex flex-col gap-4"
+      className={wide ? "grid gap-4 xl:grid-cols-2" : "flex flex-col gap-4"}
     >
+      {/* Web-09 "Cấu hình tần suất": HAI cột — tần suất bên trái, khung giờ + kênh bên phải.
+          Bản 3 cột trước đó để ô preset chỉ còn ~130px (chip "Theo dõi sát" vỡ 2 dòng) và cột
+          khung giờ ngắn hơn hai cột kia ~350px. */}
       <FrequencyPicker
         scheduleMode={values.scheduleMode}
         intervalDays={values.intervalDays}
@@ -146,42 +161,50 @@ export function ReminderQuickPlan({ reminders, catNameById }: ReminderQuickPlanP
         }}
       />
 
-      <TimeWindowPicker
-        start={values.preferredTimeStart}
-        end={values.preferredTimeEnd}
-        timezone={selected.timezone}
-        errorKey={errors.preferredTimeEnd}
-        onStartChange={(value) => {
-          patch({ preferredTimeStart: value });
-        }}
-        onEndChange={(value) => {
-          patch({ preferredTimeEnd: value });
-        }}
-      />
+      <div className={wide ? "flex flex-col gap-4" : "contents"}>
+        <TimeWindowPicker
+          start={values.preferredTimeStart}
+          end={values.preferredTimeEnd}
+          timezone={selected.timezone}
+          errorKey={errors.preferredTimeEnd}
+          onStartChange={(value) => {
+            patch({ preferredTimeStart: value });
+          }}
+          onEndChange={(value) => {
+            patch({ preferredTimeEnd: value });
+          }}
+        />
 
-      <ChannelPicker
-        value={values.channels}
-        errorKey={errors.channels}
-        onChange={(channels: ReminderChannel[]) => {
-          patch({ channels });
-        }}
-      />
+        <ChannelPicker
+          value={values.channels}
+          errorKey={errors.channels}
+          onChange={(channels: ReminderChannel[]) => {
+            patch({ channels });
+          }}
+        />
+      </div>
 
-      {saveErrorCode === REMINDER_ERROR.SCHEDULE_INVALID ? (
-        <ScheduleInvalidNotice />
-      ) : updateReminder.isError ? (
-        <GenericSaveError />
-      ) : null}
+      <div className={wide ? "flex flex-col gap-3 xl:col-span-2 xl:flex-row xl:items-center" : "contents"}>
+        {saveErrorCode === REMINDER_ERROR.SCHEDULE_INVALID ? (
+          <ScheduleInvalidNotice />
+        ) : updateReminder.isError ? (
+          <GenericSaveError />
+        ) : null}
 
-      <Button type="submit" size="lg" loading={isSaving}>
-        {t("form.submitPlan")}
-      </Button>
+        <Button type="submit" size="lg" loading={isSaving} className={wide ? "xl:ml-auto xl:w-60" : undefined}>
+          {t("form.submitPlan")}
+        </Button>
 
-      <AddToCalendarLink
-        href={reminderCalendarUrl(selected.id)}
-        label={t("list.syncCalendar")}
-        className="w-full border-transparent bg-background-alt"
-      />
+        <AddToCalendarLink
+          href={reminderCalendarUrl(selected.id)}
+          label={t("list.syncCalendar")}
+          className={
+            wide
+              ? "whitespace-nowrap border-transparent bg-background-alt xl:px-6"
+              : "w-full border-transparent bg-background-alt"
+          }
+        />
+      </div>
     </form>
   );
 }

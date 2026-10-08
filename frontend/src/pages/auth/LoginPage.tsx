@@ -7,17 +7,10 @@ import { AtSign, ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-rea
 import { Button, Input, Switch } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
-import loginDemoCat from "@/shared/assets/images/login-demo-cat.jpg";
-import showcaseCat from "@/shared/assets/images/web-auth/signin-showcase-cat.png";
-import reviewerAvatar from "@/shared/assets/images/web-auth/signin-reviewer.png";
-import isfmBadge from "@/shared/assets/icons/web-auth/isfm-badge.svg";
-import brandPaw from "@/shared/assets/icons/web-auth/brand-paw.svg";
-import avatarCheck from "@/shared/assets/icons/web-auth/avatar-check.svg";
-import phFlask from "@/shared/assets/icons/web-auth/ph-flask.svg";
-import ratingStarBox from "@/shared/assets/icons/web-auth/rating-star-box.svg";
-import starIcon from "@/shared/assets/icons/web-auth/star.svg";
 import portalBadge from "@/shared/assets/icons/web-auth/portal-badge.svg";
 import cloudShield from "@/shared/assets/icons/web-auth/cloud-shield.svg";
+import { LoginShowcase } from "./LoginShowcase";
+import { AuthCard } from "./AuthCard";
 import {
   GoogleAuthButton,
   InlineAlert,
@@ -25,6 +18,7 @@ import {
   isMfaChallenge,
   loginSchema,
   useAuthFlowStore,
+  useBuildVersion,
   useLogin,
   useVerifyLoginRecoveryCode,
   useVerifyLoginTotp,
@@ -32,22 +26,6 @@ import {
 } from "@/features/auth";
 
 const DEFAULT_AFTER_LOGIN = "/dashboard";
-
-/**
- * Nội dung MOCK THEO THIẾT KẾ cho panel giới thiệu bên trái bản web (Figma 16:7573).
- * Đây là khu vực marketing hiển thị TRƯỚC khi đăng nhập nên không có API nào cấp dữ liệu;
- * số liệu lấy đúng như trong Figma, không phải dữ liệu thật của người dùng.
- */
-const SHOWCASE_MOCK = {
-  catName: "Miu Miu (Luna)",
-  catAge: "2 tuổi",
-  lastCheck: "Lần kiểm tra gần nhất: 10 phút trước",
-  phBadge: "pH 6.8 • Bình thường",
-  phPercent: 55,
-  statsValue: "15.000+",
-  quote: "“Nhờ hạt cát đổi màu tím mà mình phát hiện bé bị sỏi bàng quang sớm, cứu bé kịp thời!”",
-  quoteAuthor: "Thu Hà • Sen của Mochi & Đậu Đậu (Cầu Giấy, HN)",
-} as const;
 
 function resolveRedirectTarget(next: string | null): string {
   // Chỉ chấp nhận path nội bộ bắt đầu bằng "/" — chặn open-redirect qua query `next`.
@@ -57,12 +35,11 @@ function resolveRedirectTarget(next: string | null): string {
 
 /**
  * `/auth/login` (p9 §9.4.3 #2, M1 01b · W1 Web-01) — khớp Figma (CatCheck-Demo
- * 26mOVF2zdu4cI1EPz2Syxw). `AuthLayout` chỉ vẽ TopBar task-level dùng chung; logo tròn +
- * badge phiên bản + thẻ demo mèo là nội dung riêng của trang này. Không có panel marketing
- * 2 cột (p10 §6.1) — giữ single-column cho mọi breakpoint (xem `docs/handovers/A1-fe.md`).
+ * 26mOVF2zdu4cI1EPz2Syxw). Mobile 1 cột (logo tròn + badge phiên bản lấy `buildVersion` từ
+ * `GET /system/status`), web 2 cột: panel thương hiệu `LoginShowcase` + form.
  *
- * Thẻ demo "Bé Luna & Bạn" là nội dung trang trí tĩnh lấy nguyên văn từ ảnh thiết kế gốc
- * (asset/screen/.../01b) — màn hình trước đăng nhập chưa có dữ liệu mèo thật để hiển thị.
+ * Thẻ demo "Bé Luna & Bạn — Khỏe mạnh" của mockup 01b đã BỎ: trước đăng nhập không có dữ
+ * liệu mèo thật, và nhãn "Khỏe mạnh" là một kết luận sức khoẻ sản phẩm không được đưa ra.
  *
  * Bước 2 MFA (A10/A11, p11 §11.12): `POST /auth/login` có thể trả `mfaRequired: true`
  * ngay trên trang này (không có route riêng) — chuyển UI in-place sang nhập mã TOTP hoặc
@@ -75,6 +52,7 @@ export function LoginPage() {
   const pendingLoginMfaMethods = useAuthFlowStore((s) => s.pendingLoginMfaMethods);
 
   const login = useLogin();
+  const { data: buildVersion } = useBuildVersion();
   const verifyTotp = useVerifyLoginTotp();
   const verifyRecovery = useVerifyLoginRecoveryCode();
 
@@ -170,7 +148,7 @@ export function LoginPage() {
   if (pendingLoginMfaMethods) {
     const isBusy = verifyTotp.isPending || verifyRecovery.isPending;
     return (
-      <div className="flex flex-col gap-6">
+      <AuthCard>
         <header className="flex flex-col gap-1 text-center">
           <h1 className="text-h2 font-bold text-text-primary">{t("mfa.title")}</h1>
           <p className="text-caption text-text-secondary">
@@ -223,168 +201,14 @@ export function LoginPage() {
         >
           {t("mfa.backToLogin")}
         </button>
-      </div>
+      </AuthCard>
     );
   }
 
   return (
     <div className="lg:grid lg:min-h-[733.5px] lg:grid-cols-12 lg:overflow-hidden lg:rounded-3xl lg:bg-surface lg:shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]">
-      {/* ══ Cột trái CHỈ CÓ Ở WEB (Figma 16:7573) — panel thương hiệu nền gradient ══ */}
-      <aside
-        className="relative hidden overflow-hidden lg:col-span-7 lg:flex lg:flex-col lg:justify-between lg:p-14"
-        style={{
-          backgroundImage:
-            "linear-gradient(134.43deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, rgb(26,62,161) 100%)",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute -right-20 -top-20 size-96 rounded-full bg-[rgba(255,223,147,0.1)] blur-[32px]"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute bottom-0 left-1/4 right-[29.29%] h-80 rounded-full bg-[rgba(220,225,255,0.15)] blur-[20px]"
-          aria-hidden="true"
-        />
-
-        <div className="relative flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 rounded-full bg-[rgba(255,255,255,0.15)] px-3.5 py-1.5 backdrop-blur-[6px]">
-              <span className="size-2 rounded-full bg-secondary" aria-hidden="true" />
-              <span className="text-[12px] font-bold tracking-[0.3px] text-background">
-                {t("web.signin.innovationBadge")}
-              </span>
-            </span>
-            <span className="flex items-center gap-1.5 rounded-full bg-[rgba(255,255,255,0.1)] px-3 py-1">
-              <img src={isfmBadge} alt="" className="h-[14px] w-[14.667px]" />
-              <span className="text-[11px] font-semibold tracking-[0.4px] text-white">
-                {t("web.signin.partnerBadge")}
-              </span>
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="flex size-12 items-center justify-center rounded-2xl bg-surface shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]">
-                <img src={brandPaw} alt="" className="h-[23.75px] w-[25px]" />
-              </span>
-              <span className="flex flex-col">
-                <span className="text-[32px] font-extrabold leading-10 tracking-[-0.8px] text-background">
-                  CATCHECK
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.55px] text-on-primary-subtle">
-                  {t("web.signin.brandTagline")}
-                </span>
-              </span>
-            </div>
-            <h2 className="pt-2 text-[24px] font-extrabold leading-[33px] text-background">
-              {t("web.signin.headline")}
-            </h2>
-            <p className="max-w-[576px] text-[16px] leading-6 text-on-primary-subtle opacity-90">
-              {t("web.signin.subheadline")}
-            </p>
-          </div>
-        </div>
-
-        {/* Thẻ mèo + thang pH + thống kê (dữ liệu mock theo thiết kế) */}
-        <div className="relative grid grid-cols-12 gap-4 py-8">
-          <div className="col-span-7 flex flex-col justify-between rounded-2xl bg-[rgba(255,255,255,0.15)] p-4 shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] backdrop-blur-[12px]">
-            <div className="flex items-center gap-3">
-              <span className="relative shrink-0">
-                <img src={showcaseCat} alt="" className="size-14 rounded-2xl object-cover" />
-                <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-verified-bright">
-                  <img src={avatarCheck} alt="" className="h-[6.825px] w-[8.95px]" />
-                </span>
-              </span>
-              <span className="flex flex-col">
-                <span className="flex items-center gap-2">
-                  <span className="text-[18px] font-bold leading-6 text-background">{SHOWCASE_MOCK.catName}</span>
-                  <span className="rounded-full bg-secondary-light/20 px-2 py-0.5 text-[11px] font-semibold tracking-[0.4px] text-secondary-light">
-                    {SHOWCASE_MOCK.catAge}
-                  </span>
-                </span>
-                <span className="text-[11px] font-semibold tracking-[0.4px] text-on-primary-subtle">
-                  {SHOWCASE_MOCK.lastCheck}
-                </span>
-              </span>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2 rounded-xl bg-[rgba(255,255,255,0.1)] p-3">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <img src={phFlask} alt="" className="h-[13.333px] w-[10.667px]" />
-                  <span className="text-[11px] font-semibold tracking-[0.4px] text-background">
-                    {t("web.signin.phLabel")}
-                  </span>
-                </span>
-                <span className="rounded-full bg-verified-bright px-2 py-0.5 text-[12px] font-bold tracking-[0.3px] text-[rgb(0,33,9)]">
-                  {SHOWCASE_MOCK.phBadge}
-                </span>
-              </div>
-              <div
-                className="relative h-3 rounded-full"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(90deg, rgb(251,191,36) 0%, rgb(52,211,153) 50%, rgb(56,189,248) 100%)",
-                }}
-              >
-                <span
-                  className="absolute top-1/2 flex h-4 -translate-y-1/2 items-center justify-center rounded-full bg-surface px-1 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1)]"
-                  style={{ left: `${String(SHOWCASE_MOCK.phPercent)}%` }}
-                >
-                  <span className="size-2 rounded-full bg-primary" />
-                </span>
-              </div>
-              <div className="flex items-start justify-between text-[11px] font-semibold tracking-[0.4px]">
-                <span className="text-[rgba(222,225,249,0.9)]">{t("web.signin.phAcid")}</span>
-                <span className="text-background">{t("web.signin.phIdeal")}</span>
-                <span className="text-[rgba(222,225,249,0.9)]">{t("web.signin.phAlkaline")}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-span-5 flex flex-col justify-between gap-4">
-            <div className="rounded-2xl bg-[rgba(255,255,255,0.15)] p-4 shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1)] backdrop-blur-[12px]">
-              <p className="text-[32px] font-extrabold leading-10 text-secondary-light">{SHOWCASE_MOCK.statsValue}</p>
-              <p className="text-[11px] font-semibold tracking-[0.4px] text-background">
-                {t("web.signin.statsCaption")}
-              </p>
-              <p className="text-[11px] font-semibold tracking-[0.4px] text-on-primary-subtle opacity-80">
-                {t("web.signin.statsSub")}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl bg-[rgba(255,255,255,0.15)] p-3.5 shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1)] backdrop-blur-[12px]">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary-light">
-                <img src={ratingStarBox} alt="" className="h-[15.833px] w-[16.667px]" />
-              </span>
-              <span className="flex flex-col">
-                <span className="text-[12px] font-bold tracking-[0.3px] text-background">
-                  {t("web.signin.ratingTitle")}
-                </span>
-                <span className="text-[11px] font-semibold tracking-[0.4px] text-on-primary-subtle">
-                  {t("web.signin.ratingSub")}
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative flex items-center justify-between pt-4">
-          <div className="flex items-center gap-3">
-            <img src={reviewerAvatar} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-            <div className="flex flex-col">
-              <p className="text-[14px] font-semibold leading-5 text-background">{SHOWCASE_MOCK.quote}</p>
-              <p className="text-[11px] font-semibold tracking-[0.4px] text-on-primary-subtle">
-                {SHOWCASE_MOCK.quoteAuthor}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <img key={i} src={starIcon} alt="" className="h-[14.25px] w-[15px]" />
-            ))}
-          </div>
-        </div>
-      </aside>
+      {/* ══ Cột trái CHỈ CÓ Ở WEB (Figma 16:7573) — panel thương hiệu, dữ liệu pH từ API ══ */}
+      <LoginShowcase />
 
       {/* ══ Cột form — mobile là toàn bộ trang, web là 5 cột bên phải ══ */}
       <div className="flex flex-col gap-6 pb-6 pt-2 lg:col-span-5 lg:justify-between lg:gap-0 lg:bg-surface lg:p-12 lg:pb-12 lg:pt-12">
@@ -401,28 +225,15 @@ export function LoginPage() {
             <p className="text-[20px] font-extrabold tracking-[-0.5px] text-primary-dark">
               CAT<span className="text-secondary">CHECK</span>
             </p>
-            <span className="rounded-full bg-secondary/30 px-2.5 py-0.5 text-overline font-semibold text-secondary-text-on">
-              {t("login.versionBadge")}
-            </span>
+            {buildVersion ? (
+              <span className="rounded-full bg-secondary/30 px-2.5 py-0.5 text-overline font-semibold text-secondary-text-on">
+                {t("login.versionBadge", { version: buildVersion })}
+              </span>
+            ) : null}
           </div>
           <h1 className="pt-2 text-h2 font-bold text-text-primary">{t("login.title")}</h1>
           <p className="max-w-[330px] text-caption leading-[21px] text-text-secondary">{t("login.subtitle")}</p>
         </header>
-
-        <div className="order-2 flex items-center gap-3.5 rounded-xl bg-surface p-4 shadow-xs lg:hidden">
-          <img src={loginDemoCat} alt="" className="size-12 shrink-0 rounded-full object-cover" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-body font-bold text-text-primary">{t("login.demoCat.name")}</p>
-              <span className="shrink-0 rounded-full bg-verified-bright/40 px-2 py-0.5 text-overline font-semibold text-verified-deep">
-                {t("login.demoCat.status")}
-              </span>
-            </div>
-            <p className="pt-0.5 text-[11px] leading-[18px] tracking-[0.4px] text-text-secondary">
-              {t("login.demoCat.reminder")}
-            </p>
-          </div>
-        </div>
 
         {/* Header form CHỈ CÓ Ở WEB (Figma 16:7682) */}
         <div className="order-1 hidden lg:flex lg:flex-col lg:gap-2">

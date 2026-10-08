@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../cn";
 import { skeletonVariants, type SkeletonVariantProps } from "./SkeletonLoader.variants";
 
 export interface SkeletonLoaderProps extends HTMLAttributes<HTMLDivElement>, SkeletonVariantProps {}

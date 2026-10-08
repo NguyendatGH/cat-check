@@ -262,18 +262,22 @@ export function PhTrendChart({
             type="monotone"
             dataKey="ph"
             stroke="var(--color-primary)"
-            strokeWidth={2.5}
-            dot={{ r: 4, fill: "var(--color-surface)", stroke: "var(--color-primary)", strokeWidth: 2 }}
-            activeDot={{ r: 6 }}
+            strokeWidth={2}
+            dot={
+              data.length > 40
+                ? false
+                : { r: 2, fill: "var(--color-primary)", stroke: "var(--color-surface)", strokeWidth: 1 }
+            }
+            activeDot={{ r: 4.5, fill: "var(--color-primary)", stroke: "var(--color-surface)", strokeWidth: 2 }}
             isAnimationActive={false}
           />
           <ReferenceDot
             x={last.x}
             y={last.ph}
-            r={6}
+            r={4}
             fill="var(--color-primary-dark)"
             stroke="var(--color-surface)"
-            strokeWidth={3}
+            strokeWidth={2}
           />
         </ComposedChart>
       </ResponsiveContainer>

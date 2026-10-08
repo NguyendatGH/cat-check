@@ -1,104 +1,134 @@
 {
-  "policyBar": {
-    "text": "Chính sách Bác sĩ Thú y & ISFM khuyên dùng: Đổi trả miễn phí 30 ngày nếu mèo không quen cát",
-    "stock": "Kho TP.HCM & Hà Nội sẵn hàng hóa tốc"
-  },
   "hero": {
-    "badge": "CÔNG NGHỆ Y SINH THẾ HỆ MỚI",
-    "savingBadge": "Tiết kiệm 20%",
-    "titleLine1": "Cát chỉ thị sức khỏe",
-    "titleLine2": "CATCHECK SmartSand Pro™",
-    "body": "Nhận biết sớm 7 bệnh lý tiết niệu nguy hiểm (sỏi bàng quang, viêm niệu đạo, nhiễm trùng thận, độ toan/kiềm nước tiểu) chỉ qua 1 lần mèo đi vệ sinh tại nhà.",
-    "perkSpoon": "Tặng muỗng xúc đo quang phổ",
-    "perkFreeship": "Freeship đơn từ 300.000đ",
-    "ctaPrimary": "Sở hữu Combo Chăm Sóc Sớm",
-    "ctaSecondary": "Xem Bảng Chỉ Thị pH",
-    "imageCaption": "Quang phổ 4 cấp độ",
-    "imageAccuracy": "Chính xác 99.4%"
+    "title": "Cửa hàng CatCheck",
+    "subtitle": "Cát chỉ thị màu và phụ kiện khay cát",
+    "body": "Hạt chỉ thị màu đổi màu theo nước tiểu, giúp bạn theo dõi xu hướng pH của bé mèo ngay tại nhà. CatCheck không chẩn đoán bệnh và không thay thế bác sĩ thú y.",
+    "savingBadge": "Giảm đến {{percent}}%",
+    "priceFrom": "Giá từ {{price}}",
+    "productCount": "{{count}} sản phẩm đang bán",
+    "ctaPrimary": "Xem sản phẩm"
+  },
+  "phScale": {
+    "title": "Dải pH tham chiếu",
+    "body": "Các mốc và nhãn dưới đây do hệ thống CatCheck cấu hình, là đúng nhãn mà ứng dụng dùng khi đọc màu hạt chỉ thị.",
+    "loading": "Đang tải dải pH tham chiếu…",
+    "error": "Chưa tải được dải pH tham chiếu.",
+    "rangeBetween": "pH {{min}} – {{max}}",
+    "rangeBelow": "Dưới pH {{max}}",
+    "rangeAbove": "Từ pH {{min}}"
   },
   "filters": {
-    "all": "Tất cả sản phẩm",
-    "trial": "Gói dùng thử 1 tháng",
-    "subscription": "Gói định kỳ 3 tháng",
-    "byFeature": "Lọc tính năng",
-    "byPrice": "Giá tăng dần"
+    "legend": "Lọc sản phẩm",
+    "all": "Tất cả",
+    "subscription": "Gói định kỳ",
+    "single": "Mua lẻ",
+    "sortPriceAsc": "Giá tăng dần",
+    "sortPriceDesc": "Giá giảm dần",
+    "empty": "Không có sản phẩm nào trong nhóm này."
   },
   "product": {
+    "error": "Không tải được danh sách sản phẩm.",
+    "empty": "Cửa hàng chưa có sản phẩm nào.",
     "addToCart": "Thêm giỏ",
-    "buyNow": "Mua ngay",
-    "subscribe": "Đăng ký kỳ",
-    "reviewCount": "({{count}} đánh giá)",
     "addToCartLong": "Thêm vào giỏ",
-    "saveForLater": "Lưu vào yêu thích"
+    "buyNow": "Mua ngay",
+    "inStock": "Còn {{count}} sản phẩm",
+    "outOfStock": "Tạm hết hàng",
+    "discount": "-{{percent}}%",
+    "skuLabel": "Mã {{sku}}"
   },
-  "advisor": {
-    "title": "Cần tư vấn chọn loại cát theo độ tuổi mèo?",
-    "body": "Mèo con dưới 6 tháng hoặc mèo già có nguy cơ sỏi thận cao cần chỉ số nhạy sinh học riêng.",
-    "cta": "Chat với Bác Sĩ Thú Y"
+  "careNote": {
+    "title": "CatCheck theo dõi xu hướng pH, không chẩn đoán bệnh",
+    "body": "Màu hạt chỉ thị chỉ là quan sát tại nhà. Nếu bạn thấy bé có dấu hiệu bất thường, hãy hỏi ý kiến bác sĩ thú y.",
+    "cta": "Mở trình quét màu cát"
+  },
+  "buying": {
+    "title": "Mua hàng trên CatCheck",
+    "subtitle": "Những gì hệ thống cửa hàng hiện làm được, nói đúng như vậy.",
+    "items": {
+      "shipping": {
+        "title": "Phí vận chuyển do hệ thống tính",
+        "body": "Giỏ hàng và đơn hàng hiển thị đúng con số hệ thống trả về theo giá trị đơn, không phải mức phí ước lượng ở giao diện."
+      },
+      "payment": {
+        "title": "Chưa tích hợp cổng thanh toán trực tuyến",
+        "body": "Bạn chọn phương thức rồi hoàn tất với cửa hàng. Đơn vẫn được ghi nhận kèm mã đơn để tra cứu."
+      },
+      "tracking": {
+        "title": "Theo dõi trạng thái đơn",
+        "body": "Sau khi đặt, trang đơn hàng hiển thị trạng thái xử lý mới nhất từ hệ thống."
+      }
+    }
+  },
+  "payment": {
+    "methods": {
+      "COD": {
+        "name": "Thanh toán khi nhận hàng (COD)",
+        "note": "Trả tiền cho người giao khi nhận kiện hàng."
+      },
+      "MOMO": {
+        "name": "Ví MoMo",
+        "note": "Chưa nối cổng thanh toán; bạn hoàn tất khoản này với cửa hàng."
+      },
+      "BANK_TRANSFER": {
+        "name": "Chuyển khoản ngân hàng",
+        "note": "Chưa nối cổng thanh toán; bạn hoàn tất khoản này với cửa hàng."
+      }
+    }
   },
   "cartPanel": {
     "title": "Giỏ hàng của bạn",
     "count": "{{count}} món",
     "empty": "Giỏ hàng của bạn đang trống.",
-    "voucherLabel": "Mã khuyến mãi đã áp dụng",
-    "voucherRemove": "Gỡ",
+    "error": "Không tải được giỏ hàng.",
     "subtotalLabel": "Tổng tiền hàng:",
-    "discountLabel": "Mã giảm giá ({{code}}):",
     "shippingLabel": "Phí giao hàng:",
-    "freeShipping": "Miễn phí vận chuyển",
-    "shippingCalculated": "Phí vận chuyển tính theo đơn",
+    "freeShipping": "Miễn phí",
     "totalLabel": "Tạm tính:",
-    "vatNote": "(Đã gồm VAT)",
-    "checkout": "Tiến hành Thanh toán an toàn",
-    "trustSsl": "Bảo mật SSL 256-bit",
-    "trustRefund": "Hoàn tiền nếu lỗi",
-    "removeItem": "Xoá khỏi giỏ",
+    "checkout": "Tiến hành thanh toán",
+    "reviewCart": "Kiểm tra lại giỏ hàng",
+    "onlyLeft": "Chỉ còn {{count}} sản phẩm",
+    "removeItem": "Xoá {{name}} khỏi giỏ",
     "increase": "Tăng số lượng",
     "decrease": "Giảm số lượng"
   },
-  "deliveryCommitment": {
-    "title": "Cam kết giao hàng CATCHECK"
+  "cartShortcut": {
+    "title": "Giỏ hàng: {{count}} món",
+    "total": "Tổng thanh toán {{total}}",
+    "cta": "Xem giỏ"
   },
-  "commitment": {
-    "eyebrow": "TIÊU CHUẨN AN TOÀN Y SINH HỌC FELINE",
-    "title": "Cam Kết Chính Hãng & An Toàn Tuyệt Đối Cho Bé Mèo",
-    "subtitle": "Mỗi mẻ cát CATCHECK được kiểm định nghiêm ngặt qua 4 giai đoạn sinh hóa trước khi đến tay người nuôi.",
-    "items": {
-      "dust": {
-        "title": "100% Không Bụi Mịn",
-        "body": "Công nghệ sấy thăng hoa và lọc 5 lớp giúp loại bỏ 99.9% bụi silicat, bảo vệ đường hô hấp và mắt của mèo mẫn cảm."
-      },
-      "nontoxic": {
-        "title": "Không Độc Hại Khi Liếm",
-        "body": "100% tinh bột đậu nành & bắp hữu cơ, phẩm màu chỉ thị sinh học thực phẩm an toàn tuyệt đối nếu mèo nuốt phải khi chải lông."
-      },
-      "isfm": {
-        "title": "Chuẩn Thú Y ISFM",
-        "body": "Được bảo trợ bởi Hiệp hội Y học Mèo Quốc Tế (ISFM) về khả năng phản ứng nhạy với các tinh thể Canxi Oxalate và Struvite."
-      },
-      "biodegradable": {
-        "title": "Tự Phân Hủy Sinh Học",
-        "body": "Hạt hữu cơ tan hoàn toàn trong nước, dễ dàng xả trực tiếp vào bồn cầu mà không gây tắc nghẽn, thân thiện môi trường sống."
-      }
-    }
+  "toast": {
+    "added": "Đã thêm {{name}} vào giỏ",
+    "cappedToStock": "Số lượng trong giỏ đã được giới hạn ở {{count}} theo tồn kho.",
+    "viewCart": "Xem giỏ",
+    "maxReached": "Giỏ hàng đã có tối đa {{count}} sản phẩm này.",
+    "addError": "Không thêm được vào giỏ. Vui lòng thử lại.",
+    "updateError": "Không cập nhật được giỏ hàng. Đã tải lại giỏ từ hệ thống."
   },
   "detail": {
-    "backToShop": "Cửa hàng Cát",
-    "galleryZoom": "Phóng to quang phổ",
-    "faqCta": "Xem câu hỏi thường gặp",
-    "chatCta": "Chat trực tiếp với Bác sĩ",
-    "quantity": "Số lượng",
+    "breadcrumb": "Đường dẫn",
+    "backToShop": "Cửa hàng",
+    "backToShopCta": "Về cửa hàng",
+    "error": "Không tải được sản phẩm này.",
+    "notFound": "Không tìm thấy sản phẩm",
+    "notFoundBody": "Sản phẩm này không tồn tại hoặc đã ngừng bán.",
     "addToCart": "Thêm vào giỏ",
-    "buyNow": "Mua ngay & Giao 2H",
-    "buyNowShort": "Mua ngay",
-    "purchaseModeTitle": "Hình thức mua hàng",
-    "purchaseModeNote": "Tự động giao & tiết kiệm",
-    "packSizeTitle": "Kích thước & Công thức",
-    "packSizeGuide": "Hướng dẫn chọn size",
-    "specTableTitle": "Tiêu chuẩn công thức",
-    "comparisonTitle": "So sánh các gói sản phẩm",
-    "stepsTitle": "Hướng dẫn quy trình 4 bước đơn giản",
-    "writeReview": "Viết đánh giá"
+    "buyNowWithPrice": "Mua ngay • {{price}}",
+    "priceNote": "Phí vận chuyển và tổng tiền do hệ thống tính trong giỏ hàng.",
+    "maxQuantity": "Bạn chỉ có thể đặt tối đa {{count}} sản phẩm này."
+  },
+  "compare": {
+    "title": "So sánh sản phẩm trong cửa hàng",
+    "subtitle": "Giá và tồn kho hiện tại của từng sản phẩm.",
+    "attribute": "Thông tin",
+    "viewing": "Đang xem",
+    "stockValue": "Còn {{count}}",
+    "rows": {
+      "price": "Giá bán",
+      "compareAt": "Giá gốc",
+      "discount": "Giảm giá",
+      "stock": "Tồn kho"
+    }
   },
   "cartPage": {
     "title": "Giỏ hàng",
@@ -106,58 +136,77 @@
     "emptyCta": "Khám phá cửa hàng",
     "count": "{{count}} món",
     "clearAll": "Xóa tất cả",
-    "empty": "Giỏ hàng đang trống.",
-    "addressChange": "Thay đổi",
-    "catSyncTitle": "Đồng bộ hồ sơ mèo cưng",
-    "catSyncBody": "Đơn hàng tự động đồng bộ & hiệu chuẩn dải màu thử nghiệm cho bé {{catName}} ({{breedName}}).",
-    "giftBadge": "Quà tặng độc quyền",
-    "giftRibbon": "TẶNG",
-    "voucherSectionTitle": "Mã ưu đãi / Voucher",
-    "voucherSeeAll": "Xem tất cả ({{count}})",
-    "voucherAppliedNote": "Đã giảm {{amount}} cho chu kỳ chăm sóc",
-    "voucherSwap": "Đổi mã",
-    "voucherNone": "Chưa áp dụng mã nào cho đơn này.",
+    "clearConfirmTitle": "Xoá toàn bộ giỏ hàng?",
+    "clearConfirmBody": "Tất cả sản phẩm trong giỏ sẽ bị xoá. Bạn có thể thêm lại từ cửa hàng.",
+    "clearCancel": "Giữ lại",
+    "clearConfirm": "Xoá tất cả",
+    "empty": "Giỏ hàng đang trống",
+    "emptyBody": "Thêm sản phẩm từ cửa hàng để bắt đầu đặt hàng.",
+    "error": "Không tải được giỏ hàng.",
+    "addressTitle": "Địa chỉ nhận hàng",
+    "addressBody": "Bạn nhập tên người nhận, số điện thoại và địa chỉ ở bước thanh toán. CatCheck không lưu sẵn địa chỉ nào cho đơn này.",
     "paymentTitle": "Phương thức thanh toán",
-    "paymentSsl": "Bảo mật SSL",
-    "paymentRecommended": "Khuyến dùng",
-    "paymentLegend": "Chọn phương thức thanh toán",
     "summaryTitle": "Tóm tắt thanh toán",
     "subtotalLine": "Tạm tính ({{count}} món)",
-    "shippingLine": "Phí vận chuyển hỏa tốc",
-    "savingsLabel": "Tiết kiệm tổng cộng",
+    "shippingLine": "Phí vận chuyển",
+    "savingsLine": "Tiết kiệm {{amount}} so với giá gốc",
     "totalLabel": "Tổng thanh toán",
-    "vatNote": "Đã bao gồm VAT",
-    "proceed": "Tiến hành Thanh toán",
-    "giftQty": "SL: {{count}}"
+    "proceed": "Tiến hành thanh toán",
+    "unitPrice": "{{sku}} · {{price}}/sản phẩm",
+    "onlyLeft": "Chỉ còn {{count}} sản phẩm — giảm số lượng để đặt hàng",
+    "outOfStockLine": "Tạm hết hàng — xoá khỏi giỏ để đặt hàng",
+    "stockIssue": "Một số sản phẩm vượt quá tồn kho hiện tại. Điều chỉnh số lượng hoặc xoá chúng để tiếp tục."
   },
   "checkout": {
     "title": "Thanh toán",
     "summaryTitle": "Tóm tắt đơn hàng",
     "placeOrder": "Đặt hàng",
-    "qty": "x{{count}}",
+    "qtyPrice": "x{{count}} · {{price}}",
     "back": "Quay lại giỏ hàng",
     "mockNotice": "Đơn hàng sẽ được ghi nhận trên hệ thống. Thanh toán trực tuyến chưa được tích hợp; vui lòng chỉ chọn phương thức bạn có thể hoàn tất với cửa hàng.",
     "placing": "Đang tạo đơn…",
-    "error": "Không thể tạo đơn hàng. Vui lòng kiểm tra phiên đăng nhập và thử lại.",
+    "error": "Không thể tạo đơn hàng. Vui lòng thử lại.",
     "addressLabel": "Giao tới",
     "receiverName": "Tên người nhận",
     "receiverPhone": "Số điện thoại",
+    "phonePlaceholder": "Ví dụ: 0901 234 567",
     "shippingAddress": "Địa chỉ nhận hàng",
-    "serverShipping": "Hệ thống tính khi tạo đơn",
+    "addressPlaceholder": "Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố",
+    "addressHint": "Ghi đủ số nhà, đường, phường/xã, quận/huyện và tỉnh/thành phố.",
     "paymentMethodLabel": "Thanh toán qua",
-    "edit": "Sửa"
+    "edit": "Sửa",
+    "totalLabel": "Tổng thanh toán",
+    "emptyTitle": "Chưa có gì để thanh toán",
+    "emptyBody": "Giỏ hàng của bạn đang trống. Thêm sản phẩm từ cửa hàng rồi quay lại bước này.",
+    "errors": {
+      "nameRequired": "Nhập tên người nhận.",
+      "nameTooLong": "Tên người nhận tối đa 120 ký tự.",
+      "phoneRequired": "Nhập số điện thoại người nhận.",
+      "phoneInvalid": "Số điện thoại chưa đúng (ví dụ 0901234567 hoặc +84901234567).",
+      "addressRequired": "Nhập địa chỉ nhận hàng.",
+      "addressTooShort": "Địa chỉ quá ngắn — ghi đủ số nhà, đường, phường/xã, quận/huyện, tỉnh/thành.",
+      "addressTooLong": "Địa chỉ tối đa 500 ký tự.",
+      "fixFields": "Kiểm tra lại thông tin nhận hàng ở trên.",
+      "stock": "Một số sản phẩm không còn đủ hàng. Kiểm tra lại số lượng trong giỏ.",
+      "cartEmpty": "Giỏ hàng đã trống, không thể tạo đơn.",
+      "session": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+      "validation": "Thông tin đơn hàng chưa hợp lệ. Kiểm tra lại và thử lại."
+    }
   },
   "order": {
     "successTitle": "Đặt hàng thành công!",
+    "successBody": "Cảm ơn bạn đã đặt hàng tại CatCheck. Trạng thái xử lý đơn được cập nhật bên dưới.",
     "cancelledTitle": "Đơn hàng đã hủy",
+    "cancelledBody": "Đơn hàng này đã được hủy trên hệ thống.",
+    "cancelledNote": "Đơn hàng đã hủy, không còn được xử lý.",
     "continueShopping": "Tiếp tục mua sắm",
-    "invoiceCta": "Tải hóa đơn VAT (.PDF)",
-    "dashboardCta": "Về Dashboard",
-    "codeLabel": "MÃ ĐƠN HÀNG",
-    "placedLabel": "THỜI GIAN ĐẶT",
-    "methodLabel": "PHƯƠNG THỨC",
-    "statusLabel": "TRẠNG THÁI ĐƠN",
-    "etaLabel": "DỰ KIẾN GIAO HÀNG",
+    "backHome": "Về trang chủ",
+    "codeLabel": "Mã đơn hàng",
+    "copyCode": "Sao chép mã đơn",
+    "codeCopied": "Đã sao chép mã đơn",
+    "placedLabel": "Thời gian đặt",
+    "methodLabel": "Phương thức",
+    "statusLabel": "Trạng thái",
     "status": {
       "PENDING_PAYMENT": "Chờ thanh toán",
       "PAID": "Đã thanh toán",
@@ -167,29 +216,28 @@
       "CANCELLED": "Đã hủy",
       "UNKNOWN": "Chưa rõ trạng thái"
     },
-    "payment": {
-      "COD": "Thanh toán khi nhận hàng",
-      "MOMO": "MoMo (chưa xác nhận thanh toán trực tuyến)",
-      "BANK_TRANSFER": "Chuyển khoản (chưa xác nhận thanh toán trực tuyến)",
-      "UNKNOWN": "Phương thức khác"
+    "paymentUnknown": "Phương thức khác",
+    "paymentNote": {
+      "COD": "Trả tiền cho người giao khi nhận kiện hàng.",
+      "MOMO": "Chưa nối cổng thanh toán trực tuyến; hoàn tất khoản này với cửa hàng.",
+      "BANK_TRANSFER": "Chưa nối cổng thanh toán trực tuyến; hoàn tất khoản này với cửa hàng."
     },
     "trackingTitle": "Trạng thái xử lý đơn hàng",
-    "trackingDisclaimer": "Trạng thái được làm mới tự động. Chưa có dữ liệu tài xế hoặc vị trí giao hàng trực tiếp.",
-    "callDriver": "Gọi tài xế",
-    "messageDriver": "Nhắn tin",
-    "vehicleLabel": "Phương tiện:",
-    "coolingLabel": "Thùng bảo ôn:",
-    "departedLabel": "Xuất phát lúc:",
-    "destinationLabel": "Điểm đến",
+    "trackingDisclaimer": "Trạng thái do cửa hàng cập nhật trên hệ thống, trang tự làm mới. Chưa có dữ liệu tài xế hay vị trí giao hàng trực tiếp.",
+    "currentStage": "Hiện tại",
     "itemsTitle": "Kiện hàng chi tiết ({{count}} mặt hàng)",
-    "subtotalLabel": "Tạm tính:",
-    "discountLabel": "Giảm giá:",
-    "shippingLabel": "Phí vận chuyển:",
-    "totalLabel": "Tổng đơn hàng:",
+    "lineMeta": "{{sku}} · x{{count}} · {{price}}/sản phẩm",
+    "subtotalLabel": "Tạm tính",
+    "discountLabel": "Giảm giá",
+    "shippingLabel": "Phí vận chuyển",
+    "totalLabel": "Tổng đơn hàng",
     "recipientTitle": "Thông tin nhận hàng",
-    "recipientLabel": "Người nhận:",
-    "addressLabel": "Địa chỉ giao hàng:",
-    "giftBadge": "Free Gift",
-    "mapPlaceholder": "Bản đồ theo dõi tài xế (bản dựng giao diện)"
+    "recipientLabel": "Người nhận",
+    "phoneLabel": "Số điện thoại",
+    "addressLabel": "Địa chỉ giao hàng",
+    "paymentTitle": "Thanh toán",
+    "notFound": "Không tìm thấy đơn hàng",
+    "notFoundBody": "Đơn hàng không tồn tại hoặc không thuộc tài khoản của bạn.",
+    "error": "Không tải được đơn hàng."
   }
 }

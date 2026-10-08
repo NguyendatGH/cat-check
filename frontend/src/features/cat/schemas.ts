@@ -34,11 +34,7 @@ export const catFormSchema = z
       .string()
       .refine((value) => !value || isValidDateString(value), "form.birthDate.invalid")
       .refine(notFuture, "form.birthDate.future"),
-    approxAgeMonths: z.string().refine((value) => {
-      if (!value) return true;
-      const n = Number(value);
-      return Number.isInteger(n) && n >= 0 && n <= 360;
-    }, "form.approxAgeMonths.invalid"),
+    approxAgeMonths: z.string(),
     weightKg: z.string().refine((value) => {
       if (!value) return true;
       const n = Number(value);
@@ -50,8 +46,15 @@ export const catFormSchema = z
     if (values.ageMode === "birthDate" && !values.birthDate) {
       ctx.addIssue({ code: "custom", message: "form.birthDate.required", path: ["birthDate"] });
     }
-    if (values.ageMode === "approx" && !values.approxAgeMonths) {
-      ctx.addIssue({ code: "custom", message: "form.approxAgeMonths.required", path: ["approxAgeMonths"] });
+    if (values.ageMode === "approx") {
+      if (!values.approxAgeMonths) {
+        ctx.addIssue({ code: "custom", message: "form.approxAgeMonths.required", path: ["approxAgeMonths"] });
+      } else {
+        const n = Number(values.approxAgeMonths);
+        if (!Number.isInteger(n) || n < 0 || n > 360) {
+          ctx.addIssue({ code: "custom", message: "form.approxAgeMonths.invalid", path: ["approxAgeMonths"] });
+        }
+      }
     }
   });
 

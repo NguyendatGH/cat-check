@@ -34,6 +34,7 @@ export {
   useActivateCode,
   useCreditBalance,
   useCatSummary,
+  usePrimaryCat,
 } from "./hooks";
 export { apiFetch, apiUploadAvatar } from "./api";
 export { handlers, worker } from "./mocks";

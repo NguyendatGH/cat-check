@@ -10,6 +10,7 @@ import {
   FileDown,
   Gift,
   ImageOff,
+  Inbox,
   Loader2,
   PartyPopper,
   Ticket,
@@ -258,8 +259,10 @@ export function NotificationsPage() {
           {/* ---------- rỗng ---------- */}
           {inbox.isSuccess && visible.length === 0 ? (
             <EmptyState
+              icon={<Inbox size={22} aria-hidden="true" />}
               title={tab === "unread" ? t("inbox.emptyUnreadTitle") : t("inbox.emptyTitle")}
               description={tab === "unread" ? t("inbox.emptyUnreadBody") : t("inbox.emptyBody")}
+              className="rounded-2xl bg-surface shadow-xs"
             />
           ) : null}
 

@@ -3,20 +3,28 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import {
   AlertTriangle,
+  Ban,
+  BookOpen,
   Check,
+  ChevronRight,
   Clock,
   Database,
   Download,
   FileText,
+  Flag,
   History,
-  Info,
   KeyRound,
   Loader2,
   Mail,
   PauseCircle,
+  ScrollText,
+  Shield,
+  ShieldAlert,
   ShieldCheck,
+  SquarePen,
   Trash2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   Badge,
   Button,
@@ -33,6 +41,9 @@ import { cn } from "@/shared/lib/cn";
 import { useSessionStore } from "@/entities/user";
 import {
   DELETION_GRACE_DAYS,
+  accessLogActionKey,
+  accessLogActorKey,
+  accessLogResultKey,
   useAccessLog,
   useCancelAccountDeletion,
   useConsentHistory,
@@ -74,10 +85,15 @@ import {
  *  3. **Không tick sẵn** mục tuỳ chọn (I17, p15 §15.3.1 C4) — `NONE` hiển thị là TẮT kèm câu
  *     "chưa được hỏi không có nghĩa là đồng ý", không phải khoảng trắng im lặng.
  *
- * Những chỗ spec đòi mà backend chưa có endpoint đều hiện khối "Chưa có API" kèm số mục spec,
- * KHÔNG bịa dữ liệu: tải tệp bằng chứng đồng ý (§15.3.1 C6), thời hạn lưu bằng chữ (§15.5.1),
- * đọc thẳng trạng thái tạm ngừng xử lý (§15.4.7), lựa chọn nội dung cộng đồng khi xoá
- * (§15.4.6, Giai đoạn 2).
+ * Những chỗ spec đòi mà backend chưa có endpoint đều hiện khối "Chưa có API" (đúng thiết kế
+ * M-18/Web-19, câu chữ cho người dùng — không lộ số mục spec hay tên class), KHÔNG bịa dữ liệu:
+ * tải tệp bằng chứng đồng ý (§15.3.1 C6), thời hạn lưu bằng chữ (§15.5.1), đọc thẳng trạng thái
+ * tạm ngừng xử lý (§15.4.7), lựa chọn nội dung cộng đồng khi xoá (§15.4.6, Giai đoạn 2).
+ *
+ * Mã máy (mã mục đích, mã nơi ghi nhận) không hiện thô: mã mục đích tra ra nhãn từ chính
+ * `GET /privacy/purposes`; danh sách dài (lịch sử, kiểm kê) hiện 5 dòng đầu + nút xem hết.
+ * "Nhật ký truy cập" (B13) không có trong thiết kế và endpoint hiện luôn trả rỗng — khối chỉ
+ * hiện khi có dòng thật.
  *
  * Bố cục: trang nằm trong `TaskLayout` — layout đã cấp `px-4 py-6` và hộp 944px ở `lg`, trang
  * KHÔNG tự thêm. Cột nội dung co giãn + cột phụ 360px theo đúng idiom `SettingsSecurityPage`.
@@ -89,7 +105,7 @@ import {
 
 const CARD = "flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-brand-md";
 const SECTION_TITLE = "flex items-center gap-2 text-h3 font-bold text-text-primary";
-const ASIDE_CARD = "flex flex-col gap-2 rounded-2xl bg-surface p-5 shadow-brand-md";
+const ASIDE_CARD = "flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md";
 
 /** Yêu cầu còn đang mở — bốn trạng thái chưa đóng của `dsar_request`. */
 const OPEN_DSAR_STATUSES = new Set(["RECEIVED", "IDENTITY_PENDING", "IN_PROGRESS", "EXTENDED"]);
@@ -110,17 +126,44 @@ function errorCodeOf(error: unknown): string | undefined {
   return isApiError(error) ? error.code : undefined;
 }
 
-/** Khối "Chưa có API" — nói thẳng mục spec còn thiếu thay vì dựng UI giả. */
-function MissingApiNote({ title, children }: { title: string; children: ReactNode }) {
+/** Khối "Chưa có API" (MissingApiNote của thiết kế) — nói thẳng phần còn thiếu thay vì dựng UI giả. */
+function MissingApiNote({ children }: { children: ReactNode }) {
   const { t } = useTranslation("legal");
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-background-alt p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge className="bg-warning-bg text-warning-text">{t("privacyCenter.noApiBadge")}</Badge>
-        <span className="text-caption font-semibold text-text-primary">{title}</span>
-      </div>
+    <div className="flex flex-col items-start gap-2 rounded-lg bg-background-alt p-3">
+      <Badge className={BADGE_TEXT}>{t("privacyCenter.noApiBadge")}</Badge>
       <p className="text-caption text-text-secondary">{children}</p>
     </div>
+  );
+}
+
+/**
+ * Cỡ chữ của Badge viết bằng giá trị arbitrary: `cn()` (tailwind-merge chưa khai token chữ của
+ * dự án) coi `text-overline` của Badge là MÀU chữ và xoá nó khi gặp `text-*-text` của tone —
+ * badge rơi về 16px. `text-[12px]` thì tailwind-merge nhận đúng là cỡ chữ nên giữ lại.
+ * Sửa gốc thuộc `shared/lib/cn.ts` (ngoài phạm vi màn này).
+ */
+const BADGE_TEXT = "text-[12px] leading-4 font-semibold";
+
+/** Số dòng hiện sẵn của các danh sách dài (thiết kế: "5 dòng gần nhất"). */
+const COLLAPSED_ROWS = 5;
+
+const STATUS_TONE: Record<ConsentStatus, "success" | "warning" | "neutral"> = {
+  GRANTED: "success",
+  WITHDRAWN: "warning",
+  DENIED: "neutral",
+  NONE: "neutral",
+};
+
+/** Nơi ghi nhận đồng ý đã biết (`consent_record.ui_surface`); mã lạ thì hiện nguyên văn. */
+const KNOWN_SURFACES = new Set(["register", "privacy_center", "onboarding", "scan_first", "cookie_banner"]);
+
+function ToggleMore({ expanded, total, onToggle }: { expanded: boolean; total: number; onToggle: () => void }) {
+  const { t } = useTranslation(["settings"]);
+  return (
+    <Button type="button" variant="tertiary" size="sm" className="self-start" onClick={onToggle}>
+      {expanded ? t("settings:privacy.showLess") : t("settings:privacy.showAll", { count: total })}
+    </Button>
   );
 }
 
@@ -255,12 +298,11 @@ function StepUpDialog({ open, email, targetAction, onClose, onVerified }: StepUp
                   setErrorKey(null);
                 }}
                 aria-pressed={method === option}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-caption font-semibold",
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-caption font-semibold ${
                   method === option
                     ? "border-primary-dark bg-chip-bg text-primary-dark"
-                    : "border-border text-text-secondary hover:bg-background-alt",
-                )}
+                    : "border-border text-text-secondary hover:bg-background-alt"
+                }`}
               >
                 {option === "EMAIL_OTP" ? (
                   <Mail size={14} aria-hidden="true" />
@@ -371,13 +413,13 @@ function PurposeRow({ purpose, status, pending, disabled, onChange }: PurposeRow
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-body font-semibold text-text-primary">{purpose.label}</span>
-            {purpose.mandatory ? <Badge tone="brand">{t("privacyCenter.consent.mandatoryBadge")}</Badge> : null}
+            {purpose.mandatory ? <Badge tone="brand" className={BADGE_TEXT}>{t("privacyCenter.consent.mandatoryBadge")}</Badge> : null}
             {/* Đ6.4 NĐ356 + p4 B3: dữ liệu nhạy cảm BẮT BUỘC có nhãn cạnh ô chọn. */}
             {purpose.sensitive ? (
-              <Badge className="bg-danger-bg text-danger-text">{t("privacyCenter.consent.sensitiveBadge")}</Badge>
+              <Badge tone="danger" className={BADGE_TEXT}>{t("privacyCenter.consent.sensitiveBadge")}</Badge>
             ) : null}
             {purpose.phase > 1 ? (
-              <Badge>{t("privacyCenter.consent.phaseBadge", { phase: purpose.phase })}</Badge>
+              <Badge className={BADGE_TEXT}>{t("privacyCenter.consent.phaseBadge", { phase: purpose.phase })}</Badge>
             ) : null}
           </div>
           <p className="text-caption text-text-secondary">{purpose.description}</p>
@@ -403,7 +445,7 @@ function PurposeRow({ purpose, status, pending, disabled, onChange }: PurposeRow
               onCheckedChange={onChange}
             />
           )}
-          <span className={cn("text-small font-semibold", granted ? "text-success-text" : "text-text-tertiary")}>
+          <span className={`text-small font-semibold ${granted ? "text-success-text" : "text-text-tertiary"}`}>
             {t(`privacyCenter.consent.status.${status}`)}
           </span>
         </div>
@@ -419,8 +461,8 @@ function PurposeRow({ purpose, status, pending, disabled, onChange }: PurposeRow
  * Một dòng bảng kiểm kê dữ liệu
  * ------------------------------------------------------------------ */
 
-function InventoryRow({ item }: { item: DataInventoryView }) {
-  const { t } = useTranslation("legal");
+function InventoryRow({ item, purposeLabels }: { item: DataInventoryView; purposeLabels: Map<string, string> }) {
+  const { t } = useTranslation(["legal", "settings"]);
   const field = (label: string, value: ReactNode) => (
     <div className="flex flex-col">
       <dt className="text-small text-text-tertiary">{label}</dt>
@@ -433,9 +475,9 @@ function InventoryRow({ item }: { item: DataInventoryView }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-body font-semibold text-text-primary">{item.category}</span>
         {item.sensitivity === "SENSITIVE" ? (
-          <Badge className="bg-danger-bg text-danger-text">{t("privacyCenter.inventory.sensitivity.SENSITIVE")}</Badge>
+          <Badge tone="danger" className={BADGE_TEXT}>{t("privacyCenter.inventory.sensitivity.SENSITIVE")}</Badge>
         ) : (
-          <Badge>{t("privacyCenter.inventory.sensitivity.BASIC")}</Badge>
+          <Badge className={BADGE_TEXT}>{t("privacyCenter.inventory.sensitivity.BASIC")}</Badge>
         )}
       </div>
       <p className="text-caption text-text-secondary">{item.description}</p>
@@ -444,8 +486,19 @@ function InventoryRow({ item }: { item: DataInventoryView }) {
           t("privacyCenter.inventory.labelLegalBasis"),
           t(`privacyCenter.inventory.legalBasis.${item.legalBasis}`),
         )}
-        {field(t("privacyCenter.inventory.labelPurposes"), item.purposes.join(", "))}
-        {field(t("privacyCenter.inventory.labelRetention"), item.retentionPolicyCode)}
+        {field(
+          t("privacyCenter.inventory.labelPurposes"),
+          item.purposes.length > 0
+            ? item.purposes.map((code) => purposeLabels.get(code) ?? code).join(", ")
+            : t("settings:privacy.notApplicable"),
+        )}
+        {field(
+          t("privacyCenter.inventory.labelRetention"),
+          item.retentionPolicyCode === undefined
+            ? t("settings:privacy.notApplicable")
+            : // Tên đọc được cho mã chính sách (chỉ tên — thời hạn chưa có trong C5); mã lạ hiện nguyên văn.
+              t(`settings:privacy.retention.${item.retentionPolicyCode}`, { defaultValue: item.retentionPolicyCode }),
+        )}
         {field(t("privacyCenter.inventory.labelStorage"), item.storageLocation)}
         {field(
           t("privacyCenter.inventory.labelCrossBorder"),
@@ -466,8 +519,22 @@ function InventoryRow({ item }: { item: DataInventoryView }) {
 
 const MANUAL_DSAR_TYPES: readonly ManualDsarType[] = ["RECTIFY", "OBJECT", "PROTECTION_MEASURE", "COMPLAINT"];
 
+/** Icon từng loại yêu cầu — đúng bộ icon của listRow trong thiết kế M-18c/Web-19b. */
+const MANUAL_DSAR_ICONS: Record<ManualDsarType, LucideIcon> = {
+  RECTIFY: SquarePen,
+  OBJECT: Ban,
+  PROTECTION_MEASURE: ShieldAlert,
+  COMPLAINT: Flag,
+};
+
+const READ_MORE_LINKS: { to: string; labelKey: string; icon: LucideIcon }[] = [
+  { to: "/legal/privacy", labelKey: "privacyCenter.aside.linkPrivacy", icon: Shield },
+  { to: "/legal/data-requests", labelKey: "privacyCenter.aside.linkDataRequests", icon: ScrollText },
+  { to: "/legal/contact", labelKey: "privacyCenter.aside.linkContact", icon: Mail },
+];
+
 export function AccountPrivacyPage() {
-  const { t } = useTranslation(["legal", "common"]);
+  const { t } = useTranslation(["legal", "settings", "common"]);
   const sessionEmail = useSessionStore((state) => state.user?.email ?? null);
 
   const purposes = useConsentPurposes();
@@ -490,6 +557,7 @@ export function AccountPrivacyPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [showAllInventory, setShowAllInventory] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteEmail, setDeleteEmail] = useState("");
   const [, setExportTokenVersion] = useState(0);
@@ -529,6 +597,13 @@ export function AccountPrivacyPage() {
       throw error;
     }
   }, []);
+
+  /** Mã mục đích → nhãn đã dịch, tra từ chính `GET /privacy/purposes` (không tự đặt chữ). */
+  const purposeLabels = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const purpose of purposes.data ?? []) map.set(purpose.code, purpose.label);
+    return map;
+  }, [purposes.data]);
 
   const consentStatusByCode = useMemo(() => {
     const map = new Map<string, ConsentStatus>();
@@ -609,7 +684,12 @@ export function AccountPrivacyPage() {
     [handleActionError, runGuarded],
   );
 
-  const visibleHistory = showAllHistory ? (history.data ?? []) : (history.data ?? []).slice(0, 8);
+  const visibleHistory = showAllHistory ? (history.data ?? []) : (history.data ?? []).slice(0, COLLAPSED_ROWS);
+  const visibleInventory = showAllInventory
+    ? (inventory.data ?? [])
+    : (inventory.data ?? []).slice(0, COLLAPSED_ROWS);
+  const surfaceLabel = (surface: string) =>
+    KNOWN_SURFACES.has(surface) ? t(`settings:privacy.surface.${surface}`) : surface;
 
   return (
     <div className="flex flex-col gap-5">
@@ -650,7 +730,7 @@ export function AccountPrivacyPage() {
           >
             {t("privacyCenter.deletionBanner.cancel")}
           </Button>
-          <p className="text-small text-danger-text">{t("privacyCenter.deletionBanner.derivedNote")}</p>
+          <p className="text-small text-danger-text">{t("settings:privacy.deletionDerivedNote")}</p>
         </section>
       ) : null}
 
@@ -669,7 +749,7 @@ export function AccountPrivacyPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           {/* ---------- Mục đích xử lý dữ liệu (C1 + C2 + C3) ---------- */}
           <section className={CARD}>
@@ -709,9 +789,7 @@ export function AccountPrivacyPage() {
             )}
             {consentErrorMessage === null ? null : <InlineError message={consentErrorMessage} />}
 
-            <MissingApiNote title={t("privacyCenter.consent.evidenceTitle")}>
-              {t("privacyCenter.consent.evidenceMissing")}
-            </MissingApiNote>
+            <MissingApiNote>{t("settings:privacy.missing.evidence")}</MissingApiNote>
           </section>
 
           {/* ---------- Lịch sử đồng ý (C4) ---------- */}
@@ -734,26 +812,18 @@ export function AccountPrivacyPage() {
                   {visibleHistory.map((entry, index) => (
                     <li
                       key={`${entry.purposeCode}-${entry.occurredAt}-${String(index)}`}
-                      className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border py-3 last:border-b-0 last:pb-0"
+                      className="flex flex-col gap-1 border-b border-border py-3 last:border-b-0 last:pb-0"
                     >
-                      <div className="flex min-w-0 flex-col">
-                        <span className="text-caption font-semibold text-text-primary">{entry.purposeCode}</span>
-                        <span className="text-small text-text-tertiary">
-                          {entry.uiSurface
-                            ? t("privacyCenter.history.surfaceLabel", { surface: entry.uiSurface })
-                            : entry.method}
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="min-w-0 text-caption font-semibold text-text-primary">
+                          {purposeLabels.get(entry.purposeCode) ?? entry.purposeCode}
                         </span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span
-                          className={cn(
-                            "text-caption font-semibold",
-                            entry.status === "GRANTED" ? "text-success-text" : "text-text-secondary",
-                          )}
-                        >
+                        <Badge tone={STATUS_TONE[entry.status]} className={`${BADGE_TEXT} shrink-0 whitespace-nowrap`}>
                           {t(`privacyCenter.consent.status.${entry.status}`)}
-                        </span>
-                        <span className="text-small text-text-tertiary">{formatDateTime(entry.occurredAt)}</span>
+                        </Badge>
+                      </div>
+                      <span className="text-small text-text-tertiary">{formatDateTime(entry.occurredAt)}</span>
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                         {entry.policyVersion === null ? (
                           <span className="text-small text-text-tertiary">
                             {t("privacyCenter.history.policyUnknown")}
@@ -766,22 +836,23 @@ export function AccountPrivacyPage() {
                             {t("privacyCenter.history.policyLink", { version: entry.policyVersion })}
                           </Link>
                         )}
+                        {entry.uiSurface ? (
+                          <span className="text-small text-text-tertiary">
+                            {t("privacyCenter.history.surfaceLabel", { surface: surfaceLabel(entry.uiSurface) })}
+                          </span>
+                        ) : null}
                       </div>
                     </li>
                   ))}
                 </ul>
-                {history.data.length > 8 ? (
-                  <Button
-                    type="button"
-                    variant="tertiary"
-                    size="sm"
-                    className="self-start"
-                    onClick={() => {
+                {history.data.length > COLLAPSED_ROWS ? (
+                  <ToggleMore
+                    expanded={showAllHistory}
+                    total={history.data.length}
+                    onToggle={() => {
                       setShowAllHistory((value) => !value);
                     }}
-                  >
-                    {showAllHistory ? t("privacyCenter.history.showLess") : t("privacyCenter.history.showAll")}
-                  </Button>
+                  />
                 ) : null}
               </>
             )}
@@ -802,16 +873,25 @@ export function AccountPrivacyPage() {
             ) : inventory.data.length === 0 ? (
               <p className="text-caption text-text-tertiary">{t("privacyCenter.inventory.empty")}</p>
             ) : (
-              <ul className="flex flex-col">
-                {inventory.data.map((item) => (
-                  <InventoryRow key={item.code} item={item} />
-                ))}
-              </ul>
+              <>
+                <ul className="flex flex-col">
+                  {visibleInventory.map((item) => (
+                    <InventoryRow key={item.code} item={item} purposeLabels={purposeLabels} />
+                  ))}
+                </ul>
+                {inventory.data.length > COLLAPSED_ROWS ? (
+                  <ToggleMore
+                    expanded={showAllInventory}
+                    total={inventory.data.length}
+                    onToggle={() => {
+                      setShowAllInventory((value) => !value);
+                    }}
+                  />
+                ) : null}
+              </>
             )}
 
-            <MissingApiNote title={t("privacyCenter.inventory.labelRetention")}>
-              {t("privacyCenter.inventory.retentionNote")}
-            </MissingApiNote>
+            <MissingApiNote>{t("settings:privacy.missing.retention")}</MissingApiNote>
           </section>
 
           {/* ---------- Xuất dữ liệu (C6 + C7 + C8) ---------- */}
@@ -887,7 +967,7 @@ export function AccountPrivacyPage() {
             <p className="text-caption text-text-tertiary">{t("privacyCenter.restriction.sla")}</p>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Badge className={openRestrict ? "bg-warning-bg text-warning-text" : undefined}>
+              <Badge tone={openRestrict ? "warning" : "neutral"} className={BADGE_TEXT}>
                 {openRestrict
                   ? t("privacyCenter.restriction.stateActive")
                   : t("privacyCenter.restriction.stateInactive")}
@@ -907,26 +987,20 @@ export function AccountPrivacyPage() {
               </Button>
             </div>
 
-            <MissingApiNote title={t("privacyCenter.restriction.title")}>
-              {t("privacyCenter.restriction.derivedNote")}
-            </MissingApiNote>
+            <MissingApiNote>{t("settings:privacy.missing.restriction")}</MissingApiNote>
           </section>
 
-          {/* ---------- Nhật ký truy cập (B13) ---------- */}
-          <section className={CARD}>
-            <h2 className={SECTION_TITLE}>
-              <History size={18} className="text-primary-dark" aria-hidden="true" />
-              {t("privacyCenter.accessLog.title")}
-            </h2>
-            <p className="text-caption text-text-secondary">{t("privacyCenter.accessLog.intro")}</p>
-
-            {accessLog.isPending ? (
-              <SkeletonLoader className="h-20 w-full" />
-            ) : accessLog.isError ? (
-              <InlineError message={t("privacyCenter.loadError")} />
-            ) : accessLog.data.length === 0 ? (
-              <p className="text-caption text-text-tertiary">{t("privacyCenter.accessLog.empty")}</p>
-            ) : (
+          {/*
+            ---------- Nhật ký truy cập (B13) ----------
+            Không có trong thiết kế M-18/Web-19. Dữ liệu thật từ audit log; khối chỉ hiện khi có dòng thật — không dựng một thẻ trống thường trực.
+          */}
+          {accessLog.data && accessLog.data.length > 0 ? (
+            <section className={CARD}>
+              <h2 className={SECTION_TITLE}>
+                <History size={18} className="text-primary-dark" aria-hidden="true" />
+                {t("privacyCenter.accessLog.title")}
+              </h2>
+              <p className="text-caption text-text-secondary">{t("privacyCenter.accessLog.intro")}</p>
               <ul className="flex flex-col">
                 {accessLog.data.map((entry: AccessLogEntryView, index) => (
                   <li
@@ -934,27 +1008,28 @@ export function AccountPrivacyPage() {
                     className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border py-3 last:border-b-0 last:pb-0"
                   >
                     <div className="flex min-w-0 flex-col">
-                      <span className="text-caption font-semibold text-text-primary">{entry.action}</span>
-                      <span className="text-small text-text-tertiary">
-                        {t("privacyCenter.accessLog.actor", {
-                          actor: entry.actorRole ?? entry.actorType,
-                        })}
+                      <span className="text-caption font-semibold text-text-primary">
+                        {t(accessLogActionKey(entry.action))}
                       </span>
+                      {accessLogActorKey(entry.actorType) ? (
+                        <span className="text-small text-text-tertiary">
+                          {t("privacyCenter.accessLog.actor", {
+                            actor: t(accessLogActorKey(entry.actorType) ?? ""),
+                          })}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-caption text-text-secondary">{entry.result}</span>
+                      {accessLogResultKey(entry.result) ? (
+                        <span className="text-caption text-text-secondary">{t(accessLogResultKey(entry.result) ?? "")}</span>
+                      ) : null}
                       <span className="text-small text-text-tertiary">{formatDateTime(entry.occurredAt)}</span>
                     </div>
                   </li>
                 ))}
               </ul>
-            )}
-
-            {/* Endpoint có thật nhưng hiện trả mảng rỗng cố định — nói thẳng, không dựng dòng mẫu. */}
-            <MissingApiNote title={t("privacyCenter.accessLog.title")}>
-              {t("privacyCenter.accessLog.pendingNote")}
-            </MissingApiNote>
-          </section>
+            </section>
+          ) : null}
 
           {/* ---------- Yêu cầu khác (C13 + C14) ---------- */}
           <section className={CARD}>
@@ -963,13 +1038,21 @@ export function AccountPrivacyPage() {
               {t("privacyCenter.requests.title")}
             </h2>
             <p className="text-caption text-text-secondary">{t("privacyCenter.requests.intro")}</p>
-            <p className="text-caption text-text-tertiary">{t("privacyCenter.requests.noContentField")}</p>
+            <p className="text-caption text-text-tertiary">{t("settings:privacy.requestsNoContent")}</p>
 
             <ul className="flex flex-col gap-2">
-              {MANUAL_DSAR_TYPES.map((type) => (
-                <li key={type} className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-caption text-text-secondary">{t(`privacyCenter.requests.type.${type}`)}</span>
+              {MANUAL_DSAR_TYPES.map((type) => {
+                const TypeIcon = MANUAL_DSAR_ICONS[type];
+                return (
+                <li key={type} className="flex items-center gap-3 rounded-xl bg-background-alt p-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-primary-dark">
+                    <TypeIcon size={17} aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-caption font-semibold text-text-primary">
+                    {t(`privacyCenter.requests.type.${type}`)}
+                  </span>
                   <Button
+                    className="shrink-0"
                     type="button"
                     variant="tertiary"
                     size="sm"
@@ -984,7 +1067,8 @@ export function AccountPrivacyPage() {
                     {t("privacyCenter.requests.open")}
                   </Button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
 
             <h3 className="pt-2 text-caption font-semibold text-text-primary">
@@ -997,29 +1081,24 @@ export function AccountPrivacyPage() {
             ) : requests.data.length === 0 ? (
               <p className="text-caption text-text-tertiary">{t("privacyCenter.requests.listEmpty")}</p>
             ) : (
-              <ul className="flex flex-col">
+              <ul className="flex flex-col gap-2">
                 {requests.data.map((item) => (
-                  <li
-                    key={item.publicRef}
-                    className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border py-3 last:border-b-0 last:pb-0"
-                  >
-                    <div className="flex min-w-0 flex-col">
-                      <span className="text-caption font-semibold text-text-primary">
+                  <li key={item.publicRef} className="flex flex-col gap-1 rounded-lg bg-background-alt p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 text-caption font-semibold text-text-primary">
                         {t(`privacyCenter.requests.type.${item.requestType}`)}
                       </span>
-                      <span className="text-small text-text-tertiary">{item.publicRef}</span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-caption text-text-secondary">
+                      <Badge className={`${BADGE_TEXT} shrink-0 whitespace-nowrap`}>
                         {t(`privacyCenter.requests.status.${item.status}`)}
-                      </span>
-                      <span className="text-small text-text-tertiary">
-                        {t("privacyCenter.requests.ackDue", { date: formatDateTime(item.ackDueAt) })}
-                      </span>
-                      <span className="text-small text-text-tertiary">
-                        {t("privacyCenter.requests.fulfilDue", { date: formatDateTime(item.fulfilDueAt) })}
-                      </span>
+                      </Badge>
                     </div>
+                    <span className="text-small text-text-tertiary">{item.publicRef}</span>
+                    <span className="text-small text-text-tertiary">
+                      {t("privacyCenter.requests.ackDue", { date: formatDateTime(item.ackDueAt) })}
+                    </span>
+                    <span className="text-small text-text-tertiary">
+                      {t("privacyCenter.requests.fulfilDue", { date: formatDateTime(item.fulfilDueAt) })}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -1091,19 +1170,17 @@ export function AccountPrivacyPage() {
               <p className="text-caption text-text-tertiary">{t("privacyCenter.deletion.alreadyRequested")}</p>
             )}
 
-            <MissingApiNote title={t("privacyCenter.deletion.title")}>
-              {t("privacyCenter.deletion.optionsMissing")}
-            </MissingApiNote>
+            <MissingApiNote>{t("settings:privacy.missing.communityChoice")}</MissingApiNote>
           </section>
         </div>
 
-        {/* ---------- Cột phụ 360px ---------- */}
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:w-[360px] lg:shrink-0">
+        {/* ---------- Cột phụ 360px (từ `xl`; hẹp hơn thì xuống cuối trang như M-18d) ---------- */}
+        <aside className="flex flex-col gap-4 xl:sticky xl:top-20 xl:w-[360px] xl:shrink-0">
           <div className={ASIDE_CARD}>
-            <p className="flex items-center gap-2 text-caption font-semibold text-text-primary">
-              <Clock size={16} className="text-primary-dark" aria-hidden="true" />
+            <h2 className={SECTION_TITLE}>
+              <Clock size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
               {t("privacyCenter.aside.slaTitle")}
-            </p>
+            </h2>
             <ul className="list-disc space-y-1 pl-5 text-caption text-text-secondary">
               <li>{t("privacyCenter.aside.slaAck")}</li>
               <li>{t("privacyCenter.aside.slaExport")}</li>
@@ -1113,28 +1190,36 @@ export function AccountPrivacyPage() {
           </div>
 
           <div className={ASIDE_CARD}>
-            <p className="text-caption font-semibold text-text-primary">{t("privacyCenter.aside.linksTitle")}</p>
-            <Link to="/legal/privacy" className="text-caption font-semibold text-primary hover:underline">
-              {t("privacyCenter.aside.linkPrivacy")}
-            </Link>
-            <Link to="/legal/data-requests" className="text-caption font-semibold text-primary hover:underline">
-              {t("privacyCenter.aside.linkDataRequests")}
-            </Link>
-            <Link to="/legal/contact" className="text-caption font-semibold text-primary hover:underline">
-              {t("privacyCenter.aside.linkContact")}
-            </Link>
+            <h2 className={SECTION_TITLE}>
+              <BookOpen size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
+              {t("privacyCenter.aside.linksTitle")}
+            </h2>
+            <ul className="flex flex-col">
+              {READ_MORE_LINKS.map(({ to, labelKey, icon: LinkIcon }) => (
+                <li key={to}>
+                  <Link
+                    to={to}
+                    className="flex min-h-11 items-center gap-3 rounded-lg px-1 py-2 text-caption font-semibold text-text-primary hover:bg-background-alt"
+                  >
+                    <LinkIcon size={16} className="shrink-0 text-primary-dark" aria-hidden="true" />
+                    <span className="min-w-0 flex-1">{t(labelKey)}</span>
+                    <ChevronRight size={16} className="shrink-0 text-text-tertiary" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className={ASIDE_CARD}>
-            <p className="flex items-center gap-2 text-caption font-semibold text-text-primary">
-              <Info size={16} className="text-text-tertiary" aria-hidden="true" />
+            <h2 className={SECTION_TITLE}>
+              <AlertTriangle size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
               {t("privacyCenter.aside.gapsTitle")}
-            </p>
+            </h2>
             <ul className="list-disc space-y-1 pl-5 text-caption text-text-secondary">
-              <li>{t("privacyCenter.aside.gapEvidence")}</li>
-              <li>{t("privacyCenter.aside.gapRetention")}</li>
-              <li>{t("privacyCenter.aside.gapRestrictionState")}</li>
-              <li>{t("privacyCenter.aside.gapCommunityChoice")}</li>
+              <li>{t("settings:privacy.gaps.evidence")}</li>
+              <li>{t("settings:privacy.gaps.retention")}</li>
+              <li>{t("settings:privacy.gaps.restrictionState")}</li>
+              <li>{t("settings:privacy.gaps.communityChoice")}</li>
             </ul>
           </div>
         </aside>

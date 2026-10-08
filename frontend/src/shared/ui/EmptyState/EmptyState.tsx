@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "@/shared/lib/cn";
+import { cn } from "../cn";
 
 export interface EmptyStateProps {
   icon?: ReactNode;

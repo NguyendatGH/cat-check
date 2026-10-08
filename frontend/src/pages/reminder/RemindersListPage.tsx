@@ -16,6 +16,8 @@ import {
   ReminderStatusLine,
   dueState,
   formatDateTime,
+  reminderAction,
+  useNextRunLabel,
   useScheduleLabel,
 } from "./reminderUi";
 import { ReminderQuickPlan } from "./ReminderQuickPlan";
@@ -39,6 +41,7 @@ export function RemindersListPage() {
   const catsQuery = useCatList("ACTIVE");
   const updateReminder = useUpdateReminder();
   const scheduleLabel = useScheduleLabel();
+  const nextRunLabel = useNextRunLabel();
 
   const locked = isFeatureLocked(remindersQuery.error);
   const reminders = remindersQuery.data?.items ?? [];
@@ -128,7 +131,7 @@ export function RemindersListPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate text-h3 font-bold text-text-primary">{displayName}</p>
-                      {overdue ? <NeedScanChip /> : <BreedChip label={chipLabel} />}
+                      {overdue && reminder.type === "SCAN_ROUTINE" ? <NeedScanChip /> : <BreedChip label={chipLabel} />}
                     </div>
                     <ReminderStatusLine reminder={reminder} due={due} schedule={scheduleLabel(reminder)} />
                   </div>
@@ -150,7 +153,7 @@ export function RemindersListPage() {
                       <Bell size={16} aria-hidden="true" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-small text-text-secondary">{t("list.nextRunLabel")}</span>
+                      <span className="block text-small text-text-secondary">{nextRunLabel(reminder)}</span>
                       <span className="block truncate text-body font-bold text-text-primary">
                         {formatDateTime(reminder.nextRunAt)}
                       </span>
@@ -167,10 +170,10 @@ export function RemindersListPage() {
                       {due.days === 0 ? t("list.overdueToday") : t("list.overdueDays", { days: due.days })}
                     </span>
                     <Link
-                      to="/scan"
+                      to={reminderAction(reminder).to}
                       className="inline-flex items-center gap-1.5 text-caption font-bold text-primary-dark"
                     >
-                      {t("list.quickScanCta")}
+                      {reminder.type === "SCAN_ROUTINE" ? t("list.quickScanCta") : t(reminderAction(reminder).labelKey)}
                       <ArrowRight size={14} aria-hidden="true" />
                     </Link>
                   </div>

@@ -228,7 +228,7 @@ function makeCat(draft: CatProfileDraft, id: string): CreatedCat {
 }
 
 function emptyBalance(): CreditBalance {
-  return { totalAvailable: 0, trialScansRemaining: 3, batches: [] };
+  return { availableBalance: 0, trialScansUsed: 0, trialScansRemaining: 3, batches: [] };
 }
 
 /** Trạng thái trong bộ nhớ của mock — mèo đã tạo trong phiên dev. */
@@ -330,21 +330,13 @@ export const handlers = [
 
     const activatedAt = new Date();
     const expiresAt = new Date(activatedAt.getTime() + found.validityDays * 24 * 60 * 60 * 1000);
-    const batch = {
-      id: crypto.randomUUID(),
+    const result: ActivationResult = {
       packageCode: found.packageCode,
       packageName: found.packageName,
-      initialAmount: found.creditAmount,
-      remaining: found.creditAmount,
-      activatedAt: activatedAt.toISOString(),
+      creditsGranted: found.creditAmount,
       expiresAt: expiresAt.toISOString(),
+      balanceAfter: found.creditAmount,
     };
-    const balance: CreditBalance = {
-      totalAvailable: found.creditAmount,
-      trialScansRemaining: 3,
-      batches: [batch],
-    };
-    const result: ActivationResult = { batch, balance };
     return HttpResponse.json(result);
   }),
 

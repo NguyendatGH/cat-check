@@ -5,7 +5,7 @@ import { Button, Dialog, DialogContent, DialogTitle, DialogTrigger, Input } from
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
 import { cn } from "@/shared/lib/cn";
 import { ONBOARDING_STEPS, type Breed, type OnboardingStep, type PhBand } from "./types";
-import { formatActivationCode, normalizeActivationCode } from "./schemas";
+import { formatActivationCode } from "./schemas";
 
 /**
  * Component dùng chung cho luồng onboarding — gom trong 1 file root vì config
@@ -75,7 +75,9 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
           const isClickable = isDone && onStepClick;
           return (
             <Fragment key={step}>
-              <li className="flex w-20 shrink-0 flex-col items-center gap-1.5">
+              {/* `min-w-20` + `whitespace-nowrap`: nhãn "Miễn trừ y tế"/"Kích hoạt gói" không bị
+                  bẻ thành 2 dòng lệch khi cột chỉ rộng 80px. */}
+              <li className="flex min-w-20 shrink-0 flex-col items-center gap-1.5">
                 <button
                   type="button"
                   disabled={!isClickable}
@@ -99,7 +101,7 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
                   </span>
                   <span
                     className={cn(
-                      "text-center text-small font-medium",
+                      "whitespace-nowrap px-1 text-center text-small font-medium",
                       isCurrent ? "text-text-primary" : isDone ? "text-text-secondary" : "text-text-tertiary",
                     )}
                   >
@@ -217,22 +219,21 @@ export function OnboardingShell({
         >
           {panel ? header : null}
 
-          <div className="flex flex-1 flex-col gap-6">{children}</div>
+          <div className="flex flex-1 flex-col gap-6 lg:flex-none">{children}</div>
 
-          <footer
-            className={cn(
-              "sticky bottom-0 mt-auto border-t border-border bg-background py-4",
-              // Desktop: CTA nằm ngay dưới cột trái (khớp thiết kế web), không dính đáy
-              // màn — thanh dính chỉ rộng bằng 1 cột nên trông lệch.
-              aside && "lg:static lg:border-0 lg:bg-transparent lg:pb-0",
-            )}
-          >
+          {/* Desktop: CTA nằm ngay dưới nội dung (Figma Web-01c-3/4, DSL Web-01c-4a/4b: nút
+              theo sau ô nhập với pt 8) — KHÔNG dính đáy màn. Thanh dính + `mt-auto` trên màn
+              1440 đẩy nút xuống đáy, để lại khoảng trống ~300px giữa ô nhập mã và nút. */}
+          <footer className="sticky bottom-0 mt-auto border-t border-border bg-background py-4 lg:static lg:mt-0 lg:border-0 lg:bg-transparent lg:pb-0 lg:pt-2">
             {footer}
           </footer>
         </div>
 
         {aside ? (
-          <aside className="hidden lg:flex lg:basis-5/12 lg:shrink-0 lg:flex-col lg:gap-5">{aside}</aside>
+          // Dính theo cuộn: cột trái (form khảo sát) dài gấp 2–3 lần cột phải.
+          <aside className="hidden lg:sticky lg:top-6 lg:flex lg:basis-5/12 lg:shrink-0 lg:flex-col lg:gap-5">
+            {aside}
+          </aside>
         ) : null}
       </div>
     </div>
@@ -254,10 +255,13 @@ const PH_SEVERITY_BAR: Record<PhBand["severity"], string> = {
  * KHÔNG hard-code ngưỡng. Rỗng khi API chưa trả dữ liệu.
  */
 export function PhBandBar({ bands, className }: { bands: PhBand[]; className?: string }) {
-  if (bands.length === 0) return null;
+  // Dải không có biên nào (INCONCLUSIVE — "chưa đủ dữ liệu") là một trạng thái, không phải một
+  // khoảng pH: vẽ nó thành đoạn xám cuối thang khiến thang trông như có vùng pH "không rõ".
+  const ranged = bands.filter((b) => typeof b.phMin === "number" || typeof b.phMax === "number");
+  if (ranged.length === 0) return null;
   return (
     <div className={cn("flex h-2 overflow-hidden rounded-full", className)} aria-hidden="true">
-      {bands.map((band) => (
+      {ranged.map((band) => (
         <span key={band.code} className={cn("h-full flex-1", PH_SEVERITY_BAR[band.severity])} />
       ))}
     </div>
@@ -654,7 +658,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
               setOpen(true);
             }}
             className={cn(
-              "h-12 w-full items-center justify-between gap-2 rounded-xl bg-surface px-4 text-body shadow-xs focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
+              "h-12 w-full items-center justify-between gap-2 rounded-xl bg-surface px-4 text-body shadow-xs lg:border lg:border-border-strong lg:shadow-none focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
               selected ? "text-text-primary" : "text-text-tertiary",
               quick.length === 0 ? "flex" : "hidden lg:flex",
               error && "outline outline-2 outline-danger",
@@ -797,8 +801,9 @@ export function ActivationCodeInput({ value, onChange, error, disabled }: Activa
   );
 }
 
+/** Dạng gửi lên API: `CC-<GÓI>-<10 ký tự>` (có gạch — backend cắt thân mã theo dấu gạch cuối). */
 export function toCanonicalCode(value: string): string {
-  return normalizeActivationCode(value);
+  return formatActivationCode(value);
 }
 
 /* ---------------- DisclaimerScroll ---------------- */
@@ -865,7 +870,8 @@ export function Checkbox({ checked, onChange, label, description, error, disable
       <label
         className={cn(
           "flex min-h-11 cursor-pointer items-start gap-3 rounded-xl p-4 shadow-xs transition-colors",
-          warn ? "bg-warning-bg" : "bg-surface",
+          // Web: ô nằm trong thẻ trắng (panel) — thêm viền, nếu không trắng chồng trắng.
+          warn ? "bg-warning-bg" : "bg-surface lg:border lg:border-border lg:shadow-none",
           disabled && "cursor-not-allowed opacity-50",
         )}
       >

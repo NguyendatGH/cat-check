@@ -17,6 +17,8 @@ export interface SessionUser {
   id: string;
   email: string;
   displayName: string;
+  /** `/api/v1/users/me/avatar` khi đã có ảnh đại diện, `null`/vắng khi chưa có. */
+  avatarUrl?: string | null;
   roles: Role[];
   onboarding: OnboardingState;
 }

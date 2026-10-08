@@ -1,4 +1,10 @@
-import { useMutation, useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import { apiFetch, apiUploadAvatar } from "./api";
 import type {
   ActivationResult,
@@ -86,14 +92,9 @@ export function useUpdateCat(catId: string): UseMutationResult<CreatedCat, Error
   });
 }
 
-export function useUploadAvatar(): UseMutationResult<
-  { avatarUrl: string },
-  Error,
-  { catId: string; file: File }
-> {
+export function useUploadAvatar(): UseMutationResult<{ avatarUrl: string }, Error, { catId: string; file: File }> {
   return useMutation({
-    mutationFn: ({ catId, file }: { catId: string; file: File }) =>
-      apiUploadAvatar(`/cats/${catId}/avatar`, file),
+    mutationFn: ({ catId, file }: { catId: string; file: File }) => apiUploadAvatar(`/cats/${catId}/avatar`, file),
   });
 }
 
@@ -110,12 +111,17 @@ export function useSubmitSurvey(
 }
 
 export function useActivateCode(): UseMutationResult<ActivationResult, Error, string> {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (code: string) =>
       apiFetch<ActivationResult>("/activations", {
         method: "POST",
         body: JSON.stringify({ code }),
       }),
+    onSuccess: () => {
+      // Số dư đã đổi — màn Hoàn tất (và gợi ý lượt thử ở màn này) phải đọc lại, không dùng cache.
+      void queryClient.invalidateQueries({ queryKey: ["onboarding", "credit-balance"] });
+    },
   });
 }
 
@@ -123,6 +129,52 @@ export function useCreditBalance(): UseQueryResult<CreditBalance> {
   return useQuery({
     queryKey: ["onboarding", "credit-balance"],
     queryFn: () => apiFetch<CreditBalance>("/credits/balance"),
+  });
+}
+
+interface CatListItem {
+  id: string;
+  publicCode: string;
+  name: string;
+  breedCode?: string | null;
+  breedName?: string | null;
+  breedOther?: string | null;
+  sex: CreatedCat["sex"];
+  neutered: boolean;
+  birthDate?: string | null;
+  ageMonths?: number | null;
+  weightKg?: number | null;
+  avatarUrl?: string | null;
+  isPrimary?: boolean;
+}
+
+/**
+ * D3 `GET /cats` — dùng ở màn Hoàn tất khi store onboarding trống (tải lại trang, mở thẳng
+ * `/onboarding/success`): lấy hồ sơ chính (`isPrimary`) thay vì báo "Đã có lỗi xảy ra".
+ * Server bỏ key null (`non_null`) nên các field tuỳ chọn khai `?`.
+ */
+export function usePrimaryCat(enabled: boolean): UseQueryResult<CreatedCat | null> {
+  return useQuery({
+    queryKey: ["onboarding", "primary-cat"],
+    queryFn: async () => {
+      const page = await apiFetch<{ items: CatListItem[] }>("/cats");
+      const item = page.items.find((c) => c.isPrimary) ?? page.items.at(0);
+      if (!item) return null;
+      return {
+        id: item.id,
+        publicCode: item.publicCode,
+        name: item.name,
+        breedCode: item.breedCode ?? "",
+        breedName: item.breedName ?? item.breedOther ?? "",
+        sex: item.sex,
+        neutered: item.neutered,
+        birthDate: item.birthDate ?? null,
+        ageMonths: item.ageMonths ?? null,
+        weightKg: item.weightKg ?? null,
+        avatarUrl: item.avatarUrl ?? null,
+      };
+    },
+    enabled,
   });
 }
 

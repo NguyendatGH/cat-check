@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { EmptyState, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { usePolicyVersion } from "./hooks";
-import { extractMarkdownHeadings, renderMarkdown } from "./markdown";
+import { extractMarkdownHeadings, renderMarkdown, stripLeadingTitle } from "./markdown";
 import { DocumentToc, LEGAL_ASIDE, LEGAL_ASIDE_CARD, LEGAL_COLUMN, LEGAL_SHELL, LEGAL_SPLIT } from "./shell";
 import type { PolicyCode } from "./types";
 
@@ -60,7 +60,8 @@ export function PolicyVersionDetailPage() {
     );
   }
 
-  const headings = data.contentMd ? extractMarkdownHeadings(data.contentMd) : [];
+  const body = data.contentMd ? stripLeadingTitle(data.contentMd, data.title) : null;
+  const headings = body ? extractMarkdownHeadings(body) : [];
   const versionLine = t("document.versionBanner", {
     version: data.version,
     date: new Date(data.effectiveFrom).toLocaleDateString(i18n.language),
@@ -80,7 +81,7 @@ export function PolicyVersionDetailPage() {
               {t("document.summaryOfChangesLabel")} {data.summaryOfChanges}
             </p>
           ) : null}
-          {data.contentMd ? renderMarkdown(data.contentMd) : null}
+          {data.contentMd ? renderMarkdown(body ?? "") : null}
           {!data.contentMd && data.contentUrl ? (
             <p className="text-caption text-text-secondary">
               {t("document.hostedExternally")}{" "}

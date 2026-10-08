@@ -7,15 +7,16 @@
     "label": "Quản trị",
     "packages": "Gói dịch vụ",
     "phColorChart": "Bảng màu pH",
-    "users": "Người dùng"
+    "users": "Người dùng",
+    "products": "Sản phẩm"
   },
   "actions": {
     "cancel": "Huỷ",
     "close": "Đóng",
-        "edit": "Sửa",
-        "dryRun": "Dry-run",
-        "dryRunResult": "Kết quả dry-run {{code}}",
-        "dryRunCount": "Ước tính {{count}} bản ghi trong {{table}} sẽ {{action}} khi chạy retention. Không có dữ liệu nào bị thay đổi.",
+    "edit": "Sửa",
+    "dryRun": "Dry-run",
+    "dryRunResult": "Kết quả dry-run {{code}}",
+    "dryRunCount": "Ước tính {{count}} bản ghi trong {{table}} sẽ {{action}} khi chạy retention. Không có dữ liệu nào bị thay đổi.",
     "open": "Mở"
   },
   "feedback": {
@@ -122,7 +123,7 @@
     "places": {
       "title": "Địa điểm"
     },
-      "privacyRequests": {
+    "privacyRequests": {
       "description": "Hàng chờ yêu cầu của chủ thể dữ liệu kèm đếm ngược thời hạn.",
       "filtersTitle": "Bộ lọc yêu cầu",
       "listTitle": "Danh sách DSAR",
@@ -138,17 +139,17 @@
       "ackDue": "Hạn phản hồi",
       "fulfilDue": "Hạn thực hiện",
       "handledBy": "Người xử lý",
-        "rejection": "Lý do từ chối",
-        "createTitle": "Tạo DSAR thay mặt người dùng",
-        "createDescription": "DPO hoặc Super Admin tiếp nhận yêu cầu qua email, bưu điện hoặc biểu mẫu web.",
-        "userId": "User ID",
-        "channel": "Kênh tiếp nhận",
-        "create": "Tạo yêu cầu",
-        "action": "Thao tác",
-        "extendedToInput": "Hạn mới khi gia hạn",
-        "reasonInput": "Lý do",
-        "apply": "Áp dụng",
-        "noApiNote": "Endpoint /api/v1/privacy/requests đang có là của người dùng cuối: nó chỉ trả yêu cầu của chính tài khoản đang đăng nhập, không phải hàng chờ toàn hệ thống. Dùng nó ở màn này sẽ hiển thị sai sự thật.",
+      "rejection": "Lý do từ chối",
+      "createTitle": "Tạo DSAR thay mặt người dùng",
+      "createDescription": "DPO hoặc Super Admin tiếp nhận yêu cầu qua email, bưu điện hoặc biểu mẫu web.",
+      "userId": "User ID",
+      "channel": "Kênh tiếp nhận",
+      "create": "Tạo yêu cầu",
+      "action": "Thao tác",
+      "extendedToInput": "Hạn mới khi gia hạn",
+      "reasonInput": "Lý do",
+      "apply": "Áp dụng",
+      "noApiNote": "Endpoint /api/v1/privacy/requests đang có là của người dùng cuối: nó chỉ trả yêu cầu của chính tài khoản đang đăng nhập, không phải hàng chờ toàn hệ thống. Dùng nó ở màn này sẽ hiển thị sai sự thật.",
       "title": "Yêu cầu về quyền riêng tư"
     },
     "privacyRetention": {
@@ -191,6 +192,10 @@
       "description": "Tìm, lọc và xử lý tài khoản người dùng.",
       "noApiNote": "Danh sách người dùng phải do máy chủ trả về với dữ liệu đã che sẵn; không có nguồn nào khác ở phía giao diện để dựng tạm.",
       "title": "Danh sách người dùng"
+    },
+    "products": {
+      "title": "Sản phẩm cửa hàng",
+      "description": "Tạo, sửa, đăng bán và gỡ bán sản phẩm trong cửa hàng."
     }
   },
   "userDetail": {
@@ -592,5 +597,45 @@
     "saveCta": "Lưu dải phân loại",
     "thresholdLocked": "Khoảng pH không sửa được ở màn này: đổi ngưỡng bắt buộc đi kèm bước xác thực bổ sung, lớp đó chưa được nối ở máy chủ.",
     "title": "Dải phân loại pH"
+  },
+  "productAdmin": {
+    "listTitle": "Danh sách sản phẩm",
+    "listDescription": "Sản phẩm chỉ hiển thị cho người dùng khi ở trạng thái Đang bán. Không xoá cứng: gỡ bán sẽ chuyển sản phẩm sang Đã gỡ.",
+    "add": "Thêm sản phẩm",
+    "createTitle": "Thêm sản phẩm",
+    "editTitle": "Sửa sản phẩm {{sku}}",
+    "image": "Ảnh",
+    "name": "Tên",
+    "sku": "SKU",
+    "price": "Giá",
+    "stock": "Tồn kho",
+    "status": "Trạng thái",
+    "action": "Thao tác",
+    "description": "Mô tả",
+    "imageUrl": "Địa chỉ ảnh (tuỳ chọn)",
+    "priceVnd": "Giá bán (VND)",
+    "compareAtPriceVnd": "Giá gốc (VND, tuỳ chọn)",
+    "stockQuantity": "Tồn kho",
+    "skuHelp": "Chữ in hoa, số và dấu gạch ngang, 2–64 ký tự. Không đổi được sau khi tạo.",
+    "save": "Lưu sản phẩm",
+    "publish": "Đăng bán",
+    "archive": "Gỡ bán",
+    "confirmArchiveTitle": "Gỡ bán sản phẩm?",
+    "confirmArchiveBody": "Sản phẩm {{name}} sẽ không còn hiển thị trong cửa hàng. Bạn có thể đăng bán lại sau.",
+    "duplicateSku": "SKU này đã tồn tại. Hãy dùng SKU khác.",
+    "statuses": {
+      "DRAFT": "Nháp",
+      "PUBLISHED": "Đang bán",
+      "ARCHIVED": "Đã gỡ"
+    },
+    "errors": {
+      "sku": "SKU gồm chữ in hoa, số, dấu gạch ngang; 2–64 ký tự; bắt đầu bằng chữ hoặc số.",
+      "name": "Tên từ 1 đến 180 ký tự.",
+      "description": "Mô tả từ 1 đến 4000 ký tự.",
+      "imageUrl": "Địa chỉ ảnh phải bắt đầu bằng http:// hoặc https:// và tối đa 2000 ký tự.",
+      "priceVnd": "Giá phải là số nguyên không âm.",
+      "compareAtPriceVnd": "Giá gốc phải là số nguyên lớn hơn giá bán.",
+      "stockQuantity": "Tồn kho phải là số nguyên không âm."
+    }
   }
 }

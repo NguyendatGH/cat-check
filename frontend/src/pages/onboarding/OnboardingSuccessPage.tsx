@@ -12,9 +12,16 @@ import {
   ScanLine,
   ShieldCheck,
 } from "lucide-react";
-import { Badge, Button, Card } from "@/shared/ui";
+import { Badge, Button, Card, EmptyState, SkeletonLoader } from "@/shared/ui";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
-import { OnboardingShell, PhBandBar, useCreditBalance, useOnboardingStore, usePhBands } from "@/features/onboarding";
+import {
+  OnboardingShell,
+  PhBandBar,
+  useCreditBalance,
+  useOnboardingStore,
+  usePhBands,
+  usePrimaryCat,
+} from "@/features/onboarding";
 
 const ROADMAP_STEPS = ["step1", "step2", "step3"] as const;
 
@@ -71,11 +78,18 @@ export function OnboardingSuccessPage() {
   const { data: bands } = usePhBands();
   const { data: balance } = useCreditBalance();
 
-  // `createdCat` là nguồn duy nhất ở đây: D12 không trả hồ sơ mèo (xem CatSummary).
-  const cat = createdCat;
+  // Nguồn chính là `createdCat` của store (vừa tạo ở bước 1). Store chỉ sống trong phiên
+  // trang: tải lại / mở thẳng `/onboarding/success` thì store trống — khi đó đọc hồ sơ chính
+  // từ `GET /cats` thay vì báo lỗi chung chung như trước.
+  const primaryCat = usePrimaryCat(!createdCat);
+  const cat = createdCat ?? primaryCat.data ?? null;
+  // Trạng thái khảo sát chỉ biết chắc khi đi qua bước 2 trong phiên này.
+  const surveyKnown = Boolean(createdCat);
   const normalBand = bands?.find((b) => b.severity === "NORMAL");
+  const rangedBands = (bands ?? []).filter((b) => typeof b.phMin === "number" || typeof b.phMax === "number");
 
   if (!cat) {
+    const loading = primaryCat.isPending;
     return (
       <OnboardingShell
         step={5}
@@ -93,7 +107,27 @@ export function OnboardingSuccessPage() {
           </Button>
         }
       >
-        <p className="text-body text-text-secondary">{t("errors.generic")}</p>
+        {loading ? (
+          <div className="flex flex-col gap-3" aria-busy="true" aria-label={t("success.loadingCat")}>
+            <SkeletonLoader className="h-24 w-full rounded-2xl" />
+            <SkeletonLoader className="h-16 w-full rounded-2xl" />
+          </div>
+        ) : (
+          <EmptyState
+            title={primaryCat.isError ? t("errors.generic") : t("success.noCat")}
+            action={
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  void navigate("/onboarding/cat");
+                }}
+              >
+                {t("success.noCatCta")}
+              </Button>
+            }
+          />
+        )}
       </OnboardingShell>
     );
   }
@@ -205,7 +239,9 @@ export function OnboardingSuccessPage() {
                 <Cat className="size-4 shrink-0 text-primary" aria-hidden="true" />
                 {t("success.summary.breed")}
               </dt>
-              <dd className="text-caption font-bold text-text-primary">{cat.breedName}</dd>
+              <dd className="text-caption font-bold text-text-primary">
+                {cat.breedName || t("success.summary.unknown")}
+              </dd>
             </div>
             {normalBand ? (
               <div className="flex items-center justify-between gap-4">
@@ -219,15 +255,17 @@ export function OnboardingSuccessPage() {
                 </dd>
               </div>
             ) : null}
-            <div className="flex items-center justify-between gap-4">
-              <dt className="flex items-center gap-2 text-caption text-text-secondary">
-                <ClipboardCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />
-                {t("success.summary.surveyLabel")}
-              </dt>
-              <dd className="text-caption font-bold text-text-primary">
-                {surveySkipped ? t("success.summary.surveySkipped") : t("success.summary.surveyDone")}
-              </dd>
-            </div>
+            {surveyKnown ? (
+              <div className="flex items-center justify-between gap-4">
+                <dt className="flex items-center gap-2 text-caption text-text-secondary">
+                  <ClipboardCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                  {t("success.summary.surveyLabel")}
+                </dt>
+                <dd className="text-caption font-bold text-text-primary">
+                  {surveySkipped ? t("success.summary.surveySkipped") : t("success.summary.surveyDone")}
+                </dd>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-4">
               <dt className="flex items-center gap-2 text-caption text-text-secondary">
                 <IdCard className="size-4 shrink-0 text-primary" aria-hidden="true" />
@@ -241,15 +279,15 @@ export function OnboardingSuccessPage() {
 
           {/* W1 Web-01c-5 "Ngưỡng pH Nước tiểu Dự kiến": dải màu + nhãn 2 đầu, số lấy từ
               `GET /reference/ph-bands` nên không hard-code ngưỡng nào. */}
-          {bands && bands.length > 0 ? (
+          {rangedBands.length > 0 ? (
             <div className="flex flex-col gap-1.5 border-t border-border pt-3">
-              <PhBandBar bands={bands} />
+              <PhBandBar bands={rangedBands} />
               <div className="flex items-center justify-between gap-2 text-small text-text-tertiary">
-                <span className="truncate">{bands.at(0)?.label}</span>
+                <span className="truncate">{rangedBands.at(0)?.label}</span>
                 {normalBand ? (
                   <span className="truncate font-semibold text-ph-normal-text">{normalBand.label}</span>
                 ) : null}
-                <span className="truncate">{bands.at(-1)?.label}</span>
+                <span className="truncate">{rangedBands.at(-1)?.label}</span>
               </div>
             </div>
           ) : null}
@@ -262,16 +300,22 @@ export function OnboardingSuccessPage() {
           <p className="text-caption text-text-secondary">
             {activation
               ? t("success.credit.activated", {
-                  credits: activation.balance.totalAvailable,
-                  date: new Date(activation.batch.expiresAt).toLocaleDateString("vi-VN"),
+                  credits: activation.balanceAfter,
+                  date: new Date(activation.expiresAt).toLocaleDateString("vi-VN"),
                 })
-              : (balance?.trialScansRemaining ?? 0) > 0
-                ? t("success.credit.trial", { count: balance?.trialScansRemaining })
-                : t("success.credit.none")}
+              : (balance?.availableBalance ?? 0) > 0
+                ? t("success.credit.available", { count: balance?.availableBalance })
+                : (balance?.trialScansRemaining ?? 0) > 0
+                  ? t("success.credit.trial", { count: balance?.trialScansRemaining })
+                  : t("success.credit.none")}
           </p>
         </div>
-        <Badge tone={activation ? "brand" : "neutral"}>
-          {activation ? activation.balance.totalAvailable : (balance?.trialScansRemaining ?? 0)}
+        <Badge tone={activation || (balance?.availableBalance ?? 0) > 0 ? "brand" : "neutral"}>
+          {activation
+            ? activation.balanceAfter
+            : (balance?.availableBalance ?? 0) > 0
+              ? balance?.availableBalance
+              : (balance?.trialScansRemaining ?? 0)}
         </Badge>
       </Card>
 
