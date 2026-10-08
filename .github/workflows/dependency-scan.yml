@@ -1,9 +1,9 @@
 name: Dependency Scan (Trivy)
 
 on:
-  pull_request: {} # quét fs nhanh, mọi PR
-  schedule:
-    - cron: "0 19 * * 1" # thứ 2 hằng tuần, 19:00 UTC ≈ 02:00 giờ VN — quét toàn bộ (fs + image)
+  # TẠM TẮT trigger tự động (push/PR/lịch) — chỉ chạy tay từ tab Actions. Bật lại bằng cách
+  # khôi phục các trigger cũ (xem lịch sử git của file này).
+  workflow_dispatch: {}
 
 jobs:
   # ---- Quét filesystem: backend/pom.xml, frontend/package-lock.json ----

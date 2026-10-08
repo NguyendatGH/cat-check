@@ -1,15 +1,9 @@
 name: Backend CI
 
 on:
-  pull_request:
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
+  # TẠM TẮT trigger tự động (push/PR/lịch) — chỉ chạy tay từ tab Actions. Bật lại bằng cách
+  # khôi phục các trigger cũ (xem lịch sử git của file này).
+  workflow_dispatch: {}
 
 concurrency:
   group: backend-ci-${{ github.ref }}

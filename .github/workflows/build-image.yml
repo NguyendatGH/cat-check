@@ -6,10 +6,9 @@ name: Build Images
 # phần setup không cần thiết.
 
 on:
-  pull_request: {} # build-only (không push) — xác nhận Dockerfile không hỏng
-  push:
-    branches: [main]
-    tags: ["v*"]
+  # TẠM TẮT trigger tự động (push/PR/lịch) — chỉ chạy tay từ tab Actions. Bật lại bằng cách
+  # khôi phục các trigger cũ (xem lịch sử git của file này).
+  workflow_dispatch: {}
 
 env:
   BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/catcheck-backend

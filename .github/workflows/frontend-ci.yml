@@ -1,15 +1,9 @@
 name: Frontend CI
 
 on:
-  pull_request:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
-  push:
-    branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
+  # TẠM TẮT trigger tự động (push/PR/lịch) — chỉ chạy tay từ tab Actions. Bật lại bằng cách
+  # khôi phục các trigger cũ (xem lịch sử git của file này).
+  workflow_dispatch: {}
 
 concurrency:
   group: frontend-ci-${{ github.ref }}
