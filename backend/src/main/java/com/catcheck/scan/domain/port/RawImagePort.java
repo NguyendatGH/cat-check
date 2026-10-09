@@ -1,8 +1,13 @@
 package com.catcheck.scan.domain.port;
 
 import com.catcheck.scan.domain.CalibrationMethod;
+import com.catcheck.scan.domain.color.CardLayout;
 import com.catcheck.scan.domain.color.Lab;
+import com.catcheck.scan.domain.color.LinearizationCurve;
+import com.catcheck.scan.domain.color.Matrix3;
 import com.catcheck.scan.domain.color.port.VisionEngine;
+
+import java.util.List;
 
 /**
  * Cổng tiền xử lý ảnh phía scan (giải mã, crop ROI, đo chất lượng S2, hiệu chỉnh màu S4/S4b) —
@@ -13,8 +18,10 @@ import com.catcheck.scan.domain.color.port.VisionEngine;
  * {@code scan/domain/color/**}) vì đây là việc MỚI cần cho orchestration toàn pipeline (A6),
  * không phải phần S3/S6 mà {@code VisionEngine} đã phủ.</p>
  *
- * <p><b>Phạm vi MVP (M3):</b> chỉ hiện thực nhánh S4b (không CCM từ patch thẻ) — xem
- * {@link CalibrationMethod} javadoc và {@code docs/handovers/A6.md}.</p>
+ * <p>Hai method {@link #sampleNeutralPatches} / {@link #applyCardCcm} là nhánh S4 CARD_CCM: lấy
+ * mẫu patch trên ảnh thẻ đã nắn phẳng ({@code VisionEngine#detectCard}) rồi áp CCM đã giải cho
+ * toàn ROI. {@link #calibrate} vẫn là nhánh S4b (không thẻ/không layout/CCM không dùng được) —
+ * xem {@code ColorPipelineService} cho thứ tự thử và điều kiện rơi về S4b.</p>
  */
 public interface RawImagePort {
 
@@ -37,10 +44,32 @@ public interface RawImagePort {
     VisionEngine.FrameHandle cropToRoi(VisionEngine.FrameHandle frame, RoiRect roi);
 
     /**
-     * S4b — cân bằng trắng từ nền cát (không có CCM từ thẻ ở MVP) rồi nâng toàn ROI lên không
+     * S4b — cân bằng trắng từ nền cát (không có CCM từ thẻ) rồi nâng toàn ROI lên không
      * gian XYZ, kèm ước lượng {@code substrateLab} (S6 bước 2) trong cùng một lượt quét pixel.
      */
     CalibrationResult calibrate(VisionEngine.FrameHandle roiFrame);
+
+    /**
+     * S4 (nhánh CARD_CCM) — lấy mẫu median vùng lõi của mỗi patch {@code role=NEUTRAL} trên ảnh
+     * thẻ đã nắn phẳng ({@code canonicalCard}, 600×380 theo {@code VisionEngine#detectCard}),
+     * ghép với {@code ref_lab} của chính patch đó.
+     *
+     * <p>Giá trị trả về <b>chưa khử gamma</b> ({@code encodedR/G/B} vẫn là sRGB 8-bit đã
+     * gamma-encode) vì caller cần giá trị thô này để fit {@link LinearizationCurve} trước —
+     * khử gamma ở đây sẽ buộc dùng sRGB EOTF chuẩn, mất đúng thông tin mà linearization cần đo.
+     * Patch nào rơi ra ngoài khung (layout hỏng) bị bỏ qua lặng lẽ; caller tự quyết định có đủ
+     * patch còn lại để giải CCM hay không ({@link LinearizationCurve#MIN_GRAY_PATCHES}).
+     */
+    List<CardPatchSample> sampleNeutralPatches(VisionEngine.FrameHandle canonicalCard, CardLayout cardLayout);
+
+    /**
+     * S4 (nhánh CARD_CCM) — áp {@code curve} (khử gamma đo được từ thẻ) rồi {@code ccm} cho toàn
+     * ROI, nâng lên XYZ, kèm ước lượng {@code substrateLab} (S6 bước 2) như {@link #calibrate}.
+     * {@code residualDe00} do caller tính (ΔE00 hậu kiểm các patch NEUTRAL) và truyền thẳng vào
+     * kết quả — dùng nguyên cho S9 ({@code calibrationResidualDe00Proxy}).
+     */
+    CalibrationResult applyCardCcm(VisionEngine.FrameHandle roiFrame, LinearizationCurve curve, Matrix3 ccm,
+                                    double residualDe00);
 
     /** Ảnh đã giải mã. */
     record DecodedImage(VisionEngine.FrameHandle frame, int width, int height, String contentType) {
@@ -69,7 +98,11 @@ public interface RawImagePort {
             double lumaGradient) {
     }
 
-    /** Kết quả hiệu chỉnh S4b + ước lượng nền S6 bước 2. */
+    /**
+     * Kết quả hiệu chỉnh (S4/S4b) + ước lượng nền S6 bước 2. {@code wbGains} = {@code [1,1,1]} và
+     * {@code neutralPixelRatio} = {@code 1.0} khi {@code method = CARD_CCM} (CCM đã thay cho gain
+     * đơn giản; trường này giữ nguyên nghĩa cũ ở S4b).
+     */
     record CalibrationResult(
             VisionEngine.XyzFrame xyzFrame,
             CalibrationMethod method,
@@ -77,6 +110,14 @@ public interface RawImagePort {
             double neutralPixelRatio,
             double calibrationResidualDe00Proxy,
             Lab substrateLab) {
+    }
+
+    /**
+     * Một mẫu patch {@code role=NEUTRAL} lấy từ ảnh thẻ: median sRGB 8-bit (đã gamma-encode,
+     * CHƯA khử tuyến tính) của vùng lõi patch, kèm {@code ref_lab} của chính patch — đủ để fit
+     * {@link LinearizationCurve} và giải CCM (nhánh CARD_CCM, p6 §6.5.1 S4).
+     */
+    record CardPatchSample(String patchId, int encodedR, int encodedG, int encodedB, Lab referenceLab) {
     }
 
     class UnsupportedFormatException extends RuntimeException {

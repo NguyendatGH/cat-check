@@ -652,10 +652,8 @@ export function EmergencyDisclaimerBanner({ forceExpanded = false, className }: 
         )}
       >
         <span className="flex items-center gap-2">
-          <AlertTriangle
-            className={cn("size-5 shrink-0", forceExpanded ? "text-danger-text" : "text-text-tertiary")}
-            aria-hidden="true"
-          />
+          {/* Tiêu đề bản bung (copy nguyên văn p15) đã có sẵn emoji ⚠️ — không vẽ thêm icon nữa. */}
+          {forceExpanded ? null : <AlertTriangle className="size-5 shrink-0 text-text-tertiary" aria-hidden="true" />}
           <span className={cn("text-body font-semibold", forceExpanded ? "text-danger-text" : "text-text-primary")}>
             {forceExpanded ? t("disclaimer.emergency.title") : t("disclaimer.emergencyCollapsedTitle")}
           </span>

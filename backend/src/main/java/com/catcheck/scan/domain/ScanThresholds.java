@@ -56,6 +56,29 @@ public final class ScanThresholds {
     // ---- Bảng màu mặc định MVP — chỉ 1 dòng sản phẩm có bảng màu (V9 seed, p4 D5) ----
     public static final String DEFAULT_PRODUCT_LINE = "STANDARD";
 
+    // ---- CARD_CCM — hiệu chuẩn bằng thẻ tham chiếu (p6 §6.5.1 S4, reference_card_layout) ----
+    /** Mã layout thẻ tham chiếu đang publish (V9 seed, bảng {@code reference_card_layout}, code=CC-CARD). */
+    public static final String DEFAULT_CARD_LAYOUT_CODE = "CC-CARD";
+    /**
+     * Trần phần dư hậu kiểm CCM: ΔE00 trung bình của các patch {@code NEUTRAL} sau khi áp ma trận,
+     * so với {@code ref_lab} in trên thẻ. Vượt ngưỡng này thì KHÔNG dùng CARD_CCM — rơi về
+     * {@code SUBSTRATE_WB} (cờ {@code CARD_UNUSABLE}). Lấy cùng bậc với {@code tolerance_delta_e}
+     * mặc định khi publish một mức trên bảng màu (4.0, p6 §6.6.3) — đó là ngưỡng hệ thống đã coi
+     * là "khớp được" cho câu hỏi tương tự (màu đo có đủ gần màu tham chiếu không), nên dùng lại
+     * thay vì bịa một số riêng cho CCM.
+     */
+    public static final double CARD_CCM_MAX_RESIDUAL_DE00 = 4.0;
+    /**
+     * Sàn trị tuyệt đối định thức của CCM đã giải — dưới ngưỡng này COI NHƯ SUY BIẾN, bất kể
+     * residual trên tập train thấp cỡ nào (xem Javadoc {@code ColorPipelineService.tryCardCcm}:
+     * patch NEUTRAL có {@code ref_lab a=b=0} nên hệ WLS luôn có thể hội tụ về ma trận ba hàng
+     * giống hệt nhau — det=0 CHÍNH XÁC — chiếu mọi màu về một trục xám, xoá sạch chroma khi áp
+     * lên ảnh thật). {@code 0.05} là một bậc dưới định thức của ma trận gần-đơn-vị điển hình
+     * (CCM hợp lý thường có det trong khoảng 0.5–1.5) — đủ chặt để bắt trường hợp suy biến thật,
+     * đủ lỏng để không loại oan một CCM hơi lệch do nhiễu đo đạc bình thường.
+     */
+    public static final double CARD_CCM_MIN_ABS_DETERMINANT = 0.05;
+
     /** Định dạng ảnh chấp nhận (magic-byte sniff, p6 §6.4.1). */
     public static final String[] ACCEPTED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"};
 }

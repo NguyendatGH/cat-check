@@ -116,7 +116,10 @@ export function SharedTrayLogPage() {
                 // Thiết kế M-07b/Web-07b: nút "Gán cho một bé" nằm TRONG thẻ, ở hàng chân —
                 // không trôi lơ lửng dưới thẻ. `ScanTimelineItem` là một <button> nên hàng chân
                 // phải là anh em của nó (không lồng button), cùng chung một khung viền.
-                <li key={scan.scanId} className="overflow-hidden rounded-xl border border-border bg-surface">
+                <li
+                  key={scan.scanId}
+                  className="overflow-hidden rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs"
+                >
                   <ScanTimelineItem
                     scan={scan}
                     bands={bands ?? []}

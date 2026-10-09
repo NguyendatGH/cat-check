@@ -268,10 +268,16 @@ export function CatDetailPage() {
           <HealthFlagDisclosure catId={catId} count={cat.unacknowledgedFlagCount ?? 0} />
 
           <Tabs defaultValue="overview">
-            <TabsList>
-              <TabsTrigger value="overview">{t("detail.tabs.overview")}</TabsTrigger>
-              <TabsTrigger value="history">{t("detail.tabs.history")}</TabsTrigger>
-              <TabsTrigger value="notes">{t("detail.tabs.notes")}</TabsTrigger>
+            <TabsList className="flex w-full">
+              <TabsTrigger value="overview" className="flex-1 whitespace-nowrap px-1 text-[13px]">
+                {t("detail.tabs.overview")}
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 whitespace-nowrap px-1 text-[13px]">
+                {t("detail.tabs.history")}
+              </TabsTrigger>
+              <TabsTrigger value="notes" className="flex-1 whitespace-nowrap px-1 text-[13px]">
+                {t("detail.tabs.notes")}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -489,7 +495,13 @@ function SurveyCard({ catId, onOpen, className }: { catId: string; onOpen: () =>
           {t("survey.lastSubmittedAt", { date: new Date(survey.submittedAt).toLocaleDateString(i18n.language) })}
         </p>
       ) : null}
-      <Button type="button" variant="tertiary" size="sm" onClick={onOpen} className="mt-auto w-fit">
+      <Button
+        type="button"
+        variant="tertiary"
+        size="sm"
+        onClick={onOpen}
+        className="mt-auto h-auto min-h-9 w-fit max-w-full whitespace-normal py-2 text-left"
+      >
         {survey && !survey.skipped ? t("survey.updateCta") : t("survey.startCta")}
       </Button>
     </Card>
@@ -507,7 +519,7 @@ function ClinicalSignsCard({ onOpen, className }: { onOpen: () => void; classNam
         size="sm"
         leftIcon={<Stethoscope className="size-4" aria-hidden="true" />}
         onClick={onOpen}
-        className="mt-auto w-fit"
+        className="mt-auto h-auto min-h-9 w-fit max-w-full whitespace-normal py-2 text-left"
       >
         {t("clinicalSigns.cta")}
       </Button>

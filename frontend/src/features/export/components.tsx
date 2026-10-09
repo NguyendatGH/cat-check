@@ -145,7 +145,7 @@ export function RangePickerStep({
                 "flex min-h-[var(--touch-target-min)] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-center text-caption font-semibold transition-colors",
                 selected
                   ? "border-primary-dark bg-primary-dark text-white shadow-sm"
-                  : "border-border bg-surface text-text-secondary hover:border-border-strong",
+                  : "border-border bg-surface text-text-secondary max-lg:border-transparent max-lg:shadow-xs hover:border-border-strong",
               )}
             >
               {option === "CUSTOM" ? <CalendarDays className="size-4 shrink-0" aria-hidden="true" /> : null}

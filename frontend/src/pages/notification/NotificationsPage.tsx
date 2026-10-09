@@ -221,7 +221,7 @@ export function NotificationsPage() {
                   return (
                     <li
                       key={item.id}
-                      className="flex items-start gap-3 rounded-xl border border-border bg-surface p-3"
+                      className="flex items-start gap-3 rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs p-3"
                       data-unread={item.read ? undefined : "true"}
                     >
                       <Icon size={18} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />

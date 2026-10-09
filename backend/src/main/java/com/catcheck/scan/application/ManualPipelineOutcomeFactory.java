@@ -169,7 +169,7 @@ public class ManualPipelineOutcomeFactory {
     public static QualityFlag flagOf(QualityFlagCode code) {
         QualityFlagSeverity severity = switch (code) {
             case BLURRY, TOO_DARK, TOO_BRIGHT, OVEREXPOSED, NO_INDICATOR_GRAINS -> QualityFlagSeverity.BLOCKING;
-            case UNDEREXPOSED_PATCH, UNEVEN_LIGHTING, CARD_NOT_FOUND, CALIBRATION_UNAVAILABLE,
+            case UNDEREXPOSED_PATCH, UNEVEN_LIGHTING, CARD_NOT_FOUND, CARD_UNUSABLE, CALIBRATION_UNAVAILABLE,
                  LOW_GRANULE_COVERAGE, FEW_BLOBS, MIXED_COLORS, OUT_OF_CHART_RANGE -> QualityFlagSeverity.WARN;
         };
         return new QualityFlag(code, severity);

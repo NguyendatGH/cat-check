@@ -95,7 +95,10 @@ export function CatSwitcherBar({
   return (
     <div
       aria-label={ariaLabel}
-      className={cn("flex items-center gap-3 rounded-xl border border-border bg-surface p-3", className)}
+      className={cn(
+        "flex items-center gap-3 rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs p-3",
+        className,
+      )}
     >
       {avatar}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -208,7 +211,7 @@ export function FilterChips({ value, onChange, labels, className }: FilterChipsP
               "flex min-h-[var(--touch-target-min)] shrink-0 items-center gap-1.5 rounded-full border-2 px-4 text-caption font-semibold transition-colors",
               value === option
                 ? "border-primary bg-primary text-white"
-                : "border-border bg-surface text-text-secondary hover:border-border-strong",
+                : "border-border bg-surface text-text-secondary max-lg:border-transparent max-lg:shadow-xs hover:border-border-strong",
             )}
           >
             <Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -285,7 +288,7 @@ export function ScanTimelineItem({
         onOpen(scan.scanId);
       }}
       className={cn(
-        "flex w-full items-start gap-3 rounded-xl border border-border bg-surface p-3 text-left transition-colors hover:border-border-strong",
+        "flex w-full items-start gap-3 rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs p-3 text-left transition-colors hover:border-border-strong",
         className,
       )}
     >

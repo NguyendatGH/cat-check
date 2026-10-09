@@ -98,7 +98,9 @@ export function CatCard({
       aria-pressed={onSelect ? selected : undefined}
       className={cn(
         "flex min-h-[var(--touch-target-min)] w-full items-center gap-3 rounded-xl border-2 bg-surface p-3 text-left transition-colors",
-        selected ? "border-primary bg-chip-bg" : "border-border hover:border-border-strong",
+        selected
+          ? "border-primary bg-chip-bg"
+          : "border-border max-lg:border-transparent max-lg:shadow-xs hover:border-border-strong",
         isArchived && "opacity-70",
         className,
       )}

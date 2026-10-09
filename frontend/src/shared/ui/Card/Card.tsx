@@ -20,7 +20,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-xl border border-border bg-surface",
+          "rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs",
           PADDING_CLASS[padding],
           elevated && "shadow-brand-md",
           className,

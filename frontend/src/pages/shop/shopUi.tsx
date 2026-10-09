@@ -321,7 +321,12 @@ export function PhBandScale({ compact = false, className }: { compact?: boolean;
 export function CareNoteCard({ className }: { className?: string }) {
   const { t } = useTranslation("shop");
   return (
-    <section className={cn("flex flex-col gap-3 rounded-2xl bg-chip-bg/60 p-4 lg:flex-row lg:items-center", className)}>
+    <section
+      className={cn(
+        "grid grid-cols-[auto_1fr] items-start gap-3 rounded-2xl bg-chip-bg/60 p-4 lg:flex lg:items-center",
+        className,
+      )}
+    >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
         <Info size={18} aria-hidden="true" />
       </span>
@@ -331,7 +336,7 @@ export function CareNoteCard({ className }: { className?: string }) {
       </div>
       <Link
         to="/scan"
-        className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-surface px-4 py-2.5 text-[12px] font-semibold text-primary-dark shadow-xs hover:bg-background-alt"
+        className="col-span-2 flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-surface px-4 py-2.5 text-[12px] font-semibold text-primary-dark shadow-xs hover:bg-background-alt"
       >
         <ScanLine size={14} aria-hidden="true" />
         {t("careNote.cta")}

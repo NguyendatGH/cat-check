@@ -42,6 +42,7 @@ public class SubmitScanService {
     private final ScanRepository scanRepository;
     private final ScanAnalysisRepository scanAnalysisRepository;
     private final ColorPipelineService pipelineService;
+    private final ScanPipelineMetrics pipelineMetrics;
     private final ScanPersistenceService persistenceService;
     private final CatOwnershipPort catOwnershipPort;
     private final CreditConsumption creditConsumption;
@@ -64,6 +65,7 @@ public class SubmitScanService {
             ScanRepository scanRepository,
             ScanAnalysisRepository scanAnalysisRepository,
             ColorPipelineService pipelineService,
+            ScanPipelineMetrics pipelineMetrics,
             ScanPersistenceService persistenceService,
             CatOwnershipPort catOwnershipPort,
             CreditConsumption creditConsumption,
@@ -73,6 +75,7 @@ public class SubmitScanService {
         this.scanRepository = scanRepository;
         this.scanAnalysisRepository = scanAnalysisRepository;
         this.pipelineService = pipelineService;
+        this.pipelineMetrics = pipelineMetrics;
         this.persistenceService = persistenceService;
         this.catOwnershipPort = catOwnershipPort;
         this.creditConsumption = creditConsumption;
@@ -138,7 +141,8 @@ public class SubmitScanService {
             throw new BusinessRuleException(CreditErrorCode.CREDIT_INSUFFICIENT, 0, 1);
         }
 
-        PipelineOutcome outcome = pipelineService.analyze(cmd.imageBytes(), cmd.roi(), cmd.cardQuadHint());
+        PipelineOutcome outcome = pipelineMetrics.recordPipelineCall(
+                () -> pipelineService.analyze(cmd.imageBytes(), cmd.roi(), cmd.cardQuadHint()));
 
         boolean storeImageAllowed = entitlementQuery.isFeatureEnabled(cmd.userId(), Feature.STORE_IMAGE);
         boolean willStoreImage = storeImageAllowed && !trialRegime && !outcome.inconclusive();

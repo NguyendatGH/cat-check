@@ -2,8 +2,11 @@ package com.catcheck.scan.infrastructure.vision;
 
 import com.catcheck.scan.domain.CalibrationMethod;
 import com.catcheck.scan.domain.ScanThresholds;
+import com.catcheck.scan.domain.color.CardLayout;
 import com.catcheck.scan.domain.color.ColorSpace;
 import com.catcheck.scan.domain.color.Lab;
+import com.catcheck.scan.domain.color.LinearizationCurve;
+import com.catcheck.scan.domain.color.Matrix3;
 import com.catcheck.scan.domain.color.RgbLinear;
 import com.catcheck.scan.domain.color.RobustStats;
 import com.catcheck.scan.domain.color.WhiteBalanceSolver;
@@ -21,7 +24,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Hiện thực {@link RawImagePort} bằng OpenCV — giải mã, crop ROI, đo chất lượng (S2), hiệu chỉnh
@@ -40,6 +45,13 @@ public class OpenCvRawImageProcessor implements RawImagePort {
 
     /** Cạnh dài tối đa của ảnh đưa vào hiệu chỉnh + tách hạt (px); ảnh lớn hơn được thu nhỏ INTER_AREA. */
     static final int ANALYSIS_MAX_EDGE = 1280;
+
+    /**
+     * Tỉ lệ viền bỏ mỗi cạnh khi lấy mẫu vùng lõi một patch trên thẻ (CARD_CCM, p6 §6.5.1 S4).
+     * Mép patch dễ lẫn pixel của patch bên cạnh do sai số nắn phẳng/in ấn/cắt giấy; 10–15% mỗi
+     * cạnh (ở đây 12%) vẫn để lại ~76% diện tích patch — dư dả cho median ổn định.
+     */
+    static final double PATCH_BORDER_TRIM = 0.12;
 
     private final OpenCvNativeLoader nativeLoader;
 
@@ -190,15 +202,32 @@ public class OpenCvRawImageProcessor implements RawImagePort {
 
     @Override
     public CalibrationResult calibrate(VisionEngine.FrameHandle roiFrame) {
-        if (!(roiFrame instanceof OpenCvFrameHandle handle)) {
+        return withAnalysisScale(asMat(roiFrame), this::calibrateOn);
+    }
+
+    @Override
+    public CalibrationResult applyCardCcm(VisionEngine.FrameHandle roiFrame, LinearizationCurve curve, Matrix3 ccm,
+                                           double residualDe00) {
+        return withAnalysisScale(asMat(roiFrame), work -> applyCardCcmOn(work, curve, ccm, residualDe00));
+    }
+
+    private Mat asMat(VisionEngine.FrameHandle frame) {
+        if (!(frame instanceof OpenCvFrameHandle handle)) {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
         // `handle` sở hữu Mat: KHÔNG đóng ở đây (try-with-resources làm Mat bị giải phóng sau lần dùng đầu,
         // các bước sau của pipeline gặp con trỏ NULL).
-        Mat source = handle.mat();
+        return handle.mat();
+    }
+
+    /**
+     * Phân tích ở độ phân giải vừa đủ: ảnh điện thoại ~12MP không cần quét từng pixel gốc. Dùng
+     * chung cho cả nhánh S4b ({@link #calibrate}) và CARD_CCM ({@link #applyCardCcm}) — hai nhánh
+     * chỉ khác phép sửa áp cho từng pixel, không khác bước thu nhỏ.
+     */
+    private CalibrationResult withAnalysisScale(Mat source, Function<Mat, CalibrationResult> onWorkingFrame) {
         Mat scaled = null;
         try {
-            // Phân tích ở độ phân giải vừa đủ: ảnh điện thoại ~12MP không cần quét từng pixel gốc.
             int longEdge = Math.max(source.cols(), source.rows());
             Mat work = source;
             if (longEdge > ANALYSIS_MAX_EDGE) {
@@ -210,7 +239,7 @@ public class OpenCvRawImageProcessor implements RawImagePort {
                         0, 0, opencv_imgproc.INTER_AREA);
                 work = scaled;
             }
-            return calibrateOn(work);
+            return onWorkingFrame.apply(work);
         } finally {
             if (scaled != null) {
                 scaled.close();
@@ -312,5 +341,136 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         new DoublePointer(xyzMat.data()).put(xyzOut);
         OpenCvXyzFrame xyzFrame = new OpenCvXyzFrame(xyzMat);
         return new CalibrationResult(xyzFrame, method, gains, neutralRatio, residualProxy, substrateLab);
+    }
+
+    // ------------------------------------------------------------------ CARD_CCM
+
+    @Override
+    public List<CardPatchSample> sampleNeutralPatches(VisionEngine.FrameHandle canonicalCard, CardLayout cardLayout) {
+        Mat mat = asMat(canonicalCard);
+        int width = mat.cols();
+        int height = mat.rows();
+        Mat contiguous = mat.isContinuous() ? mat : mat.clone();
+        byte[] bgr = new byte[width * height * 3];
+        try {
+            contiguous.data().get(bgr);
+        } finally {
+            if (contiguous != mat) {
+                contiguous.close();
+            }
+        }
+
+        List<CardPatchSample> samples = new ArrayList<>();
+        for (CardLayout.Patch patch : cardLayout.neutralPatches()) {
+            int[] medianBgr = medianCoreChannels(bgr, width, height, patch);
+            if (medianBgr == null) {
+                // rect roi ra ngoai khung (layout hong) — bo qua patch nay, khong lam hong ca lan thu CCM.
+                continue;
+            }
+            samples.add(new CardPatchSample(patch.id(), medianBgr[2], medianBgr[1], medianBgr[0], patch.refLab()));
+        }
+        return samples;
+    }
+
+    /**
+     * Median vùng lõi của một patch (bỏ viền {@link #PATCH_BORDER_TRIM} mỗi cạnh), theo đúng thứ
+     * tự kênh lưu trong Mat OpenCV.
+     *
+     * @return {@code [B, G, R]} median 8-bit, hoặc {@code null} nếu vùng lõi rỗng (rect thoái hoá)
+     */
+    private int[] medianCoreChannels(byte[] bgr, int width, int height, CardLayout.Patch patch) {
+        int x0 = (int) Math.round(patch.x() * width);
+        int y0 = (int) Math.round(patch.y() * height);
+        int pw = (int) Math.round(patch.w() * width);
+        int ph = (int) Math.round(patch.h() * height);
+        int trimX = (int) Math.round(pw * PATCH_BORDER_TRIM);
+        int trimY = (int) Math.round(ph * PATCH_BORDER_TRIM);
+        int xs = clamp(x0 + trimX, 0, width - 1);
+        int ys = clamp(y0 + trimY, 0, height - 1);
+        int xe = clamp(x0 + pw - trimX, xs + 1, width);
+        int ye = clamp(y0 + ph - trimY, ys + 1, height);
+
+        List<Integer> bs = new ArrayList<>();
+        List<Integer> gs = new ArrayList<>();
+        List<Integer> rs = new ArrayList<>();
+        for (int y = ys; y < ye; y++) {
+            for (int x = xs; x < xe; x++) {
+                int i = (y * width + x) * 3;
+                bs.add(bgr[i] & 0xFF);
+                gs.add(bgr[i + 1] & 0xFF);
+                rs.add(bgr[i + 2] & 0xFF);
+            }
+        }
+        if (bs.isEmpty()) {
+            return null;
+        }
+        return new int[] {median(bs), median(gs), median(rs)};
+    }
+
+    private int median(List<Integer> values) {
+        List<Integer> sorted = new ArrayList<>(values);
+        Collections.sort(sorted);
+        return sorted.get(sorted.size() / 2);
+    }
+
+    /** Bảng tra {@code curve.linearize} cho 256 giá trị 8-bit — cùng vai trò với {@link #LINEAR_LUT}. */
+    private double[] buildLinearizationLut(LinearizationCurve curve) {
+        double[] lut = new double[256];
+        for (int i = 0; i < 256; i++) {
+            lut[i] = curve.linearize(i / 255.0);
+        }
+        return lut;
+    }
+
+    /**
+     * Áp {@code curve} rồi {@code ccm} cho toàn ROI (thay cho gain đơn giản của {@link #calibrateOn}).
+     * Dùng {@link VisionEngine#corrected} với gain đơn vị — CCM đã giải từ patch NEUTRAL (so với
+     * {@code ref_lab}) gánh luôn phần việc mà white balance làm ở S4b, không cần gain riêng.
+     */
+    private CalibrationResult applyCardCcmOn(Mat source, LinearizationCurve curve, Matrix3 ccm, double residualDe00) {
+        int width = source.cols();
+        int height = source.rows();
+        Mat contiguous = source.isContinuous() ? source : source.clone();
+        byte[] bgr = new byte[width * height * 3];
+        try {
+            contiguous.data().get(bgr);
+        } finally {
+            if (contiguous != source) {
+                contiguous.close();
+            }
+        }
+
+        double[] lut = buildLinearizationLut(curve);
+        double[] ccmArray = ccm.toArray();
+        double[] identityGains = {1.0, 1.0, 1.0};
+
+        double[] xyzOut = new double[width * height * 3];
+        List<Lab> substrateCandidates = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int i = (y * width + x) * 3;
+                RgbLinear raw = new RgbLinear(lut[bgr[i + 2] & 0xFF], lut[bgr[i + 1] & 0xFF], lut[bgr[i] & 0xFF]);
+                RgbLinear corrected = VisionEngine.corrected(raw, identityGains, ccmArray);
+                var xyz = ColorSpace.linearRgbToXyz(corrected);
+                xyzOut[i] = xyz.x();
+                xyzOut[i + 1] = xyz.y();
+                xyzOut[i + 2] = xyz.z();
+
+                Lab lab = ColorSpace.xyzToLab(xyz);
+                if (lab.chroma() < 8.0) {
+                    substrateCandidates.add(lab);
+                }
+            }
+        }
+
+        Lab substrateLab = substrateCandidates.isEmpty()
+                ? new Lab(70.0, 0.0, 0.0)
+                : RobustStats.medianPerChannel(substrateCandidates);
+
+        Mat xyzMat = new Mat(height, width, opencv_core.CV_64FC3);
+        new DoublePointer(xyzMat.data()).put(xyzOut);
+        OpenCvXyzFrame xyzFrame = new OpenCvXyzFrame(xyzMat);
+        return new CalibrationResult(xyzFrame, CalibrationMethod.CARD_CCM, identityGains, 1.0, residualDe00,
+                substrateLab);
     }
 }
