@@ -129,6 +129,13 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
   const { t } = useTranslation("credit");
   const tone = LEDGER_TONE[entry.type];
   const Icon = entry.amount >= 0 ? ArrowUpCircle : ArrowDownCircle;
+  // G4 (docs/cat-rag-credit-pipeline.md B2): "lô nào vừa bị trừ, còn hạn tới khi nào" — tên gói
+  // lấy từ F3 (nguồn duy nhất, không bảng cứng — xem CreditBatchCard), hạn lấy từ chính dòng
+  // ledger (`expiresAt` mới thêm, join sẵn từ credit_batch ở backend).
+  const { data: plans } = usePackageCatalog();
+  const batchPlanName = entry.packageCode
+    ? (plans?.find((plan) => plan.code === entry.packageCode)?.name ?? entry.packageCode)
+    : null;
 
   return (
     <div className={cn("flex items-center gap-3 rounded-lg border border-border bg-surface p-3", className)}>
@@ -146,6 +153,14 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
           {" · "}
           {t("ledger.balanceAfter", { count: entry.balanceAfter })}
         </p>
+        {batchPlanName && entry.expiresAt ? (
+          <p className="truncate text-small text-text-tertiary">
+            {t("ledger.batchInfo", {
+              name: batchPlanName,
+              date: new Date(entry.expiresAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+            })}
+          </p>
+        ) : null}
       </div>
       <p
         className={cn(

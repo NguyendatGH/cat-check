@@ -1,12 +1,34 @@
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bot, ExternalLink, Send } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { isApiError } from "@/shared/api/errors";
 import { chatWithAssistant, type AiChatResponse } from "@/features/assistant";
+import { useCatList } from "@/features/cat";
 
 export function AssistantPage() {
   const { t } = useTranslation("assistant");
+  const catSelectId = useId();
+  // `GET /cats` (ACTIVE) — tái dùng hook có sẵn của features/cat (cùng hook CatSwitcherCard
+  // dùng ở sidebar) thay vì viết lại bộ gọi API riêng cho assistant.
+  const { data: catListData } = useCatList("ACTIVE");
+  // `catListData?.items` giữ nguyên tham chiếu giữa các lần render khi react-query chưa refetch;
+  // `cats` (dùng để render) mới tạo mảng rỗng mới mỗi lần — tách riêng để effect dưới không chạy
+  // lại vô ích mỗi render (react-hooks/exhaustive-deps).
+  const catItems = catListData?.items;
+  const cats = catItems ?? [];
+  const [selectedCatId, setSelectedCatId] = useState("");
+  // Chỉ tự chọn mèo chính MỘT LẦN khi danh sách tải xong xuôi — người dùng đổi về "hỏi chung"
+  // sau đó không bị ép chọn lại mỗi khi danh sách refetch (vd sau khi đổi mèo chính ở nơi khác).
+  const [autoSelected, setAutoSelected] = useState(false);
+  useEffect(() => {
+    if (autoSelected || !catItems || catItems.length === 0) return;
+    const primary = catItems.find((cat) => cat.isPrimary) ?? catItems[0];
+    setSelectedCatId(primary.id);
+    setAutoSelected(true);
+  }, [autoSelected, catItems]);
+  const selectedCat = cats.find((cat) => cat.id === selectedCatId);
+
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<string>();
   const [turns, setTurns] = useState<Array<{ role: "user" | "assistant"; text: string; response?: AiChatResponse }>>(
@@ -23,7 +45,7 @@ export function AssistantPage() {
     setTurns((current) => [...current, { role: "user", text: value }]);
     setPending(true);
     try {
-      const response = await chatWithAssistant(value, conversationId);
+      const response = await chatWithAssistant(value, conversationId, selectedCatId || undefined);
       setConversationId(response.conversationId);
       setTurns((current) => [...current, { role: "assistant", text: response.answer, response }]);
     } catch (cause) {
@@ -53,6 +75,31 @@ export function AssistantPage() {
           </div>
         </div>
       </header>
+      {cats.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={catSelectId} className="text-caption font-semibold text-text-secondary">
+            {t("selectCat.label")}
+          </label>
+          <select
+            id={catSelectId}
+            className="h-11 w-full max-w-xs rounded-xl border border-border bg-surface px-3 text-body text-text-primary"
+            value={selectedCatId}
+            onChange={(event) => {
+              setSelectedCatId(event.target.value);
+            }}
+          >
+            <option value="">{t("selectCat.generalOption")}</option>
+            {cats.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+          {selectedCat ? (
+            <p className="text-small text-text-secondary">{t("askingAbout", { name: selectedCat.name })}</p>
+          ) : null}
+        </div>
+      ) : null}
       <section
         className="flex min-h-[55vh] flex-col gap-4 rounded-3xl bg-surface p-4 shadow-brand-md sm:p-6"
         aria-busy={pending}

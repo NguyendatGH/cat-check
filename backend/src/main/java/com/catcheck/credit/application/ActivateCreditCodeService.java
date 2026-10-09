@@ -9,6 +9,7 @@ import com.catcheck.credit.api.CreditErrorCode;
 import com.catcheck.credit.domain.ActivationCode;
 import com.catcheck.credit.domain.ActivationCodeFormat;
 import com.catcheck.credit.domain.ActivationCodeStatus;
+import com.catcheck.credit.domain.ActivationRateLimitRule;
 import com.catcheck.credit.domain.CreditBatchGrant;
 import com.catcheck.credit.domain.CreditLedgerRefType;
 import com.catcheck.credit.domain.CreditLedgerType;
@@ -17,11 +18,14 @@ import com.catcheck.credit.domain.LedgerEntry;
 import com.catcheck.credit.domain.PackagePlan;
 import com.catcheck.credit.domain.port.ActivationCodeHasher;
 import com.catcheck.credit.domain.port.ActivationCodePort;
+import com.catcheck.credit.domain.port.ActivationRateLimiter;
 import com.catcheck.credit.domain.port.CreditBatchPort;
 import com.catcheck.credit.domain.port.CreditLedgerPort;
 import com.catcheck.credit.domain.port.PackagePlanPort;
 import com.catcheck.shared.error.BusinessRuleException;
+import com.catcheck.shared.error.CatCheckException;
 import com.catcheck.shared.error.ConflictException;
+import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.id.UuidV7;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +71,8 @@ public class ActivateCreditCodeService {
     private final EntitlementRecalculationService entitlementRecalculation;
     private final UuidV7 uuidV7;
     private final Clock clock;
+    private final ActivationRateLimiter rateLimiter;
+    private final ActivationMetrics metrics;
 
     public ActivateCreditCodeService(
             ActivationCodePort codePort,
@@ -77,7 +83,9 @@ public class ActivateCreditCodeService {
             AuditLogService auditLogService,
             EntitlementRecalculationService entitlementRecalculation,
             UuidV7 uuidV7,
-            Clock clock
+            Clock clock,
+            ActivationRateLimiter rateLimiter,
+            ActivationMetrics metrics
     ) {
         this.codePort = codePort;
         this.creditLedgerPort = creditLedgerPort;
@@ -88,6 +96,8 @@ public class ActivateCreditCodeService {
         this.entitlementRecalculation = entitlementRecalculation;
         this.uuidV7 = uuidV7;
         this.clock = clock;
+        this.rateLimiter = rateLimiter;
+        this.metrics = metrics;
     }
 
     /**
@@ -104,6 +114,25 @@ public class ActivateCreditCodeService {
      */
     @Transactional
     public ActivationResult activate(UUID userId, String rawCode, RequestFacts facts) {
+        try {
+            ActivationResult result = doActivate(userId, rawCode, facts);
+            metrics.recordSuccess();
+            return result;
+        } catch (CatCheckException ex) {
+            metrics.recordFailure(ex.errorCode().code());
+            throw ex;
+        }
+    }
+
+    private ActivationResult doActivate(UUID userId, String rawCode, RequestFacts facts) {
+
+        // Giới hạn tần suất ÁP DỤNG CHO MỌI LẦN GỌI, kể cả mã sai định dạng (G3,
+        // docs/cat-rag-credit-pipeline.md B2): nếu đặt sau bước kiểm định dạng thì một kẻ dò mã
+        // vẫn dò được không giới hạn miễn mỗi lần gửi một chuỗi sai định dạng khác nhau — bước đó
+        // chỉ tránh tốn MỘT LẦN TRA HASH, không phải một lớp chống dò. Theo user TRƯỚC, theo IP
+        // là lớp phụ (p11 §11.7.1 — xem ActivationRateLimitRule).
+        requireRateLimit(ActivationRateLimitRule.ACTIVATION_BY_USER, userId.toString());
+        requireRateLimit(ActivationRateLimitRule.ACTIVATION_BY_IP, facts.ipAddress());
 
         // Bắt lỗi định dạng/checksum TRƯỚC khi tra DB: một mã sai định dạng không bao giờ là mã
         // hợp lệ, nên không tốn một lần tra hash (p8 ACTIVATION_CODE_MALFORMED, p5 §5.9).
@@ -193,6 +222,21 @@ public class ActivateCreditCodeService {
                 batch.expiresAt(),
                 balanceAfter,
                 entitlement.maxCatProfiles());
+    }
+
+    /**
+     * Ném {@link RateLimitedException} nếu quy tắc {@code rule} đã vượt hạn mức cho
+     * {@code subject} — cùng khuôn với {@code MfaService.requireRateLimit} của module identity.
+     *
+     * @param subject khoá đếm; {@code null}/rỗng được {@link ActivationRateLimiter} tự bỏ qua
+     *                (vd {@code facts.ipAddress()} có thể null nếu request không qua proxy/test)
+     */
+    private void requireRateLimit(ActivationRateLimitRule rule, String subject) {
+        ActivationRateLimiter.RetryAfter retryAfter = rateLimiter.rejectIfLimited(rule, subject);
+        if (retryAfter != null) {
+            throw new RateLimitedException(CreditErrorCode.ACTIVATION_RATE_LIMITED,
+                    retryAfter.headerSeconds(), rule.name());
+        }
     }
 
     /**

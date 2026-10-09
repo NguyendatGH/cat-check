@@ -122,14 +122,22 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
     public int syncPublishedCareTips() {
         jdbc.update("UPDATE ai_document SET active = FALSE WHERE source_type = 'CARE_TIP'");
         List<SourceRow> sources = jdbc.query("""
-                SELECT id, locale, slug, title, coalesce(summary, '') AS summary, coalesce(body_md, '') AS body
+                SELECT id, locale, slug, title, coalesce(summary, '') AS summary, coalesce(body_md, '') AS body,
+                       coalesce(tags::text, '[]') AS tags
                 FROM care_tip WHERE status = 'PUBLISHED' AND deleted_at IS NULL
                 """, (rs, rowNum) -> new SourceRow(
                 rs.getObject("id", UUID.class), rs.getString("locale"), rs.getString("slug"),
-                rs.getString("title"), rs.getString("summary"), rs.getString("body")));
+                rs.getString("title"), rs.getString("summary"), rs.getString("body"),
+                parseJsonArray(rs.getString("tags"))));
         for (SourceRow source : sources) {
             UUID documentId = UUID.nameUUIDFromBytes(("care_tip:" + source.id() + ":" + source.locale()).getBytes(StandardCharsets.UTF_8));
-            String content = source.title() + "\n\n" + source.summary() + "\n\n" + source.body();
+            // Nhúng tag vào ĐẦU content (mục 4, nhiệm vụ wiring A2-A4): tuý tsvector 'simple' khớp
+            // theo từ nên một dòng [Chủ đề: ...] ở đầu đủ để chunk có tag được ưu tiên khi câu hỏi
+            // chạm đúng từ đó — KHÔNG cần cột tags/embedding mới ở ai_chunk/ai_document (p4 §4.9.2
+            // không có migration nào cho việc này). Chỉ nằm trong chunk ordinal 0 (content ngắn,
+            // phần lớn care tip hiện có 1 chunk) — đủ dùng ở quy mô 5 bài hiện tại; hiệu quả thực
+            // tế còn hạn chế vì CHƯA bài nào gắn tag theo dải pH/cờ cảnh báo (xem báo cáo bàn giao).
+            String content = tagLine(source.tags()) + source.title() + "\n\n" + source.summary() + "\n\n" + source.body();
             jdbc.update("""
                     INSERT INTO ai_document(id, source_type, source_id, locale, title, source_url, content_hash)
                     VALUES (?, 'CARE_TIP', ?, ?, ?, ?, ?)
@@ -147,7 +155,45 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
         return sources.size();
     }
 
-    private record SourceRow(UUID id, String locale, String slug, String title, String summary, String body) {
+    private record SourceRow(UUID id, String locale, String slug, String title, String summary, String body,
+                              List<String> tags) {
+    }
+
+    /**
+     * Dòng đầu chunk đọc được bằng tiếng Việt thường, KHÔNG dùng ký hiệu lập trình (vd JSON thô)
+     * — nếu lọt vào câu trả lời ghép (fallback không LLM đọc nguyên văn {@code chunk.content()},
+     * xem {@code AiChatService#fallbackAnswer}) thì vẫn là một câu đọc được, không phải mã khó
+     * hiểu. Rỗng nếu {@code care_tip.tags} rỗng (giữ nguyên hành vi cũ, không thêm dòng thừa).
+     */
+    private static String tagLine(List<String> tags) {
+        return tags.isEmpty() ? "" : "[Chủ đề: " + String.join(", ", tags) + "]\n\n";
+    }
+
+    /**
+     * {@code care_tip.tags} luôn là mảng chuỗi phẳng (xem {@code CreateCareTipRequest.tags}: mỗi
+     * phần tử {@code @Size(max = 40) String}), nên tự đọc JSON ở đây thay vì kéo {@code
+     * ObjectMapper} vào repository — cùng lý luận/hình dạng
+     * {@code JdbcReminderRepository#parseJsonArray}.
+     */
+    private static List<String> parseJsonArray(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        String body = json.trim();
+        if (body.startsWith("[")) {
+            body = body.substring(1);
+        }
+        if (body.endsWith("]")) {
+            body = body.substring(0, body.length() - 1);
+        }
+        if (body.isBlank()) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (String part : body.split(",")) {
+            out.add(part.trim().replace("\"", ""));
+        }
+        return List.copyOf(out);
     }
 
     private static List<String> split(String text, int size, int overlap) {

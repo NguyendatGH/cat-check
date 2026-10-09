@@ -49,6 +49,39 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    /**
+     * {@link RateLimitedException} — cùng {@link ProblemDetail} của {@link #handleCatCheckException},
+     * NHƯNG kèm header {@code Retry-After} khi biết số giây phải chờ.
+     *
+     * <p><b>Bug thật đã sửa (phát hiện khi làm G3 — rate limit kích hoạt mã credit,
+     * {@code docs/cat-rag-credit-pipeline.md} B2):</b> trước bản sửa này,
+     * {@code handleCatCheckException} ở trên xử lý luôn cả {@link RateLimitedException} (nó là
+     * một {@code CatCheckException}) nhưng không bao giờ đọc {@link RateLimitedException#retryAfterSeconds()}
+     * — mọi {@code 429} trong toàn bộ ứng dụng (login, OTP, MFA, đặt lại mật khẩu — xem
+     * {@code identity.application.*}) đều thiếu header {@code Retry-After} dù chính các lớp đó đã
+     * tính sẵn số giây qua {@code RateLimiter.RetryAfter}. p8 §8.3.5(d)/p16 NFR-40 yêu cầu header
+     * này bắt buộc 100% cho {@code 429}. {@code @ExceptionHandler} chọn handler khớp kiểu cụ thể
+     * nhất trong cùng {@code @RestControllerAdvice} nên khai thêm một handler riêng cho đúng kiểu
+     * con là đủ, không cần sửa {@code handleCatCheckException}.</p>
+     */
+    @ExceptionHandler(RateLimitedException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimited(RateLimitedException ex, Locale locale) {
+        ErrorCode errorCode = ex.errorCode();
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                errorCode.status(), messageResolver.resolve(errorCode.code(), ex.args(), locale));
+        problemDetail.setType(errorCode.typeUri());
+        problemDetail.setTitle(errorCode.code());
+        problemDetail.setProperty("errorCode", errorCode.code());
+        problemDetail.setProperty("timestamp", clock.instant());
+
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(errorCode.status());
+        Long retryAfterSeconds = ex.retryAfterSeconds();
+        if (retryAfterSeconds != null) {
+            builder.header(HttpHeaders.RETRY_AFTER, Long.toString(Math.max(1, retryAfterSeconds)));
+        }
+        return builder.body(problemDetail);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex, Locale locale) {
         // Chỉ trả field + message đã dịch, KHÔNG trả rejected value (có thể chứa PII).

@@ -40,6 +40,12 @@ public interface CreditLedgerQueryPort {
      * @param balanceAfter số dư khả dụng toàn user sau giao dịch
      * @param batchId     lô bị biến động
      * @param packageCode mã gói của lô (null nếu dòng không gắn lô)
+     * @param expiresAt   hạn của LÔ bị biến động (null nếu dòng không gắn lô) — G4,
+     *                    {@code docs/cat-rag-credit-pipeline.md} B2: người dùng cần thấy "lô nào
+     *                    vừa bị trừ, còn hạn tới khi nào" ở mỗi dòng lịch sử, không chỉ ở màn số
+     *                    dư. Giữ nguyên giá trị gốc của {@code credit_batch.expires_at} kể cả sau
+     *                    khi lô đã {@code EXPIRED} — đây là mốc "lô đó hết hạn lúc nào", không
+     *                    phải cờ còn sống hay không.
      * @param refType     loại tài nguyên tham chiếu
      * @param note        ghi chú
      * @param createdAt   thời điểm ghi
@@ -51,6 +57,7 @@ public interface CreditLedgerQueryPort {
             int balanceAfter,
             UUID batchId,
             String packageCode,
+            Instant expiresAt,
             CreditLedgerRefType refType,
             String note,
             Instant createdAt

@@ -300,7 +300,7 @@ class AdminCreditServiceTest {
                     .filter(entry -> entry.userId().equals(userId))
                     .sorted(Comparator.comparing(LedgerEntry::createdAt).reversed())
                     .map(entry -> new LedgerRow(entry.id(), entry.type(), entry.amount(),
-                            entry.balanceAfter(), entry.batchId(), "PLUS", entry.refType(),
+                            entry.balanceAfter(), entry.batchId(), "PLUS", null, entry.refType(),
                             entry.note(), entry.createdAt()))
                     .toList();
             List<LedgerRow> page = all.stream().skip(offset).limit(limit).toList();

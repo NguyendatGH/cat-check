@@ -49,6 +49,11 @@ public class CreditErrorCodeConfiguration {
     }
 
     @Bean
+    ErrorCode activationRateLimited() {
+        return CreditErrorCode.ACTIVATION_RATE_LIMITED;
+    }
+
+    @Bean
     ErrorCode featureNotInPlan() {
         return CreditErrorCode.FEATURE_NOT_IN_PLAN;
     }

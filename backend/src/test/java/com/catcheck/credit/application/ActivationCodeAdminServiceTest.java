@@ -169,7 +169,9 @@ class ActivationCodeAdminServiceTest {
                 new EntitlementRecalculationService(entitlementPort, creditStore, packagePlanPort);
         ActivateCreditCodeService activateService = new ActivateCreditCodeService(
                 codePort, creditStore, creditStore, packagePlanPort,
-                codeHasher, auditLog, entitlementRecalculation, new UuidV7(clock), clock);
+                codeHasher, auditLog, entitlementRecalculation, new UuidV7(clock), clock,
+                new AdminActivationTestDoubles.AllowAllRateLimiter(),
+                new ActivationMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
 
         assertThatThrownBy(() -> activateService.activate(
                 USER_ID, rawCode, ActivateCreditCodeService.RequestFacts.UNKNOWN))

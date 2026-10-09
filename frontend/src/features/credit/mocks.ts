@@ -202,6 +202,7 @@ export const handlers = [
       balanceAfter: availableBalance() + found.creditAmount,
       batchId: batch.batchId,
       packageCode: found.packageCode,
+      expiresAt: batch.expiresAt,
       refType: "ACTIVATION",
       note: null,
       createdAt: nowIso(),

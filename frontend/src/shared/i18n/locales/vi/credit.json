@@ -46,7 +46,8 @@
       "REFUND": "Hoàn credit",
       "ADJUST": "Điều chỉnh bởi quản trị viên"
     },
-    "balanceAfter": "Số dư sau: {{count}}"
+    "balanceAfter": "Số dư sau: {{count}}",
+    "batchInfo": "Lô {{name}} · còn hạn tới {{date}}"
   },
   "entitlement": {
     "sectionTitle": "Quyền tính năng hiện tại",

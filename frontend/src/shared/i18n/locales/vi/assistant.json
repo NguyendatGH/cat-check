@@ -8,5 +8,10 @@
   "thinking": "Đang tìm tài liệu và soạn câu trả lời…",
   "sources": "Nguồn tham khảo",
   "disclaimer": "Thông tin chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ thú y.",
-  "error": "Không gửi được câu hỏi. Vui lòng thử lại."
+  "error": "Không gửi được câu hỏi. Vui lòng thử lại.",
+  "selectCat": {
+    "label": "Hỏi về bé mèo nào?",
+    "generalOption": "Không chọn — hỏi chung"
+  },
+  "askingAbout": "Đang hỏi về: {{name}}"
 }

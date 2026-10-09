@@ -29,9 +29,12 @@ public record LedgerPageResponse(
     /**
      * Một dòng sổ cái.
      *
-     * @param type    loại biến động
-     * @param amount  dương = vào, âm = ra
-     * @param batchId lô bị biến động, {@code null} nếu ghi ở mức tài khoản
+     * @param type      loại biến động
+     * @param amount    dương = vào, âm = ra
+     * @param batchId   lô bị biến động, {@code null} nếu ghi ở mức tài khoản
+     * @param expiresAt hạn của LÔ bị biến động, {@code null} nếu dòng không gắn lô (G4 —
+     *                  {@code docs/cat-rag-credit-pipeline.md} B2: để frontend hiện "lô nào vừa
+     *                  bị trừ, còn hạn tới khi nào" cạnh mỗi dòng lịch sử)
      */
     public record LedgerEntryResponse(
             String id,
@@ -40,6 +43,7 @@ public record LedgerPageResponse(
             int balanceAfter,
             String batchId,
             String packageCode,
+            Instant expiresAt,
             String refType,
             String note,
             Instant createdAt
@@ -53,6 +57,7 @@ public record LedgerPageResponse(
                     row.balanceAfter(),
                     row.batchId() == null ? null : row.batchId().toString(),
                     row.packageCode(),
+                    row.expiresAt(),
                     row.refType() == null ? null : row.refType().name(),
                     row.note(),
                     row.createdAt());

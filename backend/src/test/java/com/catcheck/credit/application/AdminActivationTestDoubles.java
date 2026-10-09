@@ -12,8 +12,10 @@ import com.catcheck.credit.domain.PackagePlan;
 import com.catcheck.credit.domain.PackagePlanAdminView;
 import com.catcheck.credit.domain.PackagePlanUpdate;
 import com.catcheck.credit.domain.PlanFeatures;
+import com.catcheck.credit.domain.ActivationRateLimitRule;
 import com.catcheck.credit.domain.port.ActivationCodeHasher;
 import com.catcheck.credit.domain.port.ActivationCodePort;
+import com.catcheck.credit.domain.port.ActivationRateLimiter;
 import com.catcheck.credit.domain.port.PackagePlanPort;
 import com.catcheck.credit.domain.port.UserEntitlementPort;
 
@@ -287,6 +289,23 @@ final class AdminActivationTestDoubles {
 
         List<String> actions() {
             return events.stream().map(AuditEvent::action).toList();
+        }
+    }
+
+    /**
+     * {@link ActivationRateLimiter} không bao giờ chặn — dùng cho các test không nhắm vào G3
+     * (test rate limit thật nằm ở nơi khác, dùng {@code Bucket4jActivationRateLimiter} thật).
+     */
+    static final class AllowAllRateLimiter implements ActivationRateLimiter {
+
+        @Override
+        public boolean tryConsume(ActivationRateLimitRule rule, String subject) {
+            return true;
+        }
+
+        @Override
+        public long secondsUntilRefill(ActivationRateLimitRule rule, String subject) {
+            return 0;
         }
     }
 

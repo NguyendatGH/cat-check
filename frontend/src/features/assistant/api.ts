@@ -22,7 +22,16 @@ function csrfToken(): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-export async function chatWithAssistant(message: string, conversationId?: string): Promise<AiChatResponse> {
+/**
+ * @param catId tuỳ chọn — khi có, câu hỏi được làm giàu bằng ngữ cảnh của một bé mèo cụ thể
+ *              (xem backend `ai.api.dto.AiChatRequest.catId`). Mèo không thuộc người dùng hiện
+ *              tại được backend xử lý y hệt "không gửi catId", không có lỗi riêng ở đây.
+ */
+export async function chatWithAssistant(
+  message: string,
+  conversationId?: string,
+  catId?: string,
+): Promise<AiChatResponse> {
   const headers = new Headers({
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -35,7 +44,7 @@ export async function chatWithAssistant(message: string, conversationId?: string
     method: "POST",
     credentials: "include",
     headers,
-    body: JSON.stringify({ message, conversationId }),
+    body: JSON.stringify({ message, conversationId, catId }),
   });
   if (!response.ok) {
     let detail: { detail?: string; errorCode?: string } | undefined;

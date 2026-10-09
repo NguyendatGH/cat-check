@@ -25,7 +25,7 @@ public class JdbcCreditLedgerQueryAdapter implements CreditLedgerQueryPort {
 
     private static final String SELECT_PAGE = """
             SELECT l.id, l.type, l.amount, l.balance_after, l.batch_id, l.ref_type, l.note, l.created_at,
-                   b.package_code
+                   b.package_code, b.expires_at
               FROM credit_ledger l
               LEFT JOIN credit_batch b ON b.id = l.batch_id
              WHERE l.user_id = ?
@@ -114,6 +114,7 @@ public class JdbcCreditLedgerQueryAdapter implements CreditLedgerQueryPort {
                 RowReaders.requiredInt(rs, "balance_after"),
                 RowReaders.uuidOrNull(rs, "batch_id"),
                 RowReaders.textOrNull(rs, "package_code"),
+                RowReaders.instant(rs, "expires_at"),
                 RowReaders.enumValue(rs, "ref_type", CreditLedgerRefType.class),
                 RowReaders.textOrNull(rs, "note"),
                 RowReaders.requiredInstant(rs, "created_at"));

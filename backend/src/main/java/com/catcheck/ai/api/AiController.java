@@ -35,7 +35,8 @@ public class AiController {
             @CurrentUser SecurityPrincipal principal,
             @Valid @RequestBody AiChatRequest request,
             Locale locale) {
-        return AiChatResponse.from(service.chat(principal.userId(), request.conversationId(), request.message(), locale.getLanguage()));
+        return AiChatResponse.from(service.chat(
+                principal.userId(), request.conversationId(), request.catId(), request.message(), locale.getLanguage()));
     }
 
     @PostMapping("/reindex")

@@ -45,6 +45,14 @@ public enum CreditErrorCode implements ErrorCode {
     /** 410 — {@code valid_until < now}; đây là hạn KÍCH HOẠT, khác hạn credit (p5 §5.5). Tham số: {@code validUntil}. */
     ACTIVATION_CODE_EXPIRED("activation-code-expired", HttpStatus.GONE),
 
+    /**
+     * 429 — vượt hạn mức gọi {@code POST /activations} theo {@code userId} hoặc theo IP (G3,
+     * {@code docs/cat-rag-credit-pipeline.md} B2; xem {@code credit.domain.ActivationRateLimitRule}
+     * cho lý do chọn ngưỡng — CHƯA có mục p11 tương ứng vì {@code context/} đã bị xoá).
+     * Tham số: {@code ruleName} (chỉ để log/debug, không phải PII).
+     */
+    ACTIVATION_RATE_LIMITED("activation-rate-limited", HttpStatus.TOO_MANY_REQUESTS),
+
     /** 403 — tính năng không có trong {@code user_entitlement.features} (p5 R5). Tham số: {@code feature}, {@code currentPackage}, {@code requiredPackage}. */
     FEATURE_NOT_IN_PLAN("feature-not-in-plan", HttpStatus.FORBIDDEN),
 

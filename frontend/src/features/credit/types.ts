@@ -78,6 +78,13 @@ export interface LedgerEntry {
   balanceAfter: number;
   batchId: string | null;
   packageCode: string | null;
+  /**
+   * Hạn của LÔ bị biến động, `null` nếu dòng không gắn lô (G4 — thấy rõ "lô nào vừa bị trừ,
+   * còn hạn tới khi nào" ngay cạnh mỗi dòng lịch sử thay vì phải tự đối chiếu `batchId` với
+   * `/credits/balance`). Giữ nguyên giá trị kể cả với dòng `EXPIRE` của một lô đã hết hạn — đây
+   * là mốc "lô đó hết hạn lúc nào", không phải cờ còn sống hay không.
+   */
+  expiresAt: string | null;
   refType: CreditLedgerRefType | null;
   note: string | null;
   createdAt: string;
