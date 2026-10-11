@@ -84,8 +84,14 @@ export function AssistantPage() {
             id={catSelectId}
             className="h-11 w-full max-w-xs rounded-xl border border-border bg-surface px-3 text-body text-text-primary"
             value={selectedCatId}
+            // Đang chờ trả lời thì khoá: phản hồi muộn của bé cũ sẽ ghi đè `conversationId` sau khi
+            // đã đổi bé.
+            disabled={pending}
             onChange={(event) => {
               setSelectedCatId(event.target.value);
+              // Mỗi bé một hội thoại: backend nạp lịch sử của `conversationId` vào prompt, nên giữ
+              // hội thoại cũ thì câu hỏi về bé B được trả lời kèm lịch sử/ngữ cảnh của bé A.
+              setConversationId(undefined);
             }}
           >
             <option value="">{t("selectCat.generalOption")}</option>

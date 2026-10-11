@@ -54,7 +54,9 @@ afterEach(() => {
   vi.doUnmock("@/shared/config/featureFlags");
 });
 
-describe("router — cổng featureFlags cho route Phase 2/3", () => {
+// Mỗi test nạp lại toàn bộ cây route (import động mọi trang): ~3 giây khi chạy một mình, vượt mốc
+// 5 giây mặc định khi cả bộ test chạy song song. Nâng trần thời gian, không đổi nội dung kiểm.
+describe("router — cổng featureFlags cho route Phase 2/3", { timeout: 30_000 }, () => {
   it("mọi route sau cờ đều render ComingSoonPage khi cờ TẮT", async () => {
     vi.resetModules();
     vi.doMock("@/shared/config/featureFlags", () => ({

@@ -537,7 +537,7 @@ export function ScanMetaCard({ result, title }: { result: ScanResult; title?: st
       value: t(`meta.calibration${result.calibrationMethod}`),
     });
   }
-  if (result.chartVersion !== null) {
+  if (result.chartVersion != null) {
     rows.push({
       key: "chart",
       label: t("meta.chart"),

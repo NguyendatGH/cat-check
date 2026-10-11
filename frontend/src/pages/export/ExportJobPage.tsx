@@ -70,7 +70,7 @@ export function ExportJobPage() {
         statusLabel={t(`job.status.${job.status}`)}
         documentCodeLabel={t("job.documentCodeLabel")}
         pageCountLabel={
-          job.status === "READY" && job.pageCount !== null && job.scanCount !== null
+          job.status === "READY" && job.pageCount != null && job.scanCount != null
             ? t("job.pageCountLabel", { pages: job.pageCount, scans: job.scanCount })
             : undefined
         }

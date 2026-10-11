@@ -743,8 +743,8 @@ function BandsSection() {
                     <td className={adminTdClass}>
                       <span className="whitespace-nowrap font-mono text-small">
                         {t("band.rangeValue", {
-                          min: band.phMin === null ? "−∞" : formatPh(band.phMin),
-                          max: band.phMax === null ? "+∞" : formatPh(band.phMax),
+                          min: band.phMin == null ? "−∞" : formatPh(band.phMin),
+                          max: band.phMax == null ? "+∞" : formatPh(band.phMax),
                         })}
                       </span>
                     </td>

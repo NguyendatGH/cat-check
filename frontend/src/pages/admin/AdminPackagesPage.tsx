@@ -30,8 +30,8 @@ function toDraft(plan: AdminPackagePlan): PlanDraft {
   return {
     creditAmount: String(plan.creditAmount),
     creditValidityDays: String(plan.creditValidityDays),
-    maxCatProfiles: plan.maxCatProfiles === null ? "" : String(plan.maxCatProfiles),
-    unlimitedCats: plan.maxCatProfiles === null,
+    maxCatProfiles: plan.maxCatProfiles == null ? "" : String(plan.maxCatProfiles),
+    unlimitedCats: plan.maxCatProfiles == null,
     features: { ...plan.features },
     active: plan.active,
   };

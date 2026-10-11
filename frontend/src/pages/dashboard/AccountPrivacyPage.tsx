@@ -824,7 +824,7 @@ export function AccountPrivacyPage() {
                       </div>
                       <span className="text-small text-text-tertiary">{formatDateTime(entry.occurredAt)}</span>
                       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                        {entry.policyVersion === null ? (
+                        {entry.policyVersion == null ? (
                           <span className="text-small text-text-tertiary">
                             {t("privacyCenter.history.policyUnknown")}
                           </span>

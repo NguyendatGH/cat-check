@@ -78,7 +78,14 @@ export {
 } from "./components";
 export type { MissingApiEndpoint, MissingApiNoticeProps } from "./components";
 
-export { validateProductForm, emptyProductForm, formatProductVnd, productToForm, formToPayload } from "./productForm";
+export {
+  validateProductForm,
+  emptyProductForm,
+  formatProductVnd,
+  productToForm,
+  formToPayload,
+  adminProductEtag,
+} from "./productForm";
 export type { ProductFormValues, ProductFormErrors } from "./productForm";
 
 export {

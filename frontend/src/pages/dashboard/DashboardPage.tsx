@@ -169,7 +169,7 @@ export function DashboardPage() {
   const latestByCat = useMemo(() => {
     const map = new Map<string, ScanListItem>();
     for (const scan of scans) {
-      if (scan.catId !== null && !map.has(scan.catId)) map.set(scan.catId, scan);
+      if (scan.catId != null && !map.has(scan.catId)) map.set(scan.catId, scan);
     }
     return map;
   }, [scans]);
@@ -569,7 +569,7 @@ export function DashboardPage() {
                     {t("dashboard.viewDetail", { ns: "common" })}
                     <ChevronRight size={14} aria-hidden="true" />
                   </span>
-                  {latestScan.confidenceBand !== null ? (
+                  {latestScan.confidenceBand != null ? (
                     <span className="text-[11px] text-text-secondary">
                       {t("dashboard.confidence", {
                         ns: "common",

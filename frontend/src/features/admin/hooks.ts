@@ -945,12 +945,16 @@ export function useCreateAdminProduct(): UseMutationResult<AdminProduct, Error, 
 export function useUpdateAdminProduct(): UseMutationResult<
   AdminProduct,
   Error,
-  { id: string; payload: AdminProductPayload }
+  { id: string; payload: AdminProductPayload; etag: string }
 > {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }) =>
-      adminFetch<AdminProduct>(`/admin/shop/products/${encodeURIComponent(id)}`, { method: "PUT", json: payload }),
+    mutationFn: ({ id, payload, etag }) =>
+      adminFetch<AdminProduct>(`/admin/shop/products/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        ifMatch: etag,
+        json: payload,
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ADMIN_PRODUCTS_KEY });
     },

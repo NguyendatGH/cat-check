@@ -24,7 +24,7 @@ function toDraft(policy: AdminRetentionPolicy) {
   return {
     dataInventoryCode: policy.dataInventoryCode ?? "",
     targetTable: policy.targetTable,
-    retentionDays: policy.retentionDays === null ? "" : String(policy.retentionDays),
+    retentionDays: policy.retentionDays == null ? "" : String(policy.retentionDays),
     anchorColumn: policy.anchorColumn,
     actionOnExpiry: policy.actionOnExpiry,
     jobName: policy.jobName ?? "",

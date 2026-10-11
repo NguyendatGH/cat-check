@@ -349,7 +349,7 @@ export function WebHistoryScreen({
                                   {timestampLabel(scan.capturedAt)}
                                 </span>
                                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  {scan.confidence !== null ? (
+                                  {scan.confidence != null ? (
                                     <span className="text-small text-text-secondary">
                                       {t("web.confidence", { value: Math.round(scan.confidence * 100) })}
                                     </span>

@@ -16,6 +16,7 @@ export {
 } from "./hooks";
 
 export { NotificationUnreadBadge, PushDevicesCard } from "./components";
+export { usePushSubscriptionRefresh } from "./pushRefresh";
 
 export {
   PushRegistrationError,

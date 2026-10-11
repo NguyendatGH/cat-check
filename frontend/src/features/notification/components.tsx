@@ -109,7 +109,7 @@ function DeviceRow({
         </span>
         <span className="block text-caption text-text-secondary">
           {t(`push.platforms.${device.platform}`)}
-          {device.lastSeenAt === null
+          {device.lastSeenAt == null
             ? ""
             : ` · ${t("push.devices.lastSeen", { date: new Date(device.lastSeenAt).toLocaleDateString("vi-VN") })}`}
         </span>

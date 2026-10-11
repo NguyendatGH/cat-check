@@ -248,6 +248,7 @@ export function SettingsSecurityPage() {
                   regenerate.mutate(undefined, {
                     onSuccess: (result) => {
                       setRecoveryCodes(result.recoveryCodes);
+                      void queryClient.invalidateQueries({ queryKey: ["auth", "totp-status"] });
                     },
                   });
                 }}
@@ -263,7 +264,7 @@ export function SettingsSecurityPage() {
                   totpDelete.mutate(undefined, {
                     onSuccess: () => {
                       setRecoveryCodes(null);
-                      void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] });
+                      void queryClient.invalidateQueries({ queryKey: ["auth", "totp-status"] });
                     },
                   });
                 }}
@@ -299,7 +300,7 @@ export function SettingsSecurityPage() {
                     onSuccess: (result) => {
                       setRecoveryCodes(result.recoveryCodes);
                       setTotpCode("");
-                      void queryClient.invalidateQueries({ queryKey: ["auth", "totp"] });
+                      void queryClient.invalidateQueries({ queryKey: ["auth", "totp-status"] });
                     },
                   });
                 }}

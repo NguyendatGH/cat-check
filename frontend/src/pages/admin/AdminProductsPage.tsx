@@ -11,6 +11,7 @@ import {
   adminTableClass,
   adminTdClass,
   adminThClass,
+  adminProductEtag,
   emptyProductForm,
   formatProductVnd as formatVnd,
   formToPayload,
@@ -40,6 +41,9 @@ export function AdminProductsPage() {
   const setStatus = useSetAdminProductStatus();
   // null = đóng; "new" = tạo; còn lại = id đang sửa.
   const [editing, setEditing] = useState<string | null>(null);
+  // `If-Match` chốt lúc MỞ form (bản người dùng đang nhìn), không lấy từ danh sách vừa refetch —
+  // nếu không, lần sửa của admin khác chen vào giữa sẽ bị ghi đè mà không báo 412.
+  const [editingEtag, setEditingEtag] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormValues>(emptyProductForm);
   const [showErrors, setShowErrors] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -52,6 +56,7 @@ export function AdminProductsPage() {
 
   function openForm(product: AdminProduct | null) {
     setEditing(product ? product.id : "new");
+    setEditingEtag(product ? adminProductEtag(product) : null);
     setForm(product ? productToForm(product) : emptyProductForm());
     setShowErrors(false);
     setSaved(false);
@@ -73,8 +78,10 @@ export function AdminProductsPage() {
         setEditing(null);
       },
     };
-    if (isEditingExisting) update.mutate({ id: editing, payload }, done);
-    else create.mutate(payload, done);
+    if (isEditingExisting) {
+      if (editingEtag === null) return;
+      update.mutate({ id: editing, payload, etag: editingEtag }, done);
+    } else create.mutate(payload, done);
   }
 
   function changeStatus(product: AdminProduct, status: AdminProductStatus) {
@@ -153,7 +160,7 @@ export function AdminProductsPage() {
                     </td>
                     <td className={adminTdClass}>
                       {formatVnd(product.priceVnd)}
-                      {product.compareAtPriceVnd !== null ? (
+                      {product.compareAtPriceVnd != null ? (
                         <span className="block text-small text-text-tertiary line-through">
                           {formatVnd(product.compareAtPriceVnd)}
                         </span>

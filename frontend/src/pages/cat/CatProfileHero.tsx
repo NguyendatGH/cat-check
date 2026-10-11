@@ -37,7 +37,7 @@ export function CatProfileHero({ cat, menu, extraTiles, className }: CatProfileH
     ageLabel,
     sexLabel,
     cat.breedName ?? cat.breedOther,
-    cat.weightKg !== null ? t("detail.weightLabel", { weight: cat.weightKg }) : null,
+    cat.weightKg != null ? t("detail.weightLabel", { weight: cat.weightKg }) : null,
   ]
     .filter(Boolean)
     .join(" • ");
@@ -52,7 +52,7 @@ export function CatProfileHero({ cat, menu, extraTiles, className }: CatProfileH
     },
     {
       label: t("web.profile.weightLabel"),
-      value: cat.weightKg !== null ? t("detail.weightLabel", { weight: cat.weightKg }) : "—",
+      value: cat.weightKg != null ? t("detail.weightLabel", { weight: cat.weightKg }) : "—",
       foot: cat.weightUpdatedAt
         ? t("web.profile.weightUpdatedAt", { date: new Date(cat.weightUpdatedAt).toLocaleDateString(i18n.language) })
         : null,

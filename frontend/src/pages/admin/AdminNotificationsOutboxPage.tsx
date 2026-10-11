@@ -15,7 +15,7 @@ import {
 } from "@/features/admin";
 
 function formatDate(value: string | null): string {
-  return value === null
+  return value == null
     ? "—"
     : new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }

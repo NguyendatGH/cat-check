@@ -471,7 +471,7 @@ export function AdminContentPage() {
                       <td className={adminTdClass}>
                         <span>{t(`content.claim.${tip.claimType}`)}</span>
                         {tip.claimType !== "NONE" &&
-                        (tip.sourceReference === null || tip.sourceReference.length === 0) ? (
+                        (tip.sourceReference == null || tip.sourceReference.length === 0) ? (
                           <span className="flex items-center gap-1 pt-0.5 text-small text-warning-text">
                             <AlertTriangle size={12} aria-hidden="true" />
                             {t("content.sourceMissingShort")}

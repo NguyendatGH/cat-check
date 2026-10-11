@@ -36,7 +36,7 @@ export function productToForm(product: AdminProduct): ProductFormValues {
     description: product.description,
     imageUrl: product.imageUrl ?? "",
     priceVnd: String(product.priceVnd),
-    compareAtPriceVnd: product.compareAtPriceVnd === null ? "" : String(product.compareAtPriceVnd),
+    compareAtPriceVnd: product.compareAtPriceVnd == null ? "" : String(product.compareAtPriceVnd),
     stockQuantity: String(product.stockQuantity),
     status: product.status,
   };
@@ -88,6 +88,15 @@ export function formToPayload(values: ProductFormValues): AdminProductPayload {
     stockQuantity: Number(values.stockQuantity),
     status: values.status,
   };
+}
+
+/**
+ * `If-Match` của `PUT /admin/shop/products/{id}` — phải khớp `AdminETag.of(updatedAt, id)` của
+ * backend: `W/"<updatedAt epoch ms>-<id>"`. Tính từ `updatedAt` của bản vừa tải; thiếu header
+ * backend trả 428, lệch (admin khác vừa sửa) trả 412.
+ */
+export function adminProductEtag(product: Pick<AdminProduct, "id" | "updatedAt">): string {
+  return `W/"${String(Date.parse(product.updatedAt))}-${product.id}"`;
 }
 
 /** Hiển thị tiền VND giống cửa hàng: "245.000đ". */

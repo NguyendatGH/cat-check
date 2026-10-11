@@ -433,7 +433,7 @@ function CatInfoCard({ cat }: { cat: Cat }) {
     { label: t("detail.ageFieldLabel"), value: formatAge(cat.ageMonths) ?? "—" },
     {
       label: t("form.weight.label"),
-      value: cat.weightKg !== null ? t("detail.weightLabel", { weight: cat.weightKg }) : "—",
+      value: cat.weightKg != null ? t("detail.weightLabel", { weight: cat.weightKg }) : "—",
     },
     { label: t("detail.coatColorLabel"), value: cat.coatColor ?? "—" },
     {
@@ -932,7 +932,7 @@ function HealthSurveyDialog({
 
 /* ================================================================== Clinical signs dialog */
 
-function ClinicalSignsDialog({
+export function ClinicalSignsDialog({
   catId,
   open,
   onOpenChange,
@@ -975,7 +975,7 @@ function ClinicalSignsDialog({
         source: "MANUAL",
         note: values.note || undefined,
       });
-      setResult({ triggered: response.triggeredFlag !== null });
+      setResult({ triggered: response.triggeredFlag != null });
     } catch {
       toast.error(t("errors.generic"));
     }

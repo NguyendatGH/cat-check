@@ -136,7 +136,7 @@ export function WebTrendsScreen({
   const activeDays = countActiveDays(points);
   const avgPerDay = activeDays > 0 ? (points.length / activeDays).toFixed(1) : dash;
 
-  const confidences = points.map((p) => p.confidence).filter((c): c is number => c !== null);
+  const confidences = points.map((p) => p.confidence).filter((c): c is number => c != null);
   const avgConfidence = confidences.length
     ? Math.round((confidences.reduce((sum, c) => sum + c, 0) / confidences.length) * 100)
     : null;
@@ -559,7 +559,7 @@ export function WebTrendsScreen({
                       </td>
                       <td className="px-3 py-3">
                         {/* Thanh độ tin cậy dựng từ `confidence` (0–1) của chính lần quét. */}
-                        {p.confidence === null ? (
+                        {p.confidence == null ? (
                           <span className="text-[11px] text-text-secondary">{dash}</span>
                         ) : (
                           <span className="flex items-center gap-2">

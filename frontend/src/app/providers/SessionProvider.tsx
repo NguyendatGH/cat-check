@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { useSessionStore, type SessionUser } from "@/entities/user";
+import { usePushSubscriptionRefresh } from "@/features/notification";
 import { SkeletonLoader } from "@/shared/ui";
 
 /** Khớp `SessionResponse`/`SessionUser` thật của backend (identity/api/dto). */
@@ -63,6 +64,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const status = useSessionStore((state) => state.status);
   const setSession = useSessionStore((state) => state.setSession);
   const setStatus = useSessionStore((state) => state.setStatus);
+  // Mỗi lần mở app: làm mới `last_seen_at` của đăng ký push (backend dọn sau 180 ngày không làm mới).
+  const signedIn = useSessionStore((state) => state.user !== null);
+  usePushSubscriptionRefresh(signedIn);
 
   useEffect(() => {
     let cancelled = false;

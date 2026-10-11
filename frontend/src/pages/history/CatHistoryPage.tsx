@@ -140,7 +140,7 @@ export function CatHistoryPage() {
                 <LineChart className="size-4 shrink-0 text-primary" aria-hidden="true" />
                 {t("spectrum.title")}
               </p>
-              {summary.median !== null ? (
+              {summary.median != null ? (
                 <span className="rounded-full bg-chip-bg px-2.5 py-1 text-small font-semibold text-primary-dark">
                   {medianBand
                     ? t("spectrum.averageWithBand", { value: summary.median.toFixed(1), label: medianBand.label })

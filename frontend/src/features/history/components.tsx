@@ -276,7 +276,7 @@ export function ScanTimelineItem({
 
   const chips: string[] = [];
   if (scan.catName) chips.push(scan.catName);
-  if (scan.confidence !== null) chips.push(t("item.confidence", { value: Math.round(scan.confidence * 100) }));
+  if (scan.confidence != null) chips.push(t("item.confidence", { value: Math.round(scan.confidence * 100) }));
   if (scan.nearBoundary) chips.push(t("item.nearBoundary"));
   if (scan.disputed) chips.push(disputedLabel);
   if (scan.hasNote) chips.push(t("item.hasNote"));

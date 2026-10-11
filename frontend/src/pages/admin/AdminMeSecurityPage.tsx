@@ -97,12 +97,12 @@ export function AdminMeSecurityPage() {
           <ApiErrorNote error={totp.error} />
         ) : totpActive ? (
           <div className="flex flex-col gap-3">
-            {totp.data.activatedAt !== null ? (
+            {totp.data.activatedAt != null ? (
               <p className="text-caption text-text-secondary">
                 {t("meSecurity.activatedAt", { at: formatDate(totp.data.activatedAt, "dd/MM/yyyy HH:mm") })}
               </p>
             ) : null}
-            {totp.data.recoveryCodesRemaining !== null ? (
+            {totp.data.recoveryCodesRemaining != null ? (
               <p className="text-caption text-text-secondary">
                 {t("meSecurity.recoveryRemaining", { count: totp.data.recoveryCodesRemaining })}
               </p>

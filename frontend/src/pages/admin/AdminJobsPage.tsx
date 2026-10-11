@@ -15,7 +15,7 @@ import {
 } from "@/features/admin";
 
 function formatDate(value: string | null): string {
-  return value === null
+  return value == null
     ? "—"
     : new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
@@ -90,7 +90,7 @@ export function AdminJobsPage() {
                       <td className={adminTdClass}>{run.status}</td>
                       <td className={adminTdClass}>{formatDate(run.startedAt)}</td>
                       <td className={adminTdClass}>{formatDate(run.finishedAt)}</td>
-                      <td className={adminTdClass}>{run.durationMs === null ? "—" : `${String(run.durationMs)} ms`}</td>
+                      <td className={adminTdClass}>{run.durationMs == null ? "—" : `${String(run.durationMs)} ms`}</td>
                       <td className={adminTdClass}>{run.rowCount ?? "—"}</td>
                       <td className={adminTdClass}>{run.errorSummary ?? "—"}</td>
                     </tr>
