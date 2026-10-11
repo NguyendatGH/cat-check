@@ -19,6 +19,7 @@ import com.catcheck.admin.application.AdminMaintenanceService;
 import com.catcheck.admin.application.AdminNotificationOpsService;
 import com.catcheck.admin.application.AdminOpsQueryService;
 import com.catcheck.admin.application.AdminSettingsService;
+import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.admin.domain.AppSettingRow;
 import com.catcheck.admin.domain.JobRunRow;
 import com.catcheck.admin.domain.AuditLogRow;
@@ -109,6 +110,16 @@ public class AdminOpsController {
     private static final List<String> ADMIN_ROLE_PRIORITY =
             List.of("ADMIN_SUPER", "DPO", "ADMIN_SUPPORT", "ADMIN_CATALOG");
 
+    /**
+     * p8 L63 cột Auth: {@code "mọi role admin"} (Q23). Bug thật đã sửa — bản trước chỉ cho
+     * {@code ADMIN_SUPER,DPO} qua, chặn nhầm {@code ADMIN_SUPPORT}/{@code ADMIN_CATALOG} dù
+     * endpoint này "không bao gồm PII hoặc nội dung chi tiết" (xem {@code description} dưới) nên
+     * không có lý do nghiệp vụ nào để thu hẹp hơn p8. {@code MODERATOR} không nằm trong danh sách
+     * vì vai trò đó chỉ có hiệu lực ở các endpoint kiểm duyệt cộng đồng, ngoài phạm vi lớp này —
+     * giống cách {@link #ADMIN_ROLE_PRIORITY} định nghĩa "vai trò quản trị nghiệp vụ".
+     */
+    static final Set<String> DASHBOARD_METRICS_ROLES = Set.copyOf(ADMIN_ROLE_PRIORITY);
+
     /** p8 L65/L66/L67/L69/L70/L71/L72: {@code R:ADMIN_SUPER}. */
     static final Set<String> SUPER_ONLY = Set.of("ADMIN_SUPER");
 
@@ -152,8 +163,14 @@ public class AdminOpsController {
                                                  @Valid @RequestBody AdminMaintenanceRequest body,
                                                  HttpServletRequest request) {
         AdminGuard.requireAnyRole(principal, Set.of("ADMIN_SUPER"));
+        // Bug thật đã sửa: trước đây dùng thẳng `body.reason().strip()` — @NotBlank của
+        // AdminMaintenanceRequest chỉ chặn chuỗi rỗng, nên một lý do 1 ký tự lọt qua trong khi
+        // L65/L70/L72 (cùng ký hiệu Rsn ở bảng Auth) đều bắt buộc tối thiểu
+        // AdminGuard.REASON_MIN_LENGTH ký tự qua AdminGuard.requireReason. L71 bật/tắt banner bảo
+        // trì công khai — tối thiểu phải đòi lý do nghiêm túc như các hành động Rsn khác.
+        String reason = AdminGuard.requireReason(body.reason());
         AdminMaintenanceService.Result result = maintenanceService.update(body.active(), body.until(),
-                principal.userId(), actorRole(principal), body.reason().strip(), request.getHeader("X-Request-Id"),
+                principal.userId(), actorRole(principal), reason, request.getHeader("X-Request-Id"),
                 request.getRemoteAddr(), request.getHeader("User-Agent"));
         return new AdminMaintenanceResponse(Boolean.parseBoolean(result.active()),
                 result.until().isBlank() ? null : result.until(), result.updatedAt());
@@ -243,7 +260,7 @@ public class AdminOpsController {
             description = "Snapshot chỉ đọc từ các bảng nghiệp vụ; không bao gồm PII hoặc nội dung chi tiết.")
     @GetMapping("/metrics/dashboard")
     public AdminMetricsResponse dashboardMetrics(@CurrentUser SecurityPrincipal principal) {
-        AdminGuard.requireAnyRole(principal, Set.of("ADMIN_SUPER", "DPO"));
+        AdminGuard.requireAnyRole(principal, DASHBOARD_METRICS_ROLES);
         return AdminMetricsResponse.from(opsQueryService.metrics());
     }
 
@@ -368,8 +385,9 @@ public class AdminOpsController {
                     ADMIN_SUPER. PRIVACY_INCIDENT_NOTICE: ADMIN_SUPER hoặc DPO — p15 §15.9.5 \
                     REQ-INC-03 giao nghĩa vụ thông báo trong 72 GIỜ cho DPO, nên người chịu trách \
                     nhiệm pháp lý phải tự bấm được. `dryRun = true` chỉ ĐẾM người nhận và không \
-                    ghi gì — dùng nó để kiểm chứng trước khi phát thật, vì đây là endpoint duy \
-                    nhất ghi một bản ghi cho MỌI user bằng một request.""")
+                    ghi gì — dùng nó để kiểm chứng trước khi phát thật. Lần phát thật phải gửi \
+                    `confirmed = true`, vì đây là endpoint duy nhất ghi một bản ghi cho MỌI user \
+                    bằng một request.""")
     @PostMapping("/system/broadcast")
     public SystemBroadcastResponse broadcast(
             @CurrentUser SecurityPrincipal principal,
@@ -382,6 +400,9 @@ public class AdminOpsController {
                 : SUPER_ONLY);
         String reason = AdminGuard.requireReason(body.reason());
         AdminIdempotency.require(idempotencyKey);
+        if (!body.dryRunOrFalse() && !body.confirmedOrFalse()) {
+            throw new BusinessRuleException(AdminOpsErrorCode.BROADCAST_CONFIRMATION_REQUIRED);
+        }
         SystemBroadcastGateway.BroadcastResult result = notificationOpsService.broadcast(
                 templateCode, body.title().strip(), body.body().strip(), body.payload(),
                 body.dryRunOrFalse(), principal.userId(), actorRole(principal), reason,

@@ -52,4 +52,9 @@ public class AdminOpsErrorCodeConfiguration {
     ErrorCode adminBroadcastTemplateNotAllowed() {
         return AdminOpsErrorCode.BROADCAST_TEMPLATE_NOT_ALLOWED;
     }
+
+    @Bean
+    ErrorCode adminBroadcastConfirmationRequired() {
+        return AdminOpsErrorCode.BROADCAST_CONFIRMATION_REQUIRED;
+    }
 }

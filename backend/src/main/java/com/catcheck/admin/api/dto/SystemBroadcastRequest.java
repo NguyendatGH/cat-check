@@ -23,6 +23,7 @@ import java.util.Map;
  *                     phai la mot route that cua p9 §9.4
  * @param dryRun       chi dem nguoi nhan, KHONG ghi gi. Xem javadoc
  *                     {@code SystemBroadcastGateway#broadcast} ve ly do truong nay ton tai
+ * @param confirmed    phai la {@code true} khi {@code dryRun} la {@code false}
  * @param reason       ky hieu {@code Rsn} cua p8 §8.3.2
  */
 public record SystemBroadcastRequest(
@@ -31,6 +32,7 @@ public record SystemBroadcastRequest(
         @NotBlank @Size(max = 4_000) String body,
         Map<String, Object> payload,
         Boolean dryRun,
+        Boolean confirmed,
         @NotBlank @Size(max = 500) String reason) {
 
     public SystemBroadcastRequest {
@@ -39,5 +41,9 @@ public record SystemBroadcastRequest(
 
     public boolean dryRunOrFalse() {
         return Boolean.TRUE.equals(dryRun);
+    }
+
+    public boolean confirmedOrFalse() {
+        return Boolean.TRUE.equals(confirmed);
     }
 }

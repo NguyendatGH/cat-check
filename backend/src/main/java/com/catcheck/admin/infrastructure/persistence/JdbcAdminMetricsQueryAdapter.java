@@ -18,7 +18,8 @@ public class JdbcAdminMetricsQueryAdapter implements AdminMetricsQueryPort {
     public AdminMetrics read() {
         return new AdminMetrics(
                 count("SELECT count(*) FROM app_user"),
-                count("SELECT count(*) FROM cat WHERE status = 'ACTIVE'"),
+                // Xoá mềm chỉ đặt deleted_at, status vẫn ACTIVE (V8, Cat.softDelete).
+                count("SELECT count(*) FROM cat WHERE status = 'ACTIVE' AND deleted_at IS NULL"),
                 count("SELECT count(*) FROM scan"),
                 count("SELECT count(*) FROM job_run WHERE status IN ('FAILED', 'TIMEOUT')"),
                 count("SELECT count(*) FROM email_outbox WHERE status = 'PENDING'")

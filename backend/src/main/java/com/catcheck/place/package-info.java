@@ -3,5 +3,5 @@
  *
  * Khung rỗng Phase 2/3 — chưa triển khai ở M0/M1. Xem README.md cùng thư mục.
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = { "shared" })
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "shared", "privacy::spi" })
 package com.catcheck.place;

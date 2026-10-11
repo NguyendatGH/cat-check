@@ -66,7 +66,10 @@ public enum AdminOpsErrorCode implements ErrorCode {
      * vu</b> sai — dung dinh nghia cua p8 §8.1.12 cho {@code 422}. Va day la rang buoc nghiep vu
      * dang ke: phat mot template khac qua duong nay se gui no cho moi user trong he thong.</p>
      */
-    BROADCAST_TEMPLATE_NOT_ALLOWED("admin/broadcast-template-not-allowed", HttpStatus.UNPROCESSABLE_ENTITY);
+    BROADCAST_TEMPLATE_NOT_ALLOWED("admin/broadcast-template-not-allowed", HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** 400 — a live broadcast requires explicit confirmation before it can queue every recipient. */
+    BROADCAST_CONFIRMATION_REQUIRED("admin/broadcast-confirmation-required", HttpStatus.BAD_REQUEST);
 
     private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
 

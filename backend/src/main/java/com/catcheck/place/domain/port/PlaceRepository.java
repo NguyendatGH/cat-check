@@ -14,4 +14,7 @@ public interface PlaceRepository {
     List<PlaceReview> reviews(UUID placeId, int limit);
     void createReview(UUID userId, UUID placeId, int rating, String body);
     void createBooking(UUID userId, UUID placeId, String serviceCode, LocalDate date, String timeSlot, String note);
+
+    /** Gỡ ghi chú tự do khỏi mọi yêu cầu đặt lịch của user; trả số dòng đã gỡ. */
+    int clearBookingNotes(UUID userId);
 }

@@ -90,6 +90,11 @@ public class JdbcPlaceRepository implements PlaceRepository {
         }
     }
 
+    @Override
+    public int clearBookingNotes(UUID userId) {
+        return jdbc.update("UPDATE place_booking SET note = NULL WHERE user_id = ? AND note IS NOT NULL", userId);
+    }
+
     private Place map(ResultSet rs) throws SQLException {
         return new Place(rs.getObject("id", UUID.class), rs.getString("name"), rs.getString("kind"), rs.getString("address"),
                 rs.getString("area"), rs.getDouble("latitude"), rs.getDouble("longitude"), rs.getString("phone"),
