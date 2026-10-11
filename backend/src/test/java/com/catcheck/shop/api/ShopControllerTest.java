@@ -4,9 +4,11 @@ import com.catcheck.shared.testing.AdminApiMockMvc;
 import com.catcheck.shop.application.ShopService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,7 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** 405 va 400 kieu tham so — truoc day deu roi vao handler 500. */
 class ShopControllerTest {
 
-    private final MockMvc mvc = AdminApiMockMvc.build(new ShopController(Mockito.mock(ShopService.class)));
+    private final ShopService service = Mockito.mock(ShopService.class);
+    private final MockMvc mvc = AdminApiMockMvc.build(new ShopController(service));
 
     @Test
     void wrongMethodIs405WithAllowHeader() throws Exception {
@@ -30,5 +33,15 @@ class ShopControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.violations[0].field").value("productId"));
+    }
+
+    @Test
+    void unknownPaymentMethodIs400NotDatabase500() throws Exception {
+        mvc.perform(post("/api/v1/orders").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"paymentMethod":"PAYPAL","receiverName":"A","receiverPhone":"0900000000","shippingAddress":"B"}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("paymentMethod"));
+        Mockito.verifyNoInteractions(service);
     }
 }

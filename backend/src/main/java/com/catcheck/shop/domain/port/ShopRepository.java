@@ -22,6 +22,8 @@ public interface ShopRepository {
 
     List<AdminProduct> adminProducts();
     AdminProduct adminCreate(AdminProductDraft draft);
+    /** Khoá dòng sản phẩm tới hết transaction (kể cả DRAFT/ARCHIVED) — để so If-Match rồi mới ghi. */
+    Optional<AdminProduct> adminLockProduct(UUID id);
     Optional<AdminProduct> adminUpdate(UUID id, AdminProductDraft draft);
     Optional<AdminProduct> adminSetStatus(UUID id, String status);
 }

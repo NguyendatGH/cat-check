@@ -37,6 +37,16 @@ public interface UserEntitlementPort {
     void ensureRow(UUID userId, Instant now);
 
     /**
+     * {@link #ensureRow} rồi khoá dòng tới hết transaction — gọi TRƯỚC khi đọc lô để tính lại.
+     *
+     * <p>{@link #save} là upsert từ ảnh chụp đọc trước đó: hai transaction cùng tính lại (đổi mã +
+     * admin cấp) thì bên commit sau ghi đè bằng ảnh thiếu lô của bên kia ({@code write_access_until}
+     * lùi lại), và một lượt trial vừa tăng bị ghi đè về số cũ. Khoá trước khi đọc thì bên đến sau
+     * đợi rồi đọc lại dữ liệu đã commit.</p>
+     */
+    void lockRow(UUID userId, Instant now);
+
+    /**
      * Ghi đè toàn bộ dòng entitlement — dùng sau khi kích hoạt gói (p5 R1/R5). Upsert nên gọi
      * được cả khi dòng chưa tồn tại.
      */

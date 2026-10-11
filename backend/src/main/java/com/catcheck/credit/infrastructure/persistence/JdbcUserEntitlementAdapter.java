@@ -66,6 +66,12 @@ public class JdbcUserEntitlementAdapter implements UserEntitlementPort {
                 """, userId, DEFAULT_FEATURES_JSON, RowReaders.utc(now));
     }
 
+    @Override
+    public void lockRow(UUID userId, Instant now) {
+        ensureRow(userId, now);
+        jdbc.query("SELECT 1 FROM user_entitlement WHERE user_id = ? FOR UPDATE", rs -> { }, userId);
+    }
+
     /**
      * {@inheritDoc}
      *

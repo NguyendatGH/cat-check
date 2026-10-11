@@ -133,6 +133,14 @@ class ActivationCodeAdminServiceTest {
     }
 
     @Test
+    @DisplayName("L20: khóa batchId trước khi kiểm tra để hai request đồng thời không cùng phát hành một lô")
+    void locksProductionBatchBeforeCheckingWhetherItAlreadyExists() {
+        adminService.issueBatch("PLUS", 2, "LOT-LOCK", 365, context());
+
+        assertThat(codePort.lockedProductionBatches).containsExactly("LOT-LOCK");
+    }
+
+    @Test
     @DisplayName("L22: CSV tải lần hai ⇒ 410 ACTIVATION_CSV_ALREADY_DOWNLOADED")
     void csvIsDownloadableExactlyOnce() {
         adminService.issueBatch("PLUS", 3, "LOT-E", 365, context());

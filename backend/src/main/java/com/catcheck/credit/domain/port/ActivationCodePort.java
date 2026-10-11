@@ -78,6 +78,17 @@ public interface ActivationCodePort {
     Optional<ActivationBatchSummary> findBatch(String productionBatch);
 
     /**
+     * Khoá định danh lô trong transaction hiện tại trước khi kiểm tra hoặc phát hành mã.
+     *
+     * <p>{@code production_batch} không có unique constraint vì nhiều {@code activation_code}
+     * cùng thuộc một lô. Do đó {@code findBatch(...)} rồi {@code insertAll(...)} không tự bảo vệ
+     * được hai request admin đồng thời: cả hai có thể cùng thấy lô chưa tồn tại. Adapter Postgres
+     * dùng advisory transaction lock theo định danh lô để request thứ hai chỉ kiểm tra sau khi
+     * request thứ nhất đã commit.</p>
+     */
+    void lockProductionBatch(String productionBatch);
+
+    /**
      * L24 — vô hiệu hoá cả lô. Chỉ đụng các mã còn {@code ISSUED}: mã {@code REDEEMED} đã tạo
      * {@code credit_batch} nên không void được (p14 §14.3.2 mục 4), mã {@code VOID} thì đã xong.
      *

@@ -202,6 +202,14 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
     }
 
     @Override
+    public void lockProductionBatch(String productionBatch) {
+        // xact lock tự nhả lúc commit/rollback và dùng đúng JDBC connection đang tham gia
+        // @Transactional. hashtextextended cho khoá 64-bit ổn định; collision chỉ làm hai lô
+        // độc lập tuần tự hoá tạm thời, không làm chúng dùng chung dữ liệu.
+        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", rs -> { }, productionBatch);
+    }
+
+    @Override
     public int markBatchVoid(String productionBatch) {
         return jdbc.update("""
                 UPDATE activation_code SET status = 'VOID'

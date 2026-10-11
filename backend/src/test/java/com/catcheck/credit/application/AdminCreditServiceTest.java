@@ -351,6 +351,11 @@ class AdminCreditServiceTest {
         }
 
         @Override
+        public void lockRow(UUID userId, Instant now) {
+            ensureRow(userId, now);
+        }
+
+        @Override
         public void save(Entitlement entitlement) {
             rows.put(entitlement.userId(), entitlement);
         }

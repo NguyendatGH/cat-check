@@ -50,6 +50,7 @@ final class AdminActivationTestDoubles {
     static final class InMemoryActivationCodePort implements ActivationCodePort {
 
         final Map<UUID, ActivationCode> rows = new HashMap<>();
+        final List<String> lockedProductionBatches = new ArrayList<>();
 
         @Override
         public Optional<ActivationCode> findByCodeHash(String codeHash) {
@@ -158,6 +159,11 @@ final class AdminActivationTestDoubles {
                     countStatus(inBatch, ActivationCodeStatus.VOID),
                     inBatch.getFirst().issuedAt(),
                     inBatch.getFirst().validUntil()));
+        }
+
+        @Override
+        public void lockProductionBatch(String productionBatch) {
+            lockedProductionBatches.add(productionBatch);
         }
 
         @Override
@@ -327,6 +333,11 @@ final class AdminActivationTestDoubles {
         @Override
         public void ensureRow(UUID userId, Instant now) {
             rows.putIfAbsent(userId, Entitlement.defaults(userId, now));
+        }
+
+        @Override
+        public void lockRow(UUID userId, Instant now) {
+            ensureRow(userId, now);
         }
 
         @Override

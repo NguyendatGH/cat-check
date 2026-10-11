@@ -88,6 +88,10 @@ public class ActivationCodeAdminService {
                     ActivationCodeIssuanceService.MAX_CODES_PER_BATCH);
         }
         String batchId = requireBatchId(productionBatch);
+        // production_batch có nhiều dòng activation_code nên không thể đặt UNIQUE ở schema.
+        // Khoá transaction này phải đứng TRƯỚC findBatch: nếu không hai request đồng thời đều
+        // thấy lô chưa tồn tại rồi cùng phát hành mã cho cùng batchId.
+        codePort.lockProductionBatch(batchId);
         if (codePort.findBatch(batchId).isPresent()) {
             throw new ConflictException(CreditErrorCode.ACTIVATION_BATCH_EXISTS, batchId);
         }

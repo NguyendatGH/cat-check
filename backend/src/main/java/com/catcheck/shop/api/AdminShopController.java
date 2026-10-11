@@ -7,6 +7,7 @@ import com.catcheck.shop.api.dto.AdminProductRequest;
 import com.catcheck.shop.api.dto.AdminProductResponse;
 import com.catcheck.shop.api.dto.AdminProductStatusRequest;
 import com.catcheck.shop.application.AdminShopService;
+import com.catcheck.shop.domain.AdminProduct;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,29 +38,38 @@ public class AdminShopController {
     @Operation(operationId = "adminListShopProducts")
     public List<AdminProductResponse> list(@CurrentUser SecurityPrincipal user) {
         role(user);
-        return service.list().stream().map(AdminProductResponse::from).toList();
+        return service.list().stream().map(AdminShopController::response).toList();
     }
 
     @PostMapping
     @Operation(operationId = "adminCreateShopProduct")
     public ResponseEntity<AdminProductResponse> create(@CurrentUser SecurityPrincipal user, @Valid @RequestBody AdminProductRequest request) {
         String role = role(user);
-        AdminProductResponse r = AdminProductResponse.from(service.create(request, user.userId(), role));
-        return ResponseEntity.created(URI.create("/api/v1/admin/shop/products/" + r.id())).body(r);
+        AdminProductResponse r = response(service.create(request, user.userId(), role));
+        return ResponseEntity.created(URI.create("/api/v1/admin/shop/products/" + r.id())).eTag(r.etag()).body(r);
     }
 
     @PutMapping("/{id}")
-    @Operation(operationId = "adminUpdateShopProduct")
-    public AdminProductResponse update(@CurrentUser SecurityPrincipal user, @PathVariable UUID id, @Valid @RequestBody AdminProductRequest request) {
+    @Operation(operationId = "adminUpdateShopProduct",
+            description = "`If-Match` bắt buộc = `etag` của bản đang sửa, dạng `W/\"<updatedAt epoch ms>-<id>\"` "
+                    + "(thiếu ⇒ 428 PRECONDITION_REQUIRED, lệch ⇒ 412 RESOURCE_MODIFIED): PUT ghi đè tồn kho.")
+    public ResponseEntity<AdminProductResponse> update(@CurrentUser SecurityPrincipal user, @PathVariable UUID id,
+                                                       @RequestHeader(name = "If-Match", required = false) String ifMatch,
+                                                       @Valid @RequestBody AdminProductRequest request) {
         String role = role(user);
-        return AdminProductResponse.from(service.update(id, request, user.userId(), role));
+        AdminProductResponse r = response(service.update(id, request, ifMatch, user.userId(), role));
+        return ResponseEntity.ok().eTag(r.etag()).body(r);
     }
 
     @PatchMapping("/{id}/status")
     @Operation(operationId = "adminSetShopProductStatus")
     public AdminProductResponse status(@CurrentUser SecurityPrincipal user, @PathVariable UUID id, @Valid @RequestBody AdminProductStatusRequest request) {
         String role = role(user);
-        return AdminProductResponse.from(service.setStatus(id, request.status(), user.userId(), role));
+        return response(service.setStatus(id, request.status(), user.userId(), role));
+    }
+
+    private static AdminProductResponse response(AdminProduct p) {
+        return AdminProductResponse.from(p, AdminShopService.etagOf(p));
     }
 
     /** Trả về vai trò khớp (không tiền tố ROLE_) để ghi audit. */

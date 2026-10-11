@@ -53,6 +53,8 @@ public class EntitlementRecalculationService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public Entitlement recalculate(UUID userId, Instant now) {
+        // Khoá trước mọi lần đọc — xem UserEntitlementPort#lockRow.
+        userEntitlementPort.lockRow(userId, now);
         Entitlement current = userEntitlementPort.findOrDefault(userId, now);
 
         String highestCode = current.highestPackage();

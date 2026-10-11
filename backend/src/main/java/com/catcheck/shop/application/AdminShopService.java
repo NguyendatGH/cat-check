@@ -5,6 +5,7 @@ import com.catcheck.audit.api.AuditEvent;
 import com.catcheck.audit.api.AuditLogService;
 import com.catcheck.audit.api.AuditOutcome;
 import com.catcheck.audit.api.AuditSubjectType;
+import com.catcheck.shared.api.AdminETag;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.NotFoundException;
 import com.catcheck.shop.api.ShopErrorCode;
@@ -13,6 +14,7 @@ import com.catcheck.shop.domain.AdminProduct;
 import com.catcheck.shop.domain.AdminProductDraft;
 import com.catcheck.shop.domain.port.ShopRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.util.List;
@@ -42,7 +44,16 @@ public class AdminShopService {
         return p;
     }
 
-    public AdminProduct update(UUID id, AdminProductRequest r, UUID adminId, String role) {
+    /**
+     * PUT ghi đè cả {@code stock_quantity}: form mở lâu mà checkout trừ kho trong lúc đó thì lưu form
+     * sẽ trả kho về số cũ (bán vượt). Vì vậy bắt {@code If-Match} — so trên dòng đã KHOÁ trong cùng
+     * transaction với UPDATE, để checkout không chen được vào giữa lúc so và lúc ghi.
+     * Thứ tự 404 → 428/412 giống {@code AdminMonitoringRuleController}.
+     */
+    @Transactional
+    public AdminProduct update(UUID id, AdminProductRequest r, String ifMatch, UUID adminId, String role) {
+        AdminProduct current = repository.adminLockProduct(id).orElseThrow(() -> new NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND));
+        AdminETag.requireMatch(ifMatch, etagOf(current));
         AdminProduct p = repository.adminUpdate(id, draft(null, r)).orElseThrow(() -> new NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND));
         audit("ADMIN_SHOP_PRODUCT_UPDATED", p, adminId, role, "status", p.status());
         return p;
@@ -52,6 +63,11 @@ public class AdminShopService {
         AdminProduct p = repository.adminSetStatus(id, status).orElseThrow(() -> new NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND));
         audit("ADMIN_SHOP_PRODUCT_STATUS_CHANGED", p, adminId, role, "status", p.status());
         return p;
+    }
+
+    /** {@code W/"<updatedAt epoch ms>-<id>"} — frontend dựng lại đúng chuỗi này từ {@code updatedAt} + {@code id}. */
+    public static String etagOf(AdminProduct p) {
+        return AdminETag.of(p.updatedAt(), p.id().toString());
     }
 
     private AdminProductDraft draft(String sku, AdminProductRequest r) {
