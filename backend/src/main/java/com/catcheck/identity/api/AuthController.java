@@ -24,7 +24,6 @@ import com.catcheck.identity.application.SessionService;
 import com.catcheck.identity.domain.OtpPurpose;
 import com.catcheck.identity.domain.UserRole;
 import com.catcheck.identity.domain.port.AuthenticatedSessionGateway;
-import com.catcheck.identity.domain.port.AuthenticatedSessionRevoker;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -66,7 +65,6 @@ public class AuthController {
     private final SessionService sessionService;
     private final ProfileService profileService;
     private final AuthenticatedSessionGateway sessionGateway;
-    private final AuthenticatedSessionRevoker sessionRevoker;
     private final Clock clock;
 
     public AuthController(RegistrationService registrationService,
@@ -77,7 +75,6 @@ public class AuthController {
                           SessionService sessionService,
                           ProfileService profileService,
                           AuthenticatedSessionGateway sessionGateway,
-                          AuthenticatedSessionRevoker sessionRevoker,
                           Clock clock) {
         this.registrationService = registrationService;
         this.otpService = otpService;
@@ -87,7 +84,6 @@ public class AuthController {
         this.sessionService = sessionService;
         this.profileService = profileService;
         this.sessionGateway = sessionGateway;
-        this.sessionRevoker = sessionRevoker;
         this.clock = clock;
     }
 
@@ -333,7 +329,7 @@ public class AuthController {
     public void revokeAllSessions(@AuthenticationPrincipal Object principal,
                                   HttpServletRequest httpRequest) {
         UUID userId = requireUserId(principal);
-        sessionRevoker.revokeAllByUserId(userId);
+        sessionService.revokeOtherSessions(userId, context(httpRequest));
     }
 
     /* ---------- Helpers ---------- */

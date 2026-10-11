@@ -26,6 +26,8 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -70,6 +72,7 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
     private final SecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
+    private final FindByIndexNameSessionRepository<? extends Session> httpSessions;
     private final DeviceSessionRepository sessionRepository;
     private final RequestIpResolver ipResolver;
     private final AuthPolicy policy;
@@ -79,6 +82,8 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
     public SpringSecuritySessionGateway(
             org.springframework.beans.factory.ObjectProvider<SessionAuthenticationStrategy>
                     sessionAuthenticationStrategyProvider,
+            org.springframework.beans.factory.ObjectProvider<FindByIndexNameSessionRepository<? extends Session>>
+                    httpSessionsProvider,
             DeviceSessionRepository sessionRepository,
             RequestIpResolver ipResolver,
             AuthPolicy policy,
@@ -87,6 +92,9 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         // Spring Security tu dang ky SessionAuthenticationStrategy cho chuoi filter
         // dang chay; lay qua ObjectProvider de bean nay khong phu thuoc thu tu khoi tao.
         this.sessionAuthenticationStrategy = sessionAuthenticationStrategyProvider.getIfAvailable();
+        // Kho phien that (Spring Session JDBC, PRINCIPAL_NAME = userId — xem AuthPrincipal#getName).
+        // null khi khong co Spring Session (test don le): khi do chi con ban sao user_device_session.
+        this.httpSessions = httpSessionsProvider.getIfAvailable();
         this.sessionRepository = sessionRepository;
         this.ipResolver = ipResolver;
         this.policy = policy;
@@ -120,6 +128,14 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         // 3) Ban sao de hien thi. Session id lay TU phien vua doi, khong phai id cu.
         HttpSession session = request.getSession(false);
         String sessionId = session == null ? null : session.getId();
+        java.time.Duration maxInactive = rememberMe
+                ? policy.sessionMaxInactive() : policy.sessionDefaultMaxInactive();
+        if (session != null) {
+            // Bug that da sua: han phien that chua tung duoc dat — Spring Session dung mac dinh
+            // 30 phut cho MOI phien, nen "nho toi" (30 ngay) va mac dinh 12 gio cua AuthPolicy
+            // khong co tac dung, con user_device_session thi ghi han 30 ngay (phien "ma").
+            session.setMaxInactiveInterval(Math.toIntExact(maxInactive.toSeconds()));
+        }
         if (sessionId != null) {
             sessionRepository.insert(new DeviceSession(
                     UUID.randomUUID(),
@@ -131,7 +147,7 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
                     rememberMe,
                     now,
                     now,
-                    now.plus(rememberMe ? policy.sessionMaxInactive() : policy.sessionDefaultMaxInactive()),
+                    now.plus(maxInactive),
                     null,
                     null));
         }
@@ -205,26 +221,71 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
 
     /* ---------- AuthenticatedSessionRevoker ---------- */
 
+    /*
+     * Bug that da sua (handoff H15.176): ba ham duoi truoc day CHI ghi user_device_session (ban
+     * sao de hien thi) — khong filter nao doc revoked_at tren duong request, nen "dang xuat thiet
+     * bi khac", doi/dat lai mat khau, thu hoi khi xin xoa tai khoan... deu khong day ai ra: phien
+     * that trong SPRING_SESSION van song. Nay xoa phien that qua Spring Session.
+     *
+     * Phien cua CHINH request dang chay thi khong xoa o day (xoa dong cha giua request lam
+     * SessionRepositoryFilter ghi attribute vao dong khong con ton tai luc commit); luong nao can
+     * dang xuat chinh no thi da goi invalidateCurrent().
+     */
+
     @Override
     public int revokeAllByUserId(UUID userId) {
         Instant now = clock.instant();
         int revoked = sessionRepository.revokeAllByUserId(
                 userId, now, SessionRevokeReason.PASSWORD_CHANGED);
+        deleteHttpSessions(userId, sessionId -> true);
         return revoked;
     }
 
     @Override
     public void revokeBySessionId(String sessionIdHash) {
-        sessionRepository.findBySessionIdHash(sessionIdHash).ifPresent(session ->
-                sessionRepository.revoke(session.id(), clock.instant(),
-                        SessionRevokeReason.USER_REVOKE_ONE));
+        sessionRepository.findBySessionIdHash(sessionIdHash).ifPresent(session -> {
+            sessionRepository.revoke(session.id(), clock.instant(), SessionRevokeReason.USER_REVOKE_ONE);
+            deleteHttpSessions(session.userId(), sessionId -> hashSessionId(sessionId).equals(sessionIdHash));
+        });
     }
 
+    /**
+     * Phien con song THAT. Bug that da sua: truoc day dem dong user_device_session chua thu hoi
+     * va chua qua {@code expires_at} (30 ngay) — phien that het han sau thoi gian nhan roi ma
+     * dong do van "song", nen sau vai lan dang nhap lai A6 tra {@code SESSION_LIMIT_REACHED} vinh
+     * vien du nguoi dung khong con phien nao (va cung khong vao duoc de thu hoi).
+     */
     @Override
     public Set<String> activeSessionIdsByUserId(UUID userId) {
-        return sessionRepository.findActiveByUserId(userId, clock.instant()).stream()
+        Set<String> recorded = sessionRepository.findActiveByUserId(userId, clock.instant()).stream()
                 .map(DeviceSession::sessionIdHash)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        if (httpSessions == null) {
+            return recorded;
+        }
+        return httpSessions.findByPrincipalName(userId.toString()).values().stream()
+                .filter(session -> !session.isExpired())
+                .map(session -> hashSessionId(session.getId()))
+                .filter(recorded::contains)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private void deleteHttpSessions(UUID userId, java.util.function.Predicate<String> matches) {
+        if (httpSessions == null) {
+            return;
+        }
+        String currentSessionId = currentSessionIdOrNull();
+        for (String sessionId : httpSessions.findByPrincipalName(userId.toString()).keySet()) {
+            if (!sessionId.equals(currentSessionId) && matches.test(sessionId)) {
+                httpSessions.deleteById(sessionId);
+            }
+        }
+    }
+
+    private static String currentSessionIdOrNull() {
+        ServletRequestAttributes attributes = currentAttributes();
+        HttpSession session = attributes == null ? null : attributes.getRequest().getSession(false);
+        return session == null ? null : session.getId();
     }
 
     /* ---------- Helper ---------- */

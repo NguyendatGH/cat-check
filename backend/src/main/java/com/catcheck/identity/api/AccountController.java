@@ -279,7 +279,7 @@ public class AccountController {
     public Map<String, Object> totpInit(@AuthenticationPrincipal AuthPrincipal principal,
                                         HttpServletRequest httpRequest) {
         MfaService.Enrollment enrollment = mfaService.init(
-                principal.userId(), principal.email(), context(httpRequest));
+                principal.userId(), principal.email(), principal.mfaLevel(), context(httpRequest));
         return Map.of(
                 "secretBase32", enrollment.secretBase32(),
                 "otpauthUri", enrollment.otpauthUri(),
@@ -310,7 +310,7 @@ public class AccountController {
             @AuthenticationPrincipal AuthPrincipal principal,
             HttpServletRequest httpRequest) {
         MfaService.Confirmation confirmation = mfaService.regenerateRecoveryCodes(
-                principal.userId(), context(httpRequest));
+                principal.userId(), principal.mfaLevel(), context(httpRequest));
         return Map.of(
                 "recoveryCodes", confirmation.recoveryCodes(),
                 "activatedAt", confirmation.activatedAt().toString());
@@ -322,7 +322,7 @@ public class AccountController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTotp(@AuthenticationPrincipal AuthPrincipal principal,
                            HttpServletRequest httpRequest) {
-        mfaService.delete(principal.userId(), context(httpRequest));
+        mfaService.delete(principal.userId(), principal.mfaLevel(), context(httpRequest));
     }
 
     /* ---------- Helpers ---------- */

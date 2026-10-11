@@ -85,7 +85,9 @@ public class EmailChangeService {
     @Transactional
     public void confirmChange(UUID userId, String rawOtpTicket, AuthRequestContext context) {
         var challenge = otpService.consumeTicket(rawOtpTicket, OtpPurpose.EMAIL_CHANGE);
-        if (!challenge.userId().equals(userId)) {
+        // userId.equals(...) chu khong phai challenge.userId().equals(...): ticket EMAIL_CHANGE xin
+        // qua A4 cong khai co userId = null => truoc day NullPointerException => 500.
+        if (!userId.equals(challenge.userId())) {
             throw new BusinessRuleException(IdentityErrorCode.OTP_TICKET_INVALID);
         }
 

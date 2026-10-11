@@ -82,7 +82,13 @@ public class ProfileService {
         UserAccount account = accountRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(IdentityErrorCode.UNAUTHENTICATED));
         byte[] phone = decryptPhone(account);
-        return ProfileView.of(account, phone);
+        // Bug that da sua: ProfileView.of() truoc day hardcode hasPassword=true va
+        // identities=List.of() cho MOI tai khoan (ca tai khoan chi dang nhap bang Google,
+        // khong co mat khau nao) — /auth/session (SessionUser.hasPassword/identities) va
+        // /users/me (ProfileResponse.identities) deu tra du lieu sai. B9 (identities(UUID)) da
+        // doc dung identityRepository nhung profile()/session() thi khong — doc that o day.
+        List<UserIdentity> linkedIdentities = identityRepository.findByUserId(userId);
+        return ProfileView.of(account, phone, linkedIdentities);
     }
 
     /** B2 — merge-patch {@code fullName}, {@code phone}, {@code locale}, {@code timezone}. */
@@ -340,7 +346,11 @@ public class ProfileService {
             Instant createdAt,
             boolean hasAvatar) {
 
-        static ProfileView of(UserAccount account, byte[] phone) {
+        static ProfileView of(UserAccount account, byte[] phone, List<UserIdentity> identities) {
+            boolean hasPassword = identities.stream().anyMatch(UserIdentity::hasPassword);
+            List<String> providers = identities.stream()
+                    .map(identity -> identity.provider().name())
+                    .toList();
             return new ProfileView(
                     account.id(),
                     account.email().value(),
@@ -351,8 +361,8 @@ public class ProfileService {
                     account.status().name(),
                     account.onboardingStatus().name(),
                     account.hasVerifiedEmail(),
-                    true,
-                    List.of(),
+                    hasPassword,
+                    providers,
                     account.createdAt(),
                     account.avatarStorageKey() != null);
         }

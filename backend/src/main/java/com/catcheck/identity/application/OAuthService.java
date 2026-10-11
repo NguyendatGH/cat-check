@@ -105,6 +105,7 @@ public class OAuthService {
             UserIdentity google = existingGoogle.get();
             UserAccount account = accountRepository.findById(google.userId())
                     .orElseThrow(() -> new BusinessRuleException(IdentityErrorCode.OAUTH_FAILED));
+            requireLoginAllowed(account);
             identityRepository.touchLastUsed(google.id(), now);
             auditLogService.record(AuditEvent.builder()
                     .subjectUser(account.id())
@@ -126,6 +127,7 @@ public class OAuthService {
         var existingByEmail = accountRepository.findByEmail(emailAddress);
         if (existingByEmail.isPresent()) {
             UserAccount account = existingByEmail.get();
+            requireLoginAllowed(account);
             identityRepository.insert(new UserIdentity(
                     UUID.randomUUID(), account.id(), IdentityProvider.GOOGLE, sub,
                     emailAddress.value(), true, null, now, now, now, now));
@@ -177,5 +179,12 @@ public class OAuthService {
                 .map(Enum::name)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
         return new OAuthResult(account.id(), account.email(), account.fullName(), roles, newlyCreated);
+    }
+
+    /** Google identity proof does not override CatCheck account restrictions. */
+    private static void requireLoginAllowed(UserAccount account) {
+        if (account.status() != UserStatus.ACTIVE || account.isProcessingRestricted()) {
+            throw new BusinessRuleException(IdentityErrorCode.ACCOUNT_RESTRICTED);
+        }
     }
 }

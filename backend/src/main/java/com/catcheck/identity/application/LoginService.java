@@ -84,7 +84,7 @@ public class LoginService {
 
         // Rate limit dung email CHUA chuan hoa khi email khong hop le — nguoi goi khac
         // nghia dang ky 1 lan ma van khong lo doi do loc. Dung 1 khoa cho ca ca hai nhanh.
-        requireRateLimit(lookupEmail);
+        requireRateLimit(lookupEmail, context);
 
         Optional<UserAccount> found = email == null
                 ? Optional.empty()
@@ -227,13 +227,18 @@ public class LoginService {
                 .build());
     }
 
-    private void requireRateLimit(String lookupEmail) {
+    private void requireRateLimit(String lookupEmail, AuthRequestContext context) {
         RateLimiter.RetryAfter byEmail = rateLimiter.rejectIfLimited(RateLimitRule.LOGIN_BY_EMAIL, lookupEmail);
         if (byEmail != null) {
             throw new com.catcheck.shared.error.RateLimitedException(
                     IdentityErrorCode.RATE_LIMITED, byEmail.headerSeconds(), "EMAIL");
         }
-        RateLimiter.RetryAfter byIp = rateLimiter.rejectIfLimited(RateLimitRule.LOGIN_BY_IP, null);
+        // Bug that da sua: subject truyen cung la `null` thay vi IP that cua request —
+        // RateLimiter.tryConsume() bo qua (luon cho phep) khi subject null (xem javadoc
+        // RateLimiter#tryConsume), nen lop LOGIN_BY_IP (10/phut, p11 §11.7.2) chua tung thuc su
+        // chan request nao: mot IP co the thu khong gioi han mat khau tren CAC email khac nhau
+        // (lop theo email van chan tung email rieng, nhung khong chan theo IP tong).
+        RateLimiter.RetryAfter byIp = rateLimiter.rejectIfLimited(RateLimitRule.LOGIN_BY_IP, context.ipAddress());
         if (byIp != null) {
             throw new com.catcheck.shared.error.RateLimitedException(
                     IdentityErrorCode.RATE_LIMITED, byIp.headerSeconds(), "IP");

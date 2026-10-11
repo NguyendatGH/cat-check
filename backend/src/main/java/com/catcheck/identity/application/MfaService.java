@@ -18,7 +18,9 @@ import com.catcheck.identity.domain.port.RateLimiter;
 import com.catcheck.identity.domain.port.RecoveryCodeHasher;
 import com.catcheck.identity.domain.port.UserRoleRepository;
 import com.catcheck.shared.error.BusinessRuleException;
+import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
+import com.catcheck.shared.security.MfaLevel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -124,8 +126,10 @@ public class MfaService {
      * server KHONG sinh anh QR (p8 §8.5.2).
      */
     @Transactional
-    public Enrollment init(UUID userId, String email, AuthRequestContext context) {
+    public Enrollment init(UUID userId, String email, MfaLevel sessionMfaLevel, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_INIT, userId.toString());
+        totpRepository.findByUserId(userId)
+                .ifPresent(existing -> requireSecondFactorSession(existing, sessionMfaLevel));
 
         // PENDING cu bi thay boi PENDING moi — khong co cai nao mat (p11 §11.12.3).
         totpRepository.delete(userId);
@@ -186,6 +190,10 @@ public class MfaService {
         }
         if (totp.pendingExpiresAt() == null || totp.pendingExpiresAt().isBefore(clock.instant())) {
             throw new BusinessRuleException(IdentityErrorCode.TOTP_ENROLLMENT_EXPIRED);
+        }
+        if (totp.lockedUntil() != null && totp.lockedUntil().isAfter(clock.instant())) {
+            throw new RateLimitedException(IdentityErrorCode.TOTP_LOCKED,
+                    Duration.between(clock.instant(), totp.lockedUntil()).getSeconds());
         }
 
         String secretBase32 = decryptSecret(userId, totp);
@@ -308,7 +316,7 @@ public class MfaService {
 
     /** B17 — sinh lai 10 ma, huyn tron lo cu (p11 §11.12.3). */
     @Transactional
-    public Confirmation regenerateRecoveryCodes(UUID userId, AuthRequestContext context) {
+    public Confirmation regenerateRecoveryCodes(UUID userId, MfaLevel sessionMfaLevel, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_REGENERATE, userId.toString());
 
         MfaTotp totp = totpRepository.findByUserId(userId)
@@ -316,6 +324,7 @@ public class MfaService {
         if (totp.status() != TotpStatus.ACTIVE) {
             throw new BusinessRuleException(IdentityErrorCode.TOTP_NOT_ENABLED);
         }
+        requireSecondFactorSession(totp, sessionMfaLevel);
 
         recoveryCodeRepository.deleteByUserId(userId);
         List<String> recoveryCodes = generateRecoveryCodes(userId, clock.instant());
@@ -333,12 +342,13 @@ public class MfaService {
 
     /** B18 — tu go TOTP, CHI khi tai khoan khong con role admin (p11 §11.12.3). */
     @Transactional
-    public void delete(UUID userId, AuthRequestContext context) {
+    public void delete(UUID userId, MfaLevel sessionMfaLevel, AuthRequestContext context) {
         MfaTotp totp = totpRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessRuleException(IdentityErrorCode.TOTP_NOT_ENABLED));
         if (totp.status() != TotpStatus.ACTIVE) {
             throw new BusinessRuleException(IdentityErrorCode.TOTP_NOT_ENABLED);
         }
+        requireSecondFactorSession(totp, sessionMfaLevel);
 
         boolean hasAdminRole = roleRepository.findByUserId(userId).stream()
                 .anyMatch(role -> role == UserRole.ADMIN_SUPPORT || role == UserRole.ADMIN_CATALOG
@@ -419,6 +429,18 @@ public class MfaService {
                 + "&algorithm=" + algorithm
                 + "&digits=" + digits
                 + "&period=" + periodSeconds;
+    }
+
+    /**
+     * Doi/xoa mot TOTP dang ACTIVE (B15 init lai, B17, B18) phai tu phien DA qua buoc TOTP.
+     * Neu khong, phien chi co mat khau (mfaLevel NONE — A6 van mo phien truoc buoc 2) goi B17
+     * lay 10 ma khoi phuc moi roi dung A11, hoac goi B15 thay secret bang secret cua minh, la
+     * nang duoc phien len TOTP va vao {@code /api/v1/admin/**} ma khong can thiet bi that.
+     */
+    private static void requireSecondFactorSession(MfaTotp totp, MfaLevel sessionMfaLevel) {
+        if (totp.isActive() && sessionMfaLevel != MfaLevel.TOTP) {
+            throw new PermissionDeniedException(IdentityErrorCode.TOTP_REQUIRED);
+        }
     }
 
     private void requireRateLimit(RateLimitRule rule, String subject) {

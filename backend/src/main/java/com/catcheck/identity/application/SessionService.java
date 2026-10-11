@@ -82,9 +82,45 @@ public class SessionService {
     public List<SessionView> listSessions(UUID userId) {
         Instant now = clock.instant();
         String currentHash = sessionGateway.currentSessionIdHash().orElse(null);
+        // Chi hien phien con song that (dong ban sao cua phien da het han khong con la "thiet bi
+        // dang dang nhap") — cung nguon voi gioi han phien dong thoi o LoginService.
+        java.util.Set<String> live = sessionRevoker.activeSessionIdsByUserId(userId);
         return sessionRepository.findActiveByUserId(userId, now).stream()
+                .filter(session -> live.contains(session.sessionIdHash()))
                 .map(session -> SessionView.of(session, currentHash))
                 .toList();
+    }
+
+    /**
+     * A15 {@code POST /auth/sessions/revoke-all} — "Dang xuat moi thiet bi KHAC". Bug that da
+     * sua: controller goi thang {@code revokeAllByUserId}, thu hoi ca dong cua chinh phien dang
+     * dung (ly do ghi nham PASSWORD_CHANGED) nen thiet bi hien tai bien mat khoi A13.
+     */
+    @Transactional
+    public int revokeOtherSessions(UUID userId, AuthRequestContext context) {
+        int revoked = revokeAllExceptCurrent(userId);
+        auditLogService.record(AuditEvent.builder()
+                .subjectUser(userId)
+                .action("AUTH_SESSION_REVOKED")
+                .meta("scope", "OTHERS")
+                .meta("sessions_revoked", revoked)
+                .requestId(context.requestId())
+                .ipAddress(context.ipAddress())
+                .userAgent(context.userAgent())
+                .build());
+        return revoked;
+    }
+
+    private int revokeAllExceptCurrent(UUID userId) {
+        String currentSessionIdHash = sessionGateway.currentSessionIdHash().orElse(null);
+        int revoked = 0;
+        for (String sessionIdHash : sessionRevoker.activeSessionIdsByUserId(userId)) {
+            if (!sessionIdHash.equals(currentSessionIdHash)) {
+                sessionRevoker.revokeBySessionId(sessionIdHash);
+                revoked++;
+            }
+        }
+        return revoked;
     }
 
     /**
@@ -178,7 +214,7 @@ public class SessionService {
         Instant now = clock.instant();
         accountRepository.updatePasswordHash(userId, passwordHasher.hash(newPassword));
         accountRepository.updatePasswordTimestamps(userId, now, null);
-        int revoked = sessionRevoker.revokeAllByUserId(userId);
+        int revoked = revokeAllExceptCurrent(userId);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(userId)

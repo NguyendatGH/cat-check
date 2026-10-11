@@ -155,6 +155,14 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
         // EMAIL_CHANGE da xac minh tren dia chi moi (p8 B8).
         jdbc.update("UPDATE app_user SET email = ?, updated_at = now() WHERE id = ?",
                 newEmail, userId);
+        // Bug that da sua: identity LOCAL dung email lam provider_user_id (RegistrationService,
+        // OAuthService) nhung truoc day khong doi theo => dia chi cu van giu cho trong
+        // uq_identity_provider_subject, ai dang ky lai dia chi cu se vo 500 o INSERT identity.
+        jdbc.update("""
+                UPDATE user_identity
+                   SET provider_user_id = ?, provider_email = ?, updated_at = now()
+                 WHERE user_id = ? AND provider = 'LOCAL'
+                """, newEmail, newEmail, userId);
     }
 
     @Override
