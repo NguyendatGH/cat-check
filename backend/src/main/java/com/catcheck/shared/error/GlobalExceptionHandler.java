@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -120,6 +121,19 @@ public class GlobalExceptionHandler {
         problemDetail.setProperty("errorCode", "VALIDATION_FAILED");
         problemDetail.setProperty("violations",
                 List.of(new ValidationViolation(ex.getRequestPartName(), "required")));
+        problemDetail.setProperty("timestamp", clock.instant());
+        return problemDetail;
+    }
+
+    /** Thiếu query param bắt buộc (vd {@code /places/nearby} thiếu {@code longitude}) → 400, không phải 500. */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ProblemDetail handleMissingParameter(MissingServletRequestParameterException ex, Locale locale) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, messageResolver.resolve("validation.failed", locale));
+        problemDetail.setTitle("VALIDATION_FAILED");
+        problemDetail.setProperty("errorCode", "VALIDATION_FAILED");
+        problemDetail.setProperty("violations",
+                List.of(new ValidationViolation(ex.getParameterName(), "required")));
         problemDetail.setProperty("timestamp", clock.instant());
         return problemDetail;
     }

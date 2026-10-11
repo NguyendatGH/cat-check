@@ -5,15 +5,23 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.ExceptionHandlingConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.web.servlet.LocaleResolver;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
+
+import com.catcheck.shared.i18n.MessageResolver;
 import com.catcheck.shared.security.AdminAccessGate;
+import com.catcheck.shared.security.ProblemAuthenticationEntryPoint;
 
 /**
  * Chuoi filter mac dinh cho toan bo phan con lai cua API (moi path khong thuoc
@@ -72,9 +80,24 @@ public class SecurityConfig {
     };
 
     /**
+     * Chua dang nhap ⇒ {@code 401 UNAUTHENTICATED} (xem {@link ProblemAuthenticationEntryPoint}).
+     * Khai bao thanh bean {@code Customizer<ExceptionHandlingConfigurer<HttpSecurity>>} chu khong
+     * goi {@code exceptionHandling(...)} trong {@link #apiFilterChain}: Spring Security 7 ap bean
+     * kieu nay cho MOI {@link HttpSecurity}, nen chuoi rieng cua identity ({@code /api/v1/users/**})
+     * cung tra 401 ma {@code shared} khong phai import {@code identity}.
+     */
+    @Bean
+    public Customizer<ExceptionHandlingConfigurer<HttpSecurity>> unauthenticatedEntryPoint(
+            MessageResolver messageResolver, LocaleResolver localeResolver, JsonMapper jsonMapper, Clock clock) {
+        ProblemAuthenticationEntryPoint entryPoint =
+                new ProblemAuthenticationEntryPoint(messageResolver, localeResolver, jsonMapper, clock);
+        return exceptions -> exceptions.authenticationEntryPoint(entryPoint);
+    }
+
+    /**
      * Mo Actuator cho curl/script o profile {@code local}. {@code exposure.include} chi dang ky endpoint;
      * {@link #apiFilterChain} chi {@code permitAll} {@code /actuator/health/**} va {@code /actuator/info},
-     * con {@code /actuator/env} (seed-demo.py doc o {@code require_local_profile()}) bi 403 chu khong phai 401.
+     * con {@code /actuator/env} (seed-demo.py doc o {@code require_local_profile()}) bi chan vi can phien.
      *
      * <p><b>Vi sao mo thanh mot chuoi rieng {@code @Profile("local")} chu khong them mot dong
      * {@code permitAll} vao chuoi chung:</b> mot dong {@code permitAll("/actuator/**")} trong
