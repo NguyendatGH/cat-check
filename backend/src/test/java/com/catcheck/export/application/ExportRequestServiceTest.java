@@ -4,6 +4,7 @@ import com.catcheck.export.api.ExportErrorCode;
 import com.catcheck.export.domain.ExportJob;
 import com.catcheck.export.domain.ExportStatus;
 import com.catcheck.shared.error.ConflictException;
+import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.id.UuidV7;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +47,7 @@ class ExportRequestServiceTest {
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final FakeExportJobRepository repository = new FakeExportJobRepository();
     private final List<Runnable> submitted = new ArrayList<>();
+    private boolean exportEnabled = true;
 
     /** Chạy ngay khi được submit — thứ tự trong test vì thế là thứ tự thật, không phải tình cờ. */
     private final TaskExecutor directExecutor = command -> {
@@ -68,6 +70,7 @@ class ExportRequestServiceTest {
             ExportTestDoubles.oneScanAt(NOW.minusSeconds(3600)),
             new DocumentCodeGenerator(repository, clock),
             new ExportJobDispatcher(directExecutor, generationService, clock),
+            userId -> exportEnabled,
             new UuidV7(clock),
             clock);
 
@@ -136,6 +139,28 @@ class ExportRequestServiceTest {
         assertThatThrownBy(() -> requestService.request(command()))
                 .isInstanceOf(ConflictException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ExportErrorCode.EXPORT_JOB_IN_PROGRESS);
+    }
+
+    @Test
+    @DisplayName("Gói không có export trả 403 trước khi tạo job")
+    void disabledExportEntitlementIsRejected() {
+        exportEnabled = false;
+
+        assertThatThrownBy(() -> requestService.request(command()))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ExportErrorCode.FEATURE_NOT_IN_PLAN);
+        assertThat(repository.statusTrail).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Gói có export vẫn tạo được job QUEUED")
+    void enabledExportEntitlementCreatesAJob() {
+        beginTransaction();
+
+        ExportJob job = requestService.request(command());
+
+        assertThat(job.getStatus()).isEqualTo(ExportStatus.QUEUED);
+        commitTransaction();
     }
 
     // ------------------------------------------------------------------ dàn dựng

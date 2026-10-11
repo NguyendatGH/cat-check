@@ -42,8 +42,10 @@ public class SmtpEmailSender implements EmailSender, EmailTransport {
             deliver(new OutgoingEmail(message.recipientEmail(), message.templateKey(),
                     message.locale(), message.variables()));
         } catch (RuntimeException ex) {
+            // Chi loai loi, KHONG ex.getMessage(): loi SMTP thuong chep nguyen dia chi nhan
+            // (vd "550 5.1.1 <a@b.vn>: Recipient address rejected") — PII vao log.
             log.warn("Gui email that bai qua SMTP (template={}): {}",
-                    message.templateKey(), ex.getMessage());
+                    message.templateKey(), ex.getClass().getSimpleName());
         }
     }
 

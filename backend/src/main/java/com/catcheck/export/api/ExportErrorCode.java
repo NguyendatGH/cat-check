@@ -19,7 +19,19 @@ public enum ExportErrorCode implements ErrorCode {
     /** 410 — file PDF đã quá hạn 7 ngày, job đã chuyển {@code EXPIRED}. */
     EXPORT_EXPIRED("export-expired", HttpStatus.GONE),
     /** 400 — khoảng thời gian không hợp lệ (quá 12 tháng, {@code from > to}, {@code to} ở tương lai). */
-    EXPORT_RANGE_INVALID("export-range-invalid", HttpStatus.BAD_REQUEST);
+    EXPORT_RANGE_INVALID("export-range-invalid", HttpStatus.BAD_REQUEST),
+
+    /**
+     * 403 — gói hiện tại không có tính năng {@code export} ({@code credit.domain.PlanFeature.EXPORT}).
+     *
+     * <p>TRÙNG {@code code()} với {@code CreditErrorCode.FEATURE_NOT_IN_PLAN}/
+     * {@code ReminderErrorCode.FEATURE_NOT_IN_PLAN}/{@code CatErrorCode.FEATURE_NOT_IN_PLAN} —
+     * {@code CreditErrorCodeConfiguration} đã đăng ký bean {@code featureNotInPlan()}. Theo đúng
+     * quy ước đã ghi ở ba chỗ kia: giữ hằng để ném được, KHÔNG đăng ký bean lần nữa — đăng ký
+     * trùng làm {@code ErrorCodeRegistry.validate} ném {@code IllegalStateException} lúc khởi
+     * động.</p>
+     */
+    FEATURE_NOT_IN_PLAN("credit/feature-not-in-plan", HttpStatus.FORBIDDEN);
 
     private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
 

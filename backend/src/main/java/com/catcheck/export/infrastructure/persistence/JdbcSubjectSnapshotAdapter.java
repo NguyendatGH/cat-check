@@ -29,7 +29,10 @@ class JdbcSubjectSnapshotAdapter implements SubjectSnapshotPort {
                        approx_age_months, weight_kg, avatar_storage_key
                   FROM cat
                  WHERE id = ?
+                   AND deleted_at IS NULL
                 """;
+        // deleted_at IS NULL: ho so meo da xoa mem (V8) khong duoc xuat PDF — request() tra
+        // CAT_NOT_FOUND, con job dang cho thi generate() danh FAILED thay vi in ho so da xoa.
         List<CatProfile> rows = jdbc.query(sql, (rs, n) -> {
             String breed = rs.getString("breed_other");
             if (breed == null || breed.isBlank()) {

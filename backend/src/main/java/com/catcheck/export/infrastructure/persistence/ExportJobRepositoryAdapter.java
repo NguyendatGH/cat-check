@@ -30,9 +30,16 @@ class ExportJobRepositoryAdapter implements ExportJobRepository {
         this.jdbc = jdbc;
     }
 
+    /**
+     * {@code saveAndFlush}, không {@code save} trần: {@code id} gán sẵn (UUIDv7) nên Hibernate
+     * hoãn {@code INSERT} tới lúc COMMIT. Vi phạm {@code UNIQUE(user_id) WHERE status IN
+     * ('QUEUED','RUNNING')} (I25) khi đó nổ SAU khi {@code ExportRequestService.request()} đã
+     * return — lưới {@code catch} ở đó không bao giờ bắt được và request đua nhận 500 thay vì 409.
+     * Cùng lý do {@code HealthFlagRepositoryAdapter.saveIfNotDuplicate} dùng {@code saveAndFlush}.
+     */
     @Override
     public ExportJob save(ExportJob job) {
-        return jpaRepository.save(job);
+        return jpaRepository.saveAndFlush(job);
     }
 
     @Override

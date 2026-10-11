@@ -13,6 +13,7 @@ import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.error.NotFoundException;
 import com.catcheck.shared.error.PermissionDeniedException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,7 +111,17 @@ public class ReminderService {
                 null, cmd.userId(), cmd.catId(), type, kind, cmd.intervalDays(), cmd.rrule(),
                 cmd.preferredTimeStart(), cmd.preferredTimeEnd(), timezone,
                 null, null, null, channels, source, true, now, now);
-        return repository.insert(withNextRun(draft, now));
+        try {
+            return repository.insert(withNextRun(draft, now));
+        } catch (DuplicateKeyException ex) {
+            // Luoi an toan cuoi: hai request POST /reminders song song cho cung cat+type deu qua
+            // duoc kiem tra findActiveIdByCatAndType o tren (chua insert dong nao luc kiem), roi
+            // va nhau o partial unique index uq_reminder_cat_type_active. Khong bat o day thi
+            // request thua se nhan 500 thay vi 409 co nghia — cung mot luoi an toan
+            // ExportRequestService.request() da dung cho I25. Chi bat DuplicateKeyException
+            // (SQLSTATE 23505): vi pham FK/CHECK khac KHONG phai "da co lich cung loai".
+            throw new ConflictException(ReminderErrorCode.REMINDER_LIMIT_REACHED, type.name());
+        }
     }
 
     /** I4 — merge-patch: sửa / bật / tắt. */
@@ -152,7 +163,13 @@ public class ReminderService {
                 current.lastSatisfiedAt(), channels, current.source(), active, current.createdAt(), now);
         // Lịch tắt thì không có mốc chạy kế tiếp — để scheduler không phải lọc thêm điều kiện.
         Instant from = updated.lastSatisfiedAt() != null ? updated.lastSatisfiedAt() : now;
-        return repository.update(active ? withNextRun(updated, from) : withNextRun(updated, from, true));
+        try {
+            return repository.update(active ? withNextRun(updated, from) : withNextRun(updated, from, true));
+        } catch (DuplicateKeyException ex) {
+            // Cung cuoc dua nhu create(): bat lai lich nay song song voi mot request tao/bat lich
+            // khac cung cat+type — ca hai qua kiem tra o tren roi va uq_reminder_cat_type_active.
+            throw new ConflictException(ReminderErrorCode.REMINDER_LIMIT_REACHED, current.type().name());
+        }
     }
 
     /** I5 — xoá mềm. */

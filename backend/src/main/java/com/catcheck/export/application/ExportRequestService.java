@@ -2,6 +2,7 @@ package com.catcheck.export.application;
 
 import com.catcheck.cat.api.CatErrorCode;
 import com.catcheck.export.api.ExportErrorCode;
+import com.catcheck.export.application.spi.ExportFeaturePort;
 import com.catcheck.export.domain.ExportJob;
 import com.catcheck.export.domain.port.ExportJobRepository;
 import com.catcheck.export.domain.port.SubjectSnapshotPort;
@@ -9,6 +10,7 @@ import com.catcheck.scan.api.ScanHistoryQuery;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.error.NotFoundException;
+import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.id.UuidV7;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,7 @@ public class ExportRequestService {
     private final ScanHistoryQuery scanHistoryQuery;
     private final DocumentCodeGenerator documentCodeGenerator;
     private final ExportJobDispatcher dispatcher;
+    private final ExportFeaturePort featurePort;
     private final UuidV7 uuidV7;
     private final Clock clock;
 
@@ -45,6 +48,7 @@ public class ExportRequestService {
             ScanHistoryQuery scanHistoryQuery,
             DocumentCodeGenerator documentCodeGenerator,
             ExportJobDispatcher dispatcher,
+            ExportFeaturePort featurePort,
             UuidV7 uuidV7,
             Clock clock) {
         this.jobRepository = jobRepository;
@@ -52,12 +56,20 @@ public class ExportRequestService {
         this.scanHistoryQuery = scanHistoryQuery;
         this.documentCodeGenerator = documentCodeGenerator;
         this.dispatcher = dispatcher;
+        this.featurePort = featurePort;
         this.uuidV7 = uuidV7;
         this.clock = clock;
     }
 
     @Transactional
     public ExportJob request(ExportRequestCommand cmd) {
+        // Bug that da sua: endpoint nay truoc day khong kiem entitlement nao - moi user, bat ke
+        // goi (ca MINI/DAILY co "export":false trong seed), deu tao va tai duoc PDF xuat ho
+        // so. credit.domain.PlanFeature.EXPORT da ton tai dung cho viec nay; reminder/cat da lam
+        // y het cho tinh nang cua ho (xem javadoc ExportFeaturePort).
+        if (!featurePort.isExportEnabled(cmd.userId())) {
+            throw new PermissionDeniedException(ExportErrorCode.FEATURE_NOT_IN_PLAN, "export");
+        }
         SubjectSnapshotPort.CatProfile cat = subjectSnapshotPort.findCatProfile(cmd.catId())
                 .filter(c -> c.ownerId().equals(cmd.userId()))
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
