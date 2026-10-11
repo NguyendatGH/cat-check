@@ -12,6 +12,10 @@ describe("communityReportErrorKey", () => {
     expect(communityReportErrorKey(new ApiError("x", 404))).toBe("notFound");
     expect(vi.report.errors.notFound).toBe("Nội dung không còn tồn tại.");
   });
+  it("422 REPORT_OWN_CONTENT -> ownContent", () => {
+    expect(communityReportErrorKey(new ApiError("x", 422, "REPORT_OWN_CONTENT"))).toBe("ownContent");
+    expect(vi.report.errors.ownContent).toBe("Bạn không thể báo cáo nội dung do chính mình đăng.");
+  });
   it("400 và lỗi khác -> generic", () => {
     expect(communityReportErrorKey(new ApiError("x", 400, "VALIDATION"))).toBe("generic");
     expect(communityReportErrorKey(new Error("net"))).toBe("generic");

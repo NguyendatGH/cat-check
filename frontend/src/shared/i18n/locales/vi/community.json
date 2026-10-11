@@ -93,6 +93,7 @@
     "errors": {
       "duplicate": "Bạn đã báo cáo nội dung này rồi.",
       "notFound": "Nội dung không còn tồn tại.",
+      "ownContent": "Bạn không thể báo cáo nội dung do chính mình đăng.",
       "generic": "Không gửi được báo cáo. Vui lòng thử lại."
     }
   },

@@ -93,7 +93,7 @@ test("create a community discussion, comment, and react through real APIs", asyn
   await expect(page.getByText(title)).toHaveCount(0);
 });
 
-test("report a community post through the ⋯ menu", async ({ page }) => {
+test("reporting own community post is blocked through the ⋯ menu", async ({ page }) => {
   const suffix = String(Date.now());
   const title = `E2E báo cáo ${suffix}`;
 
@@ -134,8 +134,10 @@ test("report a community post through the ⋯ menu", async ({ page }) => {
   );
   await dialog.getByRole("button", { name: "Gửi báo cáo" }).click();
   const reportResponse = await reportPromise;
-  expect(reportResponse.status()).toBe(204);
+  // Bài do chính demo tạo ⇒ backend từ chối 422 REPORT_OWN_CONTENT, dialog giữ nguyên và hiện lỗi.
+  expect(reportResponse.status()).toBe(422);
   expect(JSON.parse(reportResponse.request().postData() ?? "{}")).toMatchObject({ reason: "SPAM" });
-  await expect(dialog).toBeHidden();
-  await expect(page.getByText("Đã gửi báo cáo tới đội kiểm duyệt.", { exact: false })).toBeVisible();
+  expect(((await reportResponse.json()) as { errorCode?: string }).errorCode).toBe("REPORT_OWN_CONTENT");
+  await expect(dialog.getByText("Bạn không thể báo cáo nội dung do chính mình đăng.")).toBeVisible();
+  await expect(dialog).toBeVisible();
 });
