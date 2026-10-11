@@ -15,7 +15,10 @@
  *   <li>{@code credit::api} — cờ quyền đọc an toàn, không số dư ledger chi tiết
  *       ({@code EntitlementQuery}, {@code CreditConsumption}, đã có sẵn, không đổi).</li>
  * </ul>
+ *
+ * <p>{@code privacy::spi} — {@code ai.application.privacy.AiErasureParticipant} gỡ nội dung hội
+ * thoại khi xoá tài khoản.</p>
  */
 @org.springframework.modulith.ApplicationModule(allowedDependencies = {
-        "shared", "cat::api", "scan::api", "insight::api", "reminder::api", "credit::api" })
+        "shared", "cat::api", "scan::api", "insight::api", "reminder::api", "credit::api", "privacy::spi" })
 package com.catcheck.ai;

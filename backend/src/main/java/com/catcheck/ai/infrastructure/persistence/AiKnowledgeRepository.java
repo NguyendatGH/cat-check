@@ -17,6 +17,9 @@ import java.util.UUID;
 @Repository
 public class AiKnowledgeRepository implements AiKnowledgePort {
 
+    /** Dấu thay nội dung tin nhắn đã gỡ khi xoá tài khoản — xem {@link #eraseConversationContent}. */
+    static final String ERASED_CONTENT = "[erased]";
+
     private final JdbcTemplate jdbc;
 
     public AiKnowledgeRepository(JdbcTemplate jdbc) {
@@ -107,10 +110,34 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
         return id;
     }
 
+    /**
+     * USER và ASSISTANT của cùng một lượt có cùng {@code created_at} ({@code now()} của một
+     * transaction); {@code id} là UUIDv4 ngẫu nhiên và bảng không có cột tăng dần nào khác ⇒ khoá
+     * phụ theo vai: trong một lượt câu hỏi đứng trước câu trả lời (danh sách DESC rồi đảo lại, nên
+     * ASSISTANT xếp trước ở đây).
+     */
     public List<String[]> history(UUID conversationId, int limit) {
-        return jdbc.query("SELECT role, content FROM ai_message WHERE conversation_id = ? ORDER BY created_at DESC LIMIT ?",
+        return jdbc.query("""
+                SELECT role, content FROM ai_message WHERE conversation_id = ?
+                ORDER BY created_at DESC, CASE role WHEN 'ASSISTANT' THEN 0 ELSE 1 END
+                LIMIT ?
+                """,
                 (rs, rowNum) -> new String[]{rs.getString("role"), rs.getString("content")}, conversationId, limit)
                 .reversed();
+    }
+
+    /**
+     * {@code content} là {@code NOT NULL} + {@code CHECK length(btrim(content)) BETWEEN 1 AND 20000}
+     * (V21) nên không đặt NULL được — thay bằng một dấu cố định, không chứa dữ liệu gì của user.
+     * Điều kiện {@code <>} giữ cho lần gọi lặp lại không đếm lại dòng đã gỡ.
+     */
+    @Override
+    public int eraseConversationContent(UUID userId) {
+        return jdbc.update("""
+                UPDATE ai_message m SET content = ?
+                FROM ai_conversation c
+                WHERE c.id = m.conversation_id AND c.user_id = ? AND m.content <> ?
+                """, ERASED_CONTENT, userId, ERASED_CONTENT);
     }
 
     public void saveCitations(UUID messageId, List<RetrievedChunk> chunks) {

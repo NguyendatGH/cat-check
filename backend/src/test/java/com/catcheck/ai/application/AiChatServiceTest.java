@@ -1,8 +1,12 @@
 package com.catcheck.ai.application;
 
+import com.catcheck.ai.api.AiErrorCode;
+import com.catcheck.ai.application.spi.AccountStatus;
+import com.catcheck.ai.application.spi.UserAccountPort;
 import com.catcheck.ai.domain.AiChatRateLimitRule;
 import com.catcheck.ai.domain.port.AiChatRateLimiter;
 import com.catcheck.shared.error.BusinessRuleException;
+import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.i18n.MessageResolver;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -291,6 +296,73 @@ class AiChatServiceTest {
         assertThat(limiter.consumedSubjects).containsExactly(USER_ID.toString());
     }
 
+    /**
+     * {@code [n]} trong prompt/câu trả lời là VỊ TRÍ chunk trong danh sách ({@code i + 1}). Trước
+     * bản sửa, citation trả về/lưu lại dùng {@code chunk.rank()} của SQL — {@code row_number()} ở
+     * {@code AiKnowledgeRepository#search} sắp theo khoá khác ORDER BY ngoài (thiếu
+     * {@code c.ordinal}), nên khi {@code ts_rank}/{@code updated_at} bằng nhau (mọi tài liệu đồng bộ
+     * trong một transaction có cùng {@code updated_at}) "[1]" trong câu trả lời có thể trỏ nhầm nguồn.
+     */
+    @Test
+    void citationNumbersFollowThePositionUsedForTheMarkersNotTheSqlRank() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+        knowledge.chunks = List.of(
+                new AiKnowledgePort.RetrievedChunk(UUID.randomUUID(), "Nguồn A", "/care-tips/a", "Nội dung A.", 2),
+                new AiKnowledgePort.RetrievedChunk(UUID.randomUUID(), "Nguồn B", "/care-tips/b", "Nội dung B.", 1));
+        List<Map<String, String>> sentMessages = new ArrayList<>();
+
+        AiChatService.ChatResult result = service(knowledge, messages -> {
+            sentMessages.addAll(messages);
+            return Optional.of("Theo nguồn A [1].");
+        }).chat(USER_ID, null, null, "Câu hỏi", "vi");
+
+        assertThat(sentMessages.getLast().get("content")).contains("[1] Nguồn A", "[2] Nguồn B");
+        assertThat(result.citations()).extracting(AiChatService.Citation::title, AiChatService.Citation::rank)
+                .containsExactly(tuple("Nguồn A", 1), tuple("Nguồn B", 2));
+        assertThat(knowledge.savedCitationRanks).containsExactly(1, 2);
+    }
+
+    /**
+     * I19 (p4 §4.4.9), {@code docs/cat-rag-credit-pipeline.md} A4-(5): tài khoản {@code RESTRICTED}
+     * (và mọi trạng thái khác {@code ACTIVE}) không được lưu tin nhắn mới hay gửi câu hỏi ra LLM.
+     * Trước bản sửa, {@code chat} không đọc trạng thái tài khoản ⇒ vẫn lưu USER+ASSISTANT và gọi
+     * provider.
+     */
+    @Test
+    void restrictedAccountIsRejectedBeforeAnyMessageIsStoredOrTheProviderIsCalled() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Theo dõi pH", "/care-tips/ph", "Đo dưới ánh sáng ổn định.", 1));
+        AiProviderPort provider = mock(AiProviderPort.class);
+        FakeAiChatRateLimiter limiter = new FakeAiChatRateLimiter();
+
+        assertThatThrownBy(() -> service(knowledge, provider, new FakeCatContextPort(), limiter,
+                userId -> AccountStatus.RESTRICTED).chat(USER_ID, null, null, "pH bao nhiêu là ổn?", "vi"))
+                .isInstanceOf(PermissionDeniedException.class)
+                .extracting(ex -> ((PermissionDeniedException) ex).errorCode())
+                .isEqualTo(AiErrorCode.ACCOUNT_RESTRICTED);
+
+        verifyNoInteractions(provider);
+        assertThat(knowledge.savedRoles).isEmpty();
+        assertThat(knowledge.hasDocumentsCalled).isFalse();
+        assertThat(limiter.consumedSubjects).isEmpty();
+    }
+
+    @Test
+    void unknownAccountIsRejectedLikeRestricted() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        AiProviderPort provider = mock(AiProviderPort.class);
+
+        assertThatThrownBy(() -> service(knowledge, provider, new FakeCatContextPort(),
+                new FakeAiChatRateLimiter(), userId -> null).chat(USER_ID, null, null, "Xin chào", "vi"))
+                .isInstanceOf(PermissionDeniedException.class);
+
+        verifyNoInteractions(provider);
+        assertThat(knowledge.savedRoles).isEmpty();
+    }
+
     private static AiChatService service(FakeKnowledge knowledge, AiProviderPort provider) {
         return service(knowledge, provider, new FakeCatContextPort());
     }
@@ -301,8 +373,14 @@ class AiChatServiceTest {
 
     private static AiChatService service(FakeKnowledge knowledge, AiProviderPort provider,
             FakeCatContextPort catContextPort, FakeAiChatRateLimiter rateLimiter) {
+        return service(knowledge, provider, catContextPort, rateLimiter, userId -> AccountStatus.ACTIVE);
+    }
+
+    private static AiChatService service(FakeKnowledge knowledge, AiProviderPort provider,
+            FakeCatContextPort catContextPort, FakeAiChatRateLimiter rateLimiter,
+            UserAccountPort userAccountPort) {
         return new AiChatService(knowledge, provider, new AiRuntimeConfig(6, 8), catContextPort, rateLimiter,
-                realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC));
+                userAccountPort, realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     /**
@@ -362,6 +440,7 @@ class AiChatServiceTest {
         final List<String> savedRoles = new ArrayList<>();
         final List<String> savedContents = new ArrayList<>();
         UUID savedCitationMessageId;
+        final List<Integer> savedCitationRanks = new ArrayList<>();
 
         @Override
         public boolean hasDocuments() {
@@ -397,6 +476,7 @@ class AiChatServiceTest {
         @Override
         public void saveCitations(UUID messageId, List<RetrievedChunk> chunks) {
             savedCitationMessageId = messageId;
+            chunks.forEach(chunk -> savedCitationRanks.add(chunk.rank()));
         }
 
         @Override
@@ -404,6 +484,11 @@ class AiChatServiceTest {
             synced = true;
             documents = true;
             return 1;
+        }
+
+        @Override
+        public int eraseConversationContent(UUID userId) {
+            return 0;
         }
     }
 }

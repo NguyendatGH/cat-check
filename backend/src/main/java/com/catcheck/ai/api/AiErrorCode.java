@@ -16,7 +16,16 @@ public enum AiErrorCode implements ErrorCode {
      * cho lý do chọn ngưỡng — CHƯA có mục p11 tương ứng vì {@code context/} đã bị xoá).
      * Tham số: {@code ruleName} (chỉ để log/debug, không phải PII).
      */
-    AI_CHAT_RATE_LIMITED("ai-chat-rate-limited", HttpStatus.TOO_MANY_REQUESTS);
+    AI_CHAT_RATE_LIMITED("ai-chat-rate-limited", HttpStatus.TOO_MANY_REQUESTS),
+
+    /**
+     * I19 (p4 §4.4.9) — tài khoản {@code RESTRICTED} chỉ đọc: không lưu tin nhắn, không gọi LLM.
+     * Trùng {@code code()} với {@code community.api.CommunityErrorCode.ACCOUNT_RESTRICTED} có chủ
+     * đích và cùng lý do: KHÔNG đăng ký bean trong {@code AiErrorCodeConfiguration} (identity đã
+     * đăng ký mã này, đăng ký lại làm {@code ErrorCodeRegistry.validate} chặn khởi động); câu dịch
+     * lấy từ bundle {@code messages/identity}.
+     */
+    ACCOUNT_RESTRICTED("common/account-restricted", HttpStatus.FORBIDDEN);
 
     private final String slug;
     private final HttpStatus status;

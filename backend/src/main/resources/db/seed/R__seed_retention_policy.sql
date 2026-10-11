@@ -112,7 +112,15 @@ VALUES
     -- Ân hạn 7 ngày rồi thực thi; hoàn tất trong hạn luật định 20 ngày (TD-05).
     ('ACCOUNT_DELETION_GRACE', 'D1', 'dsar_request', 7, 'received_at', 'ANONYMIZE',
      'ErasureExecutionJob', true,
-     'Đ4.1.d + Đ14 Luật BVDLCN; Đ5.4 NĐ356 (hoàn tất ≤ 20 ngày). Bất biến I15: grace KHÔNG được nới quá 7 ngày.')
+     'Đ4.1.d + Đ14 Luật BVDLCN; Đ5.4 NĐ356 (hoàn tất ≤ 20 ngày). Bất biến I15: grace KHÔNG được nới quá 7 ngày.'),
+
+    -- Hội thoại trợ lý AI (D30). KHÔNG tài liệu nào trong repo chốt thời hạn lưu ⇒ `retention_days`
+    -- để NULL (chờ chủ dự án), KHÔNG tự chọn số. Dòng này chỉ ghi lại hành vi đang có: giữ theo vòng
+    -- đời tài khoản; khi xoá tài khoản `ai.application.privacy.AiErasureParticipant` gỡ
+    -- `ai_message.content` và giữ dòng ⇒ MASK.
+    ('AI_CONVERSATION_LIFECYCLE', 'D30', 'ai_message', NULL, 'created_at', 'MASK',
+     'ErasureExecutionJob', true,
+     'CHỜ CHỦ DỰ ÁN chốt thời hạn lưu. Hiện tại: theo vòng đời tài khoản, gỡ nội dung khi xoá tài khoản (Đ14 Luật BVDLCN).')
 
 ON CONFLICT (code) DO UPDATE SET
     data_inventory_code = EXCLUDED.data_inventory_code,
@@ -136,6 +144,7 @@ FROM (VALUES ('D1', 'INACTIVE_ACCOUNT'),
              ('D17', 'NOTIFICATION_SEND_LOG'),
              ('D19', 'AUDIT_LOG'),
              ('D20', 'SECURITY_INCIDENT'),
-             ('D21', 'CONSENT_RECORD')) AS m(inventory_code, policy_code)
+             ('D21', 'CONSENT_RECORD'),
+             ('D30', 'AI_CONVERSATION_LIFECYCLE')) AS m(inventory_code, policy_code)
 WHERE d.code = m.inventory_code
   AND d.retention_policy_code IS DISTINCT FROM m.policy_code;

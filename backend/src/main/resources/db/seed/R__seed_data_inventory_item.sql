@@ -5,6 +5,11 @@
 -- Map), Phase 3 (Commerce) và nhân sự nội bộ — p15 §15.2.2 liệt kê nhưng p4 §4.9.2 giới hạn
 -- đúng D1…D21, và các bảng Phase 2/3 chưa có migration ở Phase 1.
 --
+-- NGOẠI LỆ D30 — "Hội thoại trợ lý AI" (`ai_conversation`/`ai_message`, V21): module `ai` thêm
+-- sau spec, `docs/cat-rag-credit-pipeline.md` A4-(5) bắt buộc kiểm kê trước khi bật ở prod. Lấy
+-- D30 (không phải D22) vì D22…D29 đã được p15 §15.2.2 dành cho mục khác. Thời hạn lưu: CHƯA có
+-- tài liệu nào chốt — xem dòng `AI_CONVERSATION_LIFECYCLE` ở `R__seed_retention_policy.sql`.
+--
 -- QUY TẮC ÁNH XẠ (ghi rõ để người sau không phải đoán):
 --   · `sensitivity`  : p15 "CB" -> BASIC, "NC" -> SENSITIVE. D11 là "KPL" (đã khử nhận dạng,
 --     không còn là DLCN) nhưng vẫn phải nằm trong kiểm kê ⇒ để BASIC và nói rõ ở mô tả.
@@ -160,7 +165,17 @@ VALUES
      'Bản ghi các lựa chọn đồng ý của bạn — CatCheck có nghĩa vụ chứng minh việc đã được đồng ý (Đ6.2 NĐ356).',
      'Consent evidence records.',
      'BASIC', 'LEGAL_OBLIGATION', ARRAY []::varchar(48)[],
-     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true)
+     'Cơ sở dữ liệu đặt tại Việt Nam', false, NULL, true),
+
+    -- `cross_border` = true theo cùng lý do D2: nhà cung cấp AI có thể đặt máy chủ ngoài Việt Nam.
+    ('D30', 'Trợ lý AI',
+     'Hội thoại trợ lý AI: câu hỏi bạn gửi (lưu nguyên văn) và câu trả lời của trợ lý — để trả lời và hiển thị lại '
+         || 'lịch sử hội thoại. Khi nhà cung cấp AI được bật, câu hỏi (đã ẩn email và số điện thoại) cùng dữ liệu của '
+         || 'bé mèo bạn chọn được gửi tới nhà cung cấp đó, có thể đặt máy chủ ngoài Việt Nam; thông tin tài khoản của bạn '
+         || '(họ tên, email, số điện thoại) không được gửi kèm.',
+     'AI assistant conversations (questions and answers).',
+     'BASIC', 'CONSENT', ARRAY ['SERVICE_CORE']::varchar(48)[],
+     'Cơ sở dữ liệu đặt tại Việt Nam', true, 'Nhà cung cấp mô hình AI (khi được bật)', true)
 
 ON CONFLICT (code) DO UPDATE SET
     category_vi      = EXCLUDED.category_vi,

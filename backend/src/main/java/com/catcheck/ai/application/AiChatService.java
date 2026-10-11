@@ -1,9 +1,12 @@
 package com.catcheck.ai.application;
 
 import com.catcheck.ai.api.AiErrorCode;
+import com.catcheck.ai.application.spi.AccountStatus;
+import com.catcheck.ai.application.spi.UserAccountPort;
 import com.catcheck.ai.domain.AiChatRateLimitRule;
 import com.catcheck.ai.domain.port.AiChatRateLimiter;
 import com.catcheck.shared.error.BusinessRuleException;
+import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.i18n.MessageResolver;
 import org.slf4j.Logger;
@@ -48,6 +51,7 @@ public class AiChatService {
     private final AiRuntimeConfig config;
     private final CatContextPort catContextPort;
     private final AiChatRateLimiter rateLimiter;
+    private final UserAccountPort userAccountPort;
     private final MessageResolver messageResolver;
     private final Clock clock;
 
@@ -57,6 +61,7 @@ public class AiChatService {
             AiRuntimeConfig config,
             CatContextPort catContextPort,
             AiChatRateLimiter rateLimiter,
+            UserAccountPort userAccountPort,
             MessageResolver messageResolver,
             Clock clock) {
         this.repository = repository;
@@ -64,6 +69,7 @@ public class AiChatService {
         this.config = config;
         this.catContextPort = catContextPort;
         this.rateLimiter = rateLimiter;
+        this.userAccountPort = userAccountPort;
         this.messageResolver = messageResolver;
         this.clock = clock;
     }
@@ -81,6 +87,7 @@ public class AiChatService {
      */
     @Transactional
     public ChatResult chat(UUID userId, UUID conversationId, UUID catId, String message, String locale) {
+        requireWriteAllowed(userId);
         // Giới hạn tần suất ÁP DỤNG CHO MỌI CÂU HỎI, kể cả câu hỏi sẽ bị từ chối ở bước kiểm định
         // dạng ngay sau đây — cùng lý luận ActivateCreditCodeService#doActivate: đặt sau bước kiểm
         // định dạng thì một kẻ gọi lặp lại vẫn không bị đếm miễn mỗi lần gửi một chuỗi khác nhau.
@@ -123,6 +130,7 @@ public class AiChatService {
         if (chunks.isEmpty() && !"vi".equalsIgnoreCase(requestedLocale)) {
             chunks = repository.search("vi", searchQuery, contextLimit);
         }
+        chunks = numberedByPosition(chunks);
 
         String catContextBlock = catContext.map(CatContextPresenter::renderContext).filter(block -> !block.isBlank())
                 .orElse(null);
@@ -178,6 +186,22 @@ public class AiChatService {
         return new ChatResult(conversation.id(), messageId, answer, "emergency-template", List.of(), clock.instant());
     }
 
+    /**
+     * {@code [n]} ở {@link #buildPrompt}/{@link #fallbackAnswer} là vị trí {@code i + 1}; citation
+     * lưu và trả về phải mang đúng số đó. {@code rank} của SQL không dùng được: {@code row_number()}
+     * trong {@code AiKnowledgeRepository#search} sắp theo khoá khác ORDER BY ngoài nên lệch khi hoà
+     * {@code ts_rank}/{@code updated_at}.
+     */
+    private static List<AiKnowledgePort.RetrievedChunk> numberedByPosition(List<AiKnowledgePort.RetrievedChunk> chunks) {
+        List<AiKnowledgePort.RetrievedChunk> numbered = new ArrayList<>(chunks.size());
+        for (int i = 0; i < chunks.size(); i++) {
+            AiKnowledgePort.RetrievedChunk chunk = chunks.get(i);
+            numbered.add(new AiKnowledgePort.RetrievedChunk(chunk.documentId(), chunk.title(), chunk.sourceUrl(),
+                    chunk.content(), i + 1));
+        }
+        return numbered;
+    }
+
     private String buildPrompt(String message, List<AiKnowledgePort.RetrievedChunk> chunks, String catContextBlock) {
         StringBuilder context = new StringBuilder("USER QUESTION:\n").append(message).append("\n\n");
         if (catContextBlock != null) {
@@ -214,6 +238,19 @@ public class AiChatService {
                     .append(i + 1).append("]\n");
         }
         return answer.append("Đây là thông tin tham khảo, không thay thế chẩn đoán của bác sĩ thú y.").toString();
+    }
+
+    /**
+     * I19 (p4 §4.4.9), {@code docs/cat-rag-credit-pipeline.md} A4-(5): tài khoản {@code RESTRICTED}
+     * không được lưu tin nhắn mới hay gửi câu hỏi ra nhà cung cấp LLM. Cùng khuôn
+     * {@code community.application.CommunityService.requireWriteAllowed}; chạy TRƯỚC rate limit như
+     * ở đó (bị chặn thì không tiêu hạn mức).
+     */
+    private void requireWriteAllowed(UUID userId) {
+        AccountStatus status = userAccountPort.statusOf(userId);
+        if (status == null || !status.allowsWrite()) {
+            throw new PermissionDeniedException(AiErrorCode.ACCOUNT_RESTRICTED);
+        }
     }
 
     private void requireRateLimit(UUID userId) {
