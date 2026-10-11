@@ -10,6 +10,12 @@ spring:
       max-file-size: 9MB
       max-request-size: 10MB
 
+  datasource:
+    hikari:
+      data-source-properties:
+        # Lỗi PostgreSQL mặc định kèm dòng dữ liệu lỗi ("Failing row contains (...)"), trong đó có email và tên mèo.
+        logServerErrorDetail: false
+
   security:
     oauth2:
       client:
