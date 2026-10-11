@@ -91,17 +91,16 @@ class JdbcNotificationRepository implements NotificationRepository {
     }
 
     @Override
-    public Page listInbox(UUID userId, String cursor, int limit) {
+    public Page listInbox(UUID userId, InboxCursor cursor, int limit) {
         StringBuilder sql = new StringBuilder("SELECT " + COLUMNS + " FROM notification" + INBOX_FILTER);
         List<Object> args = new ArrayList<>();
         args.add(userId);
-        NotificationRowReaders.CursorKey key = NotificationRowReaders.CursorKey.parse(cursor);
-        if (key != null) {
+        if (cursor != null) {
             // Keyset: UUID v7 đã sắp theo thời gian nên (created_at, id) là thứ tự ổn định và
             // dùng đúng index ix_notification_user_created (p8 §8.1.4).
             sql.append(" AND (created_at, id) < (?, ?)");
-            args.add(NotificationRowReaders.offset(key.createdAt()));
-            args.add(key.id());
+            args.add(NotificationRowReaders.offset(cursor.createdAt()));
+            args.add(cursor.id());
         }
         sql.append(" ORDER BY created_at DESC, id DESC LIMIT ?");
         args.add(limit + 1);
@@ -113,7 +112,7 @@ class JdbcNotificationRepository implements NotificationRepository {
         String nextCursor = null;
         if (hasMore && !items.isEmpty()) {
             Notification last = items.get(items.size() - 1);
-            nextCursor = new NotificationRowReaders.CursorKey(last.createdAt(), last.id()).encode();
+            nextCursor = new InboxCursor(last.createdAt(), last.id()).encode();
         }
         return new Page(items, nextCursor, hasMore);
     }

@@ -7,9 +7,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Base64;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Tiện ích đọc/ghi dùng chung cho các repository của module.
@@ -52,38 +50,5 @@ final class NotificationRowReaders {
 
     static String toJson(JsonMapper mapper, Map<String, Object> payload) {
         return mapper.writeValueAsString(payload == null ? Map.of() : payload);
-    }
-
-    /**
-     * Con trỏ keyset {@code (created_at, id)} — cùng khuôn với {@code JdbcScanQueryRepository}
-     * và {@code HealthFlagRepositoryAdapter} để client chỉ phải hiểu một định dạng (p8 §8.1.4:
-     * cursor là chuỗi opaque, client không tự sinh/tự phân tích).
-     */
-    record CursorKey(Instant createdAt, UUID id) {
-
-        String encode() {
-            String raw = createdAt.toEpochMilli() + "." + id;
-            return Base64.getUrlEncoder().withoutPadding()
-                    .encodeToString(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        }
-
-        /** Trả {@code null} khi không có cursor; ném {@link IllegalArgumentException} khi cursor hỏng. */
-        static CursorKey parse(String cursor) {
-            if (cursor == null || cursor.isBlank()) {
-                return null;
-            }
-            try {
-                String raw = new String(Base64.getUrlDecoder().decode(cursor),
-                        java.nio.charset.StandardCharsets.UTF_8);
-                int separator = raw.indexOf('.');
-                if (separator <= 0) {
-                    throw new IllegalArgumentException("cursor thiếu dấu phân cách");
-                }
-                return new CursorKey(Instant.ofEpochMilli(Long.parseLong(raw.substring(0, separator))),
-                        UUID.fromString(raw.substring(separator + 1)));
-            } catch (RuntimeException ex) {
-                throw new IllegalArgumentException("cursor không hợp lệ", ex);
-            }
-        }
     }
 }

@@ -2,6 +2,9 @@ package com.catcheck.notification.domain.port;
 
 import com.catcheck.notification.domain.Notification;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,8 +18,12 @@ public interface NotificationRepository {
      */
     Optional<Notification> insertIfAbsent(Notification notification);
 
-    /** G4 — hộp thư in-app, phân trang con trỏ {@code (created_at, id)} giảm dần (p8 §8.1.4). */
-    Page listInbox(UUID userId, String cursor, int limit);
+    /**
+     * G4 — hộp thư in-app, phân trang con trỏ {@code (created_at, id)} giảm dần (p8 §8.1.4).
+     *
+     * @param cursor đã giải mã ở tầng service, {@code null} = trang đầu
+     */
+    Page listInbox(UUID userId, InboxCursor cursor, int limit);
 
     /** G5 — badge chuông. Dùng partial index {@code ix_notification_unread_inapp}. */
     long countUnread(UUID userId);
@@ -37,5 +44,39 @@ public interface NotificationRepository {
 
     /** Trang kết quả dạng keyset. */
     record Page(List<Notification> items, String nextCursor, boolean hasMore) {
+    }
+
+    /**
+     * Con trỏ keyset {@code (created_at, id)}, cùng khuôn với {@code JdbcScanQueryRepository} để
+     * client chỉ phải hiểu một định dạng (p8 §8.1.4: cursor là chuỗi opaque). Giải mã ở tầng
+     * service để cursor hỏng thành {@code 400} trước khi chạm repository.
+     */
+    record InboxCursor(Instant createdAt, UUID id) {
+
+        public InboxCursor {
+            if (createdAt == null || id == null) {
+                throw new IllegalArgumentException("cursor thiếu trường bắt buộc");
+            }
+        }
+
+        public String encode() {
+            String raw = createdAt.toEpochMilli() + "." + id;
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+        }
+
+        /** Ném {@link IllegalArgumentException} khi chuỗi không phải do {@link #encode()} sinh ra. */
+        public static InboxCursor decode(String cursor) {
+            try {
+                String raw = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
+                int separator = raw.indexOf('.');
+                if (separator <= 0) {
+                    throw new IllegalArgumentException("cursor thiếu dấu phân cách");
+                }
+                return new InboxCursor(Instant.ofEpochMilli(Long.parseLong(raw.substring(0, separator))),
+                        UUID.fromString(raw.substring(separator + 1)));
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException("cursor không hợp lệ", ex);
+            }
+        }
     }
 }

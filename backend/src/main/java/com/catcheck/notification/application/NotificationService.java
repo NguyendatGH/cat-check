@@ -262,7 +262,19 @@ public class NotificationService implements NotificationGateway {
             // p8 §8.1.4: vượt trần ⇒ 400, KHÔNG âm thầm kẹp xuống (kẹp làm client tưởng đã lấy hết).
             throw new BusinessRuleException(NotificationErrorCode.VALIDATION_FAILED, "limit");
         }
-        return notifications.listInbox(userId, cursor, limit);
+        return notifications.listInbox(userId, parseCursor(cursor), limit);
+    }
+
+    /** Cursor hỏng ⇒ {@code 400 PAGINATION_CURSOR_INVALID} tại đây; repository chỉ nhận cursor hợp lệ. */
+    private static NotificationRepository.InboxCursor parseCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+        try {
+            return NotificationRepository.InboxCursor.decode(cursor);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessRuleException(NotificationErrorCode.PAGINATION_CURSOR_INVALID);
+        }
     }
 
     /** G5 — {@code GET /notifications/unread-count}. */

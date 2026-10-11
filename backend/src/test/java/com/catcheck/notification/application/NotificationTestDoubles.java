@@ -44,6 +44,7 @@ final class NotificationTestDoubles {
         final List<Notification> rows = new ArrayList<>();
         private final Set<String> dedupeKeys = new HashSet<>();
         final Map<UUID, String> statusUpdates = new LinkedHashMap<>();
+        InboxCursor lastInboxCursor;
 
         @Override
         public Optional<Notification> insertIfAbsent(Notification notification) {
@@ -62,7 +63,8 @@ final class NotificationTestDoubles {
         }
 
         @Override
-        public Page listInbox(UUID userId, String cursor, int limit) {
+        public Page listInbox(UUID userId, InboxCursor cursor, int limit) {
+            lastInboxCursor = cursor;
             List<Notification> items = rows.stream()
                     .filter(row -> row.userId().equals(userId))
                     .filter(row -> row.channel() == NotificationChannel.IN_APP)
