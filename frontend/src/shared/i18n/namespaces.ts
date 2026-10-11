@@ -21,6 +21,7 @@ export const NAMESPACES = [
   "notification",
   "settings",
   "admin",
+  "seller",
   "legal",
   "shop",
   "map",

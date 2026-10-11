@@ -154,4 +154,21 @@ export const LazyPages = {
   // Bản đồ & phòng khám (Phase 2 — `place`/`place_review` cùng lý do trên).
   catCareMap: lazy(() => import("@/pages/map").then((m) => ({ default: m.CatCareMapPage }))),
   clinicDetail: lazy(() => import("@/pages/map").then((m) => ({ default: m.ClinicDetailPage }))),
+  adminScans: lazy(() => import("@/pages/admin/AdminScansPage").then((m) => ({ default: m.AdminScansPage }))),
+  adminMonitoringRules: lazy(() =>
+    import("@/pages/admin/AdminMonitoringRulesPage").then((m) => ({ default: m.AdminMonitoringRulesPage })),
+  ),
+  adminSecurity: lazy(() => import("@/pages/admin/AdminSecurityPage").then((m) => ({ default: m.AdminSecurityPage }))),
+  adminPolicyVersions: lazy(() =>
+    import("@/pages/admin/AdminPolicyVersionsPage").then((m) => ({ default: m.AdminPolicyVersionsPage })),
+  ),
+  adminPrivacyConsents: lazy(() =>
+    import("@/pages/admin/AdminPrivacyConsentsPage").then((m) => ({ default: m.AdminPrivacyConsentsPage })),
+  ),
+  sellerDashboard: lazy(() =>
+    import("@/pages/seller/SellerDashboardPage").then((m) => ({ default: m.SellerDashboardPage })),
+  ),
+  sellerProducts: lazy(() =>
+    import("@/pages/seller/SellerProductsPage").then((m) => ({ default: m.SellerProductsPage })),
+  ),
 } as const;

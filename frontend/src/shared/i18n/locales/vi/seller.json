@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "label": "Cửa hàng",
+    "dashboard": "Tổng quan",
+    "products": "Sản phẩm",
+    "colorChart": "Bảng màu",
+    "content": "Care tip"
+  },
+  "dashboard": {
+    "title": "Tổng quan cửa hàng",
+    "description": "Số liệu tính từ danh sách sản phẩm hiện có.",
+    "published": "Đang bán",
+    "draft": "Nháp",
+    "archived": "Đã ẩn",
+    "lowStock": "Sắp hết hàng",
+    "lowStockHint": "Đang bán, tồn kho từ {{threshold}} trở xuống",
+    "lowStockTitle": "Sản phẩm sắp hết hàng",
+    "lowStockEmpty": "Không có sản phẩm nào sắp hết hàng.",
+    "stock": "Còn {{count}}",
+    "orders": "Đơn hàng: chưa có (hệ thống chưa cung cấp dữ liệu đơn hàng cho người bán).",
+    "manage": "Quản lý sản phẩm",
+    "loadError": "Không tải được dữ liệu cửa hàng"
+  },
+  "products": {
+    "title": "Sản phẩm",
+    "add": "Thêm sản phẩm",
+    "search": "Tìm theo tên hoặc SKU",
+    "tabs": { "ALL": "Tất cả", "PUBLISHED": "Đang bán", "DRAFT": "Nháp", "ARCHIVED": "Đã ẩn" },
+    "statuses": { "DRAFT": "Nháp", "PUBLISHED": "Đang bán", "ARCHIVED": "Đã ẩn" },
+    "columns": {
+      "select": "Chọn",
+      "name": "Tên",
+      "sku": "SKU",
+      "price": "Giá",
+      "stock": "Tồn kho",
+      "status": "Trạng thái",
+      "updatedAt": "Cập nhật lúc",
+      "actions": "Thao tác"
+    },
+    "selectAll": "Chọn tất cả sản phẩm đang hiển thị",
+    "selectRow": "Chọn {{name}}",
+    "sortBy": "Sắp xếp theo {{column}}",
+    "edit": "Sửa",
+    "publish": "Đăng bán",
+    "unpublish": "Ngừng bán",
+    "empty": "Chưa có sản phẩm",
+    "emptyDescription": "Thêm sản phẩm đầu tiên để bắt đầu bán.",
+    "noMatch": "Không có sản phẩm khớp bộ lọc",
+    "loadError": "Không tải được danh sách sản phẩm",
+    "statusError": "Không đổi được trạng thái sản phẩm",
+    "bulk": {
+      "selected": "Đã chọn {{count}} sản phẩm",
+      "publish": "Đăng bán",
+      "unpublish": "Ngừng bán",
+      "clear": "Bỏ chọn",
+      "progress": "Đang xử lý {{done}}/{{total}}",
+      "done": "Đã xử lý {{done}}/{{total}} sản phẩm",
+      "failed": "Dừng ở sản phẩm {{name}} sau khi xử lý {{done}}/{{total}}. Các sản phẩm còn lại chưa được đổi.",
+      "nothing": "Các sản phẩm đã chọn đã ở trạng thái này."
+    },
+    "form": {
+      "createTitle": "Thêm sản phẩm",
+      "editTitle": "Sửa sản phẩm {{sku}}",
+      "description": "Điền thông tin sản phẩm rồi lưu.",
+      "sku": "SKU",
+      "skuHelp": "Chữ hoa, số và dấu gạch ngang, 2 đến 64 ký tự. Không đổi được sau khi tạo.",
+      "name": "Tên sản phẩm",
+      "descriptionLabel": "Mô tả",
+      "imageUrl": "Địa chỉ ảnh",
+      "price": "Giá (đ)",
+      "compareAt": "Giá gốc (đ)",
+      "stock": "Tồn kho",
+      "status": "Trạng thái",
+      "save": "Lưu",
+      "cancel": "Hủy",
+      "saved": "Đã lưu sản phẩm",
+      "duplicateSku": "SKU này đã tồn tại.",
+      "conflict": "Sản phẩm vừa được người khác thay đổi. Hãy tải lại bản mới nhất rồi sửa lại, thay đổi của bạn chưa được lưu.",
+      "reload": "Tải lại bản mới nhất",
+      "errors": {
+        "sku": "SKU không hợp lệ",
+        "name": "Nhập tên từ 1 đến 180 ký tự",
+        "description": "Nhập mô tả từ 1 đến 4000 ký tự",
+        "imageUrl": "Địa chỉ ảnh phải bắt đầu bằng http hoặc https",
+        "priceVnd": "Giá phải là số nguyên không âm",
+        "compareAtPriceVnd": "Giá gốc phải là số nguyên lớn hơn giá bán",
+        "stockQuantity": "Tồn kho phải là số nguyên không âm"
+      }
+    }
+  },
+  "colorChart": { "title": "Bảng màu pH" },
+  "content": { "title": "Care tip" }
+}

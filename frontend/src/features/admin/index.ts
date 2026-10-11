@@ -78,6 +78,138 @@ export {
 } from "./components";
 export type { MissingApiEndpoint, MissingApiNoticeProps } from "./components";
 
+// ------------------------------------------------ quyền hiển thị + 5 trang quản trị mới
+
+export {
+  computeCapabilities,
+  filterNavGroups,
+  isNavItemActive,
+  findActiveNavItem,
+  classifyAdminError,
+  isAccessError,
+  NO_ADMIN_CAPABILITIES,
+} from "./adminAccess";
+export type {
+  AdminCapabilityKey,
+  AdminCapabilities,
+  AdminErrorKind,
+  AdminNavGroup,
+  AdminNavItemBase,
+  RoleCheck,
+} from "./adminAccess";
+export { AdminAccessProvider, useAdminCan } from "./AdminAccessContext";
+
+export {
+  sortRows,
+  nextSort,
+  matchesQuery,
+  toggleSelection,
+  toggleAllVisible,
+  selectionState,
+  pruneSelection,
+  runSequential,
+  summarizeBulk,
+} from "./tableTools";
+export type { SortState, SortDirection, BulkOutcome } from "./tableTools";
+
+export {
+  isUuid,
+  toLocalInputValue,
+  fromLocalInputValue,
+  ruleToDraft,
+  buildRulePatch,
+  planRuleToggle,
+  ZERO_COOLDOWN_RULE,
+  SHARED_UNKNOWN,
+  planReassign,
+  emptyIncidentForm,
+  incidentToForm,
+  buildOpenIncidentPayload,
+  buildIncidentPatch,
+  INCIDENT_MILESTONES,
+  isConfirmPhraseMatch,
+  emptyPolicyDraft,
+  validatePolicyDraft,
+  policyDraftToPayload,
+  latestConsentByPurpose,
+} from "./governanceForms";
+export type {
+  RuleDraft,
+  ParamDraft,
+  RulePatchErrors,
+  IncidentForm,
+  IncidentFormErrors,
+  IncidentMilestone,
+  PolicyDraftForm,
+  PolicyDraftErrors,
+} from "./governanceForms";
+
+export {
+  governanceKeys,
+  useAdminUserScans,
+  useAdminUserCats,
+  useReassignAdminScan,
+  useAdminScanImage,
+  useAdminMonitoringRules,
+  useUpdateMonitoringRule,
+  useAdminSecurityIncidents,
+  useAdminSecurityIncident,
+  useOpenSecurityIncident,
+  useUpdateSecurityIncident,
+  usePurgeAllSessions,
+  useAdminPolicyVersions,
+  useCreatePolicyVersion,
+  usePublishPolicyVersion,
+  useAdminConsentRecords,
+} from "./governanceHooks";
+
+export { INCIDENT_SEVERITIES, INCIDENT_CATEGORIES, POLICY_TYPES, POLICY_LOCALES } from "./governanceTypes";
+export type {
+  AdminScanItem,
+  AdminScanList,
+  ReassignTarget,
+  AdminUserCat,
+  AdminMonitoringRule,
+  MonitoringRuleSeverity,
+  AdminSecurityIncident,
+  IncidentSeverity,
+  IncidentCategory,
+  PurgeAllSessionsResult,
+  AdminPolicyVersion,
+  PolicyType,
+  PolicyLocale,
+  PolicyVersionStatus,
+  AdminConsentRecord,
+  ConsentRecordStatus,
+} from "./governanceTypes";
+
+export { EMPTY_CELL, formatAdminDateTime, formatAdminNumber, shortId } from "./adminFormat";
+
+export {
+  DensePanel,
+  KpiTile,
+  KpiGrid,
+  KpiSkeleton,
+  DistributionBar,
+  DenseTableFrame,
+  denseTableClass,
+  denseThClass,
+  denseTdClass,
+  denseRowClass,
+  SortableTh,
+  SelectCheckbox,
+  BulkActionBar,
+  TableSkeleton,
+  SearchField,
+  TextAreaField,
+  MonoId,
+  DetailGrid,
+  AccessDeniedState,
+  AdminQueryError,
+  MutationErrorNote,
+} from "./dense";
+export type { KpiTone, DistributionSegment } from "./dense";
+
 export {
   validateProductForm,
   emptyProductForm,
