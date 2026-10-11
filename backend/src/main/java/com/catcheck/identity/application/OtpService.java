@@ -16,6 +16,9 @@ import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.RateLimitedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +47,8 @@ import java.util.UUID;
 @Service
 public class OtpService {
 
+    private static final Logger log = LoggerFactory.getLogger(OtpService.class);
+
     private final EmailOtpRepository otpRepository;
     private final OtpCodeHasher codeHasher;
     private final OtpCodeGenerator codeGenerator;
@@ -52,6 +57,7 @@ public class OtpService {
     private final NotificationGateway notificationGateway;
     private final AuditLogService auditLogService;
     private final Clock clock;
+    private final boolean devConsoleEnabled;
 
     public OtpService(EmailOtpRepository otpRepository,
                       OtpCodeHasher codeHasher,
@@ -60,7 +66,8 @@ public class OtpService {
                       RateLimiter rateLimiter,
                       NotificationGateway notificationGateway,
                       AuditLogService auditLogService,
-                      Clock clock) {
+                      Clock clock,
+                      @Value("${catcheck.dev.log-otp:false}") boolean devConsoleEnabled) {
         this.otpRepository = otpRepository;
         this.codeHasher = codeHasher;
         this.codeGenerator = codeGenerator;
@@ -69,6 +76,7 @@ public class OtpService {
         this.notificationGateway = notificationGateway;
         this.auditLogService = auditLogService;
         this.clock = clock;
+        this.devConsoleEnabled = devConsoleEnabled;
     }
 
     /**
@@ -237,6 +245,11 @@ public class OtpService {
      * p12 §12.2.2 ghi ro Part 12 la noi duy nhat dinh nghia gia tri {@code template_code}.</p>
      */
     private void deliver(String email, OtpPurpose purpose, String code, UUID challengeId) {
+        if (devConsoleEnabled) {
+            // Chỉ máy dev (catcheck.dev.log-otp=true, đặt ở application-local.yml). Mã OTP không
+            // bao giờ được ghi log ở môi trường khác. Email chỉ hiện một phần.
+            log.warn("[DEV-OTP] purpose={} email={} code={}", purpose, maskEmail(email), code);
+        }
         notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
                 email,
                 templateCodeFor(purpose),
@@ -248,6 +261,15 @@ public class OtpService {
                 // Mot challenge = mot email. Challenge moi co id moi nen "gui lai" khong bi
                 // uq_email_outbox_dedupe chan.
                 "AUTH_OTP:" + challengeId));
+    }
+
+    /** Che phần đầu email khi ghi log dev: {@code demo@x.vn} thành {@code d***@x.vn}. */
+    private static String maskEmail(String email) {
+        int at = email.indexOf('@');
+        if (at <= 1) {
+            return "***" + (at < 0 ? "" : email.substring(at));
+        }
+        return email.charAt(0) + "***" + email.substring(at);
     }
 
     private String templateCodeFor(OtpPurpose purpose) {

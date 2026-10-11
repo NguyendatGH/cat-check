@@ -129,7 +129,7 @@ class IdentitySecurityLogicReviewTest {
         when(hasher.hash(any(Integer.class), any(), any(), any())).thenReturn("hash");
 
         OtpService service = new OtpService(mock(EmailOtpRepository.class), hasher,
-                new OtpCodeGenerator(), policy(), limiter, mock(NotificationGateway.class), audit(), CLOCK);
+                new OtpCodeGenerator(), policy(), limiter, mock(NotificationGateway.class), audit(), CLOCK, false);
 
         service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, CONTEXT);
 
@@ -149,7 +149,7 @@ class IdentitySecurityLogicReviewTest {
         when(challenges.incrementAttempt(challenge.id())).thenReturn(1);
 
         OtpService service = new OtpService(challenges, hasher, new OtpCodeGenerator(),
-                policy(), allowingLimiter(), mock(NotificationGateway.class), audit(), CLOCK);
+                policy(), allowingLimiter(), mock(NotificationGateway.class), audit(), CLOCK, false);
 
         assertThatThrownBy(() -> service.verifyOtp("person@example.com", OtpPurpose.REGISTER_VERIFY,
                 "123456", CONTEXT)).isInstanceOf(BusinessRuleException.class);

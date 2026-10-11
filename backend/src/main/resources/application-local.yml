@@ -20,18 +20,24 @@ spring:
     out-of-order: true
 
   mail:
-    host: localhost
-    port: 1025
-    username:
-    password:
+    # SMTP thật lấy từ .env (Gmail app password). Không còn trỏ về Mailpit localhost:1025: Mailpit
+    # không chạy nên email OTP luôn thất bại sau 5 lần thử.
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_EMAIL:}
+    password: ${SMTP_APP_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: true
           starttls:
-            enable: false
+            enable: true
+          from: ${SMTP_EMAIL:}
 
 catcheck:
+  dev:
+    # Ghi mã OTP ra terminal để dev nhập tay (chỉ profile local). Ở môi trường khác luôn tắt.
+    log-otp: true
   storage:
     local:
       # Bug thật đã sửa: `MediaProperties.urlSigningKey` mặc định là chuỗi RỖNG, mà
