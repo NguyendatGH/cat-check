@@ -6,6 +6,7 @@ import com.catcheck.place.domain.Place;
 import com.catcheck.place.domain.port.NearbyPlaceSource;
 import com.catcheck.place.domain.PlaceReview;
 import com.catcheck.place.domain.port.PlaceRepository;
+import com.catcheck.shared.error.ExternalServiceException;
 import com.catcheck.shared.error.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +21,21 @@ public class PlaceService {
     private final NearbyPlaceSource osm;
     public PlaceService(PlaceRepository repository, NearbyPlaceSource osm) { this.repository = repository; this.osm = osm; }
 
-    public List<ExternalPlace> nearbyExternal(double latitude, double longitude, int radiusMeters) {
-        if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return List.of();
+    public List<ExternalPlace> nearbyExternal(double latitude, double longitude, long radiusMeters) {
+        // Controller đã kiểm; lưới an toàn (gồm NaN) để dữ liệu sai không bao giờ thành 200 [].
+        if (!(Math.abs(latitude) <= 90) || !(Math.abs(longitude) <= 180)
+                || radiusMeters <= 0 || radiusMeters > NearbyPlaceSource.MAX_RADIUS_METERS) {
+            throw new IllegalArgumentException("nearby query out of range");
+        }
+        List<ExternalPlace> found;
+        try {
+            found = osm.nearby(latitude, longitude, radiusMeters);
+        } catch (RuntimeException e) {
+            // Mọi lỗi nguồn ngoài (vd ResponseStatusException 502 từ client OSM, không có handler riêng) đổi thành 503 nghiệp vụ.
+            throw new ExternalServiceException(PlaceErrorCode.PLACE_UPSTREAM_UNAVAILABLE, "overpass", e);
+        }
         double cos = Math.cos(Math.toRadians(latitude));
-        return osm.nearby(latitude, longitude, radiusMeters).stream()
+        return found.stream()
                 .sorted(java.util.Comparator.comparingDouble(p -> Math.pow(p.latitude() - latitude, 2) + Math.pow((p.longitude() - longitude) * cos, 2)))
                 .toList();
     }

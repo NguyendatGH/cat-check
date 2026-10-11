@@ -1,5 +1,6 @@
 package com.catcheck.place.api;
 
+import com.catcheck.place.api.dto.NearbyPlacesQuery;
 import com.catcheck.place.api.dto.PlaceBookingRequest;
 import com.catcheck.place.api.dto.PlaceResponse;
 import com.catcheck.place.api.dto.PlaceReviewRequest;
@@ -10,6 +11,8 @@ import com.catcheck.shared.security.SecurityPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,13 +41,18 @@ public class PlaceController {
         return service.search(query, kind, area, latitude, longitude, limit).stream().map(PlaceResponse::from).toList();
     }
 
+    /** Sai kiểu (vd "abc") ⇒ chỉ báo tên trường: không phản hồi lại giá trị client gửi (toạ độ là dữ liệu vị trí). */
+    @InitBinder("nearbyPlacesQuery")
+    void hideRejectedValue(WebDataBinder binder) {
+        binder.setBindingErrorProcessor(new RedactedBindingErrorProcessor());
+    }
+
     /** Phòng khám thú y thật quanh vị trí người dùng (OpenStreetMap), xếp gần → xa. */
     @GetMapping("/nearby")
     @Operation(operationId = "listNearbyPlaces")
-    public List<PlaceResponse> nearby(@RequestParam Double latitude,
-                                      @RequestParam Double longitude,
-                                      @RequestParam(defaultValue = "10") int radiusKm) {
-        return service.nearbyExternal(latitude, longitude, radiusKm * 1000).stream().map(PlaceResponse::from).toList();
+    public List<PlaceResponse> nearby(@Valid NearbyPlacesQuery query) {
+        return service.nearbyExternal(query.latitude(), query.longitude(), query.radiusMeters()).stream()
+                .map(PlaceResponse::from).toList();
     }
 
     @GetMapping("/{placeId}")

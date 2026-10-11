@@ -51,10 +51,10 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
     }
 
     @Override
-    public List<ExternalPlace> nearby(double latitude, double longitude, int radiusMeters) {
+    public List<ExternalPlace> nearby(double latitude, double longitude, long radiusMeters) {
         double lat = Math.round(latitude * 100.0) / 100.0;
         double lon = Math.round(longitude * 100.0) / 100.0;
-        int radius = Math.clamp(radiusMeters, 500, 25_000);
+        int radius = Math.clamp(radiusMeters, MIN_RADIUS_METERS, MAX_RADIUS_METERS);
         String key = String.format(Locale.ROOT, "%.2f,%.2f,%d", lat, lon, radius);
         Cached hit = cache.get(key);
         if (hit != null && hit.at().plus(TTL).isAfter(clock.instant())) return hit.places();

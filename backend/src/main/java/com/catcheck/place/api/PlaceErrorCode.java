@@ -7,7 +7,9 @@ import java.net.URI;
 
 public enum PlaceErrorCode implements ErrorCode {
     PLACE_NOT_FOUND("place/not-found", HttpStatus.NOT_FOUND),
-    BOOKING_SLOT_TAKEN("place/booking-slot-taken", HttpStatus.CONFLICT);
+    BOOKING_SLOT_TAKEN("place/booking-slot-taken", HttpStatus.CONFLICT),
+    /** 503 — nguồn OpenStreetMap (Overpass) không trả lời và không có bản cache dùng lại. */
+    PLACE_UPSTREAM_UNAVAILABLE("place/upstream-unavailable", HttpStatus.SERVICE_UNAVAILABLE);
 
     private final String slug;
     private final HttpStatus status;
