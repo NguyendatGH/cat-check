@@ -192,20 +192,9 @@ public class BrowserIngestController {
     /**
      * Doc than bao cao CSP bang {@link JsonMapper} <b>thay vi</b> de Spring binding lam.
      *
-     * <p><b>Bug that da sua, do bang curl tren cong 8094:</b> ban dau method nay nhan
-     * {@code @RequestBody CspReportRequest} voi
-     * {@code consumes = {"application/csp-report", "application/reports+json", "application/json"}}.
-     * Mapping KHOP, nhung request tra <b>500</b> kem
-     * {@code HttpMediaTypeNotSupportedException: Content-Type 'application/csp-report;charset=UTF-8'
-     * is not supported}: {@code consumes} chi quyet dinh mapping nao duoc chon, con viec doc than
-     * can mot {@code HttpMessageConverter} <b>ho tro dung media type do</b> — va converter Jackson
-     * chi nhan {@code application/json} + {@code application/*+json}.
-     * {@code application/csp-report} khong khop mau nao trong hai mau do.
-     *
-     * <p>Hau qua that neu khong sua: bao cao vi pham tu <b>dang {@code report-uri} cu</b> — dang
-     * ma Chrome/Safari hien van gui, va la dang p11 §11.8.3 chi dinh khi bat
-     * {@code Report-Only} — bi 500 het, nen "chay it nhat 1 tuan tren staging + 1 tuan tren prod,
-     * doc bao cao" cua p11 khong the thuc hien.
+     * <p>Khong dung {@code @RequestBody}: {@code consumes} chi chon mapping, con doc than can mot
+     * {@code HttpMessageConverter} khop media type, ma Jackson chi nhan {@code application/json} va
+     * {@code application/*+json} — dang {@code application/csp-report} (report-uri cu, p11 §11.8.3) se bi 500.
      *
      * <p><b>Nhan {@code String} roi tu parse giai quyet ca mot yeu cau khac cua p8 K1: "LUON
      * {@code 204}".</b> {@code StringHttpMessageConverter} nhan {@code *&#47;*} nen moi media type

@@ -13,15 +13,9 @@ import java.time.ZoneOffset;
 /**
  * {@link JdbcTemplate} tu doi {@link Instant} sang {@link OffsetDateTime} cho MOI tham so bind.
  *
- * <p><b>Bug that da sua — lop bug, khong phai mot cho:</b> driver PostgreSQL khong tu suy duoc
- * kieu SQL cho {@code java.time.Instant}, nem
- * {@code Can't infer the SQL type to use for an instance of java.time.Instant} ngay luc chay
- * (khong phai luc compile, nen tsc/mvn deu xanh). Da gap that o it nhat 5 endpoint khac nhau:
- * {@code POST /auth/register} (ghi consent), {@code GET /privacy/consents/history},
- * {@code GET /privacy/requests}, {@code POST /policies/{code}/acknowledge}, va truoc do la
- * {@code JdbcPolicyVersionAdapter#findCurrent}. Quet ca repo con thay ~40 cho bind
- * {@code Instant} tho nam rai rac trong {@code identity}, {@code privacy}, {@code credit},
- * {@code scan} — vá tung cho vua de sot vua chac chan tai dien khi viet adapter moi.</p>
+ * <p>Driver PostgreSQL khong tu suy duoc kieu SQL cho {@code java.time.Instant}, nem
+ * {@code Can't infer the SQL type...} ngay luc chay (compile khong bat duoc). Bind {@code Instant}
+ * tho nam rai rac o nhieu adapter, nen xu ly mot lan o day thay vi va tung cho.</p>
  *
  * <p>Sua mot lan tai day: {@link JdbcTemplate#newArgPreparedStatementSetter} la diem mo rong
  * co san cua Spring cho dung viec nay, va moi phuong thuc nhan {@code Object... args}

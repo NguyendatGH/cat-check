@@ -92,9 +92,8 @@ public class SessionService {
     }
 
     /**
-     * A15 {@code POST /auth/sessions/revoke-all} — "Dang xuat moi thiet bi KHAC". Bug that da
-     * sua: controller goi thang {@code revokeAllByUserId}, thu hoi ca dong cua chinh phien dang
-     * dung (ly do ghi nham PASSWORD_CHANGED) nen thiet bi hien tai bien mat khoi A13.
+     * A15 {@code POST /auth/sessions/revoke-all} — "Dang xuat moi thiet bi KHAC": giu phien dang
+     * dung de thiet bi hien tai con trong A13 (khac {@code revokeAllByUserId}, thu hoi tat ca).
      */
     @Transactional
     public int revokeOtherSessions(UUID userId, AuthRequestContext context) {

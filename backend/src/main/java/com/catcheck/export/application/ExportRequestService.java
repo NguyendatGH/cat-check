@@ -63,10 +63,8 @@ public class ExportRequestService {
 
     @Transactional
     public ExportJob request(ExportRequestCommand cmd) {
-        // Bug that da sua: endpoint nay truoc day khong kiem entitlement nao - moi user, bat ke
-        // goi (ca MINI/DAILY co "export":false trong seed), deu tao va tai duoc PDF xuat ho
-        // so. credit.domain.PlanFeature.EXPORT da ton tai dung cho viec nay; reminder/cat da lam
-        // y het cho tinh nang cua ho (xem javadoc ExportFeaturePort).
+        // Kiem entitlement: goi phai co credit.domain.PlanFeature.EXPORT (MINI/DAILY la
+        // "export":false trong seed), cung khuon reminder/cat (xem javadoc ExportFeaturePort).
         if (!featurePort.isExportEnabled(cmd.userId())) {
             throw new PermissionDeniedException(ExportErrorCode.FEATURE_NOT_IN_PLAN, "export");
         }

@@ -131,9 +131,9 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         java.time.Duration maxInactive = rememberMe
                 ? policy.sessionMaxInactive() : policy.sessionDefaultMaxInactive();
         if (session != null) {
-            // Bug that da sua: han phien that chua tung duoc dat — Spring Session dung mac dinh
-            // 30 phut cho MOI phien, nen "nho toi" (30 ngay) va mac dinh 12 gio cua AuthPolicy
-            // khong co tac dung, con user_device_session thi ghi han 30 ngay (phien "ma").
+            // Phai dat han phien that theo AuthPolicy ("nho toi" 30 ngay, mac dinh 12 gio): Spring
+            // Session mac dinh 30 phut cho moi phien, nen neu khong dat thi han ghi o
+            // user_device_session se lech voi han that.
             session.setMaxInactiveInterval(Math.toIntExact(maxInactive.toSeconds()));
         }
         if (sessionId != null) {
@@ -222,14 +222,9 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
     /* ---------- AuthenticatedSessionRevoker ---------- */
 
     /*
-     * Bug that da sua (handoff H15.176): ba ham duoi truoc day CHI ghi user_device_session (ban
-     * sao de hien thi) — khong filter nao doc revoked_at tren duong request, nen "dang xuat thiet
-     * bi khac", doi/dat lai mat khau, thu hoi khi xin xoa tai khoan... deu khong day ai ra: phien
-     * that trong SPRING_SESSION van song. Nay xoa phien that qua Spring Session.
-     *
-     * Phien cua CHINH request dang chay thi khong xoa o day (xoa dong cha giua request lam
-     * SessionRepositoryFilter ghi attribute vao dong khong con ton tai luc commit); luong nao can
-     * dang xuat chinh no thi da goi invalidateCurrent().
+     * Ba ham duoi xoa phien that qua Spring Session (SPRING_SESSION), khong chi user_device_session
+     * (khong filter nao doc revoked_at tren duong request). Phien cua CHINH request dang chay khong
+     * xoa o day (lam SessionRepositoryFilter ghi vao dong da mat); can thi goi invalidateCurrent().
      */
 
     @Override
@@ -250,10 +245,9 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
     }
 
     /**
-     * Phien con song THAT. Bug that da sua: truoc day dem dong user_device_session chua thu hoi
-     * va chua qua {@code expires_at} (30 ngay) — phien that het han sau thoi gian nhan roi ma
-     * dong do van "song", nen sau vai lan dang nhap lai A6 tra {@code SESSION_LIMIT_REACHED} vinh
-     * vien du nguoi dung khong con phien nao (va cung khong vao duoc de thu hoi).
+     * Phien con song THAT: dong user_device_session chua thu hoi/chua qua {@code expires_at} va
+     * phien that chua het han (phien that het han sau thoi gian nhan roi), de A6 khong tra
+     * {@code SESSION_LIMIT_REACHED} vinh vien khi nguoi dung khong con phien nao.
      */
     @Override
     public Set<String> activeSessionIdsByUserId(UUID userId) {

@@ -40,11 +40,9 @@ class HealthFlagRepositoryAdapter implements HealthFlagRepository {
     /**
      * {@code ON CONFLICT DO NOTHING}, không bắt {@code DataIntegrityViolationException}.
      *
-     * <p>Bug thật đã sửa: bản cũ {@code saveAndFlush} rồi bắt lỗi trùng {@code dedupe_key}. Hàm
-     * này chạy TRONG transaction của {@code ScanPersistenceService} (listener đồng bộ), nên bắt
-     * lỗi không cứu được gì: Postgres huỷ cả transaction sau câu INSERT lỗi ("current transaction
-     * is aborted") và Spring đánh dấu rollback-only. Lần quét thứ 3 liên tiếp có chất lượng thấp
-     * (R4) hay lệch khoảng (R1) trong cùng cooldown ⇒ {@code POST /scans} trả 500, mất scan.</p>
+     * <p>Hàm chạy TRONG transaction của {@code ScanPersistenceService} (listener đồng bộ): bắt lỗi
+     * trùng {@code dedupe_key} không cứu được vì Postgres huỷ cả transaction sau INSERT lỗi
+     * ("current transaction is aborted") và Spring đánh dấu rollback-only (hỏng {@code POST /scans}).</p>
      */
     @Override
     public Optional<HealthFlag> saveIfNotDuplicate(HealthFlag flag) {
@@ -92,9 +90,8 @@ class HealthFlagRepositoryAdapter implements HealthFlagRepository {
 
     @Override
     public boolean isCatOwnedByUser(UUID catId, UUID userId) {
-        // Bug thật đã sửa: truy vấn cũ không lọc deleted_at IS NULL, nên sau khi chủ xoá mềm
-        // một mèo (D5), health flag của mèo đó vẫn xem/ack được qua G2/G3 — lộ dữ liệu đã xoá
-        // mềm, cùng lớp lỗi mà CatJpaRepository/AdminCatViewService đã tránh ở module cat.
+        // Lọc deleted_at IS NULL: mèo đã xoá mềm (D5) coi như không tồn tại, health flag của nó không
+        // được xem/ack qua G2/G3 (cùng cách CatJpaRepository/AdminCatViewService ở module cat).
         Long count = jdbc.queryForObject(
                 "SELECT count(*) FROM cat WHERE id = ? AND owner_id = ? AND deleted_at IS NULL",
                 Long.class, catId, userId);

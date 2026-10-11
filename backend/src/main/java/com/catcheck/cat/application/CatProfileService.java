@@ -363,9 +363,8 @@ public class CatProfileService {
     }
 
     /**
-     * Hồ sơ đã xoá mềm coi như không tồn tại (404). Bug thật đã sửa: {@code findByIdAndOwnerId}
-     * cố ý không lọc {@code deleted_at} (xem {@code CatJpaRepository}) nhưng chỉ D5/D8 tự kiểm,
-     * nên D3/D4/D6/D7 vẫn đọc và sửa được hồ sơ người dùng đã xoá.
+     * Hồ sơ đã xoá mềm coi như không tồn tại (404): {@code findByIdAndOwnerId} cố ý không lọc
+     * {@code deleted_at} (xem {@code CatJpaRepository}) nên D3/D4/D6/D7 phải tự lọc ở đây.
      */
     private Cat requireOwnedCat(UUID ownerId, UUID catId) {
         return catRepository.findByIdAndOwnerId(catId, ownerId)

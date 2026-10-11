@@ -233,11 +233,9 @@ public class LoginService {
             throw new com.catcheck.shared.error.RateLimitedException(
                     IdentityErrorCode.RATE_LIMITED, byEmail.headerSeconds(), "EMAIL");
         }
-        // Bug that da sua: subject truyen cung la `null` thay vi IP that cua request —
-        // RateLimiter.tryConsume() bo qua (luon cho phep) khi subject null (xem javadoc
-        // RateLimiter#tryConsume), nen lop LOGIN_BY_IP (10/phut, p11 §11.7.2) chua tung thuc su
-        // chan request nao: mot IP co the thu khong gioi han mat khau tren CAC email khac nhau
-        // (lop theo email van chan tung email rieng, nhung khong chan theo IP tong).
+        // Subject phai la IP that: RateLimiter.tryConsume() bo qua khi subject null (xem javadoc
+        // RateLimiter#tryConsume). LOGIN_BY_IP (10/phut, p11 §11.7.2) chan mot IP thu mat khau
+        // tren nhieu email khac nhau; lop theo email chi chan tung email rieng.
         RateLimiter.RetryAfter byIp = rateLimiter.rejectIfLimited(RateLimitRule.LOGIN_BY_IP, context.ipAddress());
         if (byIp != null) {
             throw new com.catcheck.shared.error.RateLimitedException(

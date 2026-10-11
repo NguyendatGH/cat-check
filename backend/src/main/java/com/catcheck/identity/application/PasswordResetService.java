@@ -120,13 +120,9 @@ public class PasswordResetService {
     /** A9 — dat mat khau moi bang {@code otp_ticket}. Tra ve {@code userId} moi xac nhan. */
     @Transactional
     public UUID confirm(String rawOtpTicket, String newPassword, AuthRequestContext context) {
-        // Bug that da sua: truoc day goi requireRateLimit("confirm") — chuoi hang "confirm" la
-        // SUBJECT CO DINH cho quy tac PASSWORD_RESET_BY_EMAIL (khoa theo email), nghia la MOI
-        // request confirm cua MOI nguoi dung tren toan he thong deu tieu chung MOT thung 3/gio.
-        // Chi can 3 nguoi dung bat ky xac nhan dat lai mat khau trong cung 1 gio la nguoi thu 4
-        // tro di bi 429 oan du ticket cua ho hop le — khong phai loi cua ho. Email that cua
-        // chu ticket chua biet duoc o day (otp_ticket chua giai ma), nen chi con lop IP la khoa
-        // hop le; lop IP cũng tung bi bo qua vi subject truyen la null, xem requireIpRateLimit.
+        // Chi khoa theo IP (requireIpRateLimit): email that cua chu ticket chua biet vi otp_ticket
+        // chua giai ma, con subject co dinh se gom moi request confirm cua moi nguoi dung vao
+        // chung mot thung PASSWORD_RESET_BY_EMAIL (3/gio) va gay 429 oan.
         requireIpRateLimit(context);
 
         var challenge = otpService.consumeTicket(rawOtpTicket, OtpPurpose.PASSWORD_RESET);
@@ -194,9 +190,8 @@ public class PasswordResetService {
     }
 
     private void requireIpRateLimit(AuthRequestContext context) {
-        // Bug that da sua: subject truyen cung la `null` thay vi IP that — RateLimiter bo qua
-        // quy tac khi subject null (xem javadoc RateLimiter#tryConsume), nen PASSWORD_RESET_BY_IP
-        // (10/gio, p11 §11.7.2) chua tung thuc su chan request nao.
+        // Subject phai la IP that: RateLimiter bo qua quy tac khi subject null (xem javadoc
+        // RateLimiter#tryConsume), nen PASSWORD_RESET_BY_IP (10/gio, p11 §11.7.2) chi chan khi co IP.
         RateLimiter.RetryAfter byIp =
                 rateLimiter.rejectIfLimited(RateLimitRule.PASSWORD_RESET_BY_IP, context.ipAddress());
         if (byIp != null) {

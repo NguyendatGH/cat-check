@@ -111,12 +111,9 @@ public class AdminOpsController {
             List.of("ADMIN_SUPER", "DPO", "ADMIN_SUPPORT", "ADMIN_CATALOG");
 
     /**
-     * p8 L63 cột Auth: {@code "mọi role admin"} (Q23). Bug thật đã sửa — bản trước chỉ cho
-     * {@code ADMIN_SUPER,DPO} qua, chặn nhầm {@code ADMIN_SUPPORT}/{@code ADMIN_CATALOG} dù
-     * endpoint này "không bao gồm PII hoặc nội dung chi tiết" (xem {@code description} dưới) nên
-     * không có lý do nghiệp vụ nào để thu hẹp hơn p8. {@code MODERATOR} không nằm trong danh sách
-     * vì vai trò đó chỉ có hiệu lực ở các endpoint kiểm duyệt cộng đồng, ngoài phạm vi lớp này —
-     * giống cách {@link #ADMIN_ROLE_PRIORITY} định nghĩa "vai trò quản trị nghiệp vụ".
+     * p8 L63 cột Auth: {@code "mọi role admin"} (Q23); endpoint không bao gồm PII hay nội dung chi
+     * tiết. {@code MODERATOR} không nằm trong danh sách vì chỉ có hiệu lực ở endpoint kiểm duyệt
+     * cộng đồng, giống {@link #ADMIN_ROLE_PRIORITY} ("vai trò quản trị nghiệp vụ").
      */
     static final Set<String> DASHBOARD_METRICS_ROLES = Set.copyOf(ADMIN_ROLE_PRIORITY);
 
@@ -163,11 +160,8 @@ public class AdminOpsController {
                                                  @Valid @RequestBody AdminMaintenanceRequest body,
                                                  HttpServletRequest request) {
         AdminGuard.requireAnyRole(principal, Set.of("ADMIN_SUPER"));
-        // Bug thật đã sửa: trước đây dùng thẳng `body.reason().strip()` — @NotBlank của
-        // AdminMaintenanceRequest chỉ chặn chuỗi rỗng, nên một lý do 1 ký tự lọt qua trong khi
-        // L65/L70/L72 (cùng ký hiệu Rsn ở bảng Auth) đều bắt buộc tối thiểu
-        // AdminGuard.REASON_MIN_LENGTH ký tự qua AdminGuard.requireReason. L71 bật/tắt banner bảo
-        // trì công khai — tối thiểu phải đòi lý do nghiêm túc như các hành động Rsn khác.
+        // L71 cùng ký hiệu Rsn với L65/L70/L72: lý do tối thiểu AdminGuard.REASON_MIN_LENGTH ký tự
+        // qua AdminGuard.requireReason (@NotBlank của AdminMaintenanceRequest chỉ chặn chuỗi rỗng).
         String reason = AdminGuard.requireReason(body.reason());
         AdminMaintenanceService.Result result = maintenanceService.update(body.active(), body.until(),
                 principal.userId(), actorRole(principal), reason, request.getHeader("X-Request-Id"),

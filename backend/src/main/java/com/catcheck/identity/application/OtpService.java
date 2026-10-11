@@ -87,10 +87,8 @@ public class OtpService {
         require(RateLimitRule.OTP_REQUEST_BURST, subject);
         require(RateLimitRule.OTP_REQUEST_HOURLY, subject);
         require(RateLimitRule.OTP_REQUEST_DAILY, subject);
-        // Bug that da sua: OTP_REQUEST_BY_IP ton tai trong RateLimitRule (p11 §11.7.2: 20/gio
-        // theo IP, lop phu) nhung chua tung duoc goi o dau trong code base (xac nhan bang grep
-        // toan bo module) — mot IP co the spam OTP cho vo han dia chi email khac nhau ma khong
-        // bi chan, vi ba quy tac tren deu khoa theo (email, purpose).
+        // OTP_REQUEST_BY_IP (p11 §11.7.2: 20/gio theo IP, lop phu) chan mot IP spam OTP cho nhieu
+        // email khac nhau, vi ba quy tac tren deu khoa theo (email, purpose).
         require(RateLimitRule.OTP_REQUEST_BY_IP, context.ipAddress());
 
         otpRepository.supersedeActive(email, purpose, now);
@@ -160,10 +158,9 @@ public class OtpService {
         String candidate = codeHasher.hashForStoredVersion(
                 challenge.pepperVersion(), purpose, email, submittedCode);
 
-        // Bug that da sua: `String.equals` khong phai hang thoi gian — javadoc cua
-        // EmailOtpChallenge.codeHash() da ghi ro p11 §11.2.1 bat buoc MessageDigest.isEqual,
-        // nhung so sanh thuc te o day van dung .equals(). HmacRecoveryCodeHasher.matches() da
-        // lam dung (MessageDigest.isEqual); cho nay truoc day thi khong.
+        // So sanh hang thoi gian bang MessageDigest.isEqual (p11 §11.2.1, xem javadoc
+        // EmailOtpChallenge.codeHash()), khong dung String.equals; cung cach voi
+        // HmacRecoveryCodeHasher.matches().
         if (!MessageDigest.isEqual(
                 candidate.getBytes(StandardCharsets.UTF_8),
                 challenge.codeHash().getBytes(StandardCharsets.UTF_8))) {

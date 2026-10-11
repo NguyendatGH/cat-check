@@ -82,11 +82,9 @@ public class ProfileService {
         UserAccount account = accountRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(IdentityErrorCode.UNAUTHENTICATED));
         byte[] phone = decryptPhone(account);
-        // Bug that da sua: ProfileView.of() truoc day hardcode hasPassword=true va
-        // identities=List.of() cho MOI tai khoan (ca tai khoan chi dang nhap bang Google,
-        // khong co mat khau nao) — /auth/session (SessionUser.hasPassword/identities) va
-        // /users/me (ProfileResponse.identities) deu tra du lieu sai. B9 (identities(UUID)) da
-        // doc dung identityRepository nhung profile()/session() thi khong — doc that o day.
+        // Doc identity that tu identityRepository (nhu B9 identities(UUID)): hasPassword/identities
+        // cua /auth/session (SessionUser) va /users/me (ProfileResponse) phai dung ke ca tai khoan
+        // chi dang nhap bang Google (khong co mat khau).
         List<UserIdentity> linkedIdentities = identityRepository.findByUserId(userId);
         return ProfileView.of(account, phone, linkedIdentities);
     }

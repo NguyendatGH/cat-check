@@ -75,8 +75,8 @@ public class ColorChartAdminService {
         if (name == null || name.isBlank()) {
             throw new BusinessRuleException(ColorChartErrorCode.VALIDATION_FAILED, "name");
         }
-        // Bug thật đã sửa: bản cũ chỉ tra version 1 rồi +1, nên từ bản thứ ba trở đi luôn ra
-        // version 2 và vỡ uq_color_chart_code_version (500). Số version mỗi mã chỉ vài cái.
+        // Dò tuần tự từ version 1 để tìm version trống, tránh vỡ uq_color_chart_code_version.
+        // Số version mỗi mã chỉ vài cái.
         int nextVersion = 1;
         while (colorChartRepository.findByCodeAndVersion(code, nextVersion).isPresent()) {
             nextVersion++;

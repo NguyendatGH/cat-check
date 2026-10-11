@@ -54,16 +54,9 @@ public class GlobalExceptionHandler {
      * {@link RateLimitedException} — cùng {@link ProblemDetail} của {@link #handleCatCheckException},
      * NHƯNG kèm header {@code Retry-After} khi biết số giây phải chờ.
      *
-     * <p><b>Bug thật đã sửa (phát hiện khi làm G3 — rate limit kích hoạt mã credit,
-     * {@code docs/cat-rag-credit-pipeline.md} B2):</b> trước bản sửa này,
-     * {@code handleCatCheckException} ở trên xử lý luôn cả {@link RateLimitedException} (nó là
-     * một {@code CatCheckException}) nhưng không bao giờ đọc {@link RateLimitedException#retryAfterSeconds()}
-     * — mọi {@code 429} trong toàn bộ ứng dụng (login, OTP, MFA, đặt lại mật khẩu — xem
-     * {@code identity.application.*}) đều thiếu header {@code Retry-After} dù chính các lớp đó đã
-     * tính sẵn số giây qua {@code RateLimiter.RetryAfter}. p8 §8.3.5(d)/p16 NFR-40 yêu cầu header
-     * này bắt buộc 100% cho {@code 429}. {@code @ExceptionHandler} chọn handler khớp kiểu cụ thể
-     * nhất trong cùng {@code @RestControllerAdvice} nên khai thêm một handler riêng cho đúng kiểu
-     * con là đủ, không cần sửa {@code handleCatCheckException}.</p>
+     * <p>p8 §8.3.5(d)/p16 NFR-40: mọi {@code 429} (login, OTP, MFA, đặt lại mật khẩu) bắt buộc có
+     * {@code Retry-After} lấy từ {@link RateLimitedException#retryAfterSeconds()}. {@code @ExceptionHandler}
+     * chọn handler khớp kiểu cụ thể nhất nên không cần sửa {@code handleCatCheckException}.</p>
      */
     @ExceptionHandler(RateLimitedException.class)
     public ResponseEntity<ProblemDetail> handleRateLimited(RateLimitedException ex, Locale locale) {
@@ -101,11 +94,9 @@ public class GlobalExceptionHandler {
     /**
      * Route khong ton tai → 404, KHONG phai 500.
      *
-     * <p>Bug that da sua: {@code handleUnexpected} ben duoi nuot ca
-     * {@code NoResourceFoundException}, nen moi endpoint co trong spec nhung chua implement
-     * (F3 {@code /reference/packages}, F4 {@code /reference/monitoring-rules}, F9/F10
-     * {@code /policies/{code}/versions}) tra 500 — nhin nhu server hong thay vi "chua co".
-     * Sai ca goc do bao mat: 500 kem stack trace vao log cho moi lan go sai URL.</p>
+     * <p>Neu de {@code handleUnexpected} nuot {@code NoResourceFoundException}, endpoint co trong spec
+     * nhung chua implement (F3 {@code /reference/packages}, F4 {@code /reference/monitoring-rules},
+     * F9/F10 {@code /policies/{code}/versions}) se tra 500 kem stack trace vao log thay vi "chua co".</p>
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ProblemDetail handleNotFound(NoResourceFoundException ex, Locale locale) {
@@ -179,12 +170,9 @@ public class GlobalExceptionHandler {
     /**
      * Bat bien mien bi vi pham boi DU LIEU NGUOI DUNG → 400, khong phai 500.
      *
-     * <p>Bug that da sua: {@code Cat#applyAgeSource} nem {@code IllegalArgumentException} tho
-     * cho cac truong hop nguoi dung nhap duoc (thieu ca birthDate lan approxAgeMonths,
-     * birthDate tuong lai, so thang ngoai khoang) — khong co handler nen ra 500. Man tao ho so
-     * meo cho phep de trong ngay sinh, tuc la user binh thuong cham thang vao loi 500 nay.
-     * Truong hop gui ca hai nguon tuoi la {@code CatAgeConflictException}, duoc
-     * {@code CatProfileService} doi sang {@code CAT_AGE_CONFLICT} truoc khi toi day.</p>
+     * <p>Vd {@code Cat#applyAgeSource} nem {@code IllegalArgumentException} tho khi thieu ca
+     * birthDate lan approxAgeMonths, birthDate tuong lai, so thang ngoai khoang. Gui ca hai nguon
+     * tuoi la {@code CatAgeConflictException}, da doi sang {@code CAT_AGE_CONFLICT} truoc khi toi day.</p>
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex, Locale locale) {

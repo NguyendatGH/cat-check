@@ -19,23 +19,9 @@ import com.catcheck.shared.security.AdminAccessGate;
  * Chuoi filter mac dinh cho toan bo phan con lai cua API (moi path khong thuoc
  * {@code IdentitySecurityConfig} @Order(1) va {@code GoogleOAuth2Configuration} @Order(2)).
  *
- * <p><b>Bug that da sua (xac nhan bang curl tren server dang chay):</b> ban M0 cua class nay
- * chi co {@code anyRequest().permitAll()}. Hai hau qua that:</p>
- * <ol>
- *   <li><b>403 tren moi request GHI ngoai {@code /api/v1/auth}</b> — tao ho so meo
- *       ({@code POST /api/v1/cats}), scan, export... deu hong. Chuoi nay khong cau hinh CSRF nen
- *       Spring dung mac dinh {@code HttpSessionCsrfTokenRepository} (token nam trong session),
- *       trong khi SPA gui token doc tu cookie {@code XSRF-TOKEN} do
- *       {@code CookieCsrfTokenRepository} cua chuoi identity phat ra ⇒ hai ben so sanh hai
- *       nguon token khac nhau, luon lech. Dang nhap thi duoc (thuoc chuoi identity), nhung
- *       buoc ngay sau do la tao ho so meo thi 403.</li>
- *   <li><b>Khong co xac thuc</b> — {@code permitAll()} nghia la {@code /api/v1/cats},
- *       {@code /api/v1/scans}, ca {@code /api/v1/admin/**} deu mo cho nguoi dung an danh.</li>
- * </ol>
- *
- * <p>Javadoc ban M0 da ghi ro "module identity (M1+) se THAY THE class nay bang luat xac
- * thuc/phan quyen that" — viec do chua lam, va {@code IdentitySecurityConfig} lai dat
- * {@code securityMatcher} hep (chi 3 prefix) nen phan con lai roi het vao day.</p>
+ * <p>Chuoi nay dung chung {@code CookieCsrfTokenRepository} voi chuoi identity (SPA gui token doc tu
+ * cookie {@code XSRF-TOKEN}) va mac dinh {@code authenticated()}: {@code IdentitySecurityConfig} chi
+ * match 3 prefix nen moi path con lai, ke ca {@code /api/v1/admin/**}, roi vao day.</p>
  *
  * <p><b>Cot Auth</b> lay theo p8 §8.3.2: {@code —} = cong khai khong can phien, {@code U} = can
  * phien hop le. Danh muc cong khai la nhom F (p8 §8.4.6) + C16 {@code GET /policies/{code}} +
@@ -86,25 +72,9 @@ public class SecurityConfig {
     };
 
     /**
-     * <b>Bug that da sua (do bang curl tren cong 8094, truoc/sau):</b>
-     * {@code GET /actuator/env/spring.profiles.active} tra <b>403</b> o profile {@code local}
-     * du {@code application-local.yml} da mo
-     * {@code management.endpoints.web.exposure.include: health,info,env,beans,mappings,loggers,flyway}.
-     *
-     * <p>Nguyen nhan: {@code exposure.include} chi quyet dinh Actuator co <b>dang ky</b>
-     * endpoint hay khong; viec cho vao hay khong la cua Spring Security. Chuoi
-     * {@link #apiFilterChain} chi {@code permitAll} dung {@code /actuator/health/**} va
-     * {@code /actuator/info}, nen {@code /actuator/env}, {@code /beans}, {@code /mappings},
-     * {@code /loggers}, {@code /flyway} roi vao {@code anyRequest().authenticated()}. Va vi
-     * chuoi nay khong cau hinh {@code authenticationEntryPoint} nao, Spring dung
-     * {@code Http403ForbiddenEntryPoint} ⇒ <b>403, khong phai 401</b> — dau vet sai huong, lam
-     * nguoi doc tuong la van de phan quyen chu khong phai thieu luat permitAll.
-     *
-     * <p><b>Hau qua that:</b> {@code backend/tools/seed-demo.py} dung o buoc
-     * {@code require_local_profile()} (nó doc dung URL nay de tu choi chay nham vao
-     * staging/prod), nen toan bo du lieu demo — scan, lich su, xu huong, health flag, export —
-     * khong dung duoc. Do thuc te: ca khi DA dang nhap bang phien hop le van 403, nen ghi chu
-     * "endpoint nay can phien dang nhap" trong script la mot suy doan sai.
+     * Mo Actuator cho curl/script o profile {@code local}. {@code exposure.include} chi dang ky endpoint;
+     * {@link #apiFilterChain} chi {@code permitAll} {@code /actuator/health/**} va {@code /actuator/info},
+     * con {@code /actuator/env} (seed-demo.py doc o {@code require_local_profile()}) bi 403 chu khong phai 401.
      *
      * <p><b>Vi sao mo thanh mot chuoi rieng {@code @Profile("local")} chu khong them mot dong
      * {@code permitAll} vao chuoi chung:</b> mot dong {@code permitAll("/actuator/**")} trong

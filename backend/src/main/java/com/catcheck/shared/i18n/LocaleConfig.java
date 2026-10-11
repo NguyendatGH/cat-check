@@ -30,22 +30,9 @@ public class LocaleConfig {
     }
 
     /**
-     * <b>Bug thật đã sửa:</b> {@code classpath:messages/content} thiếu khỏi danh sách basenames
-     * bên dưới dù {@code content_vi.properties}/{@code content_en.properties} được ContentErrorCode
-     * khai là nơi tra dịch — mọi lỗi nghiệp vụ của module {@code content} (L40–L45: not-found,
-     * source-required, self-approval-forbidden, not-editable, invalid-state, slug-taken) rơi vào
-     * nhánh {@code setUseCodeAsDefaultMessage(true)} và trả thẳng tên hằng số enum (ví dụ
-     * {@code "CONTENT_NOT_FOUND"}) cho client thay vì câu đã dịch.
-     *
-     * <p><b>Rủi ro còn lại (đã kiểm, CHƯA sửa vì phạm vi đổi vượt ra ngoài {@code shared}):</b>
-     * {@link ReloadableResourceBundleMessageSource} chỉ dùng basename ĐẦU TIÊN trong danh sách có
-     * chứa khoá đang tra — nếu hai module khác nhau tự đặt {@code ErrorCode#code()} trùng tên (ví
-     * dụ {@code VALIDATION_FAILED} ở {@code cat}/{@code identity}/{@code privacy}/{@code colorchart},
-     * hay {@code REASON_REQUIRED} ở {@code colorchart} và {@code content}), thì MỌI module phía sau
-     * trong danh sách này đều âm thầm nhận nhầm câu dịch của module đứng trước — xác nhận bằng test
-     * thủ công, không phải suy đoán. Sửa triệt để cần namespace hoá khoá dịch theo module (đụng tới
-     * mọi enum {@code ErrorCode} của từng module, ngoài phạm vi {@code shared/content/audit}), nên
-     * chỉ ghi nhận ở đây; xem việc "W3 gộp lại" đã được các enum liên quan tự ghi chú.</p>
+     * Thứ tự basenames quan trọng: {@link ReloadableResourceBundleMessageSource} chỉ dùng basename
+     * ĐẦU TIÊN chứa khoá, nên {@code ErrorCode#code()} trùng tên giữa các module (vd
+     * {@code VALIDATION_FAILED}, {@code REASON_REQUIRED}) nhận câu dịch của module đứng trước.
      */
     @Bean
     public MessageSource messageSource() {
