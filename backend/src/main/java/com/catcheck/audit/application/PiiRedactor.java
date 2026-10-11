@@ -2,6 +2,7 @@ package com.catcheck.audit.application;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -58,6 +59,15 @@ public final class PiiRedactor {
     /** Gia tri chuoi dai >= 32, nghi la JWT/hex blob. */
     private static final Pattern LONG_TOKEN_LIKE = Pattern.compile("(?<![A-Za-z0-9])[A-Za-z0-9+/=_\\-]{32,}(?![A-Za-z0-9])");
 
+    /**
+     * UUID dang chuoi (8-4-4-4-12 hex) duoc giu nguyen: p4 §4.6.4 doi audit ghi id, va gia tri
+     * kieu {@link java.util.UUID} von da di qua khong bi che. Truoc day mot UUID {@code toString()}
+     * khop {@link #LONG_TOKEN_LIKE}/{@link #LONG_DIGITS} nen bi xoa hoac bi cat mot phan, lam mat
+     * id trong cac su kien nhu {@code SCAN.DELETED} (H15.156).
+     */
+    private static final Pattern UUID_VALUE = Pattern.compile(
+            "(?<![A-Za-z0-9])[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?![A-Za-z0-9])");
+
     public Map<String, Object> redact(Map<String, Object> source) {
         if (source == null || source.isEmpty()) {
             return source == null ? null : Map.of();
@@ -98,6 +108,17 @@ public final class PiiRedactor {
         if (text.isEmpty()) {
             return text;
         }
+        Matcher uuid = UUID_VALUE.matcher(text);
+        StringBuilder out = new StringBuilder(text.length());
+        int last = 0;
+        while (uuid.find()) {
+            out.append(scrubFragment(text.substring(last, uuid.start()))).append(uuid.group());
+            last = uuid.end();
+        }
+        return out.append(scrubFragment(text.substring(last))).toString();
+    }
+
+    private static String scrubFragment(String text) {
         String out = EMAIL_VALUE.matcher(text).replaceAll(REDACTED + "_EMAIL");
         out = LONG_DIGITS.matcher(out).replaceAll(REDACTED + "_DIGITS");
         return LONG_TOKEN_LIKE.matcher(out).replaceAll(REDACTED + "_BLOB");

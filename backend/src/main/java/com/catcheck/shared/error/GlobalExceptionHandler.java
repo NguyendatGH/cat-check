@@ -8,6 +8,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -90,6 +91,8 @@ public class GlobalExceptionHandler {
                 .toList();
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, messageResolver.resolve("validation.failed", locale));
+        problemDetail.setTitle("VALIDATION_FAILED");
+        problemDetail.setProperty("errorCode", "VALIDATION_FAILED");
         problemDetail.setProperty("violations", violations);
         problemDetail.setProperty("timestamp", clock.instant());
         return problemDetail;
@@ -112,15 +115,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /**
-     * Bat bien mien bi vi pham boi DU LIEU NGUOI DUNG → 400, khong phai 500.
-     *
-     * <p>Bug that da sua: {@code Cat#applyAgeSource} nem {@code IllegalArgumentException} tho
-     * cho 4 truong hop nguoi dung nhap duoc (thieu ca birthDate lan approxAgeMonths, cung luc
-     * co ca hai, birthDate tuong lai, so thang ngoai khoang) — khong co handler nen ra 500.
-     * Man tao ho so meo cho phep de trong ngay sinh, tuc la user binh thuong cham thang vao
-     * loi 500 nay.</p>
-     */
     /**
      * Multipart thieu part bat buoc → 400. Truoc day roi vao {@code handleUnexpected} thanh 500:
      * client gui thieu part ({@code POST /scans} can ca {@code metadata} lan {@code image}) bi
@@ -168,6 +162,30 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    /**
+     * Body không đọc được (JSON hỏng, sai kiểu field) → 400, không phải 500. Không trả message của
+     * Jackson: nó lộ cấu trúc DTO nội bộ và có thể trích lại một phần giá trị người dùng gửi.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleNotReadable(HttpMessageNotReadableException ex, Locale locale) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, messageResolver.resolve("validation.failed", locale));
+        problemDetail.setTitle("VALIDATION_FAILED");
+        problemDetail.setProperty("errorCode", "VALIDATION_FAILED");
+        problemDetail.setProperty("timestamp", clock.instant());
+        return problemDetail;
+    }
+
+    /**
+     * Bat bien mien bi vi pham boi DU LIEU NGUOI DUNG → 400, khong phai 500.
+     *
+     * <p>Bug that da sua: {@code Cat#applyAgeSource} nem {@code IllegalArgumentException} tho
+     * cho cac truong hop nguoi dung nhap duoc (thieu ca birthDate lan approxAgeMonths,
+     * birthDate tuong lai, so thang ngoai khoang) — khong co handler nen ra 500. Man tao ho so
+     * meo cho phep de trong ngay sinh, tuc la user binh thuong cham thang vao loi 500 nay.
+     * Truong hop gui ca hai nguon tuoi la {@code CatAgeConflictException}, duoc
+     * {@code CatProfileService} doi sang {@code CAT_AGE_CONFLICT} truoc khi toi day.</p>
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex, Locale locale) {
         log.warn("Vi pham bat bien mien: {}", ex.getClass().getSimpleName());
@@ -204,7 +222,10 @@ public class GlobalExceptionHandler {
         // exception đến từ tầng có thể mang giá trị nhạy cảm — nhưng đây là nhánh "không mong
         // muốn" (mọi CatCheckException nghiệp vụ đã có handler riêng ở trên), nên đây luôn là
         // lỗi lập trình/hạ tầng (NPE, lỗi SQL, bean thiếu...), không phải luồng nghiệp vụ đọc PII.
-        log.error("Loi khong mong muon xu ly {}", ex.getClass().getSimpleName(), ex);
+        // Exception message can carry request values from framework, JDBC, or an upstream
+        // service. This boundary has no reliable way to redact every such value, so log types and
+        // stack frames only (RedactedThrowable); the response remains intentionally generic too.
+        log.error("Loi khong mong muon xu ly {}", ex.getClass().getSimpleName(), RedactedThrowable.of(ex));
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, messageResolver.resolve("error.unexpected", locale));
         problemDetail.setProperty("timestamp", clock.instant());

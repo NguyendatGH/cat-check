@@ -200,6 +200,7 @@ public class CareTip {
         if (status != CareTipStatus.IN_REVIEW) {
             throw new IllegalStateException("Chỉ bài đang chờ duyệt mới công bố được, hiện tại: " + status);
         }
+        Objects.requireNonNull(reviewerId, "reviewerId phải có giá trị khi công bố bài");
         if (claimType.requiresSourceReference() && isBlank(sourceReference)) {
             throw new IllegalStateException(
                     "Bài tuyên bố " + claimType + " thì bắt buộc phải có source_reference (I31)");

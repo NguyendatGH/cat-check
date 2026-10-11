@@ -1,12 +1,25 @@
 package com.catcheck.shared.error;
 
 import com.catcheck.shared.i18n.MessageResolver;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.IThrowableProxy;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.StaticMessageSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 
 import java.net.URI;
 import java.time.Clock;
@@ -15,6 +28,12 @@ import java.time.ZoneOffset;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Bug thật đã sửa (phát hiện khi làm G3 — rate limit kích hoạt mã credit,
@@ -61,6 +80,74 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         assertThat(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isNull();
+    }
+
+    @Test
+    void unexpectedExceptionLogsTypesAndStackFramesButNoMessageThatCouldCarryRequestData() {
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            handler.handleUnexpected(new IllegalStateException("email=person@example.com",
+                    new IllegalArgumentException("Key (email)=(person@example.com) already exists")), Locale.ENGLISH);
+
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getFormattedMessage()).contains("IllegalStateException");
+                assertThat(event.getFormattedMessage()).doesNotContain("person@example.com");
+                IThrowableProxy proxy = event.getThrowableProxy();
+                assertThat(proxy).isNotNull();
+                assertThat(proxy.getMessage()).isEqualTo(IllegalStateException.class.getName());
+                assertThat(proxy.getStackTraceElementProxyArray()).isNotEmpty();
+                assertThat(proxy.getCause()).isNotNull();
+                assertThat(proxy.getCause().getMessage()).isEqualTo(IllegalArgumentException.class.getName());
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void malformedJsonBodyIs400ValidationFailedWithoutParserDetails() throws Exception {
+        mockMvc().perform(post("/echo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"person@example.com\""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(content().string(not(containsString("person@example.com"))))
+                .andExpect(content().string(not(containsString("JSON parse error"))));
+    }
+
+    @Test
+    void beanValidationFailureCarriesTheSameErrorCodeAsOther400s() throws Exception {
+        mockMvc().perform(post("/echo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.violations[0].field").value("name"));
+    }
+
+    private MockMvc mockMvc() {
+        return MockMvcBuilders.standaloneSetup(new EchoEndpoint())
+                .setControllerAdvice(handler)
+                .setValidator(new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean())
+                .build();
+    }
+
+    @RestController
+    static class EchoEndpoint {
+
+        @PostMapping("/echo")
+        String echo(@Valid @RequestBody EchoRequest request) {
+            return request.name();
+        }
+    }
+
+    record EchoRequest(@NotBlank String name) {
     }
 
     private enum FakeErrorCode implements ErrorCode {

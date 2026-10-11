@@ -1,5 +1,9 @@
 package com.catcheck.shared.job.application;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.IThrowableProxy;
+import ch.qos.logback.core.read.ListAppender;
 import com.catcheck.shared.id.UuidV7;
 import com.catcheck.shared.job.JobOutcome;
 import com.catcheck.shared.job.JobProperties;
@@ -8,6 +12,7 @@ import com.catcheck.shared.job.JobTriggerType;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -16,7 +21,9 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -72,6 +79,54 @@ class JobRunnerTest {
         assertEquals(NOW, row.finishedAt(), "dong khong duoc ket o trang thai RUNNING");
         assertTrue(row.errorSummary().startsWith("IllegalStateException"));
         assertTrue(row.errorSummary().contains("khong ket noi duoc DB"));
+    }
+
+    @Test
+    void failureSummaryAndLogDoNotCarryPiiFromTheExceptionMessage() {
+        // job_run.error_summary hien o man admin L64; message cua MailSendException/JDBC co
+        // the mang dia chi email hay gia tri cot cua nguoi dung.
+        Logger logger = (Logger) LoggerFactory.getLogger(JobRunner.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            runner(true).runScheduled("SendEmailOutboxJob", false, context -> {
+                throw new IllegalStateException("550 rejected <person@example.com>",
+                        new IllegalArgumentException("Key (email)=(person@example.com) already exists"));
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+
+        String summary = port.only().errorSummary();
+        assertTrue(summary.startsWith("IllegalStateException"));
+        assertTrue(summary.contains("550 rejected"), "van giu ly do de admin doc duoc");
+        assertFalse(summary.contains("person@example.com"));
+
+        ILoggingEvent failure = appender.list.stream()
+                .filter(event -> event.getThrowableProxy() != null)
+                .findFirst()
+                .orElseThrow();
+        for (IThrowableProxy proxy = failure.getThrowableProxy(); proxy != null; proxy = proxy.getCause()) {
+            assertFalse(String.valueOf(proxy.getMessage()).contains("person@example.com"));
+            assertTrue(proxy.getStackTraceElementProxyArray().length > 0, "van giu stack frame de debug");
+        }
+    }
+
+    @Test
+    void errorInTheBodyClosesTheRowThenPropagates() {
+        JobRunner runner = runner(true);
+
+        assertThrows(StackOverflowError.class, () -> runner.runScheduled("ExpireCreditBatchesJob", false,
+                context -> {
+                    throw new StackOverflowError();
+                }));
+
+        FakeJobRunPort.Row row = port.only();
+        assertEquals(JobRunStatus.FAILED, row.status());
+        assertEquals(NOW, row.finishedAt(), "dong khong duoc ket o trang thai RUNNING");
+        assertEquals("StackOverflowError", row.errorSummary());
     }
 
     @Test

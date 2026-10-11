@@ -1,5 +1,7 @@
 package com.catcheck.shared.job.application;
 
+import com.catcheck.shared.application.TelemetryScrubber;
+import com.catcheck.shared.error.RedactedThrowable;
 import com.catcheck.shared.job.JobContext;
 import com.catcheck.shared.job.JobOutcome;
 import com.catcheck.shared.job.JobProperties;
@@ -29,9 +31,10 @@ import java.util.function.Function;
  * rồi đóng dòng với {@link com.catcheck.shared.job.JobRunStatus#FAILED} là cách duy nhất để
  * "job chết" trở thành dữ liệu quan sát được.</p>
  *
- * <p>Tóm tắt lỗi ghi xuống DB chỉ gồm <b>tên lớp ngoại lệ + message đã cắt ngắn</b>; stack trace
- * đi vào log ứng dụng (p4 §K3). Không ghi tham số nghiệp vụ nào vào tóm tắt — tránh PII lọt vào
- * một bảng mà admin panel hiển thị công khai.</p>
+ * <p>Tóm tắt lỗi ghi xuống DB chỉ gồm <b>tên lớp ngoại lệ + message đã lọc PII và cắt ngắn</b>;
+ * stack trace (không kèm message, xem {@link RedactedThrowable}) đi vào log ứng dụng (p4 §K3).
+ * Không ghi tham số nghiệp vụ nào vào tóm tắt — tránh PII lọt vào một bảng mà admin panel hiển
+ * thị công khai.</p>
  */
 @Component
 public class JobRunner {
@@ -88,8 +91,18 @@ public class JobRunner {
                 outcome = JobOutcome.success(0);
             }
         } catch (RuntimeException exception) {
-            log.error("Job {} that bai (runId={})", jobName, context.runId(), exception);
+            log.error("Job {} that bai (runId={})", jobName, context.runId(), RedactedThrowable.of(exception));
             outcome = JobOutcome.failed(summarize(exception));
+        } catch (Error error) {
+            // Error (StackOverflowError, NoClassDefFoundError...) khong bi nuot, nhung dong job_run
+            // van phai dong: de RUNNING thi man L64 hien "dang chay" mai cho mot lan da chet.
+            log.error("Job {} that bai (runId={})", jobName, context.runId(), RedactedThrowable.of(error));
+            try {
+                recorder.finish(context.runId(), JobOutcome.failed(error.getClass().getSimpleName()));
+            } catch (RuntimeException finishFailure) {
+                error.addSuppressed(finishFailure);
+            }
+            throw error;
         }
 
         recorder.finish(context.runId(), outcome);
@@ -117,9 +130,13 @@ public class JobRunner {
                 .record(elapsed);
     }
 
+    /**
+     * {@code error_summary} hien o man admin L64 nen message duoc loc PII truoc (email, so dien
+     * thoai, token...): message cua loi SMTP/JDBC thuong chua dia chi nguoi nhan hay gia tri cot.
+     */
     private static String summarize(RuntimeException exception) {
-        String message = exception.getMessage();
-        return message == null || message.isBlank()
+        String message = TelemetryScrubber.scrubText(exception.getMessage(), 0);
+        return message == null
                 ? exception.getClass().getSimpleName()
                 : exception.getClass().getSimpleName() + ": " + message;
     }

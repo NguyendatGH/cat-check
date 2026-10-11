@@ -225,15 +225,17 @@ class SchemaInvariantTests {
     void referenceDataIsSeeded() throws SQLException {
         // 25 khoá ở p4 §H3 + 6 kill-switch ở §4.3b.1.
         assertThat(scalarInt("SELECT count(*) FROM app_setting")).isEqualTo(31);
-        // D1…D21 theo p15 §15.2.2.
-        assertThat(scalarInt("SELECT count(*) FROM data_inventory_item")).isEqualTo(21);
+        // D1…D21 theo p15 §15.2.2 + D30 (hội thoại trợ lý AI — ngoại lệ ghi đầu
+        // R__seed_data_inventory_item.sql).
+        assertThat(scalarInt("SELECT count(*) FROM data_inventory_item")).isEqualTo(22);
         assertThat(scalarInt("SELECT count(*) FROM data_inventory_item WHERE code = 'D21'")).isEqualTo(1);
+        assertThat(scalarInt("SELECT count(*) FROM data_inventory_item WHERE code = 'D30'")).isEqualTo(1);
         // ~18 chính sách theo p15 §15.5.1 (19 dòng; hai dòng chưa có đích lưu ở Phase 1 — xem
-        // ghi chú đầu R__seed_retention_policy.sql).
-        assertThat(scalarInt("SELECT count(*) FROM retention_policy")).isEqualTo(19);
+        // ghi chú đầu R__seed_retention_policy.sql) + AI_CONVERSATION_LIFECYCLE (D30).
+        assertThat(scalarInt("SELECT count(*) FROM retention_policy")).isEqualTo(20);
         // Vòng khoá ngoại thứ hai (p4 §4.9.3) phải được nối lại sau khi cả hai file seed chạy.
         assertThat(scalarInt("SELECT count(*) FROM data_inventory_item WHERE retention_policy_code IS NOT NULL"))
-                .isEqualTo(9);
+                .isEqualTo(10);
         // Lịch nghỉ lễ VN 2026 + 2027.
         assertThat(scalarInt("SELECT count(*) FROM holiday_calendar WHERE country_code = 'VN'")).isEqualTo(33);
         assertThat(scalarInt("SELECT count(DISTINCT extract(year FROM holiday_date)) FROM holiday_calendar"))
