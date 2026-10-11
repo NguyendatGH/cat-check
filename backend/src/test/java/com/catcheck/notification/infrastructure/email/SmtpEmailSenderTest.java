@@ -30,7 +30,8 @@ class SmtpEmailSenderTest {
         appender.start();
         logger.addAppender(appender);
         try {
-            new SmtpEmailSender(mailSender).send(
+            new SmtpEmailSender(mailSender, new EmailTemplateRenderer("http://localhost:5173"),
+                    "from@example.com").send(
                     EmailMessage.of("person@example.com", "EMAIL_OTP", "vi", Map.of()));
 
             assertThat(appender.list).singleElement().satisfies(event -> {
