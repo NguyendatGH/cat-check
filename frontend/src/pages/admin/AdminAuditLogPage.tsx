@@ -1,130 +1,178 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Input } from "@/shared/ui";
 import {
+  AccessDeniedState,
   AdminPageHeader,
-  AdminSection,
+  AdminQueryError,
   AdminSelect,
-  AdminTableScroll,
-  ApiErrorNote,
+  DensePanel,
+  DenseTableFrame,
   Pager,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  SearchField,
+  SortableTh,
+  TableSkeleton,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
+  formatAdminDateTime,
+  matchesQuery,
+  nextSort,
+  sortRows,
   useAdminAuditLogs,
+  type AdminAuditLog,
+  type SortState,
 } from "@/features/admin";
+import { useGroup3Can } from "./group3Ops";
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
+type AuditSortKey = "occurredAt" | "action" | "result" | "actorType" | "subjectType";
 
 export function AdminAuditLogPage() {
   const { t } = useTranslation("admin");
-  const [action, setAction] = useState("");
-  const [result, setResult] = useState("");
-  const [actorType, setActorType] = useState("");
-  const [page, setPage] = useState(0);
-  const logs = useAdminAuditLogs({ action, result, actorType, page, size: 20 });
-
+  const can = useGroup3Can();
+  if (!can("auditLog")) {
+    return <AccessDeniedState />;
+  }
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <AdminPageHeader
         title={t("pages.auditLog.title")}
         description={t("pages.auditLog.description")}
         specRef="L68 · GET /api/v1/admin/audit-logs"
       />
-      <AdminSection title={t("auditLog.filtersTitle")}>
-        <div className="grid gap-4 md:grid-cols-3">
-          <label className="flex flex-col gap-1.5 text-caption font-semibold text-text-secondary">
-            {t("auditLog.action")}
-            <input
-              className="h-11 rounded-xl bg-surface px-3 text-body font-normal text-text-primary shadow-xs"
-              value={action}
-              onChange={(event) => {
-                setAction(event.target.value);
-                setPage(0);
-              }}
-            />
-          </label>
-          <AdminSelect
-            label={t("auditLog.result")}
-            value={result}
-            onChange={(event) => {
-              setResult(event.target.value);
-              setPage(0);
-            }}
-          >
-            <option value="">{t("auditLog.all")}</option>
-            <option value="SUCCESS">SUCCESS</option>
-            <option value="DENIED">DENIED</option>
-            <option value="ERROR">ERROR</option>
-          </AdminSelect>
-          <AdminSelect
-            label={t("auditLog.actorType")}
-            value={actorType}
-            onChange={(event) => {
-              setActorType(event.target.value);
-              setPage(0);
-            }}
-          >
-            <option value="">{t("auditLog.all")}</option>
-            <option value="USER">USER</option>
-            <option value="ADMIN">ADMIN</option>
-            <option value="DPO">DPO</option>
-            <option value="SYSTEM">SYSTEM</option>
-            <option value="JOB">JOB</option>
-          </AdminSelect>
-        </div>
-      </AdminSection>
-      <AdminSection title={t("auditLog.listTitle")}>
-        {logs.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-        {logs.isError ? <ApiErrorNote error={logs.error} /> : null}
-        {logs.data && logs.data.items.length === 0 ? (
-          <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
-        ) : null}
-        {logs.data && logs.data.items.length > 0 ? (
-          <>
-            <AdminTableScroll>
-              <table className={adminTableClass}>
-                <thead>
-                  <tr>
-                    <th className={adminThClass}>{t("auditLog.occurredAt")}</th>
-                    <th className={adminThClass}>{t("auditLog.action")}</th>
-                    <th className={adminThClass}>{t("auditLog.result")}</th>
-                    <th className={adminThClass}>{t("auditLog.actor")}</th>
-                    <th className={adminThClass}>{t("auditLog.subject")}</th>
-                    <th className={adminThClass}>{t("auditLog.metadata")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.data.items.map((log) => (
-                    <tr key={log.id}>
-                      <td className={adminTdClass}>{formatDate(log.occurredAt)}</td>
-                      <td className={adminTdClass}>
-                        <code>{log.action}</code>
-                      </td>
-                      <td className={adminTdClass}>{log.result}</td>
-                      <td className={adminTdClass}>
-                        {log.actorType}
-                        {log.actorRole ? ` · ${log.actorRole}` : ""}
-                      </td>
-                      <td className={adminTdClass}>{log.subjectType}</td>
-                      <td className={adminTdClass}>
-                        <code className="break-all text-small">{log.metadata}</code>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </AdminTableScroll>
-            <Pager
-              page={logs.data.number}
-              totalPages={logs.data.totalPages}
-              totalElements={logs.data.totalElements}
-              onPageChange={setPage}
-            />
-          </>
-        ) : null}
-      </AdminSection>
+      <AuditLogPanel />
     </div>
+  );
+}
+
+function AuditLogPanel() {
+  const { t } = useTranslation("admin");
+  const [action, setAction] = useState("");
+  const [result, setResult] = useState("");
+  const [actorType, setActorType] = useState("");
+  const [page, setPage] = useState(0);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortState<AuditSortKey> | null>(null);
+  const logs = useAdminAuditLogs({ action, result, actorType, page, size: 20 });
+
+  const rows = useMemo(() => {
+    const filtered = (logs.data?.items ?? []).filter((log) =>
+      matchesQuery([log.action, log.actorType, log.actorRole, log.subjectType, log.metadata], query),
+    );
+    return sortRows(filtered, sort, (log: AdminAuditLog, key) => log[key]);
+  }, [logs.data, query, sort]);
+
+  const header = (label: string, key: AuditSortKey) => (
+    <SortableTh
+      label={label}
+      sortKey={key}
+      sort={sort}
+      onSort={(next) => {
+        setSort(nextSort(sort, next));
+      }}
+    />
+  );
+
+  return (
+    <DensePanel title={t("auditLog.listTitle")}>
+      <div className="grid gap-3 md:grid-cols-4">
+        <Input
+          label={t("auditLog.action")}
+          value={action}
+          onChange={(event) => {
+            setAction(event.target.value);
+            setPage(0);
+          }}
+        />
+        <AdminSelect
+          label={t("auditLog.result")}
+          value={result}
+          onChange={(event) => {
+            setResult(event.target.value);
+            setPage(0);
+          }}
+        >
+          <option value="">{t("auditLog.all")}</option>
+          <option value="SUCCESS">SUCCESS</option>
+          <option value="DENIED">DENIED</option>
+          <option value="ERROR">ERROR</option>
+        </AdminSelect>
+        <AdminSelect
+          label={t("auditLog.actorType")}
+          value={actorType}
+          onChange={(event) => {
+            setActorType(event.target.value);
+            setPage(0);
+          }}
+        >
+          <option value="">{t("auditLog.all")}</option>
+          <option value="USER">USER</option>
+          <option value="ADMIN">ADMIN</option>
+          <option value="DPO">DPO</option>
+          <option value="SYSTEM">SYSTEM</option>
+          <option value="JOB">JOB</option>
+        </AdminSelect>
+        <SearchField label={t("auditLog.search")} value={query} onChange={setQuery} placeholder={t("dense.search")} />
+      </div>
+      {logs.isPending ? <TableSkeleton /> : null}
+      {logs.isError ? (
+        <AdminQueryError
+          error={logs.error}
+          onRetry={() => {
+            void logs.refetch();
+          }}
+        />
+      ) : null}
+      {logs.data && logs.data.items.length === 0 ? (
+        <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
+      ) : null}
+      {logs.data && logs.data.items.length > 0 ? (
+        <>
+          <DenseTableFrame label={t("auditLog.listTitle")}>
+            <table className={denseTableClass}>
+              <thead>
+                <tr>
+                  {header(t("auditLog.occurredAt"), "occurredAt")}
+                  {header(t("auditLog.action"), "action")}
+                  {header(t("auditLog.result"), "result")}
+                  {header(t("auditLog.actor"), "actorType")}
+                  {header(t("auditLog.subject"), "subjectType")}
+                  <th scope="col" className={denseThClass}>
+                    {t("auditLog.metadata")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((log) => (
+                  <tr key={log.id} className={denseRowClass}>
+                    <td className={denseTdClass}>{formatAdminDateTime(log.occurredAt)}</td>
+                    <td className={denseTdClass}>
+                      <code>{log.action}</code>
+                    </td>
+                    <td className={denseTdClass}>{log.result}</td>
+                    <td className={denseTdClass}>
+                      {log.actorType}
+                      {log.actorRole ? ` · ${log.actorRole}` : ""}
+                    </td>
+                    <td className={denseTdClass}>{log.subjectType}</td>
+                    <td className={denseTdClass}>
+                      <code className="break-all text-small">{log.metadata}</code>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </DenseTableFrame>
+          {rows.length === 0 ? <p className="text-caption text-text-secondary">{t("dense.noMatch")}</p> : null}
+          <Pager
+            page={logs.data.number}
+            totalPages={logs.data.totalPages}
+            totalElements={logs.data.totalElements}
+            onPageChange={setPage}
+          />
+        </>
+      ) : null}
+    </DensePanel>
   );
 }

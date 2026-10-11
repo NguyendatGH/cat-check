@@ -7,18 +7,19 @@ import {
   AdminPageHeader,
   AdminSection,
   AdminSelect,
-  AdminTableScroll,
   ApiErrorNote,
   CARE_TIP_CATEGORIES,
   CARE_TIP_KINDS,
   CARE_TIP_STATUSES,
   CLAIM_TYPES,
+  DenseTableFrame,
   Pager,
   ReasonField,
   SavedNote,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
   isReasonValid,
   useAdminCareTips,
   useArchiveCareTip,
@@ -32,6 +33,7 @@ import {
   type CareTipStatus,
   type ClaimType,
 } from "@/features/admin";
+import { useGroup2Can } from "./group2Access";
 
 /**
  * `/admin/content` — quản trị nội dung (`care_tip`).
@@ -183,6 +185,9 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const submitReview = useSubmitCareTipReview();
   const publish = usePublishCareTip();
   const archive = useArchiveCareTip();
+  const can = useGroup2Can();
+  const canWrite = can("careTipsWrite");
+  const canPublish = can("careTipsPublish");
 
   const [title, setTitle] = useState(tip.title);
   const [summary, setSummary] = useState(tip.summary ?? "");
@@ -192,7 +197,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const [reason, setReason] = useState("");
   const [reasonTouched, setReasonTouched] = useState(false);
 
-  const editable = tip.status === "DRAFT" || tip.status === "IN_REVIEW";
+  const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
   /** AD20 — `claimType` khác NONE mà thiếu nguồn thì server trả 422 lúc publish. */
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
 
@@ -290,7 +295,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
           <Button type="submit" size="md" disabled={!editable} loading={update.isPending}>
             {t("content.saveDraft")}
           </Button>
-          {tip.status === "DRAFT" ? (
+          {canWrite && tip.status === "DRAFT" ? (
             <Button
               type="button"
               variant="tertiary"
@@ -303,7 +308,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
               {t("content.submitReview")}
             </Button>
           ) : null}
-          {tip.status === "PUBLISHED" ? (
+          {canPublish && tip.status === "PUBLISHED" ? (
             <Button
               type="button"
               variant="tertiary"
@@ -320,7 +325,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         <ApiErrorNote error={submitReview.error ?? archive.error} />
       </form>
 
-      {tip.status === "IN_REVIEW" ? (
+      {canPublish && tip.status === "IN_REVIEW" ? (
         <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
           <p className="text-body font-semibold text-text-primary">{t("content.publishTitle")}</p>
           <p className="text-caption text-text-secondary">{t("content.publishBody")}</p>
@@ -364,6 +369,7 @@ export function AdminContentPage() {
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const canWrite = useGroup2Can()("careTipsWrite");
 
   const list = useAdminCareTips(locale, status, page);
   const items = list.data?.items ?? [];
@@ -376,20 +382,22 @@ export function AdminContentPage() {
         description={t("pages.content.description")}
         specRef="/api/v1/admin/care-tips — L40–L45 (p8 §8.4.12 c)"
         actions={
-          <Button
-            type="button"
-            size="md"
-            leftIcon={<Plus size={16} />}
-            onClick={() => {
-              setCreating((value) => !value);
-            }}
-          >
-            {t("content.createCta")}
-          </Button>
+          canWrite ? (
+            <Button
+              type="button"
+              size="md"
+              leftIcon={<Plus size={16} />}
+              onClick={() => {
+                setCreating((value) => !value);
+              }}
+            >
+              {t("content.createCta")}
+            </Button>
+          ) : undefined
         }
       />
 
-      {creating ? (
+      {creating && canWrite ? (
         <AdminSection title={t("content.createTitle")} description={t("content.createDescription")}>
           <CreateCareTipForm
             onDone={() => {
@@ -441,34 +449,34 @@ export function AdminContentPage() {
           <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
         ) : (
           <>
-            <AdminTableScroll>
-              <table className={adminTableClass}>
+            <DenseTableFrame label={t("content.listTitle")}>
+              <table className={denseTableClass}>
                 <thead>
                   <tr>
-                    <th className={adminThClass}>{t("content.colTitle")}</th>
-                    <th className={adminThClass}>{t("content.colLocale")}</th>
-                    <th className={adminThClass}>{t("content.colKind")}</th>
-                    <th className={adminThClass}>{t("content.colStatus")}</th>
-                    <th className={adminThClass}>{t("content.colClaim")}</th>
-                    <th className={adminThClass}>{t("content.colUpdatedAt")}</th>
-                    <th className={adminThClass}>{t("content.colActions")}</th>
+                    <th className={denseThClass}>{t("content.colTitle")}</th>
+                    <th className={denseThClass}>{t("content.colLocale")}</th>
+                    <th className={denseThClass}>{t("content.colKind")}</th>
+                    <th className={denseThClass}>{t("content.colStatus")}</th>
+                    <th className={denseThClass}>{t("content.colClaim")}</th>
+                    <th className={denseThClass}>{t("content.colUpdatedAt")}</th>
+                    <th className={denseThClass}>{t("content.colActions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((tip) => (
-                    <tr key={tip.id}>
-                      <td className={adminTdClass}>
+                    <tr key={tip.id} className={denseRowClass}>
+                      <td className={denseTdClass}>
                         <span className="font-semibold">{tip.title}</span>
                         <span className="block font-mono text-small text-text-tertiary">{tip.slug}</span>
                       </td>
-                      <td className={adminTdClass}>
+                      <td className={denseTdClass}>
                         <span className="font-mono text-small uppercase">{tip.locale}</span>
                       </td>
-                      <td className={adminTdClass}>{t(`content.kind.${tip.kind}`)}</td>
-                      <td className={adminTdClass}>
+                      <td className={denseTdClass}>{t(`content.kind.${tip.kind}`)}</td>
+                      <td className={denseTdClass}>
                         <StatusChip status={tip.status} label={t(`content.status.${tip.status}`)} />
                       </td>
-                      <td className={adminTdClass}>
+                      <td className={denseTdClass}>
                         <span>{t(`content.claim.${tip.claimType}`)}</span>
                         {tip.claimType !== "NONE" &&
                         (tip.sourceReference == null || tip.sourceReference.length === 0) ? (
@@ -478,10 +486,10 @@ export function AdminContentPage() {
                           </span>
                         ) : null}
                       </td>
-                      <td className={adminTdClass}>
+                      <td className={denseTdClass}>
                         <span className="whitespace-nowrap">{formatDate(tip.updatedAt, "dd/MM/yyyy HH:mm")}</span>
                       </td>
-                      <td className={adminTdClass}>
+                      <td className={denseTdClass}>
                         <button
                           type="button"
                           className="font-semibold text-primary-dark hover:underline"
@@ -496,7 +504,7 @@ export function AdminContentPage() {
                   ))}
                 </tbody>
               </table>
-            </AdminTableScroll>
+            </DenseTableFrame>
             <Pager
               page={list.data.number}
               totalPages={list.data.totalPages}

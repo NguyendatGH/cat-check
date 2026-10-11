@@ -254,7 +254,7 @@ export function AdminMeSecurityPage() {
                     onClick={() => {
                       revokeSession.mutate(item.id, { onSuccess: invalidateSessions });
                     }}
-                    className="shrink-0 text-caption font-semibold text-danger hover:underline"
+                    className="inline-flex min-h-[var(--touch-target-min)] shrink-0 items-center rounded-md px-2 text-caption font-semibold text-danger hover:underline focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-[var(--focus-ring-color)]"
                   >
                     {t("meSecurity.revokeCta")}
                   </button>

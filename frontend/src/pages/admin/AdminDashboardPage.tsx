@@ -1,7 +1,20 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ArrowRight, CircleCheck, CircleX, Loader2 } from "lucide-react";
-import { AdminPageHeader, AdminSection, ApiErrorNote, useAdminMetrics, useAdminSystemStatus } from "@/features/admin";
+import {
+  AccessDeniedState,
+  AdminPageHeader,
+  AdminQueryError,
+  DensePanel,
+  KpiGrid,
+  KpiSkeleton,
+  KpiTile,
+  formatAdminNumber,
+  useAdminMetrics,
+  useAdminSystemStatus,
+  type KpiTone,
+} from "@/features/admin";
+import { useGroup3Can } from "./group3Ops";
 import { formatDate } from "@/shared/lib/format/formatDate";
 
 /**
@@ -23,23 +36,36 @@ const WIRED_LINKS = [
   { to: "/admin/me/security", labelKey: "dashboard.linkMeSecurity", specKey: "dashboard.specMeSecurity" },
 ] as const;
 
+const METRIC_KEYS = ["users", "activeCats", "scans", "failedJobs", "pendingOutbox"] as const;
+
+function metricTone(key: (typeof METRIC_KEYS)[number], value: number): KpiTone {
+  if (key === "failedJobs") return value > 0 ? "danger" : "success";
+  if (key === "pendingOutbox") return value > 0 ? "warning" : "success";
+  return "neutral";
+}
+
 export function AdminDashboardPage() {
+  const can = useGroup3Can();
+  return can("dashboard") ? <DashboardContent /> : <AccessDeniedState />;
+}
+
+function DashboardContent() {
   const { t } = useTranslation("admin");
   const status = useAdminSystemStatus();
   const metrics = useAdminMetrics();
 
   return (
-    <div className="flex max-w-5xl flex-col gap-5">
+    <div className="flex max-w-5xl flex-col gap-4">
       <AdminPageHeader title={t("pages.dashboard.title")} description={t("pages.dashboard.description")} />
 
-      <AdminSection title={t("dashboard.statusTitle")} description={t("dashboard.statusDescription")}>
+      <DensePanel title={t("dashboard.statusTitle")} description={t("dashboard.statusDescription")}>
         {status.isPending ? (
           <p className="flex items-center gap-2 text-caption text-text-secondary">
             <Loader2 size={15} className="animate-spin" aria-hidden="true" />
             {t("feedback.loading")}
           </p>
         ) : status.isError ? (
-          <ApiErrorNote error={status.error} />
+          <AdminQueryError error={status.error} />
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <span
@@ -61,18 +87,18 @@ export function AdminDashboardPage() {
             </span>
           </div>
         )}
-      </AdminSection>
+      </DensePanel>
 
-      <AdminSection title={t("dashboard.wiredTitle")} description={t("dashboard.wiredDescription")}>
-        <ul className="grid gap-3 md:grid-cols-2">
+      <DensePanel title={t("dashboard.wiredTitle")} description={t("dashboard.wiredDescription")}>
+        <ul className="grid gap-2 md:grid-cols-2">
           {WIRED_LINKS.map((link) => (
             <li key={link.to}>
               <Link
                 to={link.to}
-                className="flex items-center justify-between gap-3 rounded-xl bg-background-alt/70 px-4 py-3 hover:bg-chip-bg"
+                className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 hover:bg-background-alt/60"
               >
                 <span className="min-w-0">
-                  <span className="block text-body font-semibold text-text-primary">{t(link.labelKey)}</span>
+                  <span className="block text-caption font-semibold text-text-primary">{t(link.labelKey)}</span>
                   <span className="block font-mono text-small text-text-tertiary">{t(link.specKey)}</span>
                 </span>
                 <ArrowRight size={16} className="shrink-0 text-text-tertiary" aria-hidden="true" />
@@ -80,30 +106,24 @@ export function AdminDashboardPage() {
             </li>
           ))}
         </ul>
-      </AdminSection>
+      </DensePanel>
 
-      <AdminSection title={t("dashboard.metricsTitle")} description={t("dashboard.metricsDescription")}>
-        {metrics.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-        {metrics.isError ? <ApiErrorNote error={metrics.error} /> : null}
+      <DensePanel title={t("dashboard.metricsTitle")} description={t("dashboard.metricsDescription")}>
+        {metrics.isPending ? <KpiSkeleton /> : null}
+        {metrics.isError ? <AdminQueryError error={metrics.error} /> : null}
         {metrics.data ? (
-          <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {[
-              ["users", metrics.data.users],
-              ["activeCats", metrics.data.activeCats],
-              ["scans", metrics.data.scans],
-              ["failedJobs", metrics.data.failedJobs],
-              ["pendingOutbox", metrics.data.pendingOutbox],
-            ].map(([key, value]) => (
-              <div key={key} className="rounded-xl bg-background-alt/70 p-4">
-                <dt className="text-caption text-text-secondary">{t(`dashboard.metrics.${String(key)}`)}</dt>
-                <dd className="pt-1 text-[26px] font-bold text-primary-dark">
-                  {Number(value).toLocaleString("vi-VN")}
-                </dd>
-              </div>
+          <KpiGrid label={t("dense.kpiLabel")}>
+            {METRIC_KEYS.map((key) => (
+              <KpiTile
+                key={key}
+                label={t(`dashboard.metrics.${key}`)}
+                value={formatAdminNumber(metrics.data[key])}
+                tone={metricTone(key, metrics.data[key])}
+              />
             ))}
-          </dl>
+          </KpiGrid>
         ) : null}
-      </AdminSection>
+      </DensePanel>
     </div>
   );
 }

@@ -1,7 +1,11 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useSessionStore, type SessionUser } from "@/entities/user";
+import { AdminAccessProvider, computeCapabilities } from "@/features/admin";
+import { ROLES } from "@/shared/auth/roles";
 import { AdminContentPage } from "./AdminContentPage";
 import { AdminJobsPage } from "./AdminJobsPage";
 import { AdminNotificationsOutboxPage } from "./AdminNotificationsOutboxPage";
@@ -48,7 +52,8 @@ vi.mock("@/features/admin", async (importOriginal) => {
   };
   const patched: Record<string, unknown> = { ...actual };
   for (const [name, value] of Object.entries(actual)) {
-    if (/^use[A-Z]/.test(name) && typeof value === "function") {
+    // `useAdminCan` không mock: trang đọc quyền từ AdminAccessProvider thật (xem renderPage).
+    if (/^use[A-Z]/.test(name) && typeof value === "function" && name !== "useAdminCan") {
       patched[name] = () => (name in hooks.data ? { ...idle, data: hooks.data[name] } : idle);
     }
   }
@@ -59,11 +64,24 @@ let mounted: { root: Root; container: HTMLElement } | undefined;
 
 function renderPage(page: React.ReactElement): string {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  // Đăng nhập với mọi vai trò để các trang kiểm quyền bằng session (nhóm vận hành) đều hiện nội dung.
+  useSessionStore.getState().setSession({
+    id: "u1",
+    email: "admin@example.com",
+    displayName: "Admin",
+    roles: ["ADMIN_SUPER", "ADMIN_SUPPORT", "ADMIN_CATALOG", "DPO", "MODERATOR"],
+  } as unknown as SessionUser);
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
   act(() => {
-    root.render(<MemoryRouter>{page}</MemoryRouter>);
+    root.render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <AdminAccessProvider capabilities={computeCapabilities(ROLES, () => true)}>{page}</AdminAccessProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
   });
   mounted = { root, container };
   return container.textContent;

@@ -1,9 +1,10 @@
 import { isApiError } from "@/shared/api";
+import { ROLES } from "@/shared/auth/roles";
 
 /**
  * Quyền hiển thị và phân loại lỗi cho khu vực quản trị — hàm thuần, không React.
  *
- * Bảng vai trò thật (`ROLES`, `hasAnyRole`) nằm ở `app/router/roles.ts`. ESLint `boundaries`
+ * Bảng vai trò thật (`ROLES`, `hasAnyRole`) nằm ở `shared/auth/roles.ts`. ESLint `boundaries`
  * cấm feature/page import `app`, nên `AdminLayout` (thuộc `app`) tính sẵn bảng khả năng rồi
  * truyền xuống qua context ({@link AdminAccessProvider}). Các hàm ở đây nhận bảng vai trò và
  * hàm kiểm quyền làm tham số, nhờ vậy không sao chép danh sách vai trò của backend.
@@ -11,38 +12,17 @@ import { isApiError } from "@/shared/api";
 
 /**
  * Khả năng mà các trang admin hỏi tới. Tên khoá trùng khoá của `ROLES` trong
- * `app/router/roles.ts`; `AdminLayout` gán `Record<keyof ROLES, boolean>` vào kiểu này, nên
+ * `shared/auth/roles.ts`; `AdminLayout` gán `Record<keyof ROLES, boolean>` vào kiểu này, nên
  * nếu `ROLES` mất một khoá thì `tsc` báo lỗi ngay tại `AdminLayout`.
  */
-export type AdminCapabilityKey =
-  | "scans"
-  | "scanImage"
-  | "scanReassign"
-  | "monitoringRulesRead"
-  | "monitoringRulesWrite"
-  | "securitySessionsPurge"
-  | "securityIncidentsRead"
-  | "securityIncidentsWrite"
-  | "policyVersionsRead"
-  | "policyVersionsWrite"
-  | "consentsRead";
+export type AdminCapabilityKey = keyof typeof ROLES;
 
 export type AdminCapabilities = Readonly<Record<AdminCapabilityKey, boolean>>;
 
 /** Bảng khả năng rỗng: không có provider thì không hiện nút ghi nào. */
-export const NO_ADMIN_CAPABILITIES: AdminCapabilities = {
-  scans: false,
-  scanImage: false,
-  scanReassign: false,
-  monitoringRulesRead: false,
-  monitoringRulesWrite: false,
-  securitySessionsPurge: false,
-  securityIncidentsRead: false,
-  securityIncidentsWrite: false,
-  policyVersionsRead: false,
-  policyVersionsWrite: false,
-  consentsRead: false,
-};
+export const NO_ADMIN_CAPABILITIES: AdminCapabilities = Object.fromEntries(
+  (Object.keys(ROLES) as AdminCapabilityKey[]).map((key) => [key, false]),
+) as AdminCapabilities;
 
 /** Kiểm "có một trong các vai trò được phép" — truyền `hasAnyRole` đã gắn sẵn vai trò người dùng. */
 export type RoleCheck = (allowed: readonly string[]) => boolean;

@@ -1,21 +1,26 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Pencil } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import {
   AdminPageHeader,
-  AdminSection,
-  AdminTableScroll,
-  ApiErrorNote,
+  AdminQueryError,
+  DensePanel,
+  DenseTableFrame,
+  MutationErrorNote,
   ReasonField,
   SavedNote,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  TableSkeleton,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
   isReasonValid,
   useAdminPackagePlans,
   useUpdateAdminPackagePlan,
 } from "@/features/admin";
 import type { AdminPackagePlan, AdminPlanFeatures } from "@/features/admin";
+import { useGroup1Can } from "./group1Access";
 
 interface PlanDraft {
   creditAmount: string;
@@ -39,13 +44,16 @@ function toDraft(plan: AdminPackagePlan): PlanDraft {
 
 export function AdminPackagesPage() {
   const { t } = useTranslation("admin");
+  const can = useGroup1Can();
+  // Sửa gói: backend chỉ cho ADMIN_SUPER (ROLES.packagesWrite); xem: ROLES.packagesRead.
+  const canEdit = can("packagesWrite");
   const plans = useAdminPackagePlans(true);
   const update = useUpdateAdminPackagePlan();
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [draft, setDraft] = useState<PlanDraft | null>(null);
   const [reason, setReason] = useState("");
   const [saved, setSaved] = useState(false);
-  const canSave = draft !== null && isReasonValid(reason);
+  const canSave = canEdit && draft !== null && isReasonValid(reason);
 
   function startEdit(plan: AdminPackagePlan) {
     setEditingCode(plan.code);
@@ -87,85 +95,116 @@ export function AdminPackagesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <AdminPageHeader
         title={t("pages.packages.title")}
         description={t("pages.packages.description")}
         specRef="L25–L26 · GET/PATCH /api/v1/admin/package-plans"
       />
 
-      <AdminSection title={t("packageAdmin.listTitle")} description={t("packageAdmin.listDescription")}>
-        {plans.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-        {plans.isError ? <ApiErrorNote error={plans.error} /> : null}
+      <DensePanel title={t("packageAdmin.listTitle")} description={t("packageAdmin.listDescription")}>
+        {canEdit ? null : <p className="text-caption text-text-secondary">{t("packageAdmin.readOnlyNote")}</p>}
+        <SavedNote visible={saved} />
+        {plans.isPending ? <TableSkeleton rows={4} /> : null}
+        {plans.isError ? (
+          <AdminQueryError
+            error={plans.error}
+            onRetry={() => {
+              void plans.refetch();
+            }}
+          />
+        ) : null}
         {plans.data && plans.data.length === 0 ? (
-          <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
+          <p className="py-6 text-center text-caption text-text-secondary">{t("feedback.empty")}</p>
         ) : null}
         {plans.data && plans.data.length > 0 ? (
-          <AdminTableScroll>
-            <table className={adminTableClass}>
+          <DenseTableFrame label={t("packageAdmin.listTitle")}>
+            <table className={denseTableClass}>
               <thead>
                 <tr>
-                  <th className={adminThClass}>{t("packageAdmin.code")}</th>
-                  <th className={adminThClass}>{t("packageAdmin.name")}</th>
-                  <th className={adminThClass}>{t("packageAdmin.credit")}</th>
-                  <th className={adminThClass}>{t("packageAdmin.validity")}</th>
-                  <th className={adminThClass}>{t("packageAdmin.cats")}</th>
-                  <th className={adminThClass}>{t("packageAdmin.status")}</th>
-                  <th className={adminThClass}>{t("packageAdmin.action")}</th>
+                  <th scope="col" className={denseThClass}>
+                    {t("packageAdmin.code")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("packageAdmin.name")}
+                  </th>
+                  <th scope="col" className={`${denseThClass} text-right`}>
+                    {t("packageAdmin.credit")}
+                  </th>
+                  <th scope="col" className={`${denseThClass} text-right`}>
+                    {t("packageAdmin.validity")}
+                  </th>
+                  <th scope="col" className={`${denseThClass} text-right`}>
+                    {t("packageAdmin.cats")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("packageAdmin.status")}
+                  </th>
+                  {canEdit ? (
+                    <th scope="col" className={denseThClass}>
+                      {t("packageAdmin.action")}
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
                 {plans.data.map((plan) => (
-                  <tr key={plan.code}>
-                    <td className={adminTdClass}>
-                      <code>{plan.code}</code>
+                  <tr key={plan.code} className={denseRowClass} data-selected={plan.code === editingCode}>
+                    <td className={denseTdClass}>
+                      <code className="font-mono text-small font-semibold">{plan.code}</code>
                       <span className="block text-small text-text-tertiary">
                         {t("packageAdmin.version", { version: plan.version })}
                       </span>
                     </td>
-                    <td className={adminTdClass}>{plan.name}</td>
-                    <td className={adminTdClass}>{plan.creditAmount}</td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>{plan.name}</td>
+                    <td className={`${denseTdClass} text-right font-mono tabular-nums`}>{plan.creditAmount}</td>
+                    <td className={`${denseTdClass} whitespace-nowrap text-right font-mono tabular-nums`}>
                       {plan.creditValidityDays} {t("packageAdmin.days")}
                     </td>
-                    <td className={adminTdClass}>{plan.maxCatProfiles ?? t("packageAdmin.unlimited")}</td>
-                    <td className={adminTdClass}>
+                    <td className={`${denseTdClass} text-right font-mono tabular-nums`}>
+                      {plan.maxCatProfiles ?? t("packageAdmin.unlimited")}
+                    </td>
+                    <td className={`${denseTdClass} whitespace-nowrap`}>
                       {plan.active ? t("packageAdmin.active") : t("packageAdmin.inactive")}
                     </td>
-                    <td className={adminTdClass}>
-                      <Button
-                        variant="tertiary"
-                        size="sm"
-                        onClick={() => {
-                          startEdit(plan);
-                        }}
-                      >
-                        {t("actions.edit")}
-                      </Button>
-                    </td>
+                    {canEdit ? (
+                      <td className={denseTdClass}>
+                        <Button
+                          variant="tertiary"
+                          size="sm"
+                          leftIcon={<Pencil size={14} />}
+                          onClick={() => {
+                            startEdit(plan);
+                          }}
+                        >
+                          {t("actions.edit")}
+                        </Button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
             </table>
-          </AdminTableScroll>
+          </DenseTableFrame>
         ) : null}
-      </AdminSection>
+      </DensePanel>
 
-      {editingCode !== null && draft !== null
+      {canEdit && editingCode !== null && draft !== null
         ? (() => {
             const plan = plans.data?.find((item) => item.code === editingCode);
             if (!plan) return null;
             return (
-              <AdminSection
+              <DensePanel
                 title={t("packageAdmin.editTitle", { code: plan.code })}
                 description={t("packageAdmin.editDescription")}
               >
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                   <Input
                     label={t("packageAdmin.credit")}
                     type="number"
                     min={1}
                     value={draft.creditAmount}
+                    className="h-10"
                     onChange={(event) => {
                       setDraft({ ...draft, creditAmount: event.target.value });
                     }}
@@ -175,6 +214,7 @@ export function AdminPackagesPage() {
                     type="number"
                     min={1}
                     value={draft.creditValidityDays}
+                    className="h-10"
                     onChange={(event) => {
                       setDraft({ ...draft, creditValidityDays: event.target.value });
                     }}
@@ -185,6 +225,7 @@ export function AdminPackagesPage() {
                     min={1}
                     disabled={draft.unlimitedCats}
                     value={draft.maxCatProfiles}
+                    className="h-10"
                     onChange={(event) => {
                       setDraft({ ...draft, maxCatProfiles: event.target.value });
                     }}
@@ -200,7 +241,7 @@ export function AdminPackagesPage() {
                     {t("packageAdmin.unlimited")}
                   </label>
                 </div>
-                <div className="grid gap-3 rounded-xl bg-background-alt p-4 md:grid-cols-2 lg:grid-cols-5">
+                <div className="grid gap-3 rounded-lg bg-background-alt p-3 md:grid-cols-2 lg:grid-cols-5">
                   <label className="flex items-center gap-2 text-caption">
                     <input
                       type="checkbox"
@@ -258,11 +299,16 @@ export function AdminPackagesPage() {
                   showError={reason.length > 0 || update.isError}
                   disabled={update.isPending}
                 />
-                <ApiErrorNote error={update.error} />
-                <SavedNote visible={saved} />
+                <MutationErrorNote
+                  error={update.error}
+                  onReload={() => {
+                    void plans.refetch();
+                  }}
+                />
                 <div className="flex gap-2">
                   <Button
                     variant="primary"
+                    size="sm"
                     loading={update.isPending}
                     disabled={!canSave}
                     onClick={() => {
@@ -273,6 +319,7 @@ export function AdminPackagesPage() {
                   </Button>
                   <Button
                     variant="tertiary"
+                    size="sm"
                     onClick={() => {
                       setEditingCode(null);
                       setDraft(null);
@@ -281,7 +328,7 @@ export function AdminPackagesPage() {
                     {t("actions.cancel")}
                   </Button>
                 </div>
-              </AdminSection>
+              </DensePanel>
             );
           })()
         : null}

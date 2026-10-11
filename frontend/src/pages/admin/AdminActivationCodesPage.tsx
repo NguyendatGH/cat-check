@@ -4,15 +4,23 @@ import { Download, Plus, ShieldOff } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import {
   AdminPageHeader,
-  AdminSection,
+  AdminQueryError,
   AdminSelect,
-  AdminTableScroll,
-  ApiErrorNote,
+  DensePanel,
+  DenseTableFrame,
+  EMPTY_CELL,
+  KpiGrid,
+  KpiTile,
+  MutationErrorNote,
   Pager,
   ReasonField,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  TableSkeleton,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
+  formatAdminDateTime,
+  formatAdminNumber,
   isReasonValid,
   useAdminActivationBatches,
   useAdminActivationCodes,
@@ -22,15 +30,16 @@ import {
   useVoidActivationCode,
 } from "@/features/admin";
 import type { ActivationCodeStatus } from "@/features/admin";
+import { useGroup1Can } from "./group1Access";
 
 const PAGE_SIZE = 20;
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
+const CODE_STATUSES: ActivationCodeStatus[] = ["ISSUED", "REDEEMED", "VOID"];
 
 export function AdminActivationCodesPage() {
   const { t } = useTranslation("admin");
+  const can = useGroup1Can();
+  // Sinh lô, tải CSV và vô hiệu mã/lô: backend chỉ cho ADMIN_SUPER (ROLES.activationCodesWrite).
+  const canManage = can("activationCodesWrite");
   const [prefix, setPrefix] = useState("");
   const [packageCode, setPackageCode] = useState("");
   const [status, setStatus] = useState<ActivationCodeStatus | "">("");
@@ -49,7 +58,8 @@ export function AdminActivationCodesPage() {
   const voidCode = useVoidActivationCode();
   const voidBatch = useVoidActivationBatch();
   const downloadCsv = useDownloadActivationBatchCsv();
-  const canWrite = isReasonValid(reason);
+  const canWrite = canManage && isReasonValid(reason);
+  const codeItems = codes.data?.items ?? [];
 
   function downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
@@ -63,29 +73,32 @@ export function AdminActivationCodesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <AdminPageHeader
         title={t("pages.activationCodes.title")}
         description={t("pages.activationCodes.description")}
         specRef="L19–L24 · GET/POST /api/v1/admin/activation-codes"
         actions={
-          <Button
-            variant="primary"
-            size="md"
-            leftIcon={<Plus size={16} />}
-            onClick={() => {
-              setShowIssueForm((value) => !value);
-            }}
-          >
-            {t("activation.issueButton")}
-          </Button>
+          canManage ? (
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={15} />}
+              aria-expanded={showIssueForm}
+              onClick={() => {
+                setShowIssueForm((value) => !value);
+              }}
+            >
+              {t("activation.issueButton")}
+            </Button>
+          ) : undefined
         }
       />
 
-      {showIssueForm ? (
-        <AdminSection title={t("activation.issueTitle")} description={t("activation.issueDescription")}>
+      {canManage && showIssueForm ? (
+        <DensePanel title={t("activation.issueTitle")} description={t("activation.issueDescription")}>
           <form
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-3"
             onSubmit={(event) => {
               event.preventDefault();
               if (!canWrite) return;
@@ -107,10 +120,11 @@ export function AdminActivationCodesPage() {
               );
             }}
           >
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               <Input
                 label={t("activation.packageCode")}
                 value={packageCode}
+                className="h-10"
                 onChange={(event) => {
                   setPackageCode(event.target.value);
                 }}
@@ -119,6 +133,7 @@ export function AdminActivationCodesPage() {
               <Input
                 label={t("activation.productionBatch")}
                 value={productionBatch}
+                className="h-10"
                 onChange={(event) => {
                   setProductionBatch(event.target.value);
                 }}
@@ -130,6 +145,7 @@ export function AdminActivationCodesPage() {
                 min={1}
                 max={50000}
                 value={quantity}
+                className="h-10"
                 onChange={(event) => {
                   setQuantity(event.target.value);
                 }}
@@ -141,6 +157,7 @@ export function AdminActivationCodesPage() {
                 min={1}
                 max={3650}
                 value={validForDays}
+                className="h-10"
                 onChange={(event) => {
                   setValidForDays(event.target.value);
                 }}
@@ -153,11 +170,12 @@ export function AdminActivationCodesPage() {
               showError={issue.isError || reason.length > 0}
               disabled={issue.isPending}
             />
-            <ApiErrorNote error={issue.error} />
+            <MutationErrorNote error={issue.error} />
             <div className="flex gap-2">
               <Button
                 type="submit"
                 variant="primary"
+                size="sm"
                 loading={issue.isPending}
                 disabled={!canWrite || !packageCode.trim() || !productionBatch.trim()}
               >
@@ -166,6 +184,7 @@ export function AdminActivationCodesPage() {
               <Button
                 type="button"
                 variant="tertiary"
+                size="sm"
                 onClick={() => {
                   setShowIssueForm(false);
                 }}
@@ -174,14 +193,15 @@ export function AdminActivationCodesPage() {
               </Button>
             </div>
           </form>
-        </AdminSection>
+        </DensePanel>
       ) : null}
 
-      <AdminSection title={t("activation.filtersTitle")}>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <DensePanel title={t("activation.filtersTitle")}>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <Input
             label={t("activation.prefix")}
             value={prefix}
+            className="h-10"
             onChange={(event) => {
               setPrefix(event.target.value);
               setPage(0);
@@ -190,6 +210,7 @@ export function AdminActivationCodesPage() {
           <Input
             label={t("activation.packageCode")}
             value={packageCode}
+            className="h-10"
             onChange={(event) => {
               setPackageCode(event.target.value);
               setPage(0);
@@ -198,82 +219,134 @@ export function AdminActivationCodesPage() {
           <AdminSelect
             label={t("activation.statusLabel")}
             value={status}
+            className="h-10"
             onChange={(event) => {
               setStatus(event.target.value as ActivationCodeStatus | "");
               setPage(0);
             }}
           >
             <option value="">{t("activation.allStatuses")}</option>
-            <option value="ISSUED">{t("activation.status.ISSUED")}</option>
-            <option value="REDEEMED">{t("activation.status.REDEEMED")}</option>
-            <option value="VOID">{t("activation.status.VOID")}</option>
+            {CODE_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {t(`activation.status.${value}`)}
+              </option>
+            ))}
           </AdminSelect>
           <Input
             label={t("activation.batchId")}
             value={batchId}
+            className="h-10"
             onChange={(event) => {
               setBatchId(event.target.value);
               setPage(0);
             }}
           />
-          <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
         </div>
-      </AdminSection>
+        {canManage ? (
+          <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
+        ) : (
+          <p className="text-caption text-text-secondary">{t("activation.readOnlyNote")}</p>
+        )}
+      </DensePanel>
 
-      <AdminSection title={t("activation.codesTitle")}>
-        {codes.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-        {codes.isError ? <ApiErrorNote error={codes.error} /> : null}
-        {codes.data && codes.data.items.length === 0 ? (
-          <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
+      {codes.data ? (
+        <KpiGrid label={t("dense.kpiLabel")}>
+          <KpiTile label={t("activation.kpiTotal")} value={formatAdminNumber(codes.data.totalElements)} tone="info" />
+          {CODE_STATUSES.map((value) => (
+            <KpiTile
+              key={value}
+              label={t(`activation.status.${value}`)}
+              value={formatAdminNumber(codeItems.filter((code) => code.status === value).length)}
+              hint={t("dense.onPageHint")}
+              tone={value === "REDEEMED" ? "success" : value === "VOID" ? "warning" : "neutral"}
+            />
+          ))}
+        </KpiGrid>
+      ) : null}
+
+      <DensePanel title={t("activation.codesTitle")}>
+        {codes.isPending ? <TableSkeleton /> : null}
+        {codes.isError ? (
+          <AdminQueryError
+            error={codes.error}
+            onRetry={() => {
+              void codes.refetch();
+            }}
+          />
         ) : null}
-        {codes.data && codes.data.items.length > 0 ? (
+        {codes.data && codeItems.length === 0 ? (
+          <p className="py-6 text-center text-caption text-text-secondary">{t("feedback.empty")}</p>
+        ) : null}
+        {codes.data && codeItems.length > 0 ? (
           <>
-            <AdminTableScroll>
-              <table className={adminTableClass}>
+            <DenseTableFrame label={t("activation.codesTitle")}>
+              <table className={denseTableClass}>
                 <thead>
                   <tr>
-                    <th className={adminThClass}>{t("activation.colPrefix")}</th>
-                    <th className={adminThClass}>{t("activation.colPackage")}</th>
-                    <th className={adminThClass}>{t("activation.colBatch")}</th>
-                    <th className={adminThClass}>{t("activation.colIssued")}</th>
-                    <th className={adminThClass}>{t("activation.colValidUntil")}</th>
-                    <th className={adminThClass}>{t("activation.colStatus")}</th>
-                    <th className={adminThClass}>{t("activation.colAction")}</th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colPrefix")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colPackage")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colBatch")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colIssued")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colValidUntil")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colStatus")}
+                    </th>
+                    {canManage ? (
+                      <th scope="col" className={denseThClass}>
+                        {t("activation.colAction")}
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
-                  {codes.data.items.map((code) => (
-                    <tr key={code.id}>
-                      <td className={adminTdClass}>
-                        <code>{code.codePrefix}••••</code>
+                  {codeItems.map((code) => (
+                    <tr key={code.id} className={denseRowClass}>
+                      <td className={denseTdClass}>
+                        <code className="font-mono text-small">{code.codePrefix}••••</code>
                       </td>
-                      <td className={adminTdClass}>{code.packageCode}</td>
-                      <td className={adminTdClass}>{code.productionBatch}</td>
-                      <td className={adminTdClass}>{formatDate(code.issuedAt)}</td>
-                      <td className={adminTdClass}>{formatDate(code.validUntil)}</td>
-                      <td className={adminTdClass}>{t(`activation.status.${code.status}`)}</td>
-                      <td className={adminTdClass}>
-                        {code.status === "ISSUED" ? (
-                          <Button
-                            variant="tertiary"
-                            size="sm"
-                            leftIcon={<ShieldOff size={15} />}
-                            disabled={!canWrite || voidCode.isPending}
-                            onClick={() => {
-                              voidCode.mutate({ codeId: code.id, reason: reason.trim() });
-                            }}
-                          >
-                            {t("activation.void")}
-                          </Button>
-                        ) : (
-                          "—"
-                        )}
+                      <td className={`${denseTdClass} font-mono text-small`}>{code.packageCode}</td>
+                      <td className={denseTdClass}>{code.productionBatch}</td>
+                      <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                        {formatAdminDateTime(code.issuedAt)}
                       </td>
+                      <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                        {formatAdminDateTime(code.validUntil)}
+                      </td>
+                      <td className={`${denseTdClass} whitespace-nowrap`}>{t(`activation.status.${code.status}`)}</td>
+                      {canManage ? (
+                        <td className={denseTdClass}>
+                          {code.status === "ISSUED" ? (
+                            <Button
+                              variant="tertiary"
+                              size="sm"
+                              leftIcon={<ShieldOff size={14} />}
+                              disabled={!canWrite || voidCode.isPending}
+                              onClick={() => {
+                                voidCode.mutate({ codeId: code.id, reason: reason.trim() });
+                              }}
+                            >
+                              {t("activation.void")}
+                            </Button>
+                          ) : (
+                            EMPTY_CELL
+                          )}
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </AdminTableScroll>
+            </DenseTableFrame>
             <Pager
               page={codes.data.number}
               totalPages={codes.data.totalPages}
@@ -282,76 +355,106 @@ export function AdminActivationCodesPage() {
             />
           </>
         ) : null}
-        <ApiErrorNote error={voidCode.error} />
-      </AdminSection>
+        <MutationErrorNote error={voidCode.error} />
+      </DensePanel>
 
-      <AdminSection title={t("activation.batchesTitle")}>
-        {batches.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-        {batches.isError ? <ApiErrorNote error={batches.error} /> : null}
+      <DensePanel title={t("activation.batchesTitle")}>
+        {batches.isPending ? <TableSkeleton rows={4} /> : null}
+        {batches.isError ? (
+          <AdminQueryError
+            error={batches.error}
+            onRetry={() => {
+              void batches.refetch();
+            }}
+          />
+        ) : null}
+        {batches.data && batches.data.items.length === 0 ? (
+          <p className="py-6 text-center text-caption text-text-secondary">{t("feedback.empty")}</p>
+        ) : null}
         {batches.data && batches.data.items.length > 0 ? (
           <>
-            <AdminTableScroll>
-              <table className={adminTableClass}>
+            <DenseTableFrame label={t("activation.batchesTitle")}>
+              <table className={denseTableClass}>
                 <thead>
                   <tr>
-                    <th className={adminThClass}>{t("activation.colBatch")}</th>
-                    <th className={adminThClass}>{t("activation.colPackage")}</th>
-                    <th className={adminThClass}>{t("activation.colTotals")}</th>
-                    <th className={adminThClass}>{t("activation.colIssued")}</th>
-                    <th className={adminThClass}>{t("activation.colValidUntil")}</th>
-                    <th className={adminThClass}>{t("activation.colAction")}</th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colBatch")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colPackage")}
+                    </th>
+                    <th scope="col" className={`${denseThClass} text-right`}>
+                      {t("activation.colTotals")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colIssued")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colValidUntil")}
+                    </th>
+                    {canManage ? (
+                      <th scope="col" className={denseThClass}>
+                        {t("activation.colAction")}
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
                   {batches.data.items.map((batch) => (
-                    <tr key={batch.batchId}>
-                      <td className={adminTdClass}>{batch.productionBatch}</td>
-                      <td className={adminTdClass}>{batch.packageCode}</td>
-                      <td className={adminTdClass}>
+                    <tr key={batch.batchId} className={denseRowClass}>
+                      <td className={denseTdClass}>{batch.productionBatch}</td>
+                      <td className={`${denseTdClass} font-mono text-small`}>{batch.packageCode}</td>
+                      <td className={`${denseTdClass} whitespace-nowrap text-right font-mono tabular-nums`}>
                         {batch.totalCodes} / {batch.redeemedCodes} / {batch.voidedCodes}
                       </td>
-                      <td className={adminTdClass}>{formatDate(batch.issuedAt)}</td>
-                      <td className={adminTdClass}>{formatDate(batch.validUntil)}</td>
-                      <td className={adminTdClass}>
-                        <div className="flex flex-wrap gap-2">
-                          {batch.csvAvailable ? (
+                      <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                        {formatAdminDateTime(batch.issuedAt)}
+                      </td>
+                      <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                        {formatAdminDateTime(batch.validUntil)}
+                      </td>
+                      {canManage ? (
+                        <td className={denseTdClass}>
+                          <div className="flex flex-wrap gap-2">
+                            {batch.csvAvailable ? (
+                              <Button
+                                variant="tertiary"
+                                size="sm"
+                                leftIcon={<Download size={14} />}
+                                disabled={!canWrite || downloadCsv.isPending}
+                                onClick={() => {
+                                  downloadCsv.mutate(
+                                    { batchId: batch.batchId, reason: reason.trim() },
+                                    {
+                                      onSuccess: (blob) => {
+                                        downloadBlob(blob, `activation-codes-${batch.batchId}.csv`);
+                                      },
+                                    },
+                                  );
+                                }}
+                              >
+                                {t("activation.downloadCsv")}
+                              </Button>
+                            ) : null}
                             <Button
                               variant="tertiary"
                               size="sm"
-                              leftIcon={<Download size={15} />}
-                              disabled={!canWrite || downloadCsv.isPending}
+                              leftIcon={<ShieldOff size={14} />}
+                              disabled={!canWrite || voidBatch.isPending}
                               onClick={() => {
-                                downloadCsv.mutate(
-                                  { batchId: batch.batchId, reason: reason.trim() },
-                                  {
-                                    onSuccess: (blob) => {
-                                      downloadBlob(blob, `activation-codes-${batch.batchId}.csv`);
-                                    },
-                                  },
-                                );
+                                voidBatch.mutate({ batchId: batch.batchId, reason: reason.trim() });
                               }}
                             >
-                              {t("activation.downloadCsv")}
+                              {t("activation.voidBatch")}
                             </Button>
-                          ) : null}
-                          <Button
-                            variant="tertiary"
-                            size="sm"
-                            leftIcon={<ShieldOff size={15} />}
-                            disabled={!canWrite || voidBatch.isPending}
-                            onClick={() => {
-                              voidBatch.mutate({ batchId: batch.batchId, reason: reason.trim() });
-                            }}
-                          >
-                            {t("activation.voidBatch")}
-                          </Button>
-                        </div>
-                      </td>
+                          </div>
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </AdminTableScroll>
+            </DenseTableFrame>
             <Pager
               page={batches.data.number}
               totalPages={batches.data.totalPages}
@@ -360,8 +463,8 @@ export function AdminActivationCodesPage() {
             />
           </>
         ) : null}
-        <ApiErrorNote error={voidBatch.error ?? downloadCsv.error} />
-      </AdminSection>
+        <MutationErrorNote error={voidBatch.error ?? downloadCsv.error} />
+      </DensePanel>
     </div>
   );
 }

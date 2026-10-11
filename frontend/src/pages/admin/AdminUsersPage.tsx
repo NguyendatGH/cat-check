@@ -1,24 +1,33 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
+import { Lock, LockOpen } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import {
   AdminPageHeader,
-  AdminSection,
+  AdminQueryError,
   AdminSelect,
-  AdminTableScroll,
-  ApiErrorNote,
+  DensePanel,
+  DenseTableFrame,
+  KpiGrid,
+  KpiTile,
+  MutationErrorNote,
   Pager,
   ReasonField,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  TableSkeleton,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
+  formatAdminDateTime,
+  formatAdminNumber,
   isReasonValid,
   useAdminUsers,
   useLockAdminUser,
   useUnlockAdminUser,
 } from "@/features/admin";
 import type { AdminUserStatus } from "@/features/admin";
+import { useGroup1Can } from "./group1Access";
 
 const STATUSES: AdminUserStatus[] = [
   "PENDING_VERIFICATION",
@@ -29,14 +38,9 @@ const STATUSES: AdminUserStatus[] = [
   "ANONYMIZED",
 ];
 
-function formatDate(value: string | null): string {
-  return value == null
-    ? "—"
-    : new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
-
 export function AdminUsersPage() {
   const { t } = useTranslation("admin");
+  const can = useGroup1Can();
   const [status, setStatus] = useState<AdminUserStatus | "">("");
   const [email, setEmail] = useState("");
   const [packageCode, setPackageCode] = useState("");
@@ -45,20 +49,25 @@ export function AdminUsersPage() {
   const users = useAdminUsers({ status, email, packageCode, page, size: 20 });
   const lock = useLockAdminUser();
   const unlock = useUnlockAdminUser();
-  const canWrite = isReasonValid(reason);
+  // Khoá/mở khoá: backend chỉ cho ADMIN_SUPER (ROLES.userLock).
+  const canLock = can("userLock");
+  const canWrite = canLock && isReasonValid(reason);
+  const items = users.data?.items ?? [];
+  const countOf = (value: AdminUserStatus) => items.filter((user) => user.status === value).length;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <AdminPageHeader
         title={t("pages.users.title")}
         description={t("pages.users.description")}
         specRef="L1 · GET /api/v1/admin/users"
       />
-      <AdminSection title={t("users.filtersTitle")}>
-        <div className="grid gap-4 md:grid-cols-3">
+      <DensePanel title={t("users.filtersTitle")}>
+        <div className="grid gap-3 md:grid-cols-3">
           <Input
             label={t("users.email")}
             value={email}
+            className="h-10"
             onChange={(event) => {
               setEmail(event.target.value);
               setPage(0);
@@ -67,6 +76,7 @@ export function AdminUsersPage() {
           <Input
             label={t("users.packageCode")}
             value={packageCode}
+            className="h-10"
             onChange={(event) => {
               setPackageCode(event.target.value);
               setPage(0);
@@ -75,6 +85,7 @@ export function AdminUsersPage() {
           <AdminSelect
             label={t("users.status")}
             value={status}
+            className="h-10"
             onChange={(event) => {
               setStatus(event.target.value as AdminUserStatus | "");
               setPage(0);
@@ -88,33 +99,85 @@ export function AdminUsersPage() {
             ))}
           </AdminSelect>
         </div>
-        <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
-      </AdminSection>
-      <AdminSection title={t("users.listTitle")}>
-        {users.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-        {users.isError ? <ApiErrorNote error={users.error} /> : null}
-        {users.data && users.data.items.length === 0 ? (
-          <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
+        {canLock ? (
+          <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
+        ) : (
+          <p className="text-caption text-text-secondary">{t("users.readOnlyNote")}</p>
+        )}
+      </DensePanel>
+
+      {users.data ? (
+        <KpiGrid label={t("dense.kpiLabel")}>
+          <KpiTile label={t("users.kpiTotal")} value={formatAdminNumber(users.data.totalElements)} tone="info" />
+          <KpiTile
+            label={t("users.statuses.ACTIVE")}
+            value={formatAdminNumber(countOf("ACTIVE"))}
+            hint={t("dense.onPageHint")}
+            tone="success"
+          />
+          <KpiTile
+            label={t("users.statuses.LOCKED")}
+            value={formatAdminNumber(countOf("LOCKED"))}
+            hint={t("dense.onPageHint")}
+            tone={countOf("LOCKED") > 0 ? "warning" : "neutral"}
+          />
+          <KpiTile
+            label={t("users.statuses.DELETION_REQUESTED")}
+            value={formatAdminNumber(countOf("DELETION_REQUESTED"))}
+            hint={t("dense.onPageHint")}
+            tone={countOf("DELETION_REQUESTED") > 0 ? "danger" : "neutral"}
+          />
+        </KpiGrid>
+      ) : null}
+
+      <DensePanel title={t("users.listTitle")}>
+        {users.isPending ? <TableSkeleton /> : null}
+        {users.isError ? (
+          <AdminQueryError
+            error={users.error}
+            onRetry={() => {
+              void users.refetch();
+            }}
+          />
         ) : null}
-        {users.data && users.data.items.length > 0 ? (
+        {users.data && items.length === 0 ? (
+          <p className="py-6 text-center text-caption text-text-secondary">{t("feedback.empty")}</p>
+        ) : null}
+        {users.data && items.length > 0 ? (
           <>
-            <AdminTableScroll>
-              <table className={adminTableClass}>
+            <DenseTableFrame label={t("users.listTitle")}>
+              <table className={denseTableClass}>
                 <thead>
                   <tr>
-                    <th className={adminThClass}>{t("users.colUser")}</th>
-                    <th className={adminThClass}>{t("users.colStatus")}</th>
-                    <th className={adminThClass}>{t("users.colOnboarding")}</th>
-                    <th className={adminThClass}>{t("users.colCats")}</th>
-                    <th className={adminThClass}>{t("users.colScans")}</th>
-                    <th className={adminThClass}>{t("users.colLastLogin")}</th>
-                    <th className={adminThClass}>{t("users.colAction")}</th>
+                    <th scope="col" className={denseThClass}>
+                      {t("users.colUser")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("users.colStatus")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("users.colOnboarding")}
+                    </th>
+                    <th scope="col" className={`${denseThClass} text-right`}>
+                      {t("users.colCats")}
+                    </th>
+                    <th scope="col" className={`${denseThClass} text-right`}>
+                      {t("users.colScans")}
+                    </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("users.colLastLogin")}
+                    </th>
+                    {canLock ? (
+                      <th scope="col" className={denseThClass}>
+                        {t("users.colAction")}
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
-                  {users.data.items.map((user) => (
-                    <tr key={user.userId}>
-                      <td className={adminTdClass}>
+                  {items.map((user) => (
+                    <tr key={user.userId} className={denseRowClass}>
+                      <td className={denseTdClass}>
                         <Link
                           className="font-semibold text-primary-dark hover:underline"
                           to={`/admin/users/${user.userId}`}
@@ -123,41 +186,47 @@ export function AdminUsersPage() {
                         </Link>
                         <span className="block text-small text-text-secondary">{user.emailMasked}</span>
                       </td>
-                      <td className={adminTdClass}>{t(`users.statuses.${user.status}`)}</td>
-                      <td className={adminTdClass}>{user.onboardingStatus}</td>
-                      <td className={adminTdClass}>{user.catCount}</td>
-                      <td className={adminTdClass}>{user.scanCount}</td>
-                      <td className={adminTdClass}>{formatDate(user.lastLoginAt)}</td>
-                      <td className={adminTdClass}>
-                        {user.status === "LOCKED" ? (
-                          <Button
-                            variant="tertiary"
-                            size="sm"
-                            disabled={!canWrite || unlock.isPending}
-                            onClick={() => {
-                              unlock.mutate({ userId: user.userId, reason: reason.trim() });
-                            }}
-                          >
-                            {t("users.unlock")}
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="tertiary"
-                            size="sm"
-                            disabled={!canWrite || lock.isPending || user.status === "ANONYMIZED"}
-                            onClick={() => {
-                              lock.mutate({ userId: user.userId, reason: reason.trim() });
-                            }}
-                          >
-                            {t("users.lock")}
-                          </Button>
-                        )}
+                      <td className={`${denseTdClass} whitespace-nowrap`}>{t(`users.statuses.${user.status}`)}</td>
+                      <td className={`${denseTdClass} font-mono text-small`}>{user.onboardingStatus}</td>
+                      <td className={`${denseTdClass} text-right font-mono tabular-nums`}>{user.catCount}</td>
+                      <td className={`${denseTdClass} text-right font-mono tabular-nums`}>{user.scanCount}</td>
+                      <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                        {formatAdminDateTime(user.lastLoginAt)}
                       </td>
+                      {canLock ? (
+                        <td className={denseTdClass}>
+                          {user.status === "LOCKED" ? (
+                            <Button
+                              variant="tertiary"
+                              size="sm"
+                              leftIcon={<LockOpen size={14} />}
+                              disabled={!canWrite || unlock.isPending}
+                              onClick={() => {
+                                unlock.mutate({ userId: user.userId, reason: reason.trim() });
+                              }}
+                            >
+                              {t("users.unlock")}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="tertiary"
+                              size="sm"
+                              leftIcon={<Lock size={14} />}
+                              disabled={!canWrite || lock.isPending || user.status === "ANONYMIZED"}
+                              onClick={() => {
+                                lock.mutate({ userId: user.userId, reason: reason.trim() });
+                              }}
+                            >
+                              {t("users.lock")}
+                            </Button>
+                          )}
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </AdminTableScroll>
+            </DenseTableFrame>
             <Pager
               page={users.data.number}
               totalPages={users.data.totalPages}
@@ -166,8 +235,8 @@ export function AdminUsersPage() {
             />
           </>
         ) : null}
-        <ApiErrorNote error={lock.error ?? unlock.error} />
-      </AdminSection>
+        <MutationErrorNote error={lock.error ?? unlock.error} />
+      </DensePanel>
     </div>
   );
 }

@@ -177,7 +177,11 @@
       "reasonInput": "Lý do",
       "apply": "Áp dụng",
       "noApiNote": "Endpoint /api/v1/privacy/requests đang có là của người dùng cuối: nó chỉ trả yêu cầu của chính tài khoản đang đăng nhập, không phải hàng chờ toàn hệ thống. Dùng nó ở màn này sẽ hiển thị sai sự thật.",
-      "title": "Yêu cầu về quyền riêng tư"
+      "title": "Yêu cầu về quyền riêng tư",
+      "kpiTotal": "Tổng yêu cầu khớp bộ lọc",
+      "kpiOpen": "Đang mở",
+      "kpiOverdue": "Quá hạn xử lý",
+      "kpiExtended": "Đã gia hạn"
     },
     "privacyRetention": {
       "description": "Danh mục dữ liệu đang lưu và các mục đích xử lý đã công bố.",
@@ -207,7 +211,12 @@
       "reason": "Lý do",
       "requestedAt": "Thời điểm",
       "action": "Thao tác",
-      "approve": "Duyệt reset"
+      "approve": "Duyệt reset",
+      "rolesReadOnly": "Chỉ ADMIN_SUPER được cấp, gỡ vai trò và tạo yêu cầu reset TOTP. Bạn chỉ xem được hàng đợi.",
+      "approveReadOnly": "Chỉ DPO được duyệt reset TOTP. Bạn chỉ xem được hàng đợi.",
+      "expiresAt": "Hết hạn",
+      "selfRequest": "Bạn tạo yêu cầu này, cần người khác duyệt",
+      "expired": "Đã hết hạn"
     },
     "userDetail": {
       "description": "Hồ sơ một người dùng: trạng thái, gói, mèo, lượt quét, credit.",
@@ -271,7 +280,8 @@
     "ip": "Địa chỉ IP",
     "lastSeen": "Hoạt động gần nhất",
     "expires": "Hết hạn",
-    "unknownDevice": "Thiết bị không rõ"
+    "unknownDevice": "Thiết bị không rõ",
+    "sessionsReadOnly": "Xem và thu hồi phiên đăng nhập cần vai trò ADMIN_SUPER."
   },
   "auditLog": {
     "filtersTitle": "Bộ lọc nhật ký",
@@ -283,7 +293,8 @@
     "occurredAt": "Thời gian",
     "actor": "Actor",
     "subject": "Đối tượng",
-    "metadata": "Metadata"
+    "metadata": "Metadata",
+    "search": "Tìm trong trang này"
   },
   "activation": {
     "issueButton": "Sinh lô mã",
@@ -316,7 +327,9 @@
     },
     "void": "Vô hiệu mã",
     "voidBatch": "Vô hiệu lô",
-    "downloadCsv": "Tải CSV"
+    "downloadCsv": "Tải CSV",
+    "kpiTotal": "Tổng mã khớp bộ lọc",
+    "readOnlyNote": "Bạn chỉ có quyền tra cứu. Sinh lô, tải CSV và vô hiệu mã cần vai trò ADMIN_SUPER."
   },
   "packageAdmin": {
     "listTitle": "Danh sách gói",
@@ -339,7 +352,8 @@
     "export": "Xuất hồ sơ",
     "storeImage": "Lưu ảnh",
     "action": "Thao tác",
-    "save": "Lưu thay đổi"
+    "save": "Lưu thay đổi",
+    "readOnlyNote": "Bạn chỉ có quyền xem. Sửa gói cần vai trò ADMIN_SUPER."
   },
   "jobs": {
     "filtersTitle": "Bộ lọc lượt chạy",
@@ -354,7 +368,14 @@
     "colDuration": "Thời lượng",
     "colRows": "Số dòng",
     "colError": "Lỗi",
-    "refresh": "Làm mới"
+    "refresh": "Làm mới",
+    "search": "Tìm trong trang này",
+    "runTitle": "Chạy job thủ công",
+    "runDescription": "Chỉ chạy được job đã đăng ký đường chạy tay. Lý do được ghi vào nhật ký kiểm toán.",
+    "runName": "Tên job",
+    "runDry": "Chạy thử (dry-run), không thay đổi dữ liệu",
+    "runButton": "Chạy job",
+    "runResult": "{{name}}: {{status}} — xử lý {{processed}}, xoá {{deleted}}, lỗi {{failed}}."
   },
   "outbox": {
     "filtersTitle": "Bộ lọc hàng đợi",
@@ -371,7 +392,11 @@
     "colNextAttempt": "Lần thử tiếp",
     "colError": "Lỗi cuối",
     "colCreated": "Tạo lúc",
-    "refresh": "Làm mới"
+    "refresh": "Làm mới",
+    "search": "Tìm trong trang này",
+    "colActions": "Thao tác",
+    "resend": "Gửi lại",
+    "resent": "Đã đưa bản ghi về hàng đợi, sẽ gửi ở lần chạy kế tiếp."
   },
   "users": {
     "filtersTitle": "Bộ lọc người dùng",
@@ -396,7 +421,9 @@
       "RESTRICTED": "Bị hạn chế",
       "DELETION_REQUESTED": "Chờ xoá",
       "ANONYMIZED": "Đã ẩn danh"
-    }
+    },
+    "kpiTotal": "Tổng tài khoản khớp bộ lọc",
+    "readOnlyNote": "Bạn chỉ có quyền xem. Khoá và mở khoá tài khoản cần vai trò ADMIN_SUPER."
   },
   "dashboard": {
     "checkedAt": "Kiểm tra lúc {{at}}",
@@ -1066,5 +1093,27 @@
     "createdAt": "Ghi vào hệ thống lúc",
     "evidence": "Bằng chứng kèm theo",
     "loadMore": "Tải thêm bản ghi cũ hơn"
+  },
+  "broadcastOps": {
+    "title": "Phát thông báo hệ thống",
+    "description": "Ghi một thông báo cho mọi người dùng đủ điều kiện. Hãy chạy thử để xem số người nhận trước khi phát thật.",
+    "template": "Mẫu thông báo",
+    "templates": {
+      "SYSTEM_MAINTENANCE": "Bảo trì hệ thống",
+      "PRIVACY_INCIDENT_NOTICE": "Thông báo sự cố quyền riêng tư"
+    },
+    "incidentWarning": "Mẫu sự cố phải nêu đủ nội dung theo quy định và có hạn thông báo 72 giờ.",
+    "titleField": "Tiêu đề",
+    "titleRequired": "Nhập tiêu đề (tối đa 200 ký tự).",
+    "bodyField": "Nội dung",
+    "bodyRequired": "Nhập nội dung (tối đa 4000 ký tự).",
+    "dryRun": "Chạy thử",
+    "send": "Phát thật",
+    "resultDry": "Chạy thử: {{matched}} người nhận phù hợp. Chưa ghi thông báo nào.",
+    "resultSent": "Đã phát: {{matched}} người nhận phù hợp, {{queued}} thông báo được ghi.",
+    "confirmTitle": "Xác nhận phát thông báo",
+    "confirmBody": "Mẫu \"{{template}}\" sẽ được ghi cho mọi người dùng đủ điều kiện và không thể thu hồi.",
+    "confirmCheck": "Tôi đã kiểm tra nội dung và xác nhận phát thật.",
+    "confirmSend": "Phát thật"
   }
 }

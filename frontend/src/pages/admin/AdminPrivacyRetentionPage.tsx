@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
+import { FlaskConical, Pencil } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import {
   AdminPageHeader,
-  AdminSection,
-  AdminTableScroll,
-  ApiErrorNote,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  AdminQueryError,
+  AdminSelect,
+  DensePanel,
+  DenseTableFrame,
+  EMPTY_CELL,
+  MutationErrorNote,
+  TableSkeleton,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
   useAdminConsentPurposes,
   useAdminDataInventory,
   useAdminRetentionPolicies,
@@ -17,6 +22,7 @@ import {
   useUpdateAdminRetentionPolicy,
 } from "@/features/admin";
 import type { AdminRetentionPolicy, RetentionAction } from "@/features/admin";
+import { useGroup1Can } from "./group1Access";
 
 const RETENTION_ACTIONS: RetentionAction[] = ["HARD_DELETE", "ANONYMIZE", "ARCHIVE", "MASK"];
 
@@ -37,6 +43,10 @@ function toDraft(policy: AdminRetentionPolicy) {
 /** `/admin/privacy/retention` — kiểm kê dữ liệu và chỉnh retention thật cho DPO. */
 export function AdminPrivacyRetentionPage() {
   const { t } = useTranslation("admin");
+  const can = useGroup1Can();
+  // Sửa chính sách (L57): chỉ DPO (ROLES.retentionWrite). Dry-run chỉ đọc (L58): ROLES.retention.
+  const canEdit = can("retentionWrite");
+  const canDryRun = can("retention");
   const inventory = useAdminDataInventory();
   const purposes = useAdminConsentPurposes();
   const policies = useAdminRetentionPolicies();
@@ -56,7 +66,13 @@ export function AdminPrivacyRetentionPage() {
   }
 
   function submitEdit() {
-    if (editingCode === null || draft === null || draft.targetTable.trim() === "" || draft.anchorColumn.trim() === "")
+    if (
+      !canEdit ||
+      editingCode === null ||
+      draft === null ||
+      draft.targetTable.trim() === "" ||
+      draft.anchorColumn.trim() === ""
+    )
       return;
     update.mutate(
       {
@@ -83,234 +99,303 @@ export function AdminPrivacyRetentionPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <AdminPageHeader
         title={t("pages.privacyRetention.title")}
         description={t("pages.privacyRetention.description")}
         specRef="GET/PATCH /api/v1/admin/privacy/retention-policies"
       />
 
-      <AdminSection title={t("retention.inventoryTitle")} description={t("retention.inventoryDescription")}>
+      <DensePanel title={t("retention.inventoryTitle")} description={t("retention.inventoryDescription")}>
         {inventory.isPending ? (
-          <Loading label={t("feedback.loading")} />
+          <TableSkeleton rows={4} />
         ) : inventory.isError ? (
-          <ApiErrorNote error={inventory.error} />
+          <AdminQueryError
+            error={inventory.error}
+            onRetry={() => {
+              void inventory.refetch();
+            }}
+          />
         ) : inventoryItems.length === 0 ? (
           <Empty label={t("feedback.empty")} />
         ) : (
-          <AdminTableScroll>
-            <table className={adminTableClass}>
+          <DenseTableFrame label={t("retention.inventoryTitle")}>
+            <table className={denseTableClass}>
               <thead>
                 <tr>
-                  <th className={adminThClass}>{t("retention.colCode")}</th>
-                  <th className={adminThClass}>{t("retention.colCategory")}</th>
-                  <th className={adminThClass}>{t("retention.colSensitivity")}</th>
-                  <th className={adminThClass}>{t("retention.colLegalBasis")}</th>
-                  <th className={adminThClass}>{t("retention.colPolicy")}</th>
-                  <th className={adminThClass}>{t("retention.colStorage")}</th>
-                  <th className={adminThClass}>{t("retention.colCrossBorder")}</th>
-                  <th className={adminThClass}>{t("retention.colRecipient")}</th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colCode")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colCategory")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colSensitivity")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colLegalBasis")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colPolicy")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colStorage")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colCrossBorder")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colRecipient")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {inventoryItems.map((item) => (
-                  <tr key={item.code}>
-                    <td className={adminTdClass}>
+                  <tr key={item.code} className={denseRowClass}>
+                    <td className={denseTdClass}>
                       <span className="font-mono text-small font-bold">{item.code}</span>
                       <span className="block max-w-[32ch] pt-0.5 text-small text-text-tertiary">
                         {item.description}
                       </span>
                     </td>
-                    <td className={adminTdClass}>{item.category}</td>
-                    <td className={adminTdClass}>{item.sensitivity}</td>
-                    <td className={adminTdClass}>{item.legalBasis}</td>
-                    <td className={adminTdClass}>{item.retentionPolicyCode ?? "—"}</td>
-                    <td className={adminTdClass}>{item.storageLocation ?? "—"}</td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>{item.category}</td>
+                    <td className={denseTdClass}>{item.sensitivity}</td>
+                    <td className={denseTdClass}>{item.legalBasis}</td>
+                    <td className={`${denseTdClass} font-mono text-small`}>{item.retentionPolicyCode ?? EMPTY_CELL}</td>
+                    <td className={denseTdClass}>{item.storageLocation ?? EMPTY_CELL}</td>
+                    <td className={denseTdClass}>
                       {item.crossBorder ? t("retention.crossBorderYes") : t("retention.crossBorderNo")}
                     </td>
-                    <td className={adminTdClass}>{item.recipient ?? "—"}</td>
+                    <td className={denseTdClass}>{item.recipient ?? EMPTY_CELL}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </AdminTableScroll>
+          </DenseTableFrame>
         )}
-      </AdminSection>
+      </DensePanel>
 
-      <AdminSection title={t("retention.purposesTitle")} description={t("retention.purposesDescription")}>
+      <DensePanel title={t("retention.purposesTitle")} description={t("retention.purposesDescription")}>
         {purposes.isPending ? (
-          <Loading label={t("feedback.loading")} />
+          <TableSkeleton rows={4} />
         ) : purposes.isError ? (
-          <ApiErrorNote error={purposes.error} />
+          <AdminQueryError
+            error={purposes.error}
+            onRetry={() => {
+              void purposes.refetch();
+            }}
+          />
         ) : purposeItems.length === 0 ? (
           <Empty label={t("feedback.empty")} />
         ) : (
-          <AdminTableScroll>
-            <table className={adminTableClass}>
+          <DenseTableFrame label={t("retention.purposesTitle")}>
+            <table className={denseTableClass}>
               <thead>
                 <tr>
-                  <th className={adminThClass}>{t("retention.colCode")}</th>
-                  <th className={adminThClass}>{t("retention.colPurposeLabel")}</th>
-                  <th className={adminThClass}>{t("retention.colMandatory")}</th>
-                  <th className={adminThClass}>{t("retention.colSensitive")}</th>
-                  <th className={adminThClass}>{t("retention.colWithdrawEffect")}</th>
-                  <th className={adminThClass}>{t("retention.colPhase")}</th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colCode")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colPurposeLabel")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colMandatory")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colSensitive")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colWithdrawEffect")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colPhase")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {purposeItems.map((purpose) => (
-                  <tr key={purpose.code}>
-                    <td className={adminTdClass}>
+                  <tr key={purpose.code} className={denseRowClass}>
+                    <td className={denseTdClass}>
                       <span className="font-mono text-small font-bold">{purpose.code}</span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="font-semibold">{purpose.label}</span>
                       <span className="block max-w-[48ch] pt-0.5 text-small text-text-tertiary">
                         {purpose.description}
                       </span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       {purpose.mandatory ? t("retention.flagYes") : t("retention.flagNo")}
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       {purpose.sensitive ? t("retention.flagYes") : t("retention.flagNo")}
                     </td>
-                    <td className={adminTdClass}>{purpose.withdrawEffect ?? "—"}</td>
-                    <td className={adminTdClass}>{purpose.phase}</td>
+                    <td className={denseTdClass}>{purpose.withdrawEffect ?? EMPTY_CELL}</td>
+                    <td className={`${denseTdClass} font-mono text-small`}>{purpose.phase}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </AdminTableScroll>
+          </DenseTableFrame>
         )}
-      </AdminSection>
-
-      <AdminSection title={t("retention.policiesTitle")} description={t("retention.policiesDescription")}>
+      </DensePanel>
+      <DensePanel title={t("retention.policiesTitle")} description={t("retention.policiesDescription")}>
         {policies.isPending ? (
-          <Loading label={t("feedback.loading")} />
+          <TableSkeleton rows={4} />
         ) : policies.isError ? (
-          <ApiErrorNote error={policies.error} />
+          <AdminQueryError
+            error={policies.error}
+            onRetry={() => {
+              void policies.refetch();
+            }}
+          />
         ) : policyItems.length === 0 ? (
           <Empty label={t("feedback.empty")} />
         ) : (
-          <AdminTableScroll>
-            <table className={adminTableClass}>
+          <DenseTableFrame label={t("retention.policiesTitle")}>
+            <table className={denseTableClass}>
               <thead>
                 <tr>
-                  <th className={adminThClass}>{t("retention.colCode")}</th>
-                  <th className={adminThClass}>{t("retention.colTarget")}</th>
-                  <th className={adminThClass}>{t("retention.colDays")}</th>
-                  <th className={adminThClass}>{t("retention.colAction")}</th>
-                  <th className={adminThClass}>{t("retention.colThreshold")}</th>
-                  <th className={adminThClass}>{t("retention.colEnabled")}</th>
-                  <th className={adminThClass}>{t("retention.action")}</th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colCode")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colTarget")}
+                  </th>
+                  <th scope="col" className={`${denseThClass} text-right`}>
+                    {t("retention.colDays")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colAction")}
+                  </th>
+                  <th scope="col" className={`${denseThClass} text-right`}>
+                    {t("retention.colThreshold")}
+                  </th>
+                  <th scope="col" className={denseThClass}>
+                    {t("retention.colEnabled")}
+                  </th>
+                  {canEdit || canDryRun ? (
+                    <th scope="col" className={denseThClass}>
+                      {t("retention.action")}
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
                 {policyItems.map((policy) => (
-                  <tr key={policy.code}>
-                    <td className={adminTdClass}>
+                  <tr key={policy.code} className={denseRowClass} data-selected={policy.code === editingCode}>
+                    <td className={denseTdClass}>
                       <span className="font-mono text-small font-bold">{policy.code}</span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="font-mono text-small">
                         {policy.targetTable}.{policy.anchorColumn}
                       </span>
                     </td>
-                    <td className={adminTdClass}>{policy.retentionDays ?? t("retention.accountLifetime")}</td>
-                    <td className={adminTdClass}>{policy.actionOnExpiry}</td>
-                    <td className={adminTdClass}>{policy.safetyThresholdPercent}%</td>
-                    <td className={adminTdClass}>{policy.enabled ? t("retention.flagYes") : t("retention.flagNo")}</td>
-                    <td className={adminTdClass}>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          startEdit(policy);
-                        }}
-                      >
-                        {t("retention.edit")}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="tertiary"
-                        size="sm"
-                        className="ml-2"
-                        disabled={dryRun.isPending}
-                        onClick={() => { dryRun.mutate(policy.code); }}
-                      >
-                        {t("retention.dryRun")}
-                      </Button>
+                    <td className={`${denseTdClass} text-right font-mono tabular-nums`}>
+                      {policy.retentionDays ?? t("retention.accountLifetime")}
                     </td>
+                    <td className={`${denseTdClass} font-mono text-small`}>{policy.actionOnExpiry}</td>
+                    <td className={`${denseTdClass} text-right font-mono tabular-nums`}>
+                      {policy.safetyThresholdPercent}%
+                    </td>
+                    <td className={denseTdClass}>{policy.enabled ? t("retention.flagYes") : t("retention.flagNo")}</td>
+                    {canEdit || canDryRun ? (
+                      <td className={denseTdClass}>
+                        <div className="flex flex-wrap gap-2">
+                          {canEdit ? (
+                            <Button
+                              type="button"
+                              variant="tertiary"
+                              size="sm"
+                              leftIcon={<Pencil size={14} />}
+                              onClick={() => {
+                                startEdit(policy);
+                              }}
+                            >
+                              {t("retention.edit")}
+                            </Button>
+                          ) : null}
+                          {canDryRun ? (
+                            <Button
+                              type="button"
+                              variant="tertiary"
+                              size="sm"
+                              leftIcon={<FlaskConical size={14} />}
+                              disabled={dryRun.isPending}
+                              onClick={() => {
+                                dryRun.mutate(policy.code);
+                              }}
+                            >
+                              {t("actions.dryRun")}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
             </table>
-          </AdminTableScroll>
+          </DenseTableFrame>
         )}
-        {draft !== null ? (
-          <div className="mt-4 grid gap-3 rounded-lg border border-border-subtle bg-background-alt p-4 md:grid-cols-2">
-            <p className="md:col-span-2 text-small font-semibold">{t("retention.editTitle", { code: editingCode })}</p>
-            <label className="flex flex-col gap-1 text-small">
-              <span>{t("retention.colTarget")}</span>
-              <Input
-                value={draft.targetTable}
-                onChange={(event) => {
-                  setDraft({ ...draft, targetTable: event.target.value });
-                }}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-small">
-              <span>{t("retention.anchor")}</span>
-              <Input
-                value={draft.anchorColumn}
-                onChange={(event) => {
-                  setDraft({ ...draft, anchorColumn: event.target.value });
-                }}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-small">
-              <span>{t("retention.colDays")}</span>
-              <Input
-                type="number"
-                min={1}
-                value={draft.retentionDays}
-                onChange={(event) => {
-                  setDraft({ ...draft, retentionDays: event.target.value });
-                }}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-small">
-              <span>{t("retention.colAction")}</span>
-              <select
-                className="h-10 rounded-md border border-border-subtle bg-background px-3 text-small"
-                value={draft.actionOnExpiry}
-                onChange={(event) => {
-                  setDraft({ ...draft, actionOnExpiry: event.target.value as RetentionAction });
-                }}
-              >
-                {RETENTION_ACTIONS.map((action) => (
-                  <option key={action} value={action}>
-                    {action}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-small">
-              <span>{t("retention.colThreshold")}</span>
-              <Input
-                type="number"
-                min={1}
-                max={100}
-                value={draft.safetyThresholdPercent}
-                onChange={(event) => {
-                  setDraft({ ...draft, safetyThresholdPercent: event.target.value });
-                }}
-              />
-            </label>
-            <label className="flex items-center gap-2 pt-6 text-small">
+        {canEdit && draft !== null ? (
+          <div className="grid gap-3 rounded-lg border border-border bg-background-alt p-3 md:grid-cols-2">
+            <p className="text-caption font-semibold md:col-span-2">
+              {t("retention.editTitle", { code: editingCode })}
+            </p>
+            <Input
+              label={t("retention.colTarget")}
+              value={draft.targetTable}
+              className="h-10 font-mono"
+              onChange={(event) => {
+                setDraft({ ...draft, targetTable: event.target.value });
+              }}
+            />
+            <Input
+              label={t("retention.anchor")}
+              value={draft.anchorColumn}
+              className="h-10 font-mono"
+              onChange={(event) => {
+                setDraft({ ...draft, anchorColumn: event.target.value });
+              }}
+            />
+            <Input
+              label={t("retention.colDays")}
+              type="number"
+              min={1}
+              value={draft.retentionDays}
+              className="h-10"
+              onChange={(event) => {
+                setDraft({ ...draft, retentionDays: event.target.value });
+              }}
+            />
+            <AdminSelect
+              label={t("retention.colAction")}
+              value={draft.actionOnExpiry}
+              className="h-10"
+              onChange={(event) => {
+                setDraft({ ...draft, actionOnExpiry: event.target.value as RetentionAction });
+              }}
+            >
+              {RETENTION_ACTIONS.map((action) => (
+                <option key={action} value={action}>
+                  {action}
+                </option>
+              ))}
+            </AdminSelect>
+            <Input
+              label={t("retention.colThreshold")}
+              type="number"
+              min={1}
+              max={100}
+              value={draft.safetyThresholdPercent}
+              className="h-10"
+              onChange={(event) => {
+                setDraft({ ...draft, safetyThresholdPercent: event.target.value });
+              }}
+            />
+            <label className="flex items-center gap-2 text-caption md:pt-6">
               <input
                 type="checkbox"
                 checked={draft.enabled}
@@ -321,12 +406,13 @@ export function AdminPrivacyRetentionPage() {
               {t("retention.enabled")}
             </label>
             <div className="flex gap-2 md:col-span-2">
-              <Button type="button" onClick={submitEdit} disabled={update.isPending}>
-                {update.isPending ? t("feedback.saving") : t("retention.save")}
+              <Button type="button" size="sm" onClick={submitEdit} loading={update.isPending}>
+                {t("retention.save")}
               </Button>
               <Button
                 type="button"
-                variant="secondary"
+                variant="tertiary"
+                size="sm"
                 onClick={() => {
                   setEditingCode(null);
                   setDraft(null);
@@ -335,35 +421,29 @@ export function AdminPrivacyRetentionPage() {
                 {t("retention.cancel")}
               </Button>
             </div>
-            {update.isError ? (
-              <div className="md:col-span-2">
-                <ApiErrorNote error={update.error} />
-              </div>
-            ) : null}
+            <div className="md:col-span-2">
+              <MutationErrorNote error={update.error} />
+            </div>
           </div>
         ) : null}
         {dryRun.data ? (
-          <div className="rounded-xl border border-border bg-background-alt p-4 text-caption">
-            <p className="font-semibold">{t("retention.dryRunResult", { code: dryRun.data.policyCode })}</p>
-            <p className="pt-1 text-text-secondary">
-              {t("retention.dryRunCount", { count: dryRun.data.candidateCount, table: dryRun.data.targetTable, action: dryRun.data.actionOnExpiry })}
+          <div role="status" className="rounded-lg border border-border bg-background-alt px-3 py-2 text-caption">
+            <p className="font-semibold">{t("actions.dryRunResult", { code: dryRun.data.policyCode })}</p>
+            <p className="pt-0.5 text-text-secondary">
+              {t("actions.dryRunCount", {
+                count: dryRun.data.candidateCount,
+                table: dryRun.data.targetTable,
+                action: dryRun.data.actionOnExpiry,
+              })}
             </p>
           </div>
         ) : null}
-        {dryRun.isError ? <ApiErrorNote error={dryRun.error} /> : null}
-      </AdminSection>
+        <MutationErrorNote error={dryRun.error} />
+      </DensePanel>
     </div>
   );
 }
 
-function Loading({ label }: { label: string }) {
-  return (
-    <p className="flex items-center gap-2 text-caption text-text-secondary">
-      <Loader2 size={15} className="animate-spin" aria-hidden="true" />
-      {label}
-    </p>
-  );
-}
 function Empty({ label }: { label: string }) {
-  return <p className="text-caption text-text-secondary">{label}</p>;
+  return <p className="py-6 text-center text-caption text-text-secondary">{label}</p>;
 }

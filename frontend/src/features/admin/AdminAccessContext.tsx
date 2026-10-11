@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, type ReactNode } from "react";
 import { NO_ADMIN_CAPABILITIES, type AdminCapabilities, type AdminCapabilityKey } from "./adminAccess";
 
 /**
- * Bảng khả năng của người đang đăng nhập, do `AdminLayout` tính từ `ROLES` (app/router/roles.ts)
+ * Bảng khả năng của người đang đăng nhập, do `AdminLayout` tính từ `ROLES` (shared/auth/roles.ts)
  * rồi đặt vào đây. Trang admin chỉ hỏi `can("scanImage")`, không tự giữ danh sách vai trò.
  *
  * Đây chỉ là quyền HIỂN THỊ: server vẫn kiểm độc lập (AdminGuard), nên trang vẫn phải xử lý

@@ -45,7 +45,7 @@ import {
 } from "@/features/admin";
 import { ForbiddenPage } from "@/pages/system/ForbiddenPage";
 import { ROUTE_PATTERNS } from "../router/routes";
-import { ROLES, hasAnyRole } from "../router/roles";
+import { ROLES, hasAnyRole } from "@/shared/auth/roles";
 
 interface AdminNavItem extends AdminNavItemBase {
   labelKey: string;
@@ -54,7 +54,7 @@ interface AdminNavItem extends AdminNavItemBase {
 
 /**
  * Menu quản trị theo nhóm. Mỗi mục gắn đúng bộ vai trò của API mà trang đó gọi
- * (`app/router/roles.ts`), nên người dùng không thấy mục mà server sẽ trả 403.
+ * (`shared/auth/roles.ts`), nên người dùng không thấy mục mà server sẽ trả 403.
  * "Sự cố" và "Phiên" cùng trỏ `/admin/security`, phân biệt bằng `?tab=`.
  */
 const ADMIN_NAV: readonly AdminNavGroup<AdminNavItem>[] = [
@@ -306,7 +306,7 @@ function AdminNavList({ groups, location, touch = false, onNavigate }: AdminNavL
  * - Menu nhóm, mỗi mục chỉ hiện khi người dùng có vai trò tương ứng.
  * - Desktop: sidebar dính; di động: menu thu gọn trong `Sheet`.
  * - Tính sẵn bảng khả năng từ `ROLES` và đặt vào `AdminAccessProvider` để trang con ẩn/hiện
- *   nút ghi mà không phải import `app/router/roles.ts` (ESLint `boundaries` cấm).
+ *   nút ghi mà không phải import `shared/auth/roles.ts` (ESLint `boundaries` cấm).
  */
 export function AdminLayout() {
   const { t } = useTranslation("admin");

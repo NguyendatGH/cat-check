@@ -5,12 +5,13 @@ import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogTitle, I
 import {
   AdminPageHeader,
   AdminSection,
-  AdminTableScroll,
   ApiErrorNote,
+  DenseTableFrame,
   SavedNote,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
+  denseRowClass,
   adminProductEtag,
   emptyProductForm,
   formatProductVnd as formatVnd,
@@ -23,6 +24,7 @@ import {
   validateProductForm,
 } from "@/features/admin";
 import type { AdminProduct, AdminProductStatus, ProductFormValues } from "@/features/admin";
+import { useGroup2Can } from "./group2Access";
 
 const STATUS_TONE: Record<AdminProductStatus, "neutral" | "success" | "warning"> = {
   DRAFT: "warning",
@@ -39,6 +41,7 @@ export function AdminProductsPage() {
   const create = useCreateAdminProduct();
   const update = useUpdateAdminProduct();
   const setStatus = useSetAdminProductStatus();
+  const canEdit = useGroup2Can()("products");
   // null = đóng; "new" = tạo; còn lại = id đang sửa.
   const [editing, setEditing] = useState<string | null>(null);
   // `If-Match` chốt lúc MỞ form (bản người dùng đang nhìn), không lấy từ danh sách vừa refetch —
@@ -70,7 +73,7 @@ export function AdminProductsPage() {
 
   function submit() {
     setShowErrors(true);
-    if (Object.keys(errors).length > 0 || editing === null) return;
+    if (!canEdit || Object.keys(errors).length > 0 || editing === null) return;
     const payload = formToPayload(form);
     const done = {
       onSuccess: () => {
@@ -85,6 +88,7 @@ export function AdminProductsPage() {
   }
 
   function changeStatus(product: AdminProduct, status: AdminProductStatus) {
+    if (!canEdit) return;
     setSaved(false);
     setStatus.mutate(
       { id: product.id, status },
@@ -115,15 +119,17 @@ export function AdminProductsPage() {
 
       <AdminSection title={t("productAdmin.listTitle")} description={t("productAdmin.listDescription")}>
         <div className="flex items-center gap-3">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              openForm(null);
-            }}
-          >
-            {t("productAdmin.add")}
-          </Button>
+          {canEdit ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                openForm(null);
+              }}
+            >
+              {t("productAdmin.add")}
+            </Button>
+          ) : null}
           {editing === null ? <SavedNote visible={saved} /> : null}
         </div>
         {products.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
@@ -133,32 +139,32 @@ export function AdminProductsPage() {
           <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
         ) : null}
         {products.data && products.data.length > 0 ? (
-          <AdminTableScroll>
-            <table className={adminTableClass}>
+          <DenseTableFrame label={t("productAdmin.listTitle")}>
+            <table className={denseTableClass}>
               <thead>
                 <tr>
-                  <th className={adminThClass}>{t("productAdmin.image")}</th>
-                  <th className={adminThClass}>{t("productAdmin.name")}</th>
-                  <th className={adminThClass}>{t("productAdmin.sku")}</th>
-                  <th className={adminThClass}>{t("productAdmin.price")}</th>
-                  <th className={adminThClass}>{t("productAdmin.stock")}</th>
-                  <th className={adminThClass}>{t("productAdmin.status")}</th>
-                  <th className={adminThClass}>{t("productAdmin.action")}</th>
+                  <th className={denseThClass}>{t("productAdmin.image")}</th>
+                  <th className={denseThClass}>{t("productAdmin.name")}</th>
+                  <th className={denseThClass}>{t("productAdmin.sku")}</th>
+                  <th className={denseThClass}>{t("productAdmin.price")}</th>
+                  <th className={denseThClass}>{t("productAdmin.stock")}</th>
+                  <th className={denseThClass}>{t("productAdmin.status")}</th>
+                  <th className={denseThClass}>{t("productAdmin.action")}</th>
                 </tr>
               </thead>
               <tbody>
                 {products.data.map((product) => (
-                  <tr key={product.id}>
-                    <td className={adminTdClass}>
+                  <tr key={product.id} className={denseRowClass}>
+                    <td className={denseTdClass}>
                       {product.imageUrl ? (
                         <img src={product.imageUrl} alt="" loading="lazy" className="size-10 rounded-lg object-cover" />
                       ) : null}
                     </td>
-                    <td className={adminTdClass}>{product.name}</td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>{product.name}</td>
+                    <td className={denseTdClass}>
                       <code>{product.sku}</code>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       {formatVnd(product.priceVnd)}
                       {product.compareAtPriceVnd != null ? (
                         <span className="block text-small text-text-tertiary line-through">
@@ -166,22 +172,24 @@ export function AdminProductsPage() {
                         </span>
                       ) : null}
                     </td>
-                    <td className={adminTdClass}>{product.stockQuantity}</td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>{product.stockQuantity}</td>
+                    <td className={denseTdClass}>
                       <Badge tone={STATUS_TONE[product.status]}>{t(`productAdmin.statuses.${product.status}`)}</Badge>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <div className="flex flex-wrap gap-1">
-                        <Button
-                          variant="tertiary"
-                          size="sm"
-                          onClick={() => {
-                            openForm(product);
-                          }}
-                        >
-                          {t("actions.edit")}
-                        </Button>
-                        {product.status !== "PUBLISHED" ? (
+                        {canEdit ? (
+                          <Button
+                            variant="tertiary"
+                            size="sm"
+                            onClick={() => {
+                              openForm(product);
+                            }}
+                          >
+                            {t("actions.edit")}
+                          </Button>
+                        ) : null}
+                        {canEdit && product.status !== "PUBLISHED" ? (
                           <Button
                             variant="tertiary"
                             size="sm"
@@ -193,7 +201,7 @@ export function AdminProductsPage() {
                             {t("productAdmin.publish")}
                           </Button>
                         ) : null}
-                        {product.status !== "ARCHIVED" ? (
+                        {canEdit && product.status !== "ARCHIVED" ? (
                           <Button
                             variant="tertiary"
                             size="sm"
@@ -211,11 +219,11 @@ export function AdminProductsPage() {
                 ))}
               </tbody>
             </table>
-          </AdminTableScroll>
+          </DenseTableFrame>
         ) : null}
       </AdminSection>
 
-      {editing !== null ? (
+      {editing !== null && canEdit ? (
         <AdminSection
           title={isEditingExisting ? t("productAdmin.editTitle", { sku: form.sku }) : t("productAdmin.createTitle")}
         >

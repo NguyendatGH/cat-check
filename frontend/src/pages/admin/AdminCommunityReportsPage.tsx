@@ -6,18 +6,20 @@ import {
   AdminPageHeader,
   AdminSection,
   AdminSelect,
-  AdminTableScroll,
   ApiErrorNote,
+  DenseTableFrame,
   Pager,
   ReasonField,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
   isReasonValid,
   useAdminCommunityReports,
   useModerateCommunityReport,
   type CommunityReportAction,
 } from "@/features/admin";
+import { useGroup2Can } from "./group2Access";
 
 const ACTIONS: readonly CommunityReportAction[] = ["HIDE_POST", "REMOVE_POST", "HIDE_COMMENT", "DISMISS"];
 
@@ -29,10 +31,14 @@ export function AdminCommunityReportsPage() {
   const [reason, setReason] = useState("");
   const reports = useAdminCommunityReports(status, page);
   const moderate = useModerateCommunityReport();
+  const canModerate = useGroup2Can()("communityModeration");
 
   return (
     <div className="flex flex-col gap-5">
-      <AdminPageHeader title={t("pages.communityReports.title")} description={t("pages.communityReports.description")} />
+      <AdminPageHeader
+        title={t("pages.communityReports.title")}
+        description={t("pages.communityReports.description")}
+      />
       <AdminSection title={t("pages.communityReports.queueTitle")}>
         <div className="flex flex-wrap items-end gap-3">
           <AdminSelect
@@ -55,63 +61,65 @@ export function AdminCommunityReportsPage() {
         {reports.data ? (
           <>
             <div className="mt-4">
-              <AdminTableScroll>
-                <table className={adminTableClass}>
-                <thead>
-                  <tr>
-                    <th className={adminThClass}>{t("pages.communityReports.target")}</th>
-                    <th className={adminThClass}>{t("pages.communityReports.reporter")}</th>
-                    <th className={adminThClass}>{t("pages.communityReports.reason")}</th>
-                    <th className={adminThClass}>{t("pages.communityReports.createdAt")}</th>
-                    <th className={adminThClass}>{t("pages.communityReports.action")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.data.items.map((report) => (
-                    <tr key={report.id}>
-                      <td className={adminTdClass}>
-                        <p className="font-semibold text-text-primary">{report.targetTitle ?? report.targetType}</p>
-                        <p className="text-caption text-text-tertiary">{report.targetType}</p>
-                      </td>
-                      <td className={adminTdClass}>{report.reporterName}</td>
-                      <td className={adminTdClass}>
-                        <p>{report.reason}</p>
-                        {report.details ? <p className="text-caption text-text-tertiary">{report.details}</p> : null}
-                      </td>
-                      <td className={adminTdClass}>{formatDate(report.createdAt)}</td>
-                      <td className={adminTdClass}>
-                        <div className="flex min-w-[220px] flex-col gap-2">
-                          <AdminSelect
-                            label={t("pages.communityReports.action")}
-                            value={action}
-                            onChange={(event) => {
-                              setAction(event.target.value as CommunityReportAction);
-                            }}
-                          >
-                            {ACTIONS.map((value) => (
-                              <option key={value} value={value}>
-                                {t(`pages.communityReports.actions.${value}`)}
-                              </option>
-                            ))}
-                          </AdminSelect>
-                          <ReasonField value={reason} onChange={setReason} disabled={moderate.isPending} />
-                          <Button
-                            size="sm"
-                            disabled={!isReasonValid(reason)}
-                            loading={moderate.isPending}
-                            onClick={() => {
-                              moderate.mutate({ reportId: report.id, action, reason: reason.trim() });
-                            }}
-                          >
-                            {t("pages.communityReports.resolve")}
-                          </Button>
-                        </div>
-                      </td>
+              <DenseTableFrame label={t("pages.communityReports.queueTitle")}>
+                <table className={denseTableClass}>
+                  <thead>
+                    <tr>
+                      <th className={denseThClass}>{t("pages.communityReports.target")}</th>
+                      <th className={denseThClass}>{t("pages.communityReports.reporter")}</th>
+                      <th className={denseThClass}>{t("pages.communityReports.reason")}</th>
+                      <th className={denseThClass}>{t("pages.communityReports.createdAt")}</th>
+                      {canModerate ? <th className={denseThClass}>{t("pages.communityReports.action")}</th> : null}
                     </tr>
-                  ))}
+                  </thead>
+                  <tbody>
+                    {reports.data.items.map((report) => (
+                      <tr key={report.id} className={denseRowClass}>
+                        <td className={denseTdClass}>
+                          <p className="font-semibold text-text-primary">{report.targetTitle ?? report.targetType}</p>
+                          <p className="text-caption text-text-tertiary">{report.targetType}</p>
+                        </td>
+                        <td className={denseTdClass}>{report.reporterName}</td>
+                        <td className={denseTdClass}>
+                          <p>{report.reason}</p>
+                          {report.details ? <p className="text-caption text-text-tertiary">{report.details}</p> : null}
+                        </td>
+                        <td className={denseTdClass}>{formatDate(report.createdAt)}</td>
+                        {canModerate ? (
+                          <td className={denseTdClass}>
+                            <div className="flex min-w-[220px] flex-col gap-2">
+                              <AdminSelect
+                                label={t("pages.communityReports.action")}
+                                value={action}
+                                onChange={(event) => {
+                                  setAction(event.target.value as CommunityReportAction);
+                                }}
+                              >
+                                {ACTIONS.map((value) => (
+                                  <option key={value} value={value}>
+                                    {t(`pages.communityReports.actions.${value}`)}
+                                  </option>
+                                ))}
+                              </AdminSelect>
+                              <ReasonField value={reason} onChange={setReason} disabled={moderate.isPending} />
+                              <Button
+                                size="sm"
+                                disabled={!isReasonValid(reason)}
+                                loading={moderate.isPending}
+                                onClick={() => {
+                                  moderate.mutate({ reportId: report.id, action, reason: reason.trim() });
+                                }}
+                              >
+                                {t("pages.communityReports.resolve")}
+                              </Button>
+                            </div>
+                          </td>
+                        ) : null}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              </AdminTableScroll>
+              </DenseTableFrame>
             </div>
             <Pager
               page={page}

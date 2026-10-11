@@ -9,16 +9,16 @@ import {
   AdminPageHeader,
   AdminSection,
   AdminSelect,
-  AdminTableScroll,
   ApiErrorNote,
   CHART_STATUSES,
   PRODUCT_LINES,
   Pager,
+  DenseTableFrame,
   ReasonField,
   SavedNote,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
   isHexColor,
   isReasonValid,
   useAdminColorChart,
@@ -34,6 +34,7 @@ import {
   type ColorChartPointInput,
   type ProductLine,
 } from "@/features/admin";
+import { useGroup2Can } from "./group2Access";
 
 /**
  * `/admin/ph-color-chart` — quản trị bảng màu pH và dải phân loại.
@@ -282,27 +283,27 @@ function PointsEditor({
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminTableScroll>
-        <table className={cn(adminTableClass, "min-w-[980px]")}>
+      <DenseTableFrame label={t("chart.pointsTitle")}>
+        <table className={cn(denseTableClass, "min-w-[980px]")}>
           <thead>
             <tr>
-              <th className={adminThClass}>{t("chart.colPh")}</th>
-              <th className={adminThClass}>{t("chart.colLabL")}</th>
-              <th className={adminThClass}>{t("chart.colLabA")}</th>
-              <th className={adminThClass}>{t("chart.colLabB")}</th>
-              <th className={adminThClass}>{t("chart.colTolerance")}</th>
-              <th className={adminThClass}>{t("chart.colHexSrgb")}</th>
-              <th className={adminThClass}>{t("chart.colDisplayHex")}</th>
-              <th className={adminThClass}>{t("chart.colNameVi")}</th>
-              <th className={adminThClass}>{t("chart.colNameEn")}</th>
-              <th className={adminThClass}>{t("chart.colRemove")}</th>
+              <th className={denseThClass}>{t("chart.colPh")}</th>
+              <th className={denseThClass}>{t("chart.colLabL")}</th>
+              <th className={denseThClass}>{t("chart.colLabA")}</th>
+              <th className={denseThClass}>{t("chart.colLabB")}</th>
+              <th className={denseThClass}>{t("chart.colTolerance")}</th>
+              <th className={denseThClass}>{t("chart.colHexSrgb")}</th>
+              <th className={denseThClass}>{t("chart.colDisplayHex")}</th>
+              <th className={denseThClass}>{t("chart.colNameVi")}</th>
+              <th className={denseThClass}>{t("chart.colNameEn")}</th>
+              <th className={denseThClass}>{t("chart.colRemove")}</th>
             </tr>
           </thead>
           <tbody>
             {drafts.map((draft) => (
               <tr key={draft.key} className={isDraftComplete(draft) ? undefined : "bg-warning-bg/40"}>
                 {DRAFT_NUMBER_FIELDS.map((field) => (
-                  <td key={field} className={adminTdClass}>
+                  <td key={field} className={denseTdClass}>
                     <input
                       type="number"
                       step="any"
@@ -317,7 +318,7 @@ function PointsEditor({
                   </td>
                 ))}
                 {DRAFT_TEXT_FIELDS.map((field) => (
-                  <td key={field} className={adminTdClass}>
+                  <td key={field} className={denseTdClass}>
                     <span className="flex items-center gap-1.5">
                       {field === "displayHex" ? <Swatch hex={draft.displayHex} /> : null}
                       <input
@@ -333,7 +334,7 @@ function PointsEditor({
                     </span>
                   </td>
                 ))}
-                <td className={adminTdClass}>
+                <td className={denseTdClass}>
                   <button
                     type="button"
                     disabled={!editable}
@@ -350,7 +351,7 @@ function PointsEditor({
             ))}
           </tbody>
         </table>
-      </AdminTableScroll>
+      </DenseTableFrame>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -422,6 +423,7 @@ function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () =
   const detail = useAdminColorChart(chartId);
   const update = useUpdateColorChart();
   const publish = usePublishColorChart();
+  const canEdit = useGroup2Can()("colorChart");
 
   const [name, setName] = useState<string | null>(null);
   const [productLine, setProductLine] = useState<ProductLine | null>(null);
@@ -453,7 +455,7 @@ function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () =
   const chart = detail.data.data;
   const etag = detail.data.etag;
   /** L30 — sửa bản ACTIVE ⇒ 409 COLOR_CHART_IN_USE, nên chỉ DRAFT mới mở ô nhập. */
-  const editable = chart.status === "DRAFT";
+  const editable = chart.status === "DRAFT" && canEdit;
 
   return (
     <AdminSection
@@ -700,6 +702,7 @@ function BandEditor({ band, etag, onClose }: { band: PhBand; etag: string | null
 function BandsSection() {
   const { t } = useTranslation("admin");
   const bands = useAdminPhBands();
+  const canEdit = useGroup2Can()("colorChart");
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
   const items = bands.data?.data ?? [];
@@ -718,18 +721,18 @@ function BandsSection() {
       ) : items.length === 0 ? (
         <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
       ) : (
-        <AdminTableScroll>
-          <table className={adminTableClass}>
+        <DenseTableFrame label={t("band.title")}>
+          <table className={denseTableClass}>
             <thead>
               <tr>
-                <th className={adminThClass}>{t("band.colCode")}</th>
-                <th className={adminThClass}>{t("band.colRange")}</th>
-                <th className={adminThClass}>{t("band.colSeverity")}</th>
-                <th className={adminThClass}>{t("band.colLabel")}</th>
-                <th className={adminThClass}>{t("band.colToken")}</th>
-                <th className={adminThClass}>{t("band.colIcon")}</th>
-                <th className={adminThClass}>{t("band.colAlert")}</th>
-                <th className={adminThClass}>{t("content.colActions")}</th>
+                <th className={denseThClass}>{t("band.colCode")}</th>
+                <th className={denseThClass}>{t("band.colRange")}</th>
+                <th className={denseThClass}>{t("band.colSeverity")}</th>
+                <th className={denseThClass}>{t("band.colLabel")}</th>
+                <th className={denseThClass}>{t("band.colToken")}</th>
+                <th className={denseThClass}>{t("band.colIcon")}</th>
+                <th className={denseThClass}>{t("band.colAlert")}</th>
+                <th className={denseThClass}>{t("content.colActions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -737,10 +740,10 @@ function BandsSection() {
                 const tokenStyle = phTokenStyle(band.colorToken);
                 return (
                   <tr key={band.code}>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="font-mono text-small font-bold">{band.code}</span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="whitespace-nowrap font-mono text-small">
                         {t("band.rangeValue", {
                           min: band.phMin == null ? "−∞" : formatPh(band.phMin),
@@ -748,44 +751,46 @@ function BandsSection() {
                         })}
                       </span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="font-mono text-small">{band.severity}</span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="font-semibold">{band.label}</span>
                       <span className="block max-w-[40ch] pt-0.5 text-small text-text-tertiary">
                         {band.description}
                       </span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="flex items-center gap-2">
                         <span className={`inline-block size-4 rounded-full ${tokenStyle.solid}`} aria-hidden="true" />
                         <span className="font-mono text-small">{band.colorToken}</span>
                       </span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       <span className="font-mono text-small">{band.iconName}</span>
                     </td>
-                    <td className={adminTdClass}>
+                    <td className={denseTdClass}>
                       {band.triggersAlert ? t("retention.flagYes") : t("retention.flagNo")}
                     </td>
-                    <td className={adminTdClass}>
-                      <button
-                        type="button"
-                        className="font-semibold text-primary-dark hover:underline"
-                        onClick={() => {
-                          setSelectedCode(band.code);
-                        }}
-                      >
-                        {t("actions.edit")}
-                      </button>
+                    <td className={denseTdClass}>
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          className="font-semibold text-primary-dark hover:underline"
+                          onClick={() => {
+                            setSelectedCode(band.code);
+                          }}
+                        >
+                          {t("actions.edit")}
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </AdminTableScroll>
+        </DenseTableFrame>
       )}
 
       {selected !== null ? (
@@ -810,6 +815,7 @@ export function AdminPhColorChartPage() {
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);
   const [selectedChartId, setSelectedChartId] = useState<string | null>(null);
+  const canEdit = useGroup2Can()("colorChart");
 
   const list = useAdminColorCharts(status, page);
   const items = list.data?.items ?? [];
@@ -830,7 +836,7 @@ export function AdminPhColorChartPage() {
 
         <TabsContent value="charts">
           <div className="flex flex-col gap-5">
-            {creating ? (
+            {creating && canEdit ? (
               <AdminSection title={t("chart.createTitle")} description={t("chart.createDescription")}>
                 <CreateChartForm
                   onDone={() => {
@@ -844,16 +850,18 @@ export function AdminPhColorChartPage() {
               title={t("chart.listTitle")}
               description={t("chart.listDescription")}
               actions={
-                <Button
-                  type="button"
-                  size="md"
-                  leftIcon={<Plus size={16} />}
-                  onClick={() => {
-                    setCreating((value) => !value);
-                  }}
-                >
-                  {t("chart.createCta")}
-                </Button>
+                canEdit ? (
+                  <Button
+                    type="button"
+                    size="md"
+                    leftIcon={<Plus size={16} />}
+                    onClick={() => {
+                      setCreating((value) => !value);
+                    }}
+                  >
+                    {t("chart.createCta")}
+                  </Button>
+                ) : undefined
               }
             >
               <div className="flex flex-wrap gap-4">
@@ -885,51 +893,51 @@ export function AdminPhColorChartPage() {
                 <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
               ) : (
                 <>
-                  <AdminTableScroll>
-                    <table className={adminTableClass}>
+                  <DenseTableFrame label={t("chart.listTitle")}>
+                    <table className={denseTableClass}>
                       <thead>
                         <tr>
-                          <th className={adminThClass}>{t("chart.colCode")}</th>
-                          <th className={adminThClass}>{t("chart.colName")}</th>
-                          <th className={adminThClass}>{t("chart.colProductLine")}</th>
-                          <th className={adminThClass}>{t("chart.colBatch")}</th>
-                          <th className={adminThClass}>{t("chart.colStatus")}</th>
-                          <th className={adminThClass}>{t("chart.colSource")}</th>
-                          <th className={adminThClass}>{t("content.colActions")}</th>
+                          <th className={denseThClass}>{t("chart.colCode")}</th>
+                          <th className={denseThClass}>{t("chart.colName")}</th>
+                          <th className={denseThClass}>{t("chart.colProductLine")}</th>
+                          <th className={denseThClass}>{t("chart.colBatch")}</th>
+                          <th className={denseThClass}>{t("chart.colStatus")}</th>
+                          <th className={denseThClass}>{t("chart.colSource")}</th>
+                          <th className={denseThClass}>{t("content.colActions")}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {items.map((chart) => (
                           <tr key={chart.id}>
-                            <td className={adminTdClass}>
+                            <td className={denseTdClass}>
                               <span className="font-mono text-small font-bold">{chart.code}</span>
                               <span className="block text-small text-text-tertiary">
                                 {t("chart.versionLabel", { version: chart.version })}
                               </span>
                             </td>
-                            <td className={adminTdClass}>
+                            <td className={denseTdClass}>
                               <span className="font-semibold">{chart.name}</span>
                               {chart.placeholder ? (
                                 <span className="block text-small text-warning-text">{t("chart.placeholder")}</span>
                               ) : null}
                             </td>
-                            <td className={adminTdClass}>
+                            <td className={denseTdClass}>
                               <span className="font-mono text-small">{chart.productLine ?? "—"}</span>
                             </td>
-                            <td className={adminTdClass}>
+                            <td className={denseTdClass}>
                               <span className="font-mono text-small">{chart.productionBatch ?? "—"}</span>
                             </td>
-                            <td className={adminTdClass}>
+                            <td className={denseTdClass}>
                               <span
                                 className={`inline-block rounded-md px-2 py-0.5 text-small font-semibold ${CHART_STATUS_CLASS[chart.status]}`}
                               >
                                 {t(`chart.status.${chart.status}`)}
                               </span>
                             </td>
-                            <td className={adminTdClass}>
+                            <td className={denseTdClass}>
                               <span className="font-mono text-small">{chart.source}</span>
                             </td>
-                            <td className={adminTdClass}>
+                            <td className={denseTdClass}>
                               <button
                                 type="button"
                                 className="font-semibold text-primary-dark hover:underline"
@@ -944,7 +952,7 @@ export function AdminPhColorChartPage() {
                         ))}
                       </tbody>
                     </table>
-                  </AdminTableScroll>
+                  </DenseTableFrame>
                   <Pager
                     page={list.data.number}
                     totalPages={list.data.totalPages}

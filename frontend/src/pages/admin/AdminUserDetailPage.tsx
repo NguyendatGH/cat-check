@@ -1,39 +1,47 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
+import { Eye, LogOut } from "lucide-react";
 import { Button } from "@/shared/ui";
 import {
   AdminPageHeader,
-  AdminSection,
-  AdminTableScroll,
-  ApiErrorNote,
+  AdminQueryError,
+  DensePanel,
+  DenseTableFrame,
+  DetailGrid,
+  EMPTY_CELL,
+  MutationErrorNote,
   ReasonField,
-  adminTableClass,
-  adminTdClass,
-  adminThClass,
+  TableSkeleton,
+  denseRowClass,
+  denseTableClass,
+  denseTdClass,
+  denseThClass,
+  formatAdminDateTime,
+  formatAdminNumber,
   isReasonValid,
   useAdminUserDetail,
   useAdminUserSessions,
   useRevokeAdminUserSessions,
   useUnmaskAdminUser,
 } from "@/features/admin";
-
-function formatDate(value: string | null): string {
-  return value == null
-    ? "—"
-    : new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
+import { useGroup1Can } from "./group1Access";
 
 export function AdminUserDetailPage() {
   const { t } = useTranslation("admin");
+  const can = useGroup1Can();
+  // Mở che dữ liệu liên hệ: ROLES.users (backend UNMASK_ROLES). Xem/thu hồi phiên: ROLES.userLock.
+  const canUnmask = can("users");
+  const canSessions = can("userLock");
   const { userId } = useParams<{ userId: string }>();
   const detail = useAdminUserDetail(userId);
-  const sessions = useAdminUserSessions(userId);
+  // Không có quyền xem phiên thì không gọi API (server sẽ trả 403).
+  const sessions = useAdminUserSessions(canSessions ? userId : undefined);
   const unmask = useUnmaskAdminUser();
   const revoke = useRevokeAdminUserSessions();
   const [reason, setReason] = useState("");
   const [unmasked, setUnmasked] = useState<{ email: string; phone: string | null; until: string } | null>(null);
-  const canWrite = userId !== undefined && isReasonValid(reason);
+  const reasonValid = userId !== undefined && isReasonValid(reason);
 
   useEffect(() => {
     if (unmasked === null) return;
@@ -50,145 +58,158 @@ export function AdminUserDetailPage() {
   }, [unmasked]);
 
   return (
-    <div className="flex max-w-5xl flex-col gap-5">
+    <div className="flex max-w-5xl flex-col gap-4">
       <AdminPageHeader
         title={t("pages.userDetail.title")}
         description={t("pages.userDetail.description")}
         specRef={userId === undefined ? undefined : t("pages.userDetail.subjectId", { id: userId })}
       />
 
-      {detail.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-      <ApiErrorNote error={detail.error} />
+      {detail.isPending ? <TableSkeleton rows={4} /> : null}
+      {detail.isError ? (
+        <AdminQueryError
+          error={detail.error}
+          onRetry={() => {
+            void detail.refetch();
+          }}
+        />
+      ) : null}
 
       {detail.data ? (
         <>
-          <AdminSection title={t("userDetail.overviewTitle")}>
-            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.email")}</dt>
-                <dd className="font-semibold">{unmasked?.email ?? detail.data.emailMasked}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.phone")}</dt>
-                <dd className="font-semibold">{unmasked?.phone ?? detail.data.phoneMasked ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.name")}</dt>
-                <dd className="font-semibold">{detail.data.fullName}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.status")}</dt>
-                <dd>{t(`users.statuses.${detail.data.status}`)}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.package")}</dt>
-                <dd>{detail.data.highestPackage ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.roles")}</dt>
-                <dd>{detail.data.roles.join(", ") || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.cats")}</dt>
-                <dd>{detail.data.catCount}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.scans")}</dt>
-                <dd>{detail.data.scanCount}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.sessions")}</dt>
-                <dd>{detail.data.activeSessionCount}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.createdAt")}</dt>
-                <dd>{formatDate(detail.data.createdAt)}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.lastLogin")}</dt>
-                <dd>{formatDate(detail.data.lastLoginAt)}</dd>
-              </div>
-              <div>
-                <dt className="text-small text-text-tertiary">{t("userDetail.totp")}</dt>
-                <dd>{detail.data.totpEnabled ? t("userDetail.enabled") : t("userDetail.disabled")}</dd>
-              </div>
-            </dl>
-          </AdminSection>
+          <DensePanel title={t("userDetail.overviewTitle")}>
+            <DetailGrid
+              items={[
+                [t("userDetail.email"), unmasked?.email ?? detail.data.emailMasked],
+                [t("userDetail.phone"), unmasked?.phone ?? detail.data.phoneMasked ?? EMPTY_CELL],
+                [t("userDetail.name"), detail.data.fullName],
+                [t("userDetail.status"), t(`users.statuses.${detail.data.status}`)],
+                [t("userDetail.package"), detail.data.highestPackage ?? EMPTY_CELL],
+                [t("userDetail.roles"), detail.data.roles.join(", ") || EMPTY_CELL],
+                [t("userDetail.cats"), formatAdminNumber(detail.data.catCount)],
+                [t("userDetail.scans"), formatAdminNumber(detail.data.scanCount)],
+                [t("userDetail.sessions"), formatAdminNumber(detail.data.activeSessionCount)],
+                [t("userDetail.createdAt"), formatAdminDateTime(detail.data.createdAt)],
+                [t("userDetail.lastLogin"), formatAdminDateTime(detail.data.lastLoginAt)],
+                [t("userDetail.totp"), detail.data.totpEnabled ? t("userDetail.enabled") : t("userDetail.disabled")],
+              ]}
+            />
+          </DensePanel>
 
-          <AdminSection title={t("userDetail.piiTitle")} description={t("userDetail.piiDescription")}>
-            <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="tertiary"
-                disabled={!canWrite || unmask.isPending}
-                onClick={() => {
-                  if (userId !== undefined) {
-                    unmask.mutate(
-                      { userId, reason: reason.trim() },
-                      {
-                        onSuccess: (value) => {
-                          setUnmasked({ email: value.email, phone: value.phone, until: value.unmaskedUntil });
-                        },
-                      },
-                    );
-                  }
-                }}
-              >
-                {t("userDetail.unmask")}
-              </Button>
-              {unmasked !== null ? (
-                <span className="text-small text-warning-text">
-                  {t("userDetail.maskAgainAt", { at: formatDate(unmasked.until) })}
-                </span>
+          {canUnmask || canSessions ? (
+            <DensePanel title={t("userDetail.piiTitle")} description={t("userDetail.piiDescription")}>
+              <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
+              {canUnmask ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    leftIcon={<Eye size={14} />}
+                    disabled={!reasonValid || unmask.isPending}
+                    onClick={() => {
+                      if (userId !== undefined) {
+                        unmask.mutate(
+                          { userId, reason: reason.trim() },
+                          {
+                            onSuccess: (value) => {
+                              setUnmasked({ email: value.email, phone: value.phone, until: value.unmaskedUntil });
+                            },
+                          },
+                        );
+                      }
+                    }}
+                  >
+                    {t("userDetail.unmask")}
+                  </Button>
+                  {unmasked !== null ? (
+                    <span className="text-small text-warning-text">
+                      {t("userDetail.maskAgainAt", { at: formatAdminDateTime(unmasked.until) })}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-            <ApiErrorNote error={unmask.error} />
-          </AdminSection>
+              <MutationErrorNote error={unmask.error} />
+            </DensePanel>
+          ) : null}
 
-          <AdminSection title={t("userDetail.sessionsTitle")}>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="tertiary"
-                disabled={!canWrite || revoke.isPending || detail.data.activeSessionCount === 0}
-                onClick={() => {
-                  if (userId !== undefined) {
-                    revoke.mutate({ userId, reason: reason.trim() });
-                  }
-                }}
-              >
-                {t("userDetail.revokeSessions")}
-              </Button>
-              <ApiErrorNote error={revoke.error ?? sessions.error} />
-            </div>
-            {sessions.isPending ? <p className="text-caption text-text-secondary">{t("feedback.loading")}</p> : null}
-            {sessions.data && sessions.data.items.length === 0 ? (
-              <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
-            ) : null}
-            {sessions.data && sessions.data.items.length > 0 ? (
-              <AdminTableScroll>
-                <table className={adminTableClass}>
-                  <thead>
-                    <tr>
-                      <th className={adminThClass}>{t("userDetail.device")}</th>
-                      <th className={adminThClass}>{t("userDetail.ip")}</th>
-                      <th className={adminThClass}>{t("userDetail.lastSeen")}</th>
-                      <th className={adminThClass}>{t("userDetail.expires")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sessions.data.items.map((session) => (
-                      <tr key={session.id}>
-                        <td className={adminTdClass}>{session.deviceLabel ?? t("userDetail.unknownDevice")}</td>
-                        <td className={adminTdClass}>{session.ipAddressMasked ?? "—"}</td>
-                        <td className={adminTdClass}>{formatDate(session.lastSeenAt)}</td>
-                        <td className={adminTdClass}>{formatDate(session.expiresAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </AdminTableScroll>
-            ) : null}
-          </AdminSection>
+          <DensePanel
+            title={t("userDetail.sessionsTitle")}
+            actions={
+              canSessions ? (
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  leftIcon={<LogOut size={14} />}
+                  disabled={!reasonValid || revoke.isPending || detail.data.activeSessionCount === 0}
+                  onClick={() => {
+                    if (userId !== undefined) {
+                      revoke.mutate({ userId, reason: reason.trim() });
+                    }
+                  }}
+                >
+                  {t("userDetail.revokeSessions")}
+                </Button>
+              ) : undefined
+            }
+          >
+            {!canSessions ? (
+              <p className="text-caption text-text-secondary">{t("userDetail.sessionsReadOnly")}</p>
+            ) : (
+              <>
+                <MutationErrorNote error={revoke.error} />
+                {sessions.isPending ? <TableSkeleton rows={3} /> : null}
+                {sessions.isError ? (
+                  <AdminQueryError
+                    error={sessions.error}
+                    onRetry={() => {
+                      void sessions.refetch();
+                    }}
+                  />
+                ) : null}
+                {sessions.data && sessions.data.items.length === 0 ? (
+                  <p className="py-4 text-center text-caption text-text-secondary">{t("feedback.empty")}</p>
+                ) : null}
+                {sessions.data && sessions.data.items.length > 0 ? (
+                  <DenseTableFrame label={t("userDetail.sessionsTitle")}>
+                    <table className={denseTableClass}>
+                      <thead>
+                        <tr>
+                          <th scope="col" className={denseThClass}>
+                            {t("userDetail.device")}
+                          </th>
+                          <th scope="col" className={denseThClass}>
+                            {t("userDetail.ip")}
+                          </th>
+                          <th scope="col" className={denseThClass}>
+                            {t("userDetail.lastSeen")}
+                          </th>
+                          <th scope="col" className={denseThClass}>
+                            {t("userDetail.expires")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sessions.data.items.map((session) => (
+                          <tr key={session.id} className={denseRowClass}>
+                            <td className={denseTdClass}>{session.deviceLabel ?? t("userDetail.unknownDevice")}</td>
+                            <td className={`${denseTdClass} font-mono text-small`}>
+                              {session.ipAddressMasked ?? EMPTY_CELL}
+                            </td>
+                            <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                              {formatAdminDateTime(session.lastSeenAt)}
+                            </td>
+                            <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                              {formatAdminDateTime(session.expiresAt)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </DenseTableFrame>
+                ) : null}
+              </>
+            )}
+          </DensePanel>
         </>
       ) : null}
     </div>

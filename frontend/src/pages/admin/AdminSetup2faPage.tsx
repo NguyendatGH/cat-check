@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react";
-import { Button, Input } from "@/shared/ui";
+import { Button, Input, buttonVariants } from "@/shared/ui";
+import { cn } from "@/shared/lib/cn";
 import { ApiErrorNote } from "@/features/admin";
 import { RecoveryCodeGrid, useTotpConfirm, useTotpInit, useTotpStatus } from "@/features/auth";
 
@@ -51,10 +52,7 @@ export function AdminSetup2faPage() {
               {t("setup2fa.doneTitle")}
             </p>
             <p className="text-caption text-text-secondary">{t("setup2fa.doneBody")}</p>
-            <Link
-              to="/admin"
-              className="inline-flex items-center gap-2 self-start rounded-xl bg-primary px-4 py-2.5 text-body font-semibold text-white"
-            >
+            <Link to="/admin" className={cn(buttonVariants({ variant: "primary", size: "md" }), "self-start")}>
               {t("setup2fa.goToAdmin")}
               <ArrowRight size={16} aria-hidden="true" />
             </Link>

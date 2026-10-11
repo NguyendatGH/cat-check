@@ -30,9 +30,23 @@ export const ROLES = {
   broadcast: ["ADMIN_SUPER"],
   broadcastIncident: ["ADMIN_SUPER", "DPO"],
   jobs: ["ADMIN_SUPER", "DPO"],
+  /** Chạy job tay (backend: chỉ ADMIN_SUPER). */
+  jobRun: ["ADMIN_SUPER"],
   outbox: ["ADMIN_SUPER"],
   auditLog: ["ADMIN_SUPER", "ADMIN_SUPPORT", "DPO"],
-  staff: ["ADMIN_SUPER"],
+  /** Xem trang nhân sự: người xem yêu cầu reset TOTP (DPO) cũng vào được trang. */
+  staff: ["ADMIN_SUPER", "DPO"],
+  /** Gán và thu hồi vai trò, khởi tạo reset TOTP (backend: chỉ ADMIN_SUPER). */
+  staffRolesWrite: ["ADMIN_SUPER"],
+  totpResetRequestsRead: ["ADMIN_SUPER", "DPO"],
+  /** Duyệt reset TOTP theo quy tắc hai người (backend: chỉ DPO). */
+  totpResetApprove: ["DPO"],
+  /** Khoá, mở khoá và xem/xoá phiên của người dùng (backend: chỉ ADMIN_SUPER). */
+  userLock: ["ADMIN_SUPER"],
+  /** Xuất dữ liệu theo yêu cầu DSAR (backend: ADMIN_SUPER và DPO). */
+  privacyExport: ["ADMIN_SUPER", "DPO"],
+  /** Tạo yêu cầu DSAR thủ công (backend: ADMIN_SUPER và DPO). */
+  privacyRequestsCreate: ["ADMIN_SUPER", "DPO"],
   scans: ["ADMIN_SUPER", "ADMIN_SUPPORT", "DPO"],
   scanImage: ["DPO"],
   scanReassign: ["ADMIN_SUPER", "ADMIN_SUPPORT"],
