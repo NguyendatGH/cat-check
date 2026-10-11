@@ -1,6 +1,9 @@
 package com.catcheck.community;
 
 import com.catcheck.community.application.CommunityService;
+import com.catcheck.community.application.spi.AccountStatus;
+import com.catcheck.community.domain.CommunityRateLimitRule;
+import com.catcheck.community.domain.port.CommunityRateLimiter;
 import com.catcheck.community.infrastructure.persistence.JdbcCommunityRepository;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shop.api.ShopErrorCode;
@@ -46,7 +49,20 @@ class CommunityPersistenceTest {
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         ds.setDriverClassName("org.postgresql.Driver");
         jdbc = new JdbcTemplate(ds);
-        community = new CommunityService(new JdbcCommunityRepository(jdbc));
+        // Test này kiểm persistence, không kiểm I19/rate limit: tài khoản luôn ACTIVE, limiter luôn
+        // cho qua (CommunityService#requireWriteAllowed/#requireRateLimit có test riêng).
+        CommunityRateLimiter alwaysAllow = new CommunityRateLimiter() {
+            @Override
+            public boolean tryConsume(CommunityRateLimitRule rule, String subject) {
+                return true;
+            }
+
+            @Override
+            public long secondsUntilRefill(CommunityRateLimitRule rule, String subject) {
+                return 0;
+            }
+        };
+        community = new CommunityService(new JdbcCommunityRepository(jdbc), id -> AccountStatus.ACTIVE, alwaysAllow);
         shop = new ShopService(new JdbcShopRepository(jdbc));
         user = insertUser("u1@example.invalid");
         other = insertUser("u2@example.invalid");

@@ -269,7 +269,8 @@ public class DataExportJobService {
             entry(zip, "consents.json", jsonArray(snapshot.consents(userId)));
             entry(zip, "notifications.json", jsonArray(snapshot.notifications(userId)));
             entry(zip, "orders.json", jsonArray(snapshot.orders(userId)));
-            entry(zip, "README.vi.md", "# Gói dữ liệu cá nhân CatCheck\n\nGói này chứa thông tin hồ sơ, mèo, kết quả quét, credit, consent, thông báo và đơn hàng hiện có trong hệ thống. Ảnh đã hết hạn retention 14 ngày hoặc đã bị xoá không thể khôi phục và không có trong gói này. Nội dung do người khác tạo và dữ liệu cộng đồng không được xuất trong phiên bản hiện tại. Các số điện thoại được mã hoá ở hệ thống không được đưa ra dưới dạng ciphertext.\n");
+            entry(zip, "ai_conversations.json", jsonArray(snapshot.aiMessages(userId)));
+            entry(zip, "README.vi.md", "# Gói dữ liệu cá nhân CatCheck\n\nGói này chứa thông tin hồ sơ, mèo, kết quả quét, credit, consent, thông báo, đơn hàng và lịch sử trò chuyện với trợ lý AI hiện có trong hệ thống. Ảnh đã hết hạn retention 14 ngày hoặc đã bị xoá không thể khôi phục và không có trong gói này. Nội dung do người khác tạo và dữ liệu cộng đồng không được xuất trong phiên bản hiện tại. Các số điện thoại được mã hoá ở hệ thống không được đưa ra dưới dạng ciphertext.\n");
         }
         return bytes.toByteArray();
     }

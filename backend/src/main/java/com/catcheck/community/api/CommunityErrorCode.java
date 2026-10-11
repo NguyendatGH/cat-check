@@ -10,7 +10,21 @@ public enum CommunityErrorCode implements ErrorCode {
     REPORT_TARGET_REQUIRED("community/report-target-required", HttpStatus.BAD_REQUEST),
     REPORT_DUPLICATE("community/report-duplicate", HttpStatus.CONFLICT),
     REPORT_NOT_FOUND("community/report-not-found", HttpStatus.NOT_FOUND),
-    MODERATION_ACTION_INVALID("community/moderation-action-invalid", HttpStatus.BAD_REQUEST);
+    MODERATION_ACTION_INVALID("community/moderation-action-invalid", HttpStatus.BAD_REQUEST),
+    /**
+     * I19 (p4 §4.4.9) — tài khoản {@code RESTRICTED} CHỈ ĐỌC. Tên hằng trùng
+     * {@code cat.api.CatErrorCode.ACCOUNT_RESTRICTED}/{@code identity.api.IdentityErrorCode
+     * .ACCOUNT_RESTRICTED} có chủ đích (cùng ý nghĩa) — KHÔNG đăng ký bean cho hằng này trong
+     * community (không có {@code CommunityErrorCodeConfiguration}) vì
+     * {@code IdentityErrorCodeConfiguration} đã đăng ký {@code code()="ACCOUNT_RESTRICTED"};
+     * đăng ký lại sẽ làm {@code ErrorCodeRegistry.validate} ném {@code IllegalStateException}
+     * lúc khởi động (xem javadoc {@code CatErrorCodeConfiguration}). {@code GlobalExceptionHandler}
+     * đọc status/typeUri thẳng trên instance bị ném, không qua registry, nên vẫn hoạt động đúng.
+     */
+    ACCOUNT_RESTRICTED("common/account-restricted", HttpStatus.FORBIDDEN),
+    POST_RATE_LIMITED("community/post-rate-limited", HttpStatus.TOO_MANY_REQUESTS),
+    COMMENT_RATE_LIMITED("community/comment-rate-limited", HttpStatus.TOO_MANY_REQUESTS),
+    REPORT_RATE_LIMITED("community/report-rate-limited", HttpStatus.TOO_MANY_REQUESTS);
 
     private final String slug;
     private final HttpStatus status;

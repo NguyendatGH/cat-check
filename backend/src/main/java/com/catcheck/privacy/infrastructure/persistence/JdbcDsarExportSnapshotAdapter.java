@@ -33,6 +33,14 @@ public class JdbcDsarExportSnapshotAdapter implements DsarExportSnapshotPort {
     @Override public List<String> orders(UUID userId) {
         return rows("SELECT row_to_json(x)::text FROM (SELECT o.id, o.order_code, o.status, o.payment_method, o.receiver_name, o.receiver_phone, o.shipping_address, o.subtotal_vnd, o.discount_vnd, o.shipping_fee_vnd, o.total_vnd, o.created_at, (SELECT coalesce(jsonb_agg(jsonb_build_object('name', l.product_name, 'unitPriceVnd', l.unit_price_vnd, 'quantity', l.quantity)), '[]'::jsonb) FROM shop_order_line l WHERE l.order_id=o.id) AS lines FROM shop_order o WHERE o.user_id=? ORDER BY o.created_at) x", userId);
     }
+    /**
+     * Tin USER và ASSISTANT của một lượt được lưu trong cùng transaction nên trùng
+     * {@code created_at} (= {@code now()}), còn {@code id} là UUID ngẫu nhiên. Khoá phụ: câu hỏi
+     * USER đứng trước câu trả lời; {@code id} chỉ để kết quả luôn xác định.
+     */
+    @Override public List<String> aiMessages(UUID userId) {
+        return rows("SELECT row_to_json(x)::text FROM (SELECT m.conversation_id, m.role, m.content, m.provider, m.created_at FROM ai_message m JOIN ai_conversation c ON c.id=m.conversation_id WHERE c.user_id=? ORDER BY c.created_at, c.id, m.created_at, CASE m.role WHEN 'USER' THEN 0 ELSE 1 END, m.id) x", userId);
+    }
 
     private List<String> rows(String query, UUID userId) {
         return jdbc.query(query, (rs, row) -> rs.getString(1), userId);

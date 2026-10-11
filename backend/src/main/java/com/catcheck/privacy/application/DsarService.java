@@ -134,9 +134,23 @@ public class DsarService {
     /**
      * C11 — bật hạn chế xử lý: dữ liệu GIỮ NGUYÊN, hệ thống chỉ lưu trữ (p15 §15.4.7).
      * Tạo {@code dsar_request(RESTRICT)} + chuyển tài khoản sang {@code RESTRICTED}.
+     *
+     * <p><b>Bug thật đã sửa:</b> trước bản sửa này hàm KHÔNG gọi {@link #requireStepUp} — mọi
+     * thao tác tự phục vụ nhạy cảm khác (xuất dữ liệu C6, xoá tài khoản C9, RECTIFY/OBJECT/
+     * PROTECTION_MEASURE/COMPLAINT ở {@link #createManualRequest}) đều bắt buộc step-up
+     * re-authentication (REQ-DSAR-04), nhưng RESTRICT thì không — một request duy nhất, không
+     * xác nhận lại danh tính, lập tức chuyển tài khoản sang {@code RESTRICTED}. Hậu quả đo được
+     * trong phiên này: {@code identity.application.LoginService.login} từ chối đăng nhập cho MỌI
+     * tài khoản có {@code status != ACTIVE} (kể cả {@code RESTRICTED}), nên một lần bấm nhầm (vd
+     * do UI test agent) khoá người dùng ra khỏi phiên đăng nhập của chính họ — và lối tự khôi phục
+     * duy nhất ({@code DELETE /api/v1/privacy/restriction}) lại cần một phiên đăng nhập đang hoạt
+     * động. Không có endpoint admin nào để gỡ {@code RESTRICTED} thay cho người dùng. Thêm
+     * step-up ở đây thu hẹp khả năng bấm-nhầm-một-phát gây khoá tài khoản; phần khoá đăng nhập nằm
+     * ở module {@code identity} (ngoài phạm vi rà soát này) — xem báo cáo.</p>
      */
     @Transactional
     public void enableRestriction(UUID userId, RequestEvidence evidence) {
+        requireStepUp(userId, "DSAR_" + DsarRequestType.RESTRICT.name());
         UserAccountSnapshot snapshot = userAccountPort.snapshot(userId);
         if (snapshot.isProcessingRestricted()) {
             throw new BusinessRuleException(PrivacyErrorCode.RESTRICTION_ALREADY_ACTIVE);

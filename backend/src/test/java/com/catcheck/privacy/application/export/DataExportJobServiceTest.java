@@ -83,6 +83,8 @@ class DataExportJobServiceTest {
         when(snapshots.consents(userId)).thenReturn(List.of());
         when(snapshots.notifications(userId)).thenReturn(List.of());
         when(snapshots.orders(userId)).thenReturn(List.of());
+        String aiMessage = "{\"conversation_id\":\"c1\",\"role\":\"USER\",\"content\":\"hello\"}";
+        when(snapshots.aiMessages(userId)).thenReturn(List.of(aiMessage));
         final byte[][] archive = new byte[1][];
         when(storage.put(eq(request.publicRef()), any(byte[].class))).thenAnswer(invocation -> {
             archive[0] = invocation.getArgument(1);
@@ -96,11 +98,19 @@ class DataExportJobServiceTest {
 
         assertTrue(archive[0] != null && archive[0].length > 0);
         List<String> names = new ArrayList<>();
+        String aiEntry = null;
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive[0]))) {
-            for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) names.add(entry.getName());
+            for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+                names.add(entry.getName());
+                if (entry.getName().equals("ai_conversations.json")) {
+                    aiEntry = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
         }
         assertEquals(List.of("profile.json", "cats.json", "scans.json", "scans.csv", "credits.csv",
-                "consents.json", "notifications.json", "orders.json", "README.vi.md"), names);
+                "consents.json", "notifications.json", "orders.json", "ai_conversations.json", "README.vi.md"), names);
+        // Hội thoại trợ lý AI là dữ liệu do user nhập — phải có trong gói xuất DSAR (quyền truy cập).
+        assertEquals("[" + aiMessage + "]", aiEntry);
         verify(requests).update(any(DsarRequest.class));
         verify(notifications).enqueueTransactionalEmail(any());
         verify(jobs, org.mockito.Mockito.never()).fail(any(UUID.class), anyString());
