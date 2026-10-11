@@ -10,6 +10,8 @@ import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.i18n.MessageResolver;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 
 import java.math.BigDecimal;
@@ -97,7 +99,7 @@ class AiChatServiceTest {
     }
 
     @Test
-    void redactsContactPiiFromCurrentPromptAndHistoryButPersistsOriginalQuestion() {
+    void redactsContactPiiFromCurrentPromptHistoryAndPersistedQuestion() {
         FakeKnowledge knowledge = new FakeKnowledge();
         knowledge.documents = true;
         knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
@@ -116,7 +118,98 @@ class AiChatServiceTest {
                 .reduce("", (left, right) -> left + "\n" + right);
         assertThat(providerText).doesNotContain("meo@example.test", "0912 345 678", "an@example.test", "0987654321");
         assertThat(providerText).contains("[đã ẩn email]", "[đã ẩn số điện thoại]");
-        assertThat(knowledge.savedContents).contains(question);
+        String persisted = String.join("\n", knowledge.savedContents);
+        assertThat(persisted).doesNotContain("an@example.test", "0987654321");
+        assertThat(knowledge.savedContents.getFirst()).contains("[đã ẩn email]", "[đã ẩn số điện thoại]");
+    }
+
+    @Test
+    void emergencySignInTheQuestionShortCircuitsWithoutCatIdAndWithoutCallingTheProvider() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay cát hằng ngày", "/care-tips/ve-sinh", "Dọn cát bẩn hằng ngày.", 1));
+        CountingProvider provider = new CountingProvider();
+
+        AiChatService.ChatResult result = service(knowledge, provider)
+                .chat(USER_ID, null, null, "mèo rặn mãi không ra nước tiểu từ sáng nay, gọi tôi 0987654321", "vi");
+
+        assertThat(result.provider()).isEqualTo("emergency-template");
+        assertThat(result.answer()).isEqualTo(EXPECTED_EMERGENCY_BODY);
+        assertThat(result.citations()).isEmpty();
+        assertThat(provider.calls).isZero();
+        assertThat(knowledge.searchedLocales).isEmpty();
+        assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
+        assertThat(knowledge.savedContents.getFirst()).doesNotContain("0987654321");
+    }
+
+    @Test
+    void ordinaryQuestionIsNotTreatedAsAnEmergency() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay cát hằng ngày", "/care-tips/ve-sinh", "Dọn cát bẩn hằng ngày.", 1));
+        CountingProvider provider = new CountingProvider();
+
+        AiChatService.ChatResult result = service(knowledge, provider)
+                .chat(USER_ID, null, null, "Cách vệ sinh khay cát thế nào?", "vi");
+
+        assertThat(result.provider()).isEqualTo("retrieval-fallback");
+        assertThat(result.answer()).doesNotContain("cần đi thú y NGAY");
+        assertThat(provider.calls).isEqualTo(1);
+        assertThat(knowledge.searchedLocales).containsExactly("vi");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Mèo rặn nhiều mà chỉ ra vài giọt",
+            "meo ran mai khong ra nuoc tieu tu sang nay",
+            "Bé kêu đau khi đi vệ sinh",
+            "bé ra vào khay liên tục mà khay vẫn khô",
+            "Nước tiểu có máu thì sao?",
+            "Mèo BỎ   ĂN hai hôm nay",
+            "meo bo an 2 ngay",
+            "Bé nôn từ tối qua",
+            "bé nằm li bì cả ngày",
+            "bụng căng cứng khi sờ"})
+    void approvedEmergencySignsInTheQuestionTriggerTheEmergencyTemplate(String question) {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+        CountingProvider provider = new CountingProvider();
+
+        AiChatService.ChatResult result = service(knowledge, provider).chat(USER_ID, null, null, question, "vi");
+
+        assertThat(result.provider()).isEqualTo("emergency-template");
+        assertThat(provider.calls).isZero();
+        assertThat(knowledge.searchedLocales).isEmpty();
+    }
+
+    /** Câu mà khi bỏ dấu sẽ trùng chữ với dấu hiệu khẩn cấp (non/nôn, màu/máu, rắn/rặn). */
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Mèo non nên ăn gì?",
+            "Nước tiểu có màu vàng đậm có sao không?",
+            "Cho mèo ăn cá rán được không?",
+            "pH nước tiểu bao nhiêu là ổn?"})
+    void questionsThatOnlyLookLikeEmergencySignsWithoutDiacriticsAreNotEmergencies(String question) {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+
+        AiChatService.ChatResult result = service(knowledge, new CountingProvider())
+                .chat(USER_ID, null, null, question, "vi");
+
+        assertThat(result.provider()).isNotEqualTo("emergency-template");
+        assertThat(knowledge.searchedLocales).containsExactly("vi");
+    }
+
+    private static final class CountingProvider implements AiProviderPort {
+        int calls;
+
+        @Override
+        public Optional<String> complete(List<Map<String, String>> messages) {
+            calls++;
+            return Optional.empty();
+        }
     }
 
     @Test

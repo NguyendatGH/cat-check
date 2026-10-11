@@ -111,8 +111,9 @@ public class AiChatService {
         Optional<CatContextPort.CatContext> catContext =
                 catId == null ? Optional.empty() : catContextPort.loadContext(userId, catId);
 
-        if (catContext.isPresent() && CatContextPresenter.hasUrgentFlag(catContext.get())) {
-            return emergencyResult(conversation, normalized, catContext.get());
+        if (catContext.isPresent() && CatContextPresenter.hasUrgentFlag(catContext.get())
+                || AiEmergencySigns.mentionsEmergencySign(normalized)) {
+            return emergencyResult(conversation, normalized, catContext.orElse(null));
         }
 
         String requestedLocale = locale == null || locale.isBlank() ? "vi" : locale;
@@ -144,7 +145,7 @@ public class AiChatService {
         prompt.add(Map.of("role", "user",
                 "content", buildPrompt(AiPromptRedactor.redact(normalized), chunks, catContextBlock)));
 
-        repository.saveMessage(conversation.id(), "USER", normalized, "user");
+        repository.saveMessage(conversation.id(), "USER", AiPromptRedactor.redact(normalized), "user");
         // Không gửi câu hỏi ra provider khi retrieval không có bằng chứng. Prompting một LLM
         // chỉ với câu hỏi sẽ biến RAG thành chatbot tự do và có thể tạo lời khuyên y tế bịa.
         var generated = chunks.isEmpty() ? java.util.Optional.<String>empty() : provider.complete(prompt);
@@ -173,14 +174,22 @@ public class AiChatService {
      * — có bằng chứng CÓ SẴN câu trả lời đúng, không cần LLM diễn giải thêm. Vẫn lưu
      * {@code ai_message} (cả hai vai) và citation rỗng như luồng khác, để lịch sử hội thoại nhất
      * quán và DSAR/export không có khoảng trống.
+     *
+     * <p>{@code context} là {@code null} khi nhánh này được kích hoạt bởi nội dung câu hỏi mà không
+     * có mèo hợp lệ: khi đó chỉ trả {@code ai.emergency.body}, vì câu dẫn và đường dẫn hồ sơ đều cần
+     * một con mèo cụ thể.</p>
      */
     private ChatResult emergencyResult(AiKnowledgePort.Conversation conversation, String normalizedMessage,
             CatContextPort.CatContext context) {
-        repository.saveMessage(conversation.id(), "USER", normalizedMessage, "user");
-        String catName = context.name() == null || context.name().isBlank() ? "Bé mèo" : context.name();
-        String answer = messageResolver.resolve("ai.emergency.lead", new Object[]{catName}, EMERGENCY_LOCALE)
-                + "\n\n" + messageResolver.resolve("ai.emergency.body", new Object[0], EMERGENCY_LOCALE)
-                + "\n\n" + messageResolver.resolve("ai.emergency.viewDetail", new Object[]{context.catId()}, EMERGENCY_LOCALE);
+        repository.saveMessage(conversation.id(), "USER", AiPromptRedactor.redact(normalizedMessage), "user");
+        String body = messageResolver.resolve("ai.emergency.body", new Object[0], EMERGENCY_LOCALE);
+        String answer = body;
+        if (context != null) {
+            String catName = context.name() == null || context.name().isBlank() ? "Bé mèo" : context.name();
+            answer = messageResolver.resolve("ai.emergency.lead", new Object[]{catName}, EMERGENCY_LOCALE)
+                    + "\n\n" + body
+                    + "\n\n" + messageResolver.resolve("ai.emergency.viewDetail", new Object[]{context.catId()}, EMERGENCY_LOCALE);
+        }
         UUID messageId = repository.saveMessage(conversation.id(), "ASSISTANT", answer, "emergency-template");
         repository.saveCitations(messageId, List.of());
         return new ChatResult(conversation.id(), messageId, answer, "emergency-template", List.of(), clock.instant());

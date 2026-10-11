@@ -6,8 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,7 +24,10 @@ class AiKnowledgeRepositoryIntegrationTest {
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
     private static final String DB_USER = "catcheck";
     private static final String DB_PASSWORD = "catcheck_local_only";
+    /** Kho local chỉ có bài 'vi' (seed V7) — tài liệu test dùng 'en' để kết quả search không lẫn bài thật. */
+    private static final String TEST_LOCALE = "en";
 
+    private final List<UUID> careTipIds = new ArrayList<>();
     private JdbcTemplate jdbc;
     private AiKnowledgeRepository repository;
     private UUID subjectId;
@@ -42,6 +47,71 @@ class AiKnowledgeRepositoryIntegrationTest {
             jdbc.update("DELETE FROM ai_conversation WHERE user_id = ?", userId); // ai_message: ON DELETE CASCADE
             jdbc.update("DELETE FROM app_user WHERE id = ?", userId);
         }
+        for (UUID careTipId : careTipIds) {
+            jdbc.update("DELETE FROM ai_document WHERE source_type = 'CARE_TIP' AND source_id = ?", careTipId); // ai_chunk: CASCADE
+            jdbc.update("DELETE FROM care_tip WHERE id = ?", careTipId);
+        }
+    }
+
+    /**
+     * ai_document chỉ bị tắt khi ai đó chạy lại {@code syncPublishedCareTips}; giữa hai lần đó bài
+     * đã ARCHIVED vẫn còn chunk {@code active = TRUE} trong chỉ mục. Search phải tự loại bài đó.
+     */
+    @Test
+    void archivedCareTipIsNotRetrievedEvenWhileItsIndexedDocumentIsStillActive() {
+        UUID published = indexCareTip("PUBLISHED", "Khay zqxkhay hằng ngày",
+                "Dọn zqxkhay zqxcat hằng ngày cho sạch.");
+        UUID archived = indexCareTip("ARCHIVED", "Khay zqxkhay cũ",
+                "Dọn zqxkhay zqxcat theo cách cũ.");
+
+        List<UUID> documentIds = repository.search(TEST_LOCALE, "zqxkhay zqxcat", 6).stream()
+                .map(chunk -> chunk.documentId()).toList();
+
+        assertThat(documentIds).containsExactly(documentIdOf(published));
+        assertThat(documentIds).doesNotContain(documentIdOf(archived));
+    }
+
+    @Test
+    void relevantQuestionStillReturnsTheMatchingChunk() {
+        UUID tip = indexCareTip("PUBLISHED", "Vệ sinh khay cát hằng ngày",
+                "Dọn cát bẩn hằng ngày. Thay toàn bộ lớp cát theo thời gian phù hợp.");
+
+        assertThat(repository.search(TEST_LOCALE, "Cách vệ sinh khay cát thế nào?", 6))
+                .extracting(chunk -> chunk.documentId()).containsExactly(documentIdOf(tip));
+    }
+
+    /**
+     * Câu lạc đề chỉ trùng MỘT từ nội dung ngẫu nhiên ("thời") với tài liệu. Nhánh OR trước đây vẫn
+     * trả tài liệu đó ⇒ không bao giờ ra "không đủ dữ liệu".
+     */
+    @Test
+    void offTopicQuestionSharingOnlyOneIncidentalWordReturnsNoChunk() {
+        indexCareTip("PUBLISHED", "Vệ sinh khay cát hằng ngày",
+                "Dọn cát bẩn hằng ngày. Thay toàn bộ lớp cát theo thời gian phù hợp.");
+
+        assertThat(repository.search(TEST_LOCALE, "hôm nay thời tiết thế nào", 6)).isEmpty();
+        assertThat(repository.search(TEST_LOCALE, "bạn tên là gì", 6)).isEmpty();
+    }
+
+    private UUID indexCareTip(String status, String title, String body) {
+        UUID id = jdbc.queryForObject("""
+                INSERT INTO care_tip (slug, locale, title, body_md, status, claim_type)
+                VALUES (?, ?, ?, ?, ?, 'NONE') RETURNING id
+                """, UUID.class, "ai-repo-test-" + UUID.randomUUID(), TEST_LOCALE, title, body, status);
+        careTipIds.add(id);
+        UUID documentId = documentIdOf(id);
+        jdbc.update("""
+                INSERT INTO ai_document(id, source_type, source_id, locale, title, source_url, content_hash, active)
+                VALUES (?, 'CARE_TIP', ?, ?, ?, '/care-tips/test', 'test', TRUE)
+                """, documentId, id, TEST_LOCALE, title);
+        jdbc.update("INSERT INTO ai_chunk(id, document_id, ordinal, content) VALUES (?, ?, 0, ?)",
+                UUID.randomUUID(), documentId, title + "\n\n" + body);
+        return id;
+    }
+
+    private static UUID documentIdOf(UUID careTipId) {
+        return UUID.nameUUIDFromBytes(("care_tip:" + careTipId + ":" + TEST_LOCALE)
+                .getBytes(StandardCharsets.UTF_8));
     }
 
     /**

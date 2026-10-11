@@ -109,13 +109,10 @@ catcheck:
     frontend-success-url: ${CATCHECK_OAUTH2_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/complete}
 
   ai:
-    # Mặc định BẬT: `enabled` chỉ có một chỗ dùng thật (OpenAiCompatibleClient.complete()),
-    # nơi nó LUÔN được kiểm cùng với "api-key rỗng?" — thiếu OPENAI_API_KEY thì dù enabled=true
-    # vẫn an toàn rơi về retrieval-fallback (ghép nguyên văn tài liệu, không gọi ra ngoài, không
-    # tốn phí). Vậy nên bật sẵn ở đây không có rủi ro: người cài chỉ cần dán OPENAI_API_KEY vào
-    # .env là RAG dùng LLM thật ngay, không cần biết tới cờ `enabled` này. Đặt CATCHECK_AI_ENABLED=false
-    # trong .env nếu muốn khoá cứng kể cả khi có key (ví dụ tắt hẳn ở một môi trường test).
-    enabled: ${CATCHECK_AI_ENABLED:true}
+    # Mặc định TẮT: MVP chỉ ghép nguyên văn tài liệu đã duyệt (retrieval-fallback), không gửi câu
+    # hỏi ra nhà cung cấp LLM. Có OPENAI_API_KEY thôi chưa đủ; muốn gọi LLM phải đặt thêm
+    # CATCHECK_AI_ENABLED=true (OpenAiCompatibleClient.complete() kiểm cả hai).
+    enabled: ${CATCHECK_AI_ENABLED:false}
     base-url: ${CATCHECK_AI_BASE_URL:https://api.openai.com/v1}
     api-key: ${OPENAI_API_KEY:}
     chat-model: ${CATCHECK_AI_CHAT_MODEL:gpt-4o-mini}

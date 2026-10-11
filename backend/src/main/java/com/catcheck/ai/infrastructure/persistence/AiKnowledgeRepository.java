@@ -32,13 +32,41 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
         return count != null && count > 0;
     }
 
+    /**
+     * Ngưỡng liên quan của nhánh OR: số từ NỘI DUNG (đã bỏ {@link #STOPWORDS}) của câu hỏi có mặt
+     * trong chunk phải đạt {@code least(MIN_MATCHED_TERMS, số từ nội dung của câu hỏi)}. Hiệu chỉnh
+     * trên 5 care tip seed: câu liên quan khớp 2-9 từ nội dung với bài đúng, câu lạc đề khớp tối đa
+     * 1 (vd "thời" trong "thời tiết" trùng "thời gian"). {@code ts_rank} không tách được hai nhóm.
+     */
+    private static final int MIN_MATCHED_TERMS = 2;
+
+    /**
+     * Hư từ tiếng Việt (đại từ, từ hỏi, trợ từ) — tách theo âm tiết như parser {@code 'simple'}.
+     * Câu hỏi chỉ gồm các từ này không có từ nội dung nào ⇒ không truy hồi.
+     */
+    private static final String STOPWORDS = String.join(" ",
+            "là", "gì", "của", "tôi", "bạn", "mình", "em", "anh", "chị", "cho", "và", "có", "không",
+            "thể", "được", "thì", "nên", "làm", "sao", "bao", "nhiêu", "lâu", "những", "các", "một",
+            "này", "đó", "kia", "đã", "bị", "với", "trong", "khi", "để", "hay", "hoặc", "mà", "như",
+            "ở", "về", "thế", "nào", "nay", "hôm", "ạ", "ơi", "nhé", "vậy", "rồi", "cần", "phải",
+            "muốn", "sẽ", "đang", "ai", "đâu");
+
     public List<RetrievedChunk> search(String locale, String query, int limit) {
+        List<String> contentTerms = jdbc.queryForList("""
+                SELECT t FROM unnest(tsvector_to_array(to_tsvector('simple', ?))) t
+                WHERE t <> ALL (string_to_array(?, ' '))
+                """, String.class, query, STOPWORDS);
+        if (contentTerms.isEmpty()) {
+            return List.of();
+        }
         String sql = """
                 WITH q AS (SELECT plainto_tsquery('simple', ?) AS query)
                 SELECT d.id, d.title, d.source_url, c.content,
                        row_number() OVER (ORDER BY ts_rank(c.search_vector, q.query) DESC, d.updated_at DESC) AS rank
                 FROM ai_chunk c
                 JOIN ai_document d ON d.id = c.document_id
+                JOIN care_tip t ON d.source_type = 'CARE_TIP' AND t.id = d.source_id
+                     AND t.status = 'PUBLISHED' AND t.deleted_at IS NULL
                 CROSS JOIN q
                 WHERE d.active = TRUE AND d.locale = ? AND c.search_vector @@ q.query
                 ORDER BY ts_rank(c.search_vector, q.query) DESC, d.updated_at DESC, c.ordinal
@@ -53,22 +81,29 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
         // Natural-language questions often contain connective/context words absent from a
         // short care tip. Preserve the precise AND search above first; only relax to OR when
         // it found nothing, ranking chunks that match more query terms ahead of weaker hits.
+        // A chunk must still match enough content terms (MIN_MATCHED_TERMS) to count as evidence.
         String relaxed = """
                 WITH q AS (
-                    SELECT to_tsquery('simple', replace(plainto_tsquery('simple', ?)::text, ' & ', ' | ')) AS query
+                    SELECT to_tsquery('simple', replace(plainto_tsquery('simple', ?)::text, ' & ', ' | ')) AS query,
+                           string_to_array(?, ' ') AS terms
                 )
                 SELECT d.id, d.title, d.source_url, c.content,
                        row_number() OVER (ORDER BY ts_rank(c.search_vector, q.query) DESC, d.updated_at DESC) AS rank
                 FROM ai_chunk c
                 JOIN ai_document d ON d.id = c.document_id
+                JOIN care_tip t ON d.source_type = 'CARE_TIP' AND t.id = d.source_id
+                     AND t.status = 'PUBLISHED' AND t.deleted_at IS NULL
                 CROSS JOIN q
                 WHERE d.active = TRUE AND d.locale = ? AND c.search_vector @@ q.query
+                  AND (SELECT count(*) FROM unnest(q.terms) term
+                       WHERE term = ANY (tsvector_to_array(c.search_vector))) >= least(?, cardinality(q.terms))
                 ORDER BY ts_rank(c.search_vector, q.query) DESC, d.updated_at DESC, c.ordinal
                 LIMIT ?
                 """;
         results = jdbc.query(relaxed, (rs, rowNum) -> new RetrievedChunk(
                 rs.getObject("id", UUID.class), rs.getString("title"), rs.getString("source_url"),
-                rs.getString("content"), rs.getInt("rank")), query, locale, limit);
+                rs.getString("content"), rs.getInt("rank")),
+                query, String.join(" ", contentTerms), locale, MIN_MATCHED_TERMS, limit);
         if (!results.isEmpty()) {
             return results;
         }
@@ -77,6 +112,8 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
                        row_number() OVER (ORDER BY d.updated_at DESC, c.ordinal) AS rank
                 FROM ai_chunk c
                 JOIN ai_document d ON d.id = c.document_id
+                JOIN care_tip t ON d.source_type = 'CARE_TIP' AND t.id = d.source_id
+                     AND t.status = 'PUBLISHED' AND t.deleted_at IS NULL
                 WHERE d.active = TRUE AND d.locale = ? AND (d.title ILIKE ? OR c.content ILIKE ?)
                 ORDER BY d.updated_at DESC, c.ordinal
                 LIMIT ?
