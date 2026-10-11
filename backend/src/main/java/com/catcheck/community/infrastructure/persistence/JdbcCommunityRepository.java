@@ -111,13 +111,15 @@ public class JdbcCommunityRepository implements CommunityRepository {
     }
 
     @Override
-    public boolean reportTargetExists(UUID postId, UUID commentId) {
+    public java.util.Optional<UUID> findReportTargetAuthor(UUID postId, UUID commentId) {
         if (postId != null) {
-            return Boolean.TRUE.equals(jdbc.queryForObject(
-                    "SELECT EXISTS (SELECT 1 FROM community_post WHERE id = ? AND status = 'PUBLISHED')", Boolean.class, postId));
+            return jdbc.queryForList(
+                    "SELECT author_user_id FROM community_post WHERE id = ? AND status = 'PUBLISHED'", UUID.class, postId)
+                    .stream().findFirst();
         }
-        return Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS (SELECT 1 FROM community_comment WHERE id = ? AND status = 'PUBLISHED')", Boolean.class, commentId));
+        return jdbc.queryForList(
+                "SELECT author_user_id FROM community_comment WHERE id = ? AND status = 'PUBLISHED'", UUID.class, commentId)
+                .stream().findFirst();
     }
 
     @Override

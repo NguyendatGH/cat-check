@@ -47,6 +47,9 @@ class ReportPdfTimeoutJobTest {
         ExportJob closed = repository.findById(stuck).orElseThrow();
         assertThat(closed.getStatus()).isEqualTo(ExportStatus.FAILED);
         assertThat(closed.getFailureReason()).isEqualTo(ExportTimeoutSweepService.TIMEOUT_REASON);
+        // Chuỗi này hiển thị thẳng cho user (p13 §13.6.2): phải là tiếng Việt có dấu.
+        assertThat(closed.getFailureReason())
+                .isEqualTo("Quá thời gian xử lý cho phép. Bạn thử tạo lại bản xuất nhé.");
         assertThat(closed.getCompletedAt()).isEqualTo(NOW);
     }
 

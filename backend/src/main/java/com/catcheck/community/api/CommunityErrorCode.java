@@ -10,6 +10,7 @@ public enum CommunityErrorCode implements ErrorCode {
     REPORT_TARGET_REQUIRED("community/report-target-required", HttpStatus.BAD_REQUEST),
     REPORT_DUPLICATE("community/report-duplicate", HttpStatus.CONFLICT),
     REPORT_NOT_FOUND("community/report-not-found", HttpStatus.NOT_FOUND),
+    REPORT_OWN_CONTENT("community/report-own-content", HttpStatus.UNPROCESSABLE_ENTITY),
     MODERATION_ACTION_INVALID("community/moderation-action-invalid", HttpStatus.BAD_REQUEST),
     /**
      * I19 (p4 §4.4.9) — tài khoản {@code RESTRICTED} CHỈ ĐỌC. Tên hằng trùng

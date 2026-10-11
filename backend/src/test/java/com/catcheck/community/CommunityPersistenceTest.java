@@ -1,10 +1,12 @@
 package com.catcheck.community;
 
+import com.catcheck.community.api.CommunityErrorCode;
 import com.catcheck.community.application.CommunityService;
 import com.catcheck.community.application.spi.AccountStatus;
 import com.catcheck.community.domain.CommunityRateLimitRule;
 import com.catcheck.community.domain.port.CommunityRateLimiter;
 import com.catcheck.community.infrastructure.persistence.JdbcCommunityRepository;
+import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shop.api.ShopErrorCode;
 import com.catcheck.shop.application.ShopService;
@@ -100,14 +102,30 @@ class CommunityPersistenceTest {
     @Test
     @DisplayName("Bao cao trung khi con mo -> 409; sau khi xu ly xong thi bao cao lai duoc")
     void duplicateOpenReportConflicts() {
-        var post = community.createPost(other, "TIP", "Tieu de", "Noi dung", List.of());
+        UUID author = insertUser("author-dup@example.invalid");
+        var post = community.createPost(author, "TIP", "Tieu de", "Noi dung", List.of());
         community.report(user, post.id(), null, "SPAM", null);
         assertThatThrownBy(() -> community.report(user, post.id(), null, "OTHER", null))
                 .isInstanceOf(ConflictException.class);
-        // nguoi khac van bao cao duoc
+        // nguoi khac (khong phai tac gia) van bao cao duoc
         community.report(other, post.id(), null, "SPAM", null);
         jdbc.update("UPDATE community_report SET status = 'DISMISSED' WHERE reporter_user_id = ?", user);
         community.report(user, post.id(), null, "SPAM", null);
+    }
+
+    @Test
+    @DisplayName("Tac gia khong bao cao duoc bai/binh luan cua chinh minh; nguoi khac van bao cao duoc binh luan")
+    void authorCannotReportOwnContent() {
+        var post = community.createPost(other, "TIP", "Tieu de", "Noi dung", List.of());
+        var comment = community.createComment(other, post.id(), "Binh luan");
+
+        assertThatThrownBy(() -> community.report(other, post.id(), null, "SPAM", null))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(CommunityErrorCode.REPORT_OWN_CONTENT));
+        assertThatThrownBy(() -> community.report(other, null, comment.id(), "SPAM", null))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(CommunityErrorCode.REPORT_OWN_CONTENT));
+        community.report(user, null, comment.id(), "SPAM", null);
     }
 
     @Test

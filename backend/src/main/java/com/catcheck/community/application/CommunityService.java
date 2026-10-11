@@ -79,8 +79,11 @@ public class CommunityService {
         if ((postId == null) == (commentId == null)) {
             throw new com.catcheck.shared.error.BusinessRuleException(CommunityErrorCode.REPORT_TARGET_REQUIRED);
         }
-        if (!repository.reportTargetExists(postId, commentId)) {
-            throw new NotFoundException(postId != null ? CommunityErrorCode.POST_NOT_FOUND : CommunityErrorCode.REPORT_NOT_FOUND);
+        UUID authorId = repository.findReportTargetAuthor(postId, commentId)
+                .orElseThrow(() -> new NotFoundException(
+                        postId != null ? CommunityErrorCode.POST_NOT_FOUND : CommunityErrorCode.REPORT_NOT_FOUND));
+        if (authorId.equals(userId)) {
+            throw new com.catcheck.shared.error.BusinessRuleException(CommunityErrorCode.REPORT_OWN_CONTENT);
         }
         if (!repository.report(userId, postId, commentId, reason, details)) {
             throw new com.catcheck.shared.error.ConflictException(CommunityErrorCode.REPORT_DUPLICATE);

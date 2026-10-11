@@ -22,7 +22,7 @@ public class ExportTimeoutSweepService {
 
     /** Lý do ghi vào {@code export_job.failure_reason} — hiển thị thẳng cho user (p13 §13.6.2). */
     static final String TIMEOUT_REASON =
-            "Qua thoi gian xu ly cho phep. Ban thu tao lai ban xuat nhe.";
+            "Quá thời gian xử lý cho phép. Bạn thử tạo lại bản xuất nhé.";
 
     private final ExportJobRepository jobRepository;
 

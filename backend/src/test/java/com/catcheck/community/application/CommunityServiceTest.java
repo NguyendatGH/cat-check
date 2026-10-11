@@ -7,6 +7,7 @@ import com.catcheck.community.domain.CommunityRateLimitRule;
 import com.catcheck.community.domain.port.CommunityRateLimiter;
 import com.catcheck.community.domain.port.CommunityRepository;
 import com.catcheck.community.infrastructure.ratelimit.Bucket4jCommunityRateLimiter;
+import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import org.junit.jupiter.api.Test;
@@ -16,8 +17,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class CommunityServiceTest {
 
@@ -72,6 +78,45 @@ class CommunityServiceTest {
         RateLimitedException ex = assertRateLimited(
                 () -> service.createPost(USER_ID, "TIP", "Title", "Body", List.of()), CommunityErrorCode.POST_RATE_LIMITED);
         assertThat(ex.retryAfterSeconds()).isBetween(1L, 600L);
+    }
+
+    @Test
+    void reportingYourOwnPostIsRejectedAndNothingIsWritten() {
+        UUID postId = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findReportTargetAuthor(postId, null)).thenReturn(java.util.Optional.of(USER_ID));
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        assertThatThrownBy(() -> service.report(USER_ID, postId, null, "SPAM", null))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        ex -> assertThat(ex.errorCode()).isEqualTo(CommunityErrorCode.REPORT_OWN_CONTENT));
+        verify(repository, never()).report(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void reportingYourOwnCommentIsRejectedAndNothingIsWritten() {
+        UUID commentId = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findReportTargetAuthor(null, commentId)).thenReturn(java.util.Optional.of(USER_ID));
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        assertThatThrownBy(() -> service.report(USER_ID, null, commentId, "SPAM", null))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        ex -> assertThat(ex.errorCode()).isEqualTo(CommunityErrorCode.REPORT_OWN_CONTENT));
+        verify(repository, never()).report(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void reportingSomeoneElsesPostStillWorks() {
+        UUID postId = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findReportTargetAuthor(postId, null)).thenReturn(java.util.Optional.of(UUID.randomUUID()));
+        when(repository.report(eq(USER_ID), eq(postId), eq(null), eq("SPAM"), eq(null))).thenReturn(true);
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        service.report(USER_ID, postId, null, "SPAM", null);
+
+        verify(repository).report(USER_ID, postId, null, "SPAM", null);
     }
 
     private static CommunityService service(
