@@ -20,7 +20,8 @@ import java.util.Set;
  * @param publicBaseUrl        tiền tố URL mà {@code presignedUrl} ghép vào
  * @param urlSigningKey        khoá HMAC ký URL có hạn. RỖNG ⇒ {@code presignedUrl} ném lỗi
  *                             thay vì phát URL không ký.
- * @param maxImageBytes        trần kích thước một ảnh
+ * @param maxImageBytes        trần kích thước một ảnh — bằng trần nghiệp vụ lớn nhất (scan 8 MB,
+ *                             {@code ScanThresholds.MAX_UPLOAD_BYTES}); avatar tự giữ trần 5 MB riêng
  * @param allowedContentTypes  MIME type được chấp nhận
  * @param stagingTtl           thời gian sống của ảnh staging chưa chốt
  */
@@ -29,7 +30,7 @@ public record MediaProperties(
         @DefaultValue("./data/media") Path root,
         @DefaultValue("http://localhost:8080") String publicBaseUrl,
         @DefaultValue("") String urlSigningKey,
-        @DefaultValue("5242880") long maxImageBytes,
+        @DefaultValue("8388608") long maxImageBytes,
         @DefaultValue({"image/jpeg", "image/png", "image/webp"}) Set<String> allowedContentTypes,
         @DefaultValue("PT30M") Duration stagingTtl
 ) {

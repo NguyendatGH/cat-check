@@ -107,7 +107,7 @@ public class ManualScanIngestService {
                 cmd.userId(), cmd.catId(), cmd.assignment(), cmd.capturedAt(), cmd.captureSource(),
                 cmd.deviceHint(), cmd.idempotencyKey(), null, null, NO_IMAGE);
 
-        return persistenceService.persist(command, outcome, cat, trialRegime, false, Optional.empty());
+        return persistenceService.persist(command, outcome, cat, trialRegime, false, false, Optional.empty());
     }
 
     private Optional<ScanSubmitResult> tryReplay(UUID userId, String idempotencyKey) {

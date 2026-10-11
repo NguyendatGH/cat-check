@@ -9,6 +9,7 @@ import com.catcheck.media.api.ImageStorage;
 import com.catcheck.media.api.ImageUpload;
 import com.catcheck.media.api.StoredImage;
 import com.catcheck.scan.api.ScanErrorCode;
+import com.catcheck.scan.application.spi.ImageRetentionConsentPort;
 import com.catcheck.scan.domain.ScanAnalysis;
 import com.catcheck.scan.domain.ScanAssignment;
 import com.catcheck.scan.domain.ScanThresholds;
@@ -47,6 +48,7 @@ public class SubmitScanService {
     private final CatOwnershipPort catOwnershipPort;
     private final CreditConsumption creditConsumption;
     private final EntitlementQuery entitlementQuery;
+    private final ImageRetentionConsentPort imageRetentionConsent;
     private final ImageStorage imageStorage;
     private final Clock clock;
 
@@ -70,6 +72,7 @@ public class SubmitScanService {
             CatOwnershipPort catOwnershipPort,
             CreditConsumption creditConsumption,
             EntitlementQuery entitlementQuery,
+            ImageRetentionConsentPort imageRetentionConsent,
             ImageStorage imageStorage,
             Clock clock) {
         this.scanRepository = scanRepository;
@@ -80,6 +83,7 @@ public class SubmitScanService {
         this.catOwnershipPort = catOwnershipPort;
         this.creditConsumption = creditConsumption;
         this.entitlementQuery = entitlementQuery;
+        this.imageRetentionConsent = imageRetentionConsent;
         this.imageStorage = imageStorage;
         this.clock = clock;
     }
@@ -145,7 +149,9 @@ public class SubmitScanService {
                 () -> pipelineService.analyze(cmd.imageBytes(), cmd.roi(), cmd.cardQuadHint()));
 
         boolean storeImageAllowed = entitlementQuery.isFeatureEnabled(cmd.userId(), Feature.STORE_IMAGE);
-        boolean willStoreImage = storeImageAllowed && !trialRegime && !outcome.inconclusive();
+        // Gói cho phép chưa đủ: SCAN_IMAGE_RETAIN là consent tuỳ chọn, mặc định tắt.
+        boolean imageConsentGranted = storeImageAllowed && imageRetentionConsent.isGranted(cmd.userId());
+        boolean willStoreImage = imageConsentGranted && !trialRegime && !outcome.inconclusive();
 
         Optional<StoredImage> storedImage = Optional.empty();
         if (willStoreImage) {
@@ -155,7 +161,8 @@ public class SubmitScanService {
         }
 
         try {
-            return persistenceService.persist(cmd, outcome, cat, trialRegime, storeImageAllowed, storedImage);
+            return persistenceService.persist(cmd, outcome, cat, trialRegime, storeImageAllowed,
+                    imageConsentGranted, storedImage);
         } catch (RuntimeException ex) {
             // Transaction rollback (vd. hết credit do race) — dọn file đã ghi ngoài transaction
             // (p7 §7.4.5 điểm 2: staging/ghi file KHÔNG nằm trong transaction, nên dọn thủ công ở

@@ -130,6 +130,7 @@ public class CloudinaryImageStorage implements ImageStorage {
 
     private StoredImage upload(StorageKey key, ImageUpload upload) {
         byte[] bytes = readBounded(upload);
+        ImageSignatures.requireMatches(upload.contentType(), bytes);
         Map<String, String> params = new TreeMap<>();
         params.put("public_id", publicId(key));
         params.put("timestamp", Long.toString(clock.instant().getEpochSecond()));

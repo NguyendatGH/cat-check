@@ -28,15 +28,19 @@ public interface ScanAnalysisRepository {
      * về nguyên tắc không tính lại được, nên bị loại ở tầng SQL thay vì bị bỏ qua lặng lẽ ở
      * tầng Java.</p>
      *
+     * <p>Chỉ lấy scan đã quét theo một bảng màu cùng {@code (product_line, production_batch)}
+     * với {@code chartId}: bảng của dòng/lô này không được ghi đè kết quả của dòng/lô khác.</p>
+     *
+     * @param chartId              bảng màu đang backfill — quyết định dòng sản phẩm + lô
      * @param computedFrom         mốc {@code computed_at} nhỏ nhất
      * @param engineVersionPrefix  tiền tố {@code engine_version} phải khớp — "cùng major" của
      *                             p6 §6.5.4, truyền dạng {@code "1."}
      * @param limit                cỡ lô (p6 §6.5.4 chốt 500)
      * @param offset               vị trí bắt đầu của lô
      */
-    List<ScanAnalysis> findBackfillCandidates(Instant computedFrom, String engineVersionPrefix,
+    List<ScanAnalysis> findBackfillCandidates(UUID chartId, Instant computedFrom, String engineVersionPrefix,
                                               int limit, int offset);
 
-    /** Tổng số ứng viên backfill — để job báo tiến trình trước khi chạy. */
-    long countBackfillCandidates(Instant computedFrom, String engineVersionPrefix);
+    /** Tổng số ứng viên backfill — cùng điều kiện với {@link #findBackfillCandidates}. */
+    long countBackfillCandidates(UUID chartId, Instant computedFrom, String engineVersionPrefix);
 }

@@ -170,7 +170,7 @@ public class ChartBackfillService implements ChartBackfill {
         // Bảng này là NHÁP (p4 D4): xoá lượt trước rồi mới ghi, không thì hai lần bấm "xem
         // trước" cộng dồn và con số "bị lật phân loại" của L34 đếm gấp đôi.
         int removed = recomputeRepository.deleteByChartId(chartId);
-        long total = analysisRepository.countBackfillCandidates(from, ENGINE_MAJOR_PREFIX);
+        long total = analysisRepository.countBackfillCandidates(chartId, from, ENGINE_MAJOR_PREFIX);
         log.info("Backfill preview chart={} window={} ungVien={} xoaNhapCu={}",
                 chartId, window, total, removed);
 
@@ -178,7 +178,7 @@ public class ChartBackfillService implements ChartBackfill {
         int failed = 0;
         for (int offset = 0; offset < total; offset += BATCH_SIZE) {
             List<ScanAnalysis> batch =
-                    analysisRepository.findBackfillCandidates(from, ENGINE_MAJOR_PREFIX, BATCH_SIZE, offset);
+                    analysisRepository.findBackfillCandidates(chartId, from, ENGINE_MAJOR_PREFIX, BATCH_SIZE, offset);
             if (batch.isEmpty()) {
                 break;
             }

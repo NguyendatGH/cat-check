@@ -89,23 +89,26 @@ public class ScanPersistenceService {
      * @param trialRegime   {@code true} nếu tài khoản đang ở chế độ trial (chưa từng kích hoạt gói,
      *                      xác định TRƯỚC khi chạy pipeline — p7 §7.4.5)
      * @param storeImageAllowed gói + not-trial cho phép lưu ảnh (đã kiểm entitlement TRƯỚC khi gọi)
+     * @param imageConsentGranted consent {@code SCAN_IMAGE_RETAIN} đang hiệu lực
      * @param storedImage   ảnh ĐÃ ghi ra {@code ImageStorage} TRƯỚC khi mở transaction này
      *                      (rỗng nếu không lưu ảnh)
      */
     @Transactional(timeout = 5)
     public ScanSubmitResult persist(SubmitScanCommand cmd, PipelineOutcome outcome,
                                      CatOwnershipPort.CatSnapshot cat, boolean trialRegime,
-                                     boolean storeImageAllowed, Optional<StoredImage> storedImage) {
+                                     boolean storeImageAllowed, boolean imageConsentGranted,
+                                     Optional<StoredImage> storedImage) {
 
         Instant now = clock.instant();
         UUID scanId = uuidV7.generate();
 
         boolean inconclusive = outcome.inconclusive();
-        boolean storeImage = storeImageAllowed && !trialRegime && !inconclusive;
+        boolean storeImage = storeImageAllowed && imageConsentGranted && !trialRegime && !inconclusive;
         StoreImageReason storeImageReason = storeImage ? null
                 : inconclusive ? StoreImageReason.INCONCLUSIVE
                 : trialRegime ? StoreImageReason.TRIAL
-                : StoreImageReason.PLAN_OFF;
+                : !storeImageAllowed ? StoreImageReason.PLAN_OFF
+                : StoreImageReason.CONSENT_OFF;
 
         Scan scan = new Scan(
                 scanId, cmd.userId(), cat == null ? null : cat.catId(), cmd.assignment(),

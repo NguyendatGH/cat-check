@@ -332,15 +332,16 @@ class ChartBackfillServiceTest {
             return Optional.ofNullable(store.get(id));
         }
 
+        /** Bộ lọc dòng sản phẩm/lô theo {@code chartId} là SQL — xem {@code ChartBackfillProductLineIntegrationTest}. */
         @Override
-        public List<ScanAnalysis> findBackfillCandidates(Instant computedFrom, String engineVersionPrefix,
-                                                         int limit, int offset) {
+        public List<ScanAnalysis> findBackfillCandidates(UUID chartId, Instant computedFrom,
+                                                         String engineVersionPrefix, int limit, int offset) {
             List<ScanAnalysis> matching = candidates(computedFrom, engineVersionPrefix);
             return matching.stream().skip(offset).limit(limit).toList();
         }
 
         @Override
-        public long countBackfillCandidates(Instant computedFrom, String engineVersionPrefix) {
+        public long countBackfillCandidates(UUID chartId, Instant computedFrom, String engineVersionPrefix) {
             return candidates(computedFrom, engineVersionPrefix).size();
         }
 

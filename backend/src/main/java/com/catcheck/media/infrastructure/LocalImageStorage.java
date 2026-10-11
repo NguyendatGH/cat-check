@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -250,12 +251,13 @@ public class LocalImageStorage implements ImageStorage {
     }
 
     private StoredImage writeAtomically(StorageKey key, ImageUpload upload) {
+        InputStream content = verifiedContent(upload);
         Path target = resolve(key);
         Path temporary = null;
         try {
             Files.createDirectories(target.getParent());
             temporary = Files.createTempFile(target.getParent(), ".upload-", ".part");
-            long written = copyBounded(upload.content(), temporary);
+            long written = copyBounded(content, temporary);
             move(temporary, target);
             return new StoredImage(key, PROVIDER, written, upload.contentType());
         } catch (IOException ex) {
@@ -263,6 +265,20 @@ public class LocalImageStorage implements ImageStorage {
                 deleteQuietly(temporary);
             }
             throw new UncheckedIOException("Không ghi được ảnh vào storage: " + key.value(), ex);
+        }
+    }
+
+    /** Đọc thử đầu tệp để kiểm magic bytes rồi trả lại luồng nguyên vẹn (mark/reset). */
+    private static InputStream verifiedContent(ImageUpload upload) {
+        BufferedInputStream in = new BufferedInputStream(upload.content());
+        try {
+            in.mark(ImageSignatures.HEAD_BYTES);
+            byte[] head = in.readNBytes(ImageSignatures.HEAD_BYTES);
+            in.reset();
+            ImageSignatures.requireMatches(upload.contentType(), head);
+            return in;
+        } catch (IOException ex) {
+            throw new UncheckedIOException("Không đọc được ảnh tải lên", ex);
         }
     }
 
@@ -383,8 +399,10 @@ public class LocalImageStorage implements ImageStorage {
     }
 
     private String stagingNamespaceOf(StorageKey stagedKey) {
+        // staging/<namespace>/<uuid>.<ext> — namespace là đoạn [1] (như CloudinaryImageStorage.commit);
+        // đoạn [2] là tên tệp, lấy nhầm nó làm khoá chốt thành "<uuid>.jpg/yyyy/MM/dd/<uuid>.jpg".
         String[] segments = stagedKey.value().split("/");
-        return segments.length >= 3 ? segments[2] : STAGING_NAMESPACE;
+        return segments.length >= 3 ? segments[1] : STAGING_NAMESPACE;
     }
 
     private String stripExtension(String keyValue) {

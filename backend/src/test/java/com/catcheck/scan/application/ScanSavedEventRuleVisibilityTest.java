@@ -137,7 +137,7 @@ class ScanSavedEventRuleVisibilityTest {
                         CaptureSource.CAMERA, null, "idem-" + capturedAt, null, null, new byte[] {1}),
                 outcome,
                 new CatOwnershipPort.CatSnapshot(CAT_ID, USER_ID, "Miu", false, false),
-                true, false, Optional.empty());
+                true, false, false, Optional.empty());
     }
 
     /**
@@ -259,14 +259,15 @@ class ScanSavedEventRuleVisibilityTest {
 
                 /** Backfill L33-L35 khong lien quan test nay — cong van phai hien thuc. */
                 @Override
-                public List<ScanAnalysis> findBackfillCandidates(Instant computedFrom,
+                public List<ScanAnalysis> findBackfillCandidates(UUID chartId, Instant computedFrom,
                                                                  String engineVersionPrefix,
                                                                  int limit, int offset) {
                     return List.of();
                 }
 
                 @Override
-                public long countBackfillCandidates(Instant computedFrom, String engineVersionPrefix) {
+                public long countBackfillCandidates(UUID chartId, Instant computedFrom,
+                                                    String engineVersionPrefix) {
                     return 0L;
                 }
 
