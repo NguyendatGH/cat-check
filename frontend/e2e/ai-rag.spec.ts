@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const DEMO = { email: "demo@catcheck.vn", password: "DemoCat2025!" };
+const DEMO = { email: "demo@catcheck.vn", password: "Admin@123" };
 
 test("RAG trả câu trả lời có nguồn từ care tips trên backend thật", async ({ page }) => {
   await page.goto("/auth/login");

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const DEMO = { email: "demo@catcheck.vn", password: "DemoCat2025!" };
+const DEMO = { email: "demo@catcheck.vn", password: "Admin@123" };
 
 test("create community post, open its real detail and persist a comment", async ({ page }) => {
   const suffix = String(Date.now());

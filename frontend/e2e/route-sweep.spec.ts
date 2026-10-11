@@ -20,7 +20,7 @@ import { expect, test, type Page } from "@playwright/test";
  * worker.
  */
 
-const DEMO = { email: "demo@catcheck.vn", password: "DemoCat2025!" };
+const DEMO = { email: "demo@catcheck.vn", password: "Admin@123" };
 
 /** Route không cần đăng nhập. Phải quét TRƯỚC khi login: có phiên thì guard đá về /dashboard. */
 const ANON = ["/", "/auth/login", "/auth/register", "/auth/verify-otp"];

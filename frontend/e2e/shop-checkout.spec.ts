@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const DEMO = { email: "demo@catcheck.vn", password: "DemoCat2025!" };
+const DEMO = { email: "demo@catcheck.vn", password: "Admin@123" };
 
 test("cart, checkout and order detail persist against native Shop API", async ({ page }) => {
   await page.goto("/auth/login");

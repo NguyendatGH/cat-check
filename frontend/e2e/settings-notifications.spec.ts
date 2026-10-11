@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const DEMO = { email: "demo@catcheck.vn", password: "DemoCat2025!" };
+const DEMO = { email: "demo@catcheck.vn", password: "Admin@123" };
 type Preferences = {
   attentionAlertChannel: "PUSH_AND_INAPP" | "INAPP_ONLY";
   creditAlertsEnabled: boolean;

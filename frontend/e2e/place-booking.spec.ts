@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const DEMO = { email: "demo@catcheck.vn", password: "DemoCat2025!" };
+const DEMO = { email: "demo@catcheck.vn", password: "Admin@123" };
 
 test.use({ viewport: { width: 390, height: 844 } });
 

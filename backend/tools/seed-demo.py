@@ -49,7 +49,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DEMO_EMAIL = "demo@catcheck.vn"
 # Trung dung hang so cua frontend/e2e/route-sweep.spec.ts — doi o mot noi thi hong o noi kia.
-DEMO_PASSWORD = "DemoCat2025!"
+DEMO_PASSWORD = "Admin@123"
 DEMO_FULL_NAME = "Chu Nuoi Demo"
 
 # Goi MULTI: 16 credit, khong gioi han so ho so meo, co trend + reminder + export
