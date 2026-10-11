@@ -47,7 +47,8 @@ public class CatContextQueryAdapter implements CatContextQuery {
     @Override
     @Transactional(readOnly = true)
     public Optional<CatProfileSnapshot> findSnapshot(UUID ownerId, UUID catId) {
-        Optional<Cat> cat = catRepository.findByIdAndOwnerId(catId, ownerId);
+        // Hồ sơ đã xoá mềm không được đưa vào ngữ cảnh trợ lý AI.
+        Optional<Cat> cat = catRepository.findByIdAndOwnerId(catId, ownerId).filter(c -> !c.isDeleted());
         if (cat.isEmpty()) {
             return Optional.empty();
         }

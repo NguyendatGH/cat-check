@@ -65,6 +65,16 @@ class CatContextQueryAdapterTest {
     }
 
     @Test
+    @DisplayName("Mèo đã xoá mềm ⇒ Optional.empty(), không còn vào ngữ cảnh trợ lý AI")
+    void softDeletedCatIsInvisible() {
+        Cat deleted = cat();
+        deleted.softDelete(NOW);
+        catRepository.rows.add(deleted);
+
+        assertThat(adapter.findSnapshot(OWNER_ID, CAT_ID)).isEmpty();
+    }
+
+    @Test
     @DisplayName("Mèo không tồn tại ⇒ Optional.empty() giống hệt trường hợp sai chủ")
     void unknownCatIsInvisible() {
         Optional<CatContextQuery.CatProfileSnapshot> result = adapter.findSnapshot(OWNER_ID, UUID.randomUUID());

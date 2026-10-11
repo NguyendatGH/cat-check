@@ -171,6 +171,7 @@ public class CatAvatarService {
 
     private Cat requireOwnedCat(UUID ownerId, UUID catId) {
         return catRepository.findByIdAndOwnerId(catId, ownerId)
+                .filter(cat -> !cat.isDeleted())
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
     }
 

@@ -4,7 +4,6 @@ import com.catcheck.insight.domain.HealthFlag;
 import com.catcheck.insight.domain.HealthFlagSeverity;
 import com.catcheck.insight.domain.port.HealthFlagRepository;
 import tools.jackson.databind.json.JsonMapper;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -38,14 +37,34 @@ class HealthFlagRepositoryAdapter implements HealthFlagRepository {
         this.clock = clock;
     }
 
+    /**
+     * {@code ON CONFLICT DO NOTHING}, không bắt {@code DataIntegrityViolationException}.
+     *
+     * <p>Bug thật đã sửa: bản cũ {@code saveAndFlush} rồi bắt lỗi trùng {@code dedupe_key}. Hàm
+     * này chạy TRONG transaction của {@code ScanPersistenceService} (listener đồng bộ), nên bắt
+     * lỗi không cứu được gì: Postgres huỷ cả transaction sau câu INSERT lỗi ("current transaction
+     * is aborted") và Spring đánh dấu rollback-only. Lần quét thứ 3 liên tiếp có chất lượng thấp
+     * (R4) hay lệch khoảng (R1) trong cùng cooldown ⇒ {@code POST /scans} trả 500, mất scan.</p>
+     */
     @Override
     public Optional<HealthFlag> saveIfNotDuplicate(HealthFlag flag) {
-        try {
-            return Optional.of(jpaRepository.saveAndFlush(flag));
-        } catch (DataIntegrityViolationException ex) {
-            // UNIQUE(dedupe_key) — cooldown chưa hết hoặc race giữa hai request đồng thời (p4 D12).
-            return Optional.empty();
-        }
+        int inserted = jdbc.update("""
+                INSERT INTO health_flag (id, cat_id, rule_code, trigger_scan_id, severity, triggered_at,
+                                         window_from, window_to, message_key, message_params,
+                                         explanation_vi, dedupe_key, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?, ?)
+                ON CONFLICT (dedupe_key) DO NOTHING
+                """,
+                flag.getId(), flag.getCatId(), flag.getRuleCode(), flag.getTriggerScanId(),
+                flag.getSeverity().name(), utc(flag.getTriggeredAt()), utc(flag.getWindowFrom()),
+                utc(flag.getWindowTo()), flag.getMessageKey(),
+                objectMapper.writeValueAsString(flag.getMessageParams()), flag.getExplanationVi(),
+                flag.getDedupeKey(), utc(flag.getCreatedAt()), utc(flag.getUpdatedAt()));
+        return inserted == 1 ? Optional.of(flag) : Optional.empty();
+    }
+
+    private static OffsetDateTime utc(Instant instant) {
+        return OffsetDateTime.ofInstant(instant, java.time.ZoneOffset.UTC);
     }
 
     @Override
@@ -73,8 +92,12 @@ class HealthFlagRepositoryAdapter implements HealthFlagRepository {
 
     @Override
     public boolean isCatOwnedByUser(UUID catId, UUID userId) {
+        // Bug thật đã sửa: truy vấn cũ không lọc deleted_at IS NULL, nên sau khi chủ xoá mềm
+        // một mèo (D5), health flag của mèo đó vẫn xem/ack được qua G2/G3 — lộ dữ liệu đã xoá
+        // mềm, cùng lớp lỗi mà CatJpaRepository/AdminCatViewService đã tránh ở module cat.
         Long count = jdbc.queryForObject(
-                "SELECT count(*) FROM cat WHERE id = ? AND owner_id = ?", Long.class, catId, userId);
+                "SELECT count(*) FROM cat WHERE id = ? AND owner_id = ? AND deleted_at IS NULL",
+                Long.class, catId, userId);
         return count != null && count > 0;
     }
 
@@ -88,6 +111,7 @@ class HealthFlagRepositoryAdapter implements HealthFlagRepository {
                   FROM health_flag hf
                   JOIN cat c ON c.id = hf.cat_id
                  WHERE c.owner_id = ?
+                   AND c.deleted_at IS NULL
                 """);
         List<Object> args = new ArrayList<>();
         args.add(userId);

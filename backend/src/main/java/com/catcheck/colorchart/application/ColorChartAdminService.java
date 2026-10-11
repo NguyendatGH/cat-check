@@ -14,6 +14,7 @@ import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.error.NotFoundException;
 import com.catcheck.shared.id.UuidV7;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,9 +75,12 @@ public class ColorChartAdminService {
         if (name == null || name.isBlank()) {
             throw new BusinessRuleException(ColorChartErrorCode.VALIDATION_FAILED, "name");
         }
-        int nextVersion = colorChartRepository.findByCodeAndVersion(code, 1)
-                .map(c -> c.getVersion() + 1)
-                .orElse(1);
+        // Bug thật đã sửa: bản cũ chỉ tra version 1 rồi +1, nên từ bản thứ ba trở đi luôn ra
+        // version 2 và vỡ uq_color_chart_code_version (500). Số version mỗi mã chỉ vài cái.
+        int nextVersion = 1;
+        while (colorChartRepository.findByCodeAndVersion(code, nextVersion).isPresent()) {
+            nextVersion++;
+        }
 
         Instant now = clock.instant();
         ColorChart chart = new ColorChart(
@@ -208,21 +212,35 @@ public class ColorChartAdminService {
 
         Instant now = clock.instant();
 
-        // Archive bản ACTIVE cũ của cùng (product_line, production_batch).
-        colorChartRepository.findActiveByProductLineAndBatch(
-                        chart.getProductLine(), chart.getProductionBatch())
-                .ifPresent(old -> {
-                    old.setStatus(ChartStatus.ARCHIVED);
-                    old.setEffectiveTo(now);
-                    old.markUpdated(now);
-                    colorChartRepository.save(old);
-                });
+        try {
+            // Archive bản ACTIVE cũ của cùng (product_line, production_batch).
+            colorChartRepository.findActiveByProductLineAndBatch(
+                            chart.getProductLine(), chart.getProductionBatch())
+                    .ifPresent(old -> {
+                        old.setStatus(ChartStatus.ARCHIVED);
+                        old.setEffectiveTo(now);
+                        old.markUpdated(now);
+                        colorChartRepository.save(old);
+                    });
 
-        chart.setStatus(ChartStatus.ACTIVE);
-        chart.setEffectiveFrom(now);
-        chart.setPublishedAt(now);
-        chart.markUpdated(now);
-        return colorChartRepository.save(chart);
+            // Publishing validates chart completeness, but it does not establish that a
+            // placeholder was calibrated from real samples. Keep this state until the
+            // calibration workflow or an explicit owner-approved confirmation supplies that
+            // evidence; otherwise a seeded synthetic chart could bypass the production guard.
+            chart.setStatus(ChartStatus.ACTIVE);
+            chart.setEffectiveFrom(now);
+            chart.setPublishedAt(now);
+            chart.markUpdated(now);
+            return colorChartRepository.save(chart);
+        } catch (DataIntegrityViolationException ex) {
+            // Race condition thật: hai admin cùng publish hai DRAFT khác nhau cho CÙNG
+            // (product_line, production_batch) gần như đồng thời — cả hai đều qua được kiểm tra
+            // existsActiveByProductLineAndBatch ở trên (chưa ai commit), rồi cùng cố giành
+            // ACTIVE. uq_color_chart_active_per_batch (V9) chặn ở tầng DB; không bắt ở đây thì
+            // request thua cuộc rơi vào handleUnexpected() và trả 500 thay vì 409 nghiệp vụ.
+            throw new ConflictException(ColorChartErrorCode.COLOR_CHART_IN_USE, ex,
+                    chartId.toString(), "ACTIVE");
+        }
     }
 
     // ------------------------------------------------------------------ nội bộ

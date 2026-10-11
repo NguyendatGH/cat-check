@@ -94,6 +94,7 @@ public class CatHealthSurveyService {
 
     private void requireOwnedCat(UUID ownerId, UUID catId) {
         catRepository.findByIdAndOwnerId(catId, ownerId)
+                .filter(cat -> !cat.isDeleted())
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
     }
 

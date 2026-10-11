@@ -142,8 +142,15 @@ public class RuleEvaluationService {
         // p6 §6.9.3: chỉ scan CARD_CCM mới đủ tin cậy làm baseline — nhánh SUBSTRATE_WB/NONE của
         // MVP (xem docs/handovers/A6.md) khiến rule này gần như không bao giờ có đủ mẫu, đúng như
         // spec dự liệu ("loại scan không hiệu chỉnh tốt khỏi baseline", nguyên tắc 3).
-        List<BigDecimal> baseline = validScans(event.catId(), since, minConfidence).stream()
+        List<ScanHistoryQuery.RecentScan> baselineScans = validScans(event.catId(), since, minConfidence).stream()
                 .filter(s -> "CARD_CCM".equals(s.calibrationMethod()))
+                .toList();
+        // Lần quét kích hoạt phải đạt cùng chuẩn với baseline: so một scan confidence thấp hoặc
+        // không có thẻ màu với baseline CARD_CCM là đúng loại lệch giả mà bộ lọc trên muốn tránh.
+        if (baselineScans.stream().noneMatch(s -> s.scanId().equals(event.scanId()))) {
+            return;
+        }
+        List<BigDecimal> baseline = baselineScans.stream()
                 .map(ScanHistoryQuery.RecentScan::phValue)
                 .filter(java.util.Objects::nonNull)
                 .toList();
@@ -195,6 +202,12 @@ public class RuleEvaluationService {
         // thứ tự thời gian tăng dần để kiểm đơn điệu.
         List<ScanHistoryQuery.RecentScan> latest = new ArrayList<>(scans.subList(0, streak));
         java.util.Collections.reverse(latest);
+        // Chuỗi phải kết thúc ở chính lần quét kích hoạt. Nếu lần này bị lọc (confidence thấp,
+        // sát ngưỡng) thì `latest` là chuỗi CŨ: maxSpanDays (7) > cooldown (72h) nên nó sẽ bị
+        // báo lại lần nữa dưới tên một scan không liên quan.
+        if (!latest.getLast().scanId().equals(event.scanId())) {
+            return;
+        }
 
         for (int i = 1; i < latest.size(); i++) {
             long gapHours = java.time.Duration.between(latest.get(i - 1).capturedAt(), latest.get(i).capturedAt()).toHours();
@@ -310,12 +323,25 @@ public class RuleEvaluationService {
 
     private void raise(MonitoringRule rule, ScanSavedEvent event, Instant windowFrom, Instant now,
                         String explanationVi, Map<String, Object> params) {
-        long bucket = now.getEpochSecond() / Math.max(1, rule.getCooldownHours() * 3600L);
+        long cooldownSeconds = rule.getCooldownHours() * 3600L;
+        // Cooldown trượt tính từ flag gần nhất của cùng rule. dedupe_key theo bucket bên dưới chỉ
+        // còn là chốt chặn race ở DB: riêng nó thì flag lúc 23:59 và 00:01 rơi vào hai bucket
+        // khác nhau nên cách nhau 2 phút vẫn lọt.
+        if (cooldownSeconds > 0 && healthFlagRepository
+                .findByCatIdAndTriggeredAtBetween(event.catId(), now.minusSeconds(cooldownSeconds), now)
+                .stream().anyMatch(f -> rule.getCode().equals(f.getRuleCode()))) {
+            return;
+        }
+        long bucket = now.getEpochSecond() / Math.max(1, cooldownSeconds);
         String dedupeKey = rule.getCode() + ":" + event.catId() + ":" + bucket;
+        // ck_health_flag_window đòi window_to > window_from. captured_at do client gửi, được phép
+        // đi trước giờ server tới 2 giờ (SubmitScanService) — không chặn ở đây thì INSERT vỡ
+        // CHECK và kéo rollback cả scan vừa lưu.
+        Instant windowTo = now.isAfter(windowFrom) ? now : windowFrom.plusSeconds(1);
 
         HealthFlag flag = new HealthFlag(
                 uuidV7.generate(), event.catId(), rule.getCode(), event.scanId(),
-                rule.getSeverity(), windowFrom, now, rule.getMessageKey(), params,
+                rule.getSeverity(), windowFrom, windowTo, rule.getMessageKey(), params,
                 explanationVi, dedupeKey, now);
         healthFlagRepository.saveIfNotDuplicate(flag);
     }

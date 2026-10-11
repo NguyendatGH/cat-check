@@ -5,6 +5,7 @@ import com.catcheck.cat.api.CatCreatedEvent;
 import com.catcheck.cat.api.CatErrorCode;
 import com.catcheck.cat.api.CatUpdatedEvent;
 import com.catcheck.cat.domain.Cat;
+import com.catcheck.cat.domain.CatAgeConflictException;
 import com.catcheck.cat.domain.CatBreed;
 import com.catcheck.cat.domain.CatSex;
 import com.catcheck.cat.domain.CatStatus;
@@ -159,15 +160,20 @@ public class CatProfileService {
             catRepository.clearPrimaryForOwner(ownerId, now);
         }
 
-        Cat cat = Cat.create(
-                uuidV7.generate(),
-                ownerId,
-                command.name(),
-                command.birthDate(),
-                command.approxAgeMonths(),
-                newPublicCode(),
-                LocalDate.now(clock),
-                now);
+        Cat cat;
+        try {
+            cat = Cat.create(
+                    uuidV7.generate(),
+                    ownerId,
+                    command.name(),
+                    command.birthDate(),
+                    command.approxAgeMonths(),
+                    newPublicCode(),
+                    LocalDate.now(clock),
+                    now);
+        } catch (CatAgeConflictException ex) {
+            throw new BusinessRuleException(CatErrorCode.CAT_AGE_CONFLICT);
+        }
         cat.applyProfile(command.breedCode(), command.breedOther(), command.coatColor(),
                 command.sex(), command.neutered(), command.weightKg(), command.notes(),
                 LocalDate.now(clock), now);
@@ -224,20 +230,24 @@ public class CatProfileService {
             changed.add("weightKg");
         }
 
-        cat.update(
-                command.hasName() ? command.name() : null,
-                command.birthDate(),
-                command.touchesAge(),
-                command.approxAgeMonths(),
-                command.breedCode(),
-                command.breedOther(),
-                command.coatColor(),
-                command.sex(),
-                command.neutered(),
-                command.weightKg(),
-                command.notes(),
-                LocalDate.now(clock),
-                now());
+        try {
+            cat.update(
+                    command.hasName() ? command.name() : null,
+                    command.birthDate(),
+                    command.touchesAge(),
+                    command.approxAgeMonths(),
+                    command.breedCode(),
+                    command.breedOther(),
+                    command.coatColor(),
+                    command.sex(),
+                    command.neutered(),
+                    command.weightKg(),
+                    command.notes(),
+                    LocalDate.now(clock),
+                    now());
+        } catch (CatAgeConflictException ex) {
+            throw new BusinessRuleException(CatErrorCode.CAT_AGE_CONFLICT);
+        }
 
         Cat saved = catRepository.save(cat);
         eventPublisher.publishEvent(new CatUpdatedEvent(
@@ -251,7 +261,7 @@ public class CatProfileService {
     @Transactional
     public void softDelete(UUID ownerId, UUID catId) {
         requireWriteAllowed(ownerId);
-        Cat cat = requireOwnedCat(ownerId, catId);
+        Cat cat = requireOwnedCatIncludingDeleted(ownerId, catId);
         if (cat.isDeleted()) {
             throw new ConflictException(CatErrorCode.CAT_ALREADY_DELETED);
         }
@@ -314,7 +324,7 @@ public class CatProfileService {
     @Transactional
     public PrimaryCatResult setPrimary(UUID ownerId, UUID catId) {
         requireWriteAllowed(ownerId);
-        Cat cat = requireOwnedCat(ownerId, catId);
+        Cat cat = requireOwnedCatIncludingDeleted(ownerId, catId);
         if (cat.isArchived() || cat.isDeleted()) {
             throw new ConflictException(CatErrorCode.CAT_PRIMARY_REQUIRES_ACTIVE);
         }
@@ -352,7 +362,19 @@ public class CatProfileService {
         return catBreedRepository.findActive();
     }
 
+    /**
+     * Hồ sơ đã xoá mềm coi như không tồn tại (404). Bug thật đã sửa: {@code findByIdAndOwnerId}
+     * cố ý không lọc {@code deleted_at} (xem {@code CatJpaRepository}) nhưng chỉ D5/D8 tự kiểm,
+     * nên D3/D4/D6/D7 vẫn đọc và sửa được hồ sơ người dùng đã xoá.
+     */
     private Cat requireOwnedCat(UUID ownerId, UUID catId) {
+        return catRepository.findByIdAndOwnerId(catId, ownerId)
+                .filter(cat -> !cat.isDeleted())
+                .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
+    }
+
+    /** Chỉ cho D5/D8: hai thao tác này trả 409 riêng cho hồ sơ đã xoá mềm. */
+    private Cat requireOwnedCatIncludingDeleted(UUID ownerId, UUID catId) {
         return catRepository.findByIdAndOwnerId(catId, ownerId)
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
     }

@@ -106,6 +106,7 @@ public class CatNoteService {
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOTE_NOT_FOUND));
         // Mèo phải thuộc người gọi — 404 (không phải 403) nếu không, để không xác nhận id có thật.
         catRepository.findByIdAndOwnerId(note.getCatId(), ownerId)
+                .filter(cat -> !cat.isDeleted())
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOTE_NOT_FOUND));
         if (!note.getAuthorUserId().equals(ownerId)) {
             throw new PermissionDeniedException(CatErrorCode.CAT_NOTE_NOT_EDITABLE);
@@ -115,6 +116,7 @@ public class CatNoteService {
 
     private Cat requireOwnedCat(UUID ownerId, UUID catId) {
         return catRepository.findByIdAndOwnerId(catId, ownerId)
+                .filter(cat -> !cat.isDeleted())
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
     }
 

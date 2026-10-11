@@ -428,8 +428,7 @@ public class Cat {
 
     private void applyAgeSource(LocalDate birthDate, Integer approxAgeMonths, LocalDate today) {
         if (birthDate != null && approxAgeMonths != null) {
-            throw new IllegalArgumentException(
-                    "Chỉ chọn một cách nhập tuổi: birthDate hoặc approxAgeMonths (CAT_AGE_CONFLICT)");
+            throw new CatAgeConflictException();
         }
         if (birthDate == null && approxAgeMonths == null) {
             throw new IllegalArgumentException("Phải có birthDate hoặc approxAgeMonths");
@@ -447,6 +446,9 @@ public class Cat {
     private void applyAgePatch(LocalDate birthDate, boolean ageTouched, Integer approxAgeMonths, LocalDate today) {
         if (!ageTouched) {
             return;
+        }
+        if (birthDate != null && approxAgeMonths != null) {
+            throw new CatAgeConflictException();
         }
         if (birthDate != null) {
             if (birthDate.isAfter(today)) {
