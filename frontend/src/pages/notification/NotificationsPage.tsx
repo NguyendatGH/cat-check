@@ -138,17 +138,22 @@ export function NotificationsPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
-      <header>
-        <h1 className="text-h2 font-bold text-text-primary lg:text-h1">{t("pages.list.title")}</h1>
-        <p className="pt-1 text-body text-text-secondary">{t("inbox.lead")}</p>
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-5 lg:px-0 lg:py-0">
+      <header data-reveal>
+        <div>
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">{t("app.wordmark")}</p>
+          <h1 className="text-[28px] font-bold leading-tight tracking-[-0.04em] text-text-primary lg:text-h1">
+            {t("pages.list.title")}
+          </h1>
+          <p className="max-w-xl pt-2 text-body leading-relaxed text-text-secondary">{t("inbox.lead")}</p>
+        </div>
       </header>
 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-5">
+          <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:justify-between" data-reveal>
             <div
-              className="inline-flex items-center gap-1 self-start rounded-lg bg-background-alt p-1"
+              className="flex w-full items-center gap-1 rounded-2xl border border-primary/10 bg-surface p-1 shadow-[0_6px_20px_rgba(47,79,178,0.06)] sm:w-fit"
               role="tablist"
               aria-label={t("pages.list.title")}
             >
@@ -163,8 +168,8 @@ export function NotificationsPage() {
                   }}
                   className={
                     tab === option.value
-                      ? "min-h-[var(--touch-target-min)] rounded-md bg-surface px-4 text-caption font-semibold text-primary shadow-xs"
-                      : "min-h-[var(--touch-target-min)] rounded-md px-4 text-caption font-semibold text-text-secondary"
+                      ? "min-h-10 flex-1 rounded-xl bg-primary px-4 text-caption font-semibold text-white shadow-[0_5px_12px_rgba(47,79,178,0.2)] sm:flex-none"
+                      : "min-h-10 flex-1 rounded-xl px-4 text-caption font-semibold text-text-secondary transition-colors hover:bg-background-alt sm:flex-none"
                   }
                 >
                   {option.label}
@@ -179,7 +184,7 @@ export function NotificationsPage() {
               onClick={() => {
                 markAllRead.mutate();
               }}
-              className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-caption font-semibold text-primary hover:bg-background-alt disabled:text-text-tertiary disabled:hover:bg-transparent"
+              className="flex min-h-10 w-full items-center justify-start gap-2 rounded-xl px-3 text-caption font-semibold text-primary transition-colors hover:bg-primary/5 disabled:text-text-tertiary disabled:hover:bg-transparent sm:w-auto sm:justify-center"
             >
               {markAllRead.isPending ? (
                 <Loader2 size={15} className="animate-spin" aria-hidden="true" />
@@ -221,7 +226,7 @@ export function NotificationsPage() {
                   return (
                     <li
                       key={item.id}
-                      className="flex items-start gap-3 rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs p-3"
+                      className="motion-card group flex items-start gap-3 rounded-2xl border border-primary/10 bg-surface p-4 shadow-[0_6px_18px_rgba(47,79,178,0.05)]"
                       data-unread={item.read ? undefined : "true"}
                     >
                       <Icon size={18} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
@@ -262,7 +267,7 @@ export function NotificationsPage() {
               icon={<Inbox size={22} aria-hidden="true" />}
               title={tab === "unread" ? t("inbox.emptyUnreadTitle") : t("inbox.emptyTitle")}
               description={tab === "unread" ? t("inbox.emptyUnreadBody") : t("inbox.emptyBody")}
-              className="rounded-2xl bg-surface shadow-xs"
+              className="rounded-[28px] border border-primary/10 bg-gradient-to-br from-surface via-surface to-info/35 shadow-[0_14px_34px_rgba(47,79,178,0.08)]"
             />
           ) : null}
 
@@ -283,7 +288,7 @@ export function NotificationsPage() {
         </div>
 
         {/* ---------- Bốn loại thông báo (p4 F2) ---------- */}
-        <aside className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md lg:w-[360px] lg:shrink-0">
+        <aside className="flex w-full flex-col gap-4 rounded-[28px] border border-primary/10 bg-surface p-5 shadow-[0_12px_30px_rgba(47,79,178,0.07)] lg:w-[360px] lg:shrink-0" data-reveal>
           <h2 className="text-h3 font-bold text-text-primary">{t("inbox.kindsTitle")}</h2>
           <p className="text-caption leading-relaxed text-text-secondary">{t("inbox.kindsLead")}</p>
           <ul className="flex flex-col gap-3">

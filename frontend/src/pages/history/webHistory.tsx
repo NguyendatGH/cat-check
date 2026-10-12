@@ -44,7 +44,7 @@ function Panel({ children, className = "" }: { children: React.ReactNode; classN
   );
 }
 
-const FILTERS: HistoryFilterKey[] = ["ALL", "ABNORMAL", "DISPUTED"];
+const FILTERS: HistoryFilterKey[] = ["ALL", "ABNORMAL"];
 
 export interface WebHistoryScreenProps {
   catName: string | null;
@@ -113,7 +113,7 @@ export function WebHistoryScreen({
       <button
         type="button"
         onClick={onExport}
-        className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-body font-bold text-white shadow-[0px_8px_16px_-8px_rgba(47,79,178,0.55)] transition-transform hover:-translate-y-0.5"
+        className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-body font-bold text-white shadow-[0px_8px_16px_-8px_rgba(47,79,178,0.55)]"
       >
         {t("export.cta")}
       </button>

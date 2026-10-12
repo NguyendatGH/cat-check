@@ -110,7 +110,8 @@
       "rangeBetween": "pH {{min}} – {{max}}",
       "rangeBelow": "pH < {{max}}",
       "rangeAbove": "pH > {{min}}",
-      "unavailable": "Chưa có thang đo tham chiếu."
+      "unavailable": "Chưa có thang đo tham chiếu.",
+      "statusColorNote": "Màu trên thang biểu thị vùng pH; chấm đánh dấu dùng màu hạt hệ thống đo được."
     },
     "advice": {
       "title": "Bạn nên làm gì?",
@@ -124,7 +125,9 @@
   },
   "retry": {
     "blurry": "Ảnh bị mờ — hãy giữ yên máy và chụp lại ở nơi đủ sáng.",
-    "generic": "Không đọc được màu hạt chỉ thị — hãy chụp cận cảnh hơn vùng cát đã đổi màu."
+    "generic": "Không đọc được màu hạt chỉ thị — hãy chụp cận cảnh hơn vùng cát đã đổi màu.",
+    "out_of_chart": "Đã nhận diện được hạt đổi màu, nhưng màu nằm ngoài bảng tham chiếu hiện tại. Hãy chụp kèm thẻ màu để đối chiếu chính xác hơn.",
+    "low_confidence": "Đã nhận diện được hạt đổi màu, nhưng độ tin cậy chưa đủ để ước lượng pH. Hãy thử lại dưới ánh sáng đều hoặc chụp kèm thẻ màu."
   },
   "quality": {
     "BLURRY": "Ảnh bị mờ — hãy giữ yên máy khi chụp.",

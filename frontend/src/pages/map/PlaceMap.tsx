@@ -132,7 +132,7 @@ export function PlaceMap({
     : { ...FALLBACK_CENTER, zoom: 12 };
 
   return (
-    <div className={cn("relative isolate overflow-hidden rounded-2xl bg-background-alt", className)}>
+    <div data-motion="none" className={cn("relative isolate overflow-hidden rounded-2xl bg-background-alt", className)}>
       <Map
         ref={mapRef}
         mapLib={maplibregl}

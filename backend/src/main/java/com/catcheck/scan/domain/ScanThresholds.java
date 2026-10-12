@@ -33,7 +33,16 @@ public final class ScanThresholds {
     public static final double TILT_DEG_MAX = 25.0;
 
     // ---- S4b — fallback không thẻ (p6 §6.5.1 S4b) ----
-    public static final double SUBSTRATE_CHROMA_MAX_NEUTRAL = 6.0;
+    /**
+     * Trần chroma cho pixel nền dùng ở nhánh SUBSTRATE_WB.
+     *
+     * <p>Cát STANDARD là xám-be, không phải xám tuyệt đối: profile seed có a*=3.154,
+     * b*=10.461 (C*ab xấp xỉ 10.9). Ngưỡng cũ 6.0 loại cả profile chuẩn và chỉ giữ một ít
+     * điểm bắt sáng gần trắng; ảnh cát be hợp lệ vì vậy thường không đạt tỉ lệ nền tối thiểu
+     * 15% và rơi sai xuống NONE. 18.0 vẫn thấp hơn rõ rệt so với vùng hạt chỉ thị xanh có
+     * chroma cao, nhưng bao phủ được biến thiên sáng/bóng thông thường của nền xám-be.</p>
+     */
+    public static final double SUBSTRATE_CHROMA_MAX_NEUTRAL = 18.0;
     public static final double SUBSTRATE_L_MIN = 55.0;
     public static final double SUBSTRATE_L_MAX = 92.0;
     public static final double MIN_NEUTRAL_RATIO = 0.15;

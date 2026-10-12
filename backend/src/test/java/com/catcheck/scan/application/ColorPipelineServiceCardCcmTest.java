@@ -247,8 +247,10 @@ class ColorPipelineServiceCardCcmTest {
     private static ColorPipelineService buildPipeline(RawImagePort rawImagePort, VisionEngine visionEngine,
                                                         ChartCatalog chartCatalog,
                                                         CardLayoutCatalog cardLayoutCatalog) {
+        var substrateProfileCatalog = (com.catcheck.scan.domain.color.SubstrateProfileCatalog)
+                (line, batch) -> Optional.of(new Lab(66.814, 3.154, 10.461));
         return new ColorPipelineService(rawImagePort, visionEngine, chartCatalog, cardLayoutCatalog,
-                Clock.systemUTC());
+                substrateProfileCatalog, Clock.systemUTC());
     }
 
     /**

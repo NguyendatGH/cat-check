@@ -4,6 +4,7 @@ import com.catcheck.scan.domain.CalibrationMethod;
 import com.catcheck.scan.domain.ScanThresholds;
 import com.catcheck.scan.domain.color.CardLayout;
 import com.catcheck.scan.domain.color.ColorSpace;
+import com.catcheck.scan.domain.color.DeltaE2000;
 import com.catcheck.scan.domain.color.Lab;
 import com.catcheck.scan.domain.color.LinearizationCurve;
 import com.catcheck.scan.domain.color.Matrix3;
@@ -201,8 +202,8 @@ public class OpenCvRawImageProcessor implements RawImagePort {
     }
 
     @Override
-    public CalibrationResult calibrate(VisionEngine.FrameHandle roiFrame) {
-        return withAnalysisScale(asMat(roiFrame), this::calibrateOn);
+    public CalibrationResult calibrate(VisionEngine.FrameHandle roiFrame, Lab referenceSubstrateLab) {
+        return withAnalysisScale(asMat(roiFrame), work -> calibrateOn(work, referenceSubstrateLab));
     }
 
     @Override
@@ -258,7 +259,7 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         return lut;
     }
 
-    private CalibrationResult calibrateOn(Mat source) {
+    private CalibrationResult calibrateOn(Mat source, Lab referenceSubstrateLab) {
         int width = source.cols();
         int height = source.rows();
         // Đọc cả ảnh BGR một lần (Mat liên tục sau decode/clone/resize).
@@ -272,8 +273,8 @@ public class OpenCvRawImageProcessor implements RawImagePort {
             }
         }
 
-        // --- Buoc 1: lay mau tim pixel "nen trung tinh" (S4b) de uoc luong gain.
-        List<RgbLinear> neutralSamples = new ArrayList<>();
+        // --- Buoc 1: lay mau pixel nen cat (S4b) de uoc luong gain.
+        List<RgbLinear> substrateSamples = new ArrayList<>();
         long sampledCount = 0;
         for (int y = 0; y < height; y += NEUTRAL_SAMPLE_STRIDE) {
             for (int x = 0; x < width; x += NEUTRAL_SAMPLE_STRIDE) {
@@ -285,49 +286,58 @@ public class OpenCvRawImageProcessor implements RawImagePort {
                 if (lab.chroma() < ScanThresholds.SUBSTRATE_CHROMA_MAX_NEUTRAL
                         && lab.l() >= ScanThresholds.SUBSTRATE_L_MIN
                         && lab.l() <= ScanThresholds.SUBSTRATE_L_MAX) {
-                    neutralSamples.add(linear);
+                    substrateSamples.add(linear);
                 }
             }
         }
-        double neutralRatio = sampledCount == 0 ? 0.0 : (double) neutralSamples.size() / sampledCount;
+        double neutralRatio = sampledCount == 0 ? 0.0 : (double) substrateSamples.size() / sampledCount;
 
         CalibrationMethod method;
         double[] gains;
-        if (neutralRatio < ScanThresholds.MIN_NEUTRAL_RATIO || neutralSamples.isEmpty()) {
+        if (neutralRatio < ScanThresholds.MIN_NEUTRAL_RATIO || substrateSamples.isEmpty()) {
             method = CalibrationMethod.NONE;
             gains = new double[] {1.0, 1.0, 1.0};
         } else {
             method = CalibrationMethod.SUBSTRATE_WB;
-            WhiteBalanceSolver.Gains solved = WhiteBalanceSolver.fallback(neutralSamples);
+            WhiteBalanceSolver.Gains solved = referenceSubstrateLab == null
+                    ? WhiteBalanceSolver.fallback(substrateSamples)
+                    : WhiteBalanceSolver.fallbackToReference(
+                            substrateSamples, ColorSpace.labToLinearRgb(referenceSubstrateLab));
             gains = solved.toArray();
         }
 
         // --- Buoc 2: ap gain cho TOAN BO pixel ROI -> XYZ (ghi hang loat) + gom substrateLab (S6 buoc 2)
-        // va do lech mau trung tinh sau hieu chinh (proxy cho calibration_residual_de00).
+        // va do sai lech hue cua nen sau hieu chinh (proxy cho calibration_residual_de00).
         double[] xyzOut = new double[width * height * 3];
         List<Lab> substrateCandidates = new ArrayList<>();
-        double residualChromaSum = 0.0;
-        int residualCount = 0;
+        List<Double> residuals = new ArrayList<>();
+        RgbLinear referenceRgb = referenceSubstrateLab == null
+                ? RgbLinear.WHITE
+                : ColorSpace.labToLinearRgb(referenceSubstrateLab);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int i = (y * width + x) * 3;
-                RgbLinear calibrated = new RgbLinear(LINEAR_LUT[bgr[i + 2] & 0xFF] * gains[0],
-                        LINEAR_LUT[bgr[i + 1] & 0xFF] * gains[1], LINEAR_LUT[bgr[i] & 0xFF] * gains[2]);
+                RgbLinear raw = new RgbLinear(LINEAR_LUT[bgr[i + 2] & 0xFF],
+                        LINEAR_LUT[bgr[i + 1] & 0xFF], LINEAR_LUT[bgr[i] & 0xFF]);
+                Lab rawLab = ColorSpace.linearRgbToLab(raw);
+                boolean isSubstrate = isSubstrateCandidate(rawLab);
+                RgbLinear calibrated = raw.times(gains[0], gains[1], gains[2]);
                 var xyz = ColorSpace.linearRgbToXyz(calibrated);
                 xyzOut[i] = xyz.x();
                 xyzOut[i + 1] = xyz.y();
                 xyzOut[i + 2] = xyz.z();
 
                 Lab lab = ColorSpace.xyzToLab(xyz);
-                if (lab.chroma() < 8.0) {
+                if (isSubstrate) {
                     substrateCandidates.add(lab);
                 }
                 if (x % NEUTRAL_SAMPLE_STRIDE == 0 && y % NEUTRAL_SAMPLE_STRIDE == 0
-                        && lab.chroma() < ScanThresholds.SUBSTRATE_CHROMA_MAX_NEUTRAL
-                        && lab.l() >= ScanThresholds.SUBSTRATE_L_MIN
-                        && lab.l() <= ScanThresholds.SUBSTRATE_L_MAX) {
-                    residualChromaSum += lab.chroma();
-                    residualCount++;
+                        && isSubstrate) {
+                    // So hue/chroma voi profile tai cung do sang: chenh lech do phoi sang khong
+                    // bi tinh nham thanh loi can bang mau.
+                    double scale = calibrated.mean() / Math.max(referenceRgb.mean(), 1e-6);
+                    Lab expectedAtSameLightness = ColorSpace.linearRgbToLab(referenceRgb.times(scale));
+                    residuals.add(DeltaE2000.deltaE(lab, expectedAtSameLightness));
                 }
             }
         }
@@ -335,12 +345,37 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         Lab substrateLab = substrateCandidates.isEmpty()
                 ? new Lab(70.0, 0.0, 0.0)
                 : RobustStats.medianPerChannel(substrateCandidates);
-        double residualProxy = residualCount == 0 ? 3.0 : residualChromaSum / residualCount;
+        double residualProxy = residuals.isEmpty() ? 3.0 : medianDouble(residuals);
+
+        Lab observedSubstrateLab = substrateSamples.isEmpty()
+                ? null
+                : RobustStats.medianPerChannel(
+                        substrateSamples.stream().map(ColorSpace::linearRgbToLab).toList());
+        log.info("scan.calibration substrateDetected={} method={} candidates={}/{} ratio={} "
+                        + "observedLab={} referenceLab={} correctedLab={} gains=[{}, {}, {}] residualDe00={}",
+                !substrateSamples.isEmpty(), method, substrateSamples.size(), sampledCount, neutralRatio,
+                observedSubstrateLab, referenceSubstrateLab, substrateLab,
+                gains[0], gains[1], gains[2], residualProxy);
 
         Mat xyzMat = new Mat(height, width, opencv_core.CV_64FC3);
         new DoublePointer(xyzMat.data()).put(xyzOut);
         OpenCvXyzFrame xyzFrame = new OpenCvXyzFrame(xyzMat);
         return new CalibrationResult(xyzFrame, method, gains, neutralRatio, residualProxy, substrateLab);
+    }
+
+    private boolean isSubstrateCandidate(Lab lab) {
+        return lab.chroma() < ScanThresholds.SUBSTRATE_CHROMA_MAX_NEUTRAL
+                && lab.l() >= ScanThresholds.SUBSTRATE_L_MIN
+                && lab.l() <= ScanThresholds.SUBSTRATE_L_MAX;
+    }
+
+    private double medianDouble(List<Double> values) {
+        List<Double> sorted = new ArrayList<>(values);
+        Collections.sort(sorted);
+        int middle = sorted.size() / 2;
+        return sorted.size() % 2 == 0
+                ? (sorted.get(middle - 1) + sorted.get(middle)) / 2.0
+                : sorted.get(middle);
     }
 
     // ------------------------------------------------------------------ CARD_CCM

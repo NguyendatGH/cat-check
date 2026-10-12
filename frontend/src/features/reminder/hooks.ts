@@ -42,6 +42,8 @@ export function useReminders(filter: ReminderListFilter = {}, enabled = true): U
     queryFn: () => listReminders(filter),
     staleTime: REMINDER_STALE_TIME,
     enabled,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

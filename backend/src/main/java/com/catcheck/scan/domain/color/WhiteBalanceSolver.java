@@ -80,6 +80,38 @@ public final class WhiteBalanceSolver {
         return fromNeutralPoint(blended);
     }
 
+    /**
+     * Nhánh dự phòng cho nền có màu đã biết (ví dụ cát STANDARD xám-be). Giữ nguyên độ sáng
+     * trung bình của ảnh và chỉ đưa tỉ lệ ba kênh của điểm nền đo được về tỉ lệ của profile.
+     */
+    public static Gains fallbackToReference(java.util.List<RgbLinear> backgroundPixels,
+                                            RgbLinear referencePoint) {
+        if (backgroundPixels == null || backgroundPixels.isEmpty()) {
+            throw new IllegalArgumentException("Khong co pixel nen de uoc luong can bang trang");
+        }
+        RgbLinear grayWorld = grayWorld(backgroundPixels);
+        RgbLinear whitePatch = whitePatch(backgroundPixels);
+        RgbLinear measured = new RgbLinear(
+                0.5 * (grayWorld.r() + whitePatch.r()),
+                0.5 * (grayWorld.g() + whitePatch.g()),
+                0.5 * (grayWorld.b() + whitePatch.b()));
+        return fromReferencePoints(measured, referencePoint);
+    }
+
+    static Gains fromReferencePoints(RgbLinear measured, RgbLinear reference) {
+        double measuredMean = measured.mean();
+        double referenceMean = reference.mean();
+        if (measuredMean <= 1e-6 || referenceMean <= 1e-6
+                || measured.r() <= 1e-6 || measured.g() <= 1e-6 || measured.b() <= 1e-6
+                || reference.r() <= 1e-6 || reference.g() <= 1e-6 || reference.b() <= 1e-6) {
+            throw new IllegalArgumentException("Diem nen do duoc/tham chieu qua toi de can bang mau");
+        }
+        return new Gains(
+                clampGain((reference.r() / referenceMean) / (measured.r() / measuredMean)),
+                clampGain((reference.g() / referenceMean) / (measured.g() / measuredMean)),
+                clampGain((reference.b() / referenceMean) / (measured.b() / measuredMean)));
+    }
+
     /** Gray-world: trung bình ba kênh của toàn vùng. */
     public static RgbLinear grayWorld(java.util.List<RgbLinear> pixels) {
         double sr = 0.0;

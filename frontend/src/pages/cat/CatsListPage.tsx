@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useQueries } from "@tanstack/react-query";
+import { Skeleton as AntSkeleton } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { isApiError } from "@/shared/api";
-import { Button, EmptyState, ErrorState, SkeletonLoader, Tabs, TabsList, TabsTrigger } from "@/shared/ui";
+import { Button, EmptyState, ErrorState, Tabs, TabsList, TabsTrigger } from "@/shared/ui";
 import { CatAvatar, resolveCatLastScan, useFormatCatAge, type Cat, type CatLastScan, type CatStatus } from "@/entities/cat";
 import { PhGaugeBar, phTokenStyle, usePhBands, type PhBand } from "@/entities/ph-bands";
 import { ConfirmDialog, useCatList, useSetPrimaryCat, useSoftDeleteCat } from "@/features/cat";
@@ -101,7 +102,7 @@ export function CatsListPage() {
   return (
     <div className="flex flex-col gap-6 px-4 py-5 lg:px-0 lg:py-0">
       {/* ---------- Mobile / tablet ---------- */}
-      <div className="flex flex-col gap-6 lg:hidden">
+      <div data-reveal className="flex flex-col gap-6 lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-h2 font-bold text-text-primary">{t("pages.list.title")}</h1>
           <Button
@@ -130,7 +131,9 @@ export function CatsListPage() {
         {isPending ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[0, 1, 2].map((i) => (
-              <SkeletonLoader key={i} shape="card" />
+              <div key={i} className="rounded-2xl bg-surface p-4" aria-hidden="true">
+                <AntSkeleton active title={{ width: "42%" }} paragraph={{ rows: 3 }} />
+              </div>
             ))}
           </div>
         ) : isError ? (
@@ -180,7 +183,7 @@ export function CatsListPage() {
       </div>
 
       {/* ---------- Desktop: Figma 16:3703 ---------- */}
-      <div className="hidden flex-col gap-8 lg:flex">
+      <div data-reveal className="hidden flex-col gap-8 lg:flex">
         <HubBanner
           catCount={items.length}
           onScan={() => {
@@ -207,7 +210,11 @@ export function CatsListPage() {
           <>
             <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
               {isPending
-                ? [0, 1, 2, 3].map((i) => <SkeletonLoader key={i} shape="card" />)
+                ? [0, 1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-2xl bg-surface p-4" aria-hidden="true">
+                      <AntSkeleton active title={{ width: "45%" }} paragraph={{ rows: 3 }} />
+                    </div>
+                  ))
                 : items.map((cat) => (
                     <HubCatCard
                       key={cat.id}
@@ -307,7 +314,7 @@ function MobileCatCard({
   return (
     <article
       className={cn(
-        "flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-xs",
+        "motion-card flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-xs",
         cat.isPrimary ? "ring-2 ring-primary" : "ring-1 ring-border/60",
       )}
     >
@@ -459,7 +466,7 @@ function HubCatCard({
   return (
     <article
       className={cn(
-        "flex flex-col rounded-2xl bg-surface p-4 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.08)]",
+        "motion-card flex flex-col rounded-2xl bg-surface p-4 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.08)]",
         active ? "ring-2 ring-primary" : "ring-1 ring-border/60",
       )}
     >

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { isToday } from "date-fns";
+import { Skeleton as AntSkeleton } from "antd";
 import {
   Activity,
   BadgeCheck,
@@ -18,12 +19,15 @@ import {
   PawPrint,
   Plus,
   ShieldCheck,
+  ShoppingBag,
 } from "lucide-react";
 import { useCatList } from "@/features/cat";
 import { formatScanTimestamp, useScanHistory, useScanSummary } from "@/features/history";
 import { useReminders } from "@/features/reminder";
+import { useEntitlement } from "@/features/credit";
 import { HealthFlagDisclosure } from "@/features/insight";
 import { useCareTips } from "./careTipsApi";
+import { HomeGuide } from "./HomeGuide";
 import { TREND_RANGE_DAYS, toTrendPoints, useCatTrends } from "@/features/trends";
 import type { TrendRange } from "@/features/trends";
 import { PhBadge, PhGaugeBar, phTokenStyle, usePhBands } from "@/entities/ph-bands";
@@ -141,7 +145,10 @@ export function DashboardPage() {
   // chung với màn Lịch sử.
   const { data: scanSummary } = useScanSummary(undefined, undefined, undefined, !isGuest);
   const totalScanCount = scanSummary ? displayableScanCount(scanSummary) : scans.length;
-  const { data: reminderList } = useReminders({ active: true }, !isGuest);
+  const { data: entitlement } = useEntitlement(!isGuest);
+  const canUseReminder = !isGuest && (entitlement ? entitlement.hasReminder : false);
+  const canUseTrend = !isGuest && (entitlement ? entitlement.hasTrend : false);
+  const { data: reminderList } = useReminders({ active: true }, canUseReminder);
   const [now] = useState(() => Date.now());
   const reminders = useMemo(() => orderReminders(reminderList?.items ?? [], now), [reminderList, now]);
 
@@ -181,7 +188,7 @@ export function DashboardPage() {
 
   const [range, setRange] = useState<TrendRange>("30D");
   // D13 `GET /cats/{id}/trends` — CÙNG nguồn với màn `/cats/:catId/trends`.
-  const { data: trendData } = useCatTrends(primaryCat?.id, range);
+  const { data: trendData } = useCatTrends(primaryCat?.id, range, canUseTrend);
   const trendPoints = useMemo(
     () => toTrendPoints(trendData?.points).map((p) => ({ date: p.date, value: p.phValue })),
     [trendData],
@@ -288,37 +295,65 @@ export function DashboardPage() {
   ) : null;
 
   return (
-    <>
+    <div className="contents">
       {/* Dải báo chế độ khách — hiện ở cả mobile lẫn desktop khi chưa đăng nhập. */}
       {isGuest ? (
-        <div className="mx-auto mb-2 flex max-w-[480px] flex-col gap-2 px-4 pt-4 lg:mb-6 lg:max-w-none lg:flex-row lg:items-center lg:justify-between lg:px-0 lg:pt-0">
-          <div>
-            <p className="text-caption font-semibold text-text-primary">
-              {t("dashboard.guestBanner.title", { ns: "common" })}
-            </p>
-            <p className="text-[11px] leading-relaxed text-text-secondary">
-              {t("dashboard.guestBanner.body", { ns: "common" })}
-            </p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <Link
-              to="/auth/login"
-              className="flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-caption font-semibold text-white"
-            >
-              {t("dashboard.guestBanner.login", { ns: "common" })}
-            </Link>
-            <Link
-              to="/auth/register"
-              className="flex h-11 items-center justify-center rounded-xl bg-surface px-4 text-caption font-semibold text-primary-dark shadow-xs"
-            >
-              {t("dashboard.guestBanner.register", { ns: "common" })}
-            </Link>
+        <div className="mx-auto mb-2 flex max-w-[480px] flex-col gap-3 px-4 pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0">
+          <div className="flex flex-col gap-2 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background-alt to-secondary/10 p-4 shadow-xs lg:flex-row lg:items-center lg:justify-between lg:p-5">
+            <div className="flex flex-col gap-1.5">
+              <p className="text-caption font-bold text-text-primary">
+                {t("dashboard.guestBanner.title", { ns: "common" })}
+              </p>
+              <p className="text-[12px] leading-relaxed text-text-secondary">
+                {t("dashboard.guestBanner.body", { ns: "common" })}
+              </p>
+              {/* Feature chips from welcome.features */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-chip-bg px-2.5 py-1 text-overline font-semibold text-primary-dark">
+                  <Camera size={13} aria-hidden="true" />
+                  {t("welcome.features.scan", { ns: "common" })}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-chip-bg px-2.5 py-1 text-overline font-semibold text-primary-dark">
+                  <FlaskConical size={13} aria-hidden="true" />
+                  {t("welcome.features.ph", { ns: "common" })}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-chip-bg px-2.5 py-1 text-overline font-semibold text-primary-dark">
+                  <FileText size={13} aria-hidden="true" />
+                  {t("welcome.features.journal", { ns: "common" })}
+                </span>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2 pt-2 lg:pt-0">
+              <Link
+                to="/auth/login"
+                className="flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-caption font-semibold text-white shadow-brand-sm transition-colors hover:bg-primary-dark"
+              >
+                {t("dashboard.guestBanner.login", { ns: "common" })}
+              </Link>
+              <Link
+                to="/auth/register"
+                className="flex h-10 items-center justify-center rounded-xl bg-surface px-4 text-caption font-semibold text-primary-dark shadow-xs transition-colors hover:bg-background-alt"
+              >
+                {t("dashboard.guestBanner.register", { ns: "common" })}
+              </Link>
+              <Link
+                to="/shop"
+                className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-secondary px-4 text-caption font-semibold text-secondary-text-on shadow-xs transition-colors hover:bg-secondary-light"
+              >
+                <ShoppingBag size={15} aria-hidden="true" />
+                {t("dashboard.guestBanner.shop", { ns: "common" })}
+              </Link>
+            </div>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="mx-auto mb-2 max-w-[480px] px-4 pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0">
+          <HomeGuide catName={primaryCat?.name} />
+        </div>
+      )}
 
       {/* ============================ MOBILE (Figma 1:2017) ============================ */}
-      <div className="mx-auto max-w-[480px] px-4 pb-6 lg:hidden">
+      <div data-reveal className="mx-auto max-w-[480px] px-4 pb-6 lg:hidden">
         {loadError}
 
         {/* Section 1 — Hero quét cát. Figma mobile KHÔNG có dòng chào ở trên hero. */}
@@ -378,9 +413,11 @@ export function DashboardPage() {
                 ? [0, 1].map((i) => (
                     <div
                       key={i}
+                      className="h-[136px] w-[220px] shrink-0 rounded-2xl bg-surface p-3"
                       aria-hidden="true"
-                      className="h-[136px] w-[220px] shrink-0 animate-pulse rounded-2xl bg-chip-bg/60"
-                    />
+                    >
+                      <AntSkeleton active avatar paragraph={{ rows: 2 }} />
+                    </div>
                   ))
                 : cats.map((cat) => {
                     const band = catBand(cat);
@@ -487,7 +524,9 @@ export function DashboardPage() {
             </div>
 
             {scansLoading ? (
-              <div aria-hidden="true" className="mt-2 h-[220px] animate-pulse rounded-2xl bg-chip-bg/60" />
+              <div aria-hidden="true" className="mt-2 h-[220px] rounded-2xl bg-surface p-4">
+                <AntSkeleton active paragraph={{ rows: 5 }} />
+              </div>
             ) : latestScan ? (
               <Link
                 to={`/scans/${latestScan.scanId}`}
@@ -638,7 +677,7 @@ export function DashboardPage() {
       </div>
 
       {/* ============================ DESKTOP (Figma 16:7086) ============================ */}
-      <div className="hidden lg:block">
+      <div data-reveal className="hidden lg:block">
         {loadError}
 
         {/* Section: Welcome & Primary Callouts (16:7089) — chiếm trọn bề ngang */}
@@ -691,8 +730,11 @@ export function DashboardPage() {
             {/* Dải chuyển mèo (16:7113) */}
             {catsLoading ? (
               <div className="grid grid-cols-2 gap-4" aria-hidden="true">
-                <div className="h-[132px] animate-pulse rounded-2xl bg-chip-bg/60" />
-                <div className="h-[132px] animate-pulse rounded-2xl bg-chip-bg/60" />
+                {[0, 1].map((i) => (
+                  <div key={i} className="h-[132px] rounded-2xl bg-surface p-3">
+                    <AntSkeleton active avatar paragraph={{ rows: 1 }} />
+                  </div>
+                ))}
               </div>
             ) : cats.length > 0 ? (
               <div className="grid grid-cols-2 gap-4">
@@ -1236,7 +1278,7 @@ export function DashboardPage() {
           </aside>
         </section>
       </div>
-    </>
+    </div>
   );
 }
 

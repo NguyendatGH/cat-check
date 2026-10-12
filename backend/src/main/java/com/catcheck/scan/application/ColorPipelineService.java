@@ -23,11 +23,14 @@ import com.catcheck.scan.domain.color.PhBandClassifier;
 import com.catcheck.scan.domain.color.PhChart;
 import com.catcheck.scan.domain.color.RgbLinear;
 import com.catcheck.scan.domain.color.RobustStats;
+import com.catcheck.scan.domain.color.SubstrateProfileCatalog;
 import com.catcheck.scan.domain.color.ChartCatalog;
 import com.catcheck.scan.domain.color.port.VisionEngine;
 import com.catcheck.scan.domain.port.RawImagePort;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ExternalServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -58,18 +61,23 @@ import java.util.UUID;
 @Service
 public class ColorPipelineService {
 
+    private static final Logger log = LoggerFactory.getLogger(ColorPipelineService.class);
+
     private final RawImagePort rawImagePort;
     private final VisionEngine visionEngine;
     private final ChartCatalog chartCatalog;
     private final CardLayoutCatalog cardLayoutCatalog;
+    private final SubstrateProfileCatalog substrateProfileCatalog;
     private final Clock clock;
 
     public ColorPipelineService(RawImagePort rawImagePort, VisionEngine visionEngine,
-                                 ChartCatalog chartCatalog, CardLayoutCatalog cardLayoutCatalog, Clock clock) {
+                                 ChartCatalog chartCatalog, CardLayoutCatalog cardLayoutCatalog,
+                                 SubstrateProfileCatalog substrateProfileCatalog, Clock clock) {
         this.rawImagePort = rawImagePort;
         this.visionEngine = visionEngine;
         this.chartCatalog = chartCatalog;
         this.cardLayoutCatalog = cardLayoutCatalog;
+        this.substrateProfileCatalog = substrateProfileCatalog;
         this.clock = clock;
     }
 
@@ -135,7 +143,10 @@ public class ColorPipelineService {
             return inconclusiveOutcome(flags, qualityMetricsJson, chart, startedAtMillis, decoded);
         }
 
-        RawImagePort.CalibrationResult calibration = rawImagePort.calibrate(roiFrame);
+        Lab referenceSubstrateLab = substrateProfileCatalog
+                .findReferenceLab(ScanThresholds.DEFAULT_PRODUCT_LINE, null)
+                .orElse(null);
+        RawImagePort.CalibrationResult calibration = rawImagePort.calibrate(roiFrame, referenceSubstrateLab);
         if (cardResult.isUsable()) {
             calibration = tryCardCcm(cardResult.canonicalCard(), roiFrame, calibration, flags);
         }
@@ -173,6 +184,10 @@ public class ColorPipelineService {
         if (match.outOfChartRange()) {
             flags.add(new QualityFlag(QualityFlagCode.OUT_OF_CHART_RANGE, QualityFlagSeverity.WARN));
         }
+        log.info("scan.indicator-recognition blobs={} coverage={} substrateLab={} indicatorLab={} "
+                        + "chartMatchPh={} deltaE={} outOfChartRange={}",
+                stats.blobCount(), indicatorRatio, calibration.substrateLab(), sampleLab,
+                match.phEstimate(), match.deltaEMin(), match.outOfChartRange());
         Lab projected = Lab.midpoint(match.lowerPoint().lab(), match.upperPoint().lab(), match.interpolatedT());
         double perpResidual = DeltaE2000.deltaE(sampleLab, projected, chart.deltaEParams());
 

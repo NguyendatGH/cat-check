@@ -16,17 +16,22 @@ export const trendsKeys = {
   byRange: (catId: string, range: TrendRange) => [...trendsKeys.all, catId, range] as const,
 };
 
-export function useCatTrends(catId: string | undefined, range: TrendRange): UseQueryResult<CatTrendsResponse> {
+export function useCatTrends(
+  catId: string | undefined,
+  range: TrendRange,
+  enabled = true,
+): UseQueryResult<CatTrendsResponse> {
   return useQuery({
     queryKey: trendsKeys.byRange(catId ?? "", range),
     queryFn: () => {
       if (!catId) throw new Error("catId is required");
       return fetchCatTrends(catId, range);
     },
-    enabled: Boolean(catId),
+    enabled: Boolean(catId) && enabled,
     // 403 FEATURE_NOT_IN_PLAN / 404 không bao giờ tự khỏi khi thử lại — retry chỉ làm màn
-    // "khoá gói" hiện chậm hơn vài giây.
+    // "khoá gói" hiện chậm hơn vài giây. Tắt refetchOnWindowFocus để tránh spam 403 khi đổi tab.
     retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

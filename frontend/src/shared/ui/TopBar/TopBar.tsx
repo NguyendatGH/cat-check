@@ -1,15 +1,16 @@
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
+import { cn } from "@/shared/lib/cn";
+import appLogo from "@/shared/assets/images/web-auth/logo.png";
 
 export interface TopBarProps {
   /** app-level: logo + wordmark (trang chủ, khu vực đã đăng nhập). task-level: back + tiêu đề (p10 §5.2). */
   variant: "app-level" | "task-level";
   /** Bắt buộc với task-level, bỏ qua ở app-level (dùng wordmark thay). */
   title?: string;
-  /** task-level: gọi khi bấm back; mặc định `navigate(-1)`. */
+  /** task-level: gọi khi bấm back; mặc định `navigate(-1)` (hoặc về `/` nếu không có lịch sử). */
   onBack?: () => void;
   /** Khu vực hành động bên phải — mặc định app-level là bell+avatar, task-level là rỗng. */
   actions?: ReactNode;
@@ -27,16 +28,28 @@ export function TopBar({ variant, title, onBack, actions }: TopBarProps) {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    const state = typeof window !== "undefined" ? (window.history.state as { idx?: number } | null) : null;
+    const canGoBack = typeof state?.idx === "number" && state.idx > 0;
+
+    if (canGoBack) {
+      void navigate(-1);
+    } else {
+      void navigate("/");
+    }
+  };
+
   if (variant === "app-level") {
     return (
       <header className={HEADER_SHELL}>
         <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-brand-md">
-              <LogoPawIcon size={17} />
-            </div>
-            <h1 className="text-h3 font-bold tracking-[-0.45px] text-primary-dark">CATCHECK</h1>
-          </div>
+          <Link to="/" className="inline-flex shrink-0 items-center" aria-label={t("app.name")}>
+            <img src={appLogo} alt={t("app.name")} className="h-11 w-[122px] object-contain object-left" />
+          </Link>
           <div className="flex items-center gap-2">{actions}</div>
         </div>
       </header>
@@ -44,24 +57,31 @@ export function TopBar({ variant, title, onBack, actions }: TopBarProps) {
   }
 
   return (
-    <header className={HEADER_SHELL}>
-      <div className="relative flex h-14 items-center justify-center px-2">
-        <button
-          type="button"
-          onClick={() => {
-            if (onBack) {
-              onBack();
-            } else {
-              void navigate(-1);
-            }
-          }}
-          aria-label={t("actions.back")}
-          className="absolute left-2 flex size-11 items-center justify-center rounded-full text-text-primary hover:bg-background-alt"
-        >
-          <ArrowLeft size={20} aria-hidden="true" />
-        </button>
-        <h1 className="truncate px-14 text-body font-semibold text-text-primary">{title}</h1>
-        {actions ? <div className="absolute right-2 flex items-center">{actions}</div> : null}
+    <header className={cn(HEADER_SHELL, "border-b border-primary/10")}>
+      <div className="mx-auto flex h-14 max-w-[480px] items-center justify-between px-2 sm:px-3">
+        <div className="flex min-w-0 items-center gap-1.5 text-primary-dark">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label={t("actions.back")}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full text-text-primary transition-colors hover:bg-background-alt"
+          >
+            <ArrowLeft size={20} aria-hidden="true" />
+          </button>
+          <Link to="/" className="inline-flex shrink-0 items-center" aria-label={t("app.name")}>
+            <img src={appLogo} alt={t("app.name")} className="h-10 w-[112px] object-contain object-left" />
+          </Link>
+          {title ? (
+            <span className="truncate border-l border-border pl-2 text-xs font-semibold text-text-tertiary">
+              {title}
+            </span>
+          ) : null}
+        </div>
+        {actions ? (
+          <div className="flex size-10 items-center justify-center">{actions}</div>
+        ) : (
+          <span className="size-10" />
+        )}
       </div>
     </header>
   );

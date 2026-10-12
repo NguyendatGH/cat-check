@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import welcomeLogo from "@/shared/assets/images/welcome-logo-lockup.png";
+import { useWelcomeScene } from "@/shared/lib/motion/usePageReveal";
+import welcomeLogo from "@/shared/assets/images/web-auth/logo.png";
 import welcomeCat from "@/shared/assets/images/welcome-hero-cat.png";
 import iconShield from "@/shared/assets/icons/welcome/shield.svg";
 import iconScan from "@/shared/assets/icons/welcome/feature-scan.svg";
@@ -29,22 +31,33 @@ import arrowRight from "@/shared/assets/icons/welcome/arrow-right.svg";
 export function HomePage() {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
+  const sceneRef = useRef<HTMLDivElement>(null);
+  useWelcomeScene(sceneRef);
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-background px-4 pb-4 lg:flex lg:items-center lg:justify-center lg:px-8 lg:py-8">
+    <div
+      ref={sceneRef}
+      data-motion-scene
+      className="relative min-h-dvh overflow-hidden bg-background px-4 pb-4 lg:flex lg:items-center lg:justify-center lg:px-8 lg:py-8"
+    >
       {/* Vầng sáng nền (Figma 16:7778 / 16:7777) */}
       <div
+        data-scene="glow"
         className="pointer-events-none absolute -right-[5px] top-[157px] size-64 rounded-full bg-info/35 blur-[32px]"
         aria-hidden="true"
       />
       <div
+        data-scene="glow"
         className="pointer-events-none absolute left-[19px] top-[20px] size-56 rounded-full bg-secondary/20 blur-[32px]"
         aria-hidden="true"
       />
 
       <div className="relative mx-auto flex w-full max-w-[390px] flex-col pt-2 lg:grid lg:max-w-[1200px] lg:grid-cols-[0.85fr_1.15fr] lg:gap-x-12 lg:gap-y-5 lg:rounded-[32px] lg:bg-surface lg:p-12 lg:pt-12 lg:shadow-[0px_25px_60px_-24px_rgba(47,79,178,0.35)]">
         {/* Status / Compliance Pill (16:7781) */}
-        <div className="flex w-fit items-center gap-1.5 rounded-full bg-chip-bg px-3.5 py-1 shadow-xs lg:col-start-1 lg:row-start-1 lg:self-end">
+        <div
+          data-scene="copy"
+          className="flex w-fit items-center gap-1.5 rounded-full bg-chip-bg px-3.5 py-1 shadow-xs lg:col-start-1 lg:row-start-1 lg:self-end"
+        >
           <img src={iconShield} alt="" className="h-[11.667px] w-[9.333px] shrink-0" />
           <p className="text-center text-[11px] font-semibold leading-[14px] tracking-[0.4px] text-primary-dark">
             {t("welcome.disclaimer")}
@@ -52,7 +65,10 @@ export function HomePage() {
         </div>
 
         {/* Brand Logo Lockup (16:7787) */}
-        <div className="flex flex-col items-center pt-3 lg:col-start-1 lg:row-start-2 lg:items-start lg:pt-0">
+        <div
+          data-scene="copy"
+          className="flex flex-col items-center pt-3 lg:col-start-1 lg:row-start-2 lg:items-start lg:pt-0"
+        >
           <img src={welcomeLogo} alt={t("app.name")} className="h-16 w-[96.09px] object-contain" />
           <div className="flex items-center justify-center gap-1 pt-2 opacity-90 lg:justify-start">
             <span className="text-[11px] font-semibold uppercase leading-[14px] tracking-[0.55px] text-primary-dark">
@@ -159,6 +175,12 @@ export function HomePage() {
           >
             {t("welcome.ctaSecondary")}
           </button>
+          <Link
+            to="/shop"
+            className="flex h-[44px] w-full items-center justify-center rounded-2xl border border-primary/20 bg-chip-bg text-[15px] font-bold leading-6 text-primary-dark transition-colors hover:bg-info"
+          >
+            {t("welcome.ctaShop")}
+          </Link>
         </div>
 
         {/* Footnote & Safe iOS Home Indicator (16:7856) */}

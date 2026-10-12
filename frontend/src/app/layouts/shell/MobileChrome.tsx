@@ -1,9 +1,9 @@
 import { NavLink, useLocation, useNavigate } from "react-router";
+import { MapPinned, ShoppingBag, Sparkles, Ticket } from "lucide-react";
 import { isNavItemActive } from "./navActive";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/cn";
 import {
-  LogoPawIcon,
   BellIcon,
   AvatarPersonIcon,
   NavHomeIcon,
@@ -12,6 +12,7 @@ import {
   NavCommunityIcon,
   NavProfileIcon,
 } from "@/shared/assets/icons/AppIcons";
+import appLogo from "@/shared/assets/images/web-auth/logo.png";
 import { useSessionStore } from "@/entities/user";
 import { NotificationUnreadBadge } from "@/features/notification";
 import { ROUTE_PATTERNS } from "../../router/routes";
@@ -36,21 +37,58 @@ export function MobileAppHeader() {
   const signedIn = Boolean(sessionUser);
   return (
     <header className="sticky top-0 z-[var(--z-sticky-header)] w-full bg-[rgba(250,248,255,0.8)] shadow-[0px_1px_8px_0px_rgba(0,0,0,0.04)] backdrop-blur-md lg:hidden">
-      <div className="flex h-14 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-[0px_2px_4px_rgba(47,79,178,0.15)]">
-            <LogoPawIcon size={17} />
-          </div>
-          <span className="text-[18px] font-bold tracking-[-0.45px] text-primary-dark">{t("app.wordmark")}</span>
+      <div className="flex h-14 items-center justify-between px-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <img src={appLogo} alt={t("app.name")} className="h-10 w-[108px] object-contain object-left" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-0">
+          <button
+            type="button"
+            onClick={() => {
+              void navigate(ROUTE_PATTERNS.map);
+            }}
+            aria-label={t("nav.vetMap")}
+            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
+          >
+            <MapPinned size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void navigate(ROUTE_PATTERNS.shop);
+            }}
+            aria-label={t("nav.shop")}
+            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
+          >
+            <ShoppingBag size={17} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void navigate(signedIn ? ROUTE_PATTERNS.credits : ROUTE_PATTERNS.login);
+            }}
+            aria-label={t("nav.credits")}
+            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
+          >
+            <Ticket size={17} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void navigate(signedIn ? ROUTE_PATTERNS.assistant : ROUTE_PATTERNS.login);
+            }}
+            aria-label={t("nav.assistant")}
+            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
+          >
+            <Sparkles size={17} aria-hidden="true" />
+          </button>
           <button
             type="button"
             onClick={() => {
               void navigate(ROUTE_PATTERNS.notifications);
             }}
             aria-label={t("nav.notifications")}
-            className="relative flex size-11 items-center justify-center rounded-full text-text-secondary hover:bg-background-alt"
+            className="relative flex size-9 items-center justify-center rounded-full text-text-secondary hover:bg-background-alt"
           >
             <BellIcon size={15} />
             <NotificationUnreadBadge enabled={signedIn} />
@@ -61,7 +99,7 @@ export function MobileAppHeader() {
               void navigate(signedIn ? ROUTE_PATTERNS.settingsProfile : ROUTE_PATTERNS.login);
             }}
             aria-label={signedIn ? t("nav.profile") : t("dashboard.guestBanner.login")}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full"
           >
             <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-primary-dark text-white">
               {sessionUser?.avatarUrl ? (
@@ -125,6 +163,7 @@ export function BottomNav() {
           <NavLink
             to={scan.to}
             aria-label={t(scan.labelKey)}
+            data-motion="none"
             className="absolute left-1/2 top-[-24px] flex -translate-x-1/2 flex-col items-center"
           >
             <span className="relative flex size-14 items-center justify-center rounded-full border-4 border-white bg-primary text-white shadow-[0px_8px_24px_-4px_rgba(47,79,178,0.35)]">

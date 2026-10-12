@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Progress, Tag } from "antd";
 import {
   AlertTriangle,
   Check,
@@ -323,6 +324,18 @@ export function TriggeredFlagList({ flags }: { flags: TriggeredFlag[] }) {
 
 const isFiniteNumber = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
+/** `displayHex` do server sinh; vẫn kiểm tra trước khi đưa vào inline style. */
+const isDisplayHex = (value: string | null | undefined): value is string => /^#[0-9a-f]{6}$/i.test(value ?? "");
+
+function markerTextClass(hex: string): "text-surface" | "text-text-primary" {
+  const red = Number.parseInt(hex.slice(1, 3), 16);
+  const green = Number.parseInt(hex.slice(3, 5), 16);
+  const blue = Number.parseInt(hex.slice(5, 7), 16);
+  // W3C relative luminance, đủ để nhãn trên marker vẫn đọc được với mọi màu chart.
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+  return luminance > 0.55 ? "text-text-primary" : "text-surface";
+}
+
 /** Phần thang đo nằm NGOÀI dải hữu hạn, để 2 dải mở đầu/cuối vẫn nhìn thấy được. */
 const OPEN_END_RATIO = 0.3;
 
@@ -381,6 +394,8 @@ export interface PhScaleProps {
   value: number | null;
   /** Dải đang khớp giá trị đo — dùng để tô màu con trỏ và làm nổi chú giải. */
   activeBand?: PhBand;
+  /** Màu hạt thực đo; chỉ dùng cho marker, không nhầm với màu trạng thái của dải pH. */
+  markerHex?: string | null;
   /** Hiện bảng chú giải khoảng pH của từng dải (bố cục desktop, mockup web `03 & 04`). */
   showBandLegend?: boolean;
   className?: string;
@@ -390,7 +405,7 @@ export interface PhScaleProps {
  * Thang pH đầy đủ theo mockup `04`: nhãn 2 đầu (Axit/Kiềm), dải màu, con trỏ giá trị đo và
  * hàng mốc số. Mọi con số đều lấy từ `bands` (API) — component không biết ngưỡng nào cả.
  */
-export function PhScale({ bands, value, activeBand, showBandLegend, className }: PhScaleProps) {
+export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, className }: PhScaleProps) {
   const { t } = useTranslation("scan");
   const geometry = buildScaleGeometry(bands);
 
@@ -400,6 +415,11 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
 
   const markerPercent = isFiniteNumber(value) ? percentOf(geometry, value) : null;
   const markerStyle = phTokenStyle(activeBand?.colorToken ?? "color-ph-unknown");
+  const measuredColor = isDisplayHex(markerHex) ? markerHex : null;
+  const measuredMarkerStyle = measuredColor
+    ? { backgroundColor: measuredColor }
+    : undefined;
+  const measuredMarkerTextClass = measuredColor ? markerTextClass(measuredColor) : "";
 
   const rangeLabel = (band: PhBand): string => {
     if (isFiniteNumber(band.phMin) && isFiniteNumber(band.phMax)) {
@@ -423,10 +443,9 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
           <span
             className={cn(
               "absolute -translate-x-1/2 whitespace-nowrap rounded-lg px-2 py-1 text-small font-bold",
-              markerStyle.bg,
-              markerStyle.text,
+              measuredColor ? measuredMarkerTextClass : [markerStyle.bg, markerStyle.text],
             )}
-            style={{ left: `${String(markerPercent)}%` }}
+            style={{ left: `${String(markerPercent)}%`, ...measuredMarkerStyle }}
           >
             {t("result.scale.marker", { value: value.toFixed(1) })}
           </span>
@@ -446,8 +465,11 @@ export function PhScale({ bands, value, activeBand, showBandLegend, className }:
         ))}
         {markerPercent !== null ? (
           <span
-            className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-text-primary shadow-sm"
-            style={{ left: `${String(markerPercent)}%` }}
+            className={cn(
+              "absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface shadow-sm",
+              measuredColor ? "" : "bg-text-primary",
+            )}
+            style={{ left: `${String(markerPercent)}%`, ...(measuredColor ? { backgroundColor: measuredColor } : {}) }}
           />
         ) : null}
       </div>
@@ -542,7 +564,8 @@ export function ScanResultSummary({ result, bands, matchLabel, className }: Scan
       </div>
 
       <div className="rounded-xl bg-background-alt p-4">
-        <PhScale bands={bands} value={result.phValue} activeBand={band} />
+        <p className="mb-2 text-caption text-text-secondary">{t("result.scale.statusColorNote")}</p>
+        <PhScale bands={bands} value={result.phValue} activeBand={band} markerHex={displayHex} />
       </div>
 
       {displayHex !== null || matchPercent !== null ? (
@@ -563,9 +586,19 @@ export function ScanResultSummary({ result, bands, matchLabel, className }: Scan
             ) : null}
           </span>
           {matchPercent !== null ? (
-            <span className="shrink-0 rounded-full bg-surface px-3 py-1 text-caption font-bold text-primary-dark">
-              {matchLabel ?? t("result.matchLabel")} {matchPercent}%
-            </span>
+            <div className="flex min-w-24 shrink-0 flex-col items-end gap-1">
+              <Tag variant="filled" color="blue" className="m-0 font-bold">
+                {matchLabel ?? t("result.matchLabel")} {matchPercent}%
+              </Tag>
+              <Progress
+                percent={matchPercent}
+                showInfo={false}
+                size="small"
+                strokeColor={displayHex ?? "var(--color-primary-dark)"}
+                railColor="var(--color-background-alt)"
+                className="m-0 w-24"
+              />
+            </div>
           ) : null}
         </div>
       ) : null}

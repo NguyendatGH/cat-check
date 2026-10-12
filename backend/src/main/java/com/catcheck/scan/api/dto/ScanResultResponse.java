@@ -117,7 +117,17 @@ public record ScanResultResponse(
 
     private static String retryHintFor(PipelineOutcome o) {
         boolean blurry = o.qualityFlags().stream().anyMatch(f -> f.code().name().equals("BLURRY"));
-        return blurry ? "scan.retry.blurry" : "scan.retry.generic";
+        if (blurry) {
+            return "scan.retry.blurry";
+        }
+        boolean noIndicator = o.qualityFlags().stream()
+                .anyMatch(f -> f.code().name().equals("NO_INDICATOR_GRAINS"));
+        if (noIndicator) {
+            return "scan.retry.generic";
+        }
+        boolean outOfChartRange = o.qualityFlags().stream()
+                .anyMatch(f -> f.code().name().equals("OUT_OF_CHART_RANGE"));
+        return outOfChartRange ? "scan.retry.out_of_chart" : "scan.retry.low_confidence";
     }
 
     private static List<QualityFlagResponse> mapFlags(List<QualityFlag> flags) {

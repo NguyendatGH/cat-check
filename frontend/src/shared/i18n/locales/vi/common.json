@@ -27,7 +27,8 @@
       "title": "Bạn đang xem ở chế độ khách",
       "body": "Đăng nhập để theo dõi hồ sơ sức khoẻ thật của bé mèo và lưu lại lịch sử quét.",
       "login": "Đăng nhập",
-      "register": "Tạo tài khoản"
+      "register": "Tạo tài khoản",
+      "shop": "Mua cát cho bé"
     },
     "guestName": "bạn",
     "heroBadge": "Chỉ thị màu pH",
@@ -65,6 +66,7 @@
     "assistant": "Trợ lý AI",
     "cats": "Mèo của tôi",
     "community": "Cộng đồng",
+    "credits": "Nạp credit",
     "dashboard": "Trang chủ",
     "history": "Lịch sử",
     "mainLabel": "Điều hướng chính",
@@ -122,6 +124,7 @@
     },
     "ctaPrimary": "Bắt đầu ngay",
     "ctaSecondary": "Đăng nhập",
+    "ctaShop": "Mua cát cho bé",
     "legalPrefix": "Bằng việc tiếp tục, bạn đồng ý với",
     "legalTerms": "Điều khoản",
     "legalAnd": "&",

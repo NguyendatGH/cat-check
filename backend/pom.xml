@@ -20,9 +20,9 @@
     <description>CatCheck backend - nen tang theo doi suc khoe meo qua cat ve sinh doi mau pH (M0 skeleton)</description>
 
     <properties>
-        <!-- Java 25 (Temurin LTS) - KHONG ha xuong de ne loi JDK host, xem backend/README.md -->
-        <java.version>25</java.version>
-        <maven.compiler.release>25</maven.compiler.release>
+        <!-- Java 21 LTS - phu hop voi JDK dang su dung tren moi truong local/CI -->
+        <java.version>21</java.version>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 

@@ -4,6 +4,7 @@ import com.catcheck.scan.application.ColorPipelineService;
 import com.catcheck.scan.application.PipelineOutcome;
 import com.catcheck.scan.domain.color.CardLayoutCatalog;
 import com.catcheck.scan.domain.color.ChartCatalog;
+import com.catcheck.scan.domain.color.Lab;
 import com.catcheck.scan.domain.color.PhBandClassifier;
 import com.catcheck.scan.domain.color.port.VisionEngine;
 import com.catcheck.scan.domain.port.RawImagePort;
@@ -178,8 +179,11 @@ public final class PipelineAccuracyHarness {
         // (ColorPipelineService.tryCardCcm) khong bao gio goi toi cardLayoutCatalog. Stub rong la
         // du, KHONG can doc bang reference_card_layout thuc cho muc dich cua harness nay.
         CardLayoutCatalog cardLayoutCatalog = code -> Optional.empty();
+        var substrateProfileCatalog = (com.catcheck.scan.domain.color.SubstrateProfileCatalog)
+                (line, batch) -> Optional.of(new Lab(66.814, 3.154, 10.461));
         ColorPipelineService pipeline = new ColorPipelineService(
-                rawImagePort, visionEngine, chartCatalog, cardLayoutCatalog, Clock.systemUTC());
+                rawImagePort, visionEngine, chartCatalog, cardLayoutCatalog,
+                substrateProfileCatalog, Clock.systemUTC());
         return new Wiring(pipeline, chartCatalog);
     }
 

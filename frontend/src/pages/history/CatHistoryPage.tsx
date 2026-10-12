@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { Camera, LineChart } from "lucide-react";
-import { Button, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
+import { Skeleton as AntSkeleton } from "antd";
+import { Button, EmptyState, ErrorState } from "@/shared/ui";
 import { CatAvatar, useFormatCatAge } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { findBandForPh, PhGaugeBar, usePhBands } from "@/entities/ph-bands";
@@ -97,9 +98,14 @@ export function CatHistoryPage() {
   if (isPending) {
     mobileContent = (
       <div className="flex flex-col gap-3 p-4">
-        <SkeletonLoader shape="card" className="h-24" />
-        <SkeletonLoader shape="card" className="h-16" />
-        <SkeletonLoader shape="card" className="h-16" />
+        <div className="rounded-2xl bg-surface p-4" aria-hidden="true">
+          <AntSkeleton active paragraph={{ rows: 2 }} />
+        </div>
+        {[0, 1].map((i) => (
+          <div key={i} className="rounded-2xl bg-surface p-4" aria-hidden="true">
+            <AntSkeleton active title={false} paragraph={{ rows: 2 }} />
+          </div>
+        ))}
       </div>
     );
   } else if (isError) {
@@ -232,9 +238,9 @@ export function CatHistoryPage() {
   }
 
   return (
-    <>
+    <div className="contents">
       {/* Desktop (>= lg): bố cục Figma `Web - 06 & 07`, panel dòng thời gian y tế. */}
-      <div className="hidden lg:block">
+      <div data-reveal className="hidden lg:block">
         <WebHistoryScreen
           catName={cat?.name ?? null}
           catAvatarUrl={cat?.avatarUrl ?? null}
@@ -271,7 +277,7 @@ export function CatHistoryPage() {
         />
       </div>
       {/* Mobile (< lg): giữ nguyên luồng cũ, kể cả trạng thái loading/lỗi. */}
-      <div className="lg:hidden">{mobileContent}</div>
-    </>
+      <div data-reveal className="lg:hidden">{mobileContent}</div>
+    </div>
   );
 }

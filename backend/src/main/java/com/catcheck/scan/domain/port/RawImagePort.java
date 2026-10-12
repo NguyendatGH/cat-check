@@ -47,7 +47,7 @@ public interface RawImagePort {
      * S4b — cân bằng trắng từ nền cát (không có CCM từ thẻ) rồi nâng toàn ROI lên không
      * gian XYZ, kèm ước lượng {@code substrateLab} (S6 bước 2) trong cùng một lượt quét pixel.
      */
-    CalibrationResult calibrate(VisionEngine.FrameHandle roiFrame);
+    CalibrationResult calibrate(VisionEngine.FrameHandle roiFrame, Lab referenceSubstrateLab);
 
     /**
      * S4 (nhánh CARD_CCM) — lấy mẫu median vùng lõi của mỗi patch {@code role=NEUTRAL} trên ảnh

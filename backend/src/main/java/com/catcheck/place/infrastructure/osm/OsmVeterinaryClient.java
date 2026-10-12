@@ -25,7 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OsmVeterinaryClient implements NearbyPlaceSource {
     public static final String ID_PREFIX = "osm:";
     private static final String UNNAMED = "Phòng khám thú y (chưa rõ tên)";
-    private static final String ENDPOINT = "https://overpass-api.de/api/interpreter";
+    private static final List<String> ENDPOINTS = List.of(
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter");
     private static final Duration TTL = Duration.ofHours(1);
     private static final int MAX_CACHE = 500;
 
@@ -73,20 +75,31 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
     }
 
     private List<ExternalPlace> fetchWithRetry(double lat, double lon, int radius) {
-        try {
-            return fetch(lat, lon, radius);
-        } catch (RuntimeException first) {
+        RuntimeException last = null;
+        for (String endpoint : ENDPOINTS) {
             try {
-                Thread.sleep(1500);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                throw first;
+                return fetch(endpoint, lat, lon, radius);
+            } catch (RuntimeException failure) {
+                last = failure;
             }
-            return fetch(lat, lon, radius);
+        }
+        // Retry the primary endpoint once for transient 429/5xx responses.
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            if (last != null) throw last;
+            throw new IllegalStateException("Overpass lookup interrupted", ie);
+        }
+        try {
+            return fetch(ENDPOINTS.getFirst(), lat, lon, radius);
+        } catch (RuntimeException retryFailure) {
+            if (last != null) retryFailure.addSuppressed(last);
+            throw retryFailure;
         }
     }
 
-    private List<ExternalPlace> fetch(double lat, double lon, int radius) {
+    private List<ExternalPlace> fetch(String endpoint, double lat, double lon, int radius) {
         // Chỉ lọc theo thẻ key=value (có chỉ mục): lọc theo tên bằng regex làm Overpass quá tải/timeout.
         String around = String.format(Locale.ROOT, "(around:%d,%.4f,%.4f)", radius, lat, lon);
         String ql = "[out:json][timeout:20];("
@@ -96,7 +109,7 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
                 + ");out center tags 80;";
         var form = new LinkedMultiValueMap<String, String>();
         form.add("data", ql);
-        Map<String, Object> body = client.post().uri(ENDPOINT)
+        Map<String, Object> body = client.post().uri(endpoint)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(form).retrieve()
                 .body(new ParameterizedTypeReference<>() { });

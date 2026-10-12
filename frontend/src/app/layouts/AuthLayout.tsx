@@ -1,4 +1,4 @@
-import { Outlet, useMatches } from "react-router";
+import { Link, Outlet, useMatches } from "react-router";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "@/shared/ui";
 import webLogo from "@/shared/assets/images/web-auth/logo.png";
@@ -6,6 +6,7 @@ import headerShield from "@/shared/assets/icons/web-auth/header-shield.svg";
 
 interface AuthRouteHandle {
   titleKey?: string;
+  hideTopBar?: boolean;
 }
 
 /**
@@ -23,18 +24,23 @@ export function AuthLayout() {
   const { t } = useTranslation("auth");
   const matches = useMatches();
   const titleKey = matches.map((m) => (m.handle as AuthRouteHandle | undefined)?.titleKey).find(Boolean);
+  const hideTopBar = matches.some((m) => (m.handle as AuthRouteHandle | undefined)?.hideTopBar);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      {/* Chrome mobile (Figma 390px) */}
-      <div className="lg:hidden">
-        <TopBar variant="task-level" title={titleKey ? t(titleKey) : ""} />
-      </div>
+      {/* Chrome mobile (Figma 390px) — ẩn nếu route đã có header riêng (ví dụ /auth/login) */}
+      {!hideTopBar ? (
+        <div className="lg:hidden">
+          <TopBar variant="task-level" title={titleKey ? t(titleKey) : ""} />
+        </div>
+      ) : null}
 
       {/* Header web (Figma 16:9599 / 16:8635) — cao 78px, nền mờ + blur */}
       <header className="sticky top-0 z-[var(--z-sticky-header)] hidden w-full bg-[rgba(250,248,255,0.8)] shadow-[0px_1px_8px_0px_rgba(0,0,0,0.04)] backdrop-blur-[12px] lg:block">
         <div className="mx-auto flex h-[78px] max-w-[1280px] items-center justify-between px-12">
-          <img src={webLogo} alt={t("pages.login.title")} className="h-20 w-[120px] object-contain" />
+          <Link to="/" className="inline-flex items-center" aria-label={t("pages.login.title")}>
+            <img src={webLogo} alt={t("pages.login.title")} className="h-20 w-[120px] object-contain" />
+          </Link>
           <div className="flex items-center gap-1">
             <img src={headerShield} alt="" className="h-[15px] w-3" />
             <span className="text-[12px] font-bold tracking-[0.3px] text-text-secondary">{t("web.headerTagline")}</span>

@@ -6,7 +6,7 @@ import { Link, useSearchParams } from "react-router";
 import { AtSign, ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-react";
 import { Button, Input, Switch } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
-import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
+import appLogo from "@/shared/assets/images/web-auth/logo.png";
 import portalBadge from "@/shared/assets/icons/web-auth/portal-badge.svg";
 import cloudShield from "@/shared/assets/icons/web-auth/cloud-shield.svg";
 import { LoginShowcase } from "./LoginShowcase";
@@ -213,18 +213,13 @@ export function LoginPage() {
       {/* ══ Cột form — mobile là toàn bộ trang, web là 5 cột bên phải ══ */}
       <div className="flex flex-col gap-6 pb-6 pt-2 lg:col-span-5 lg:justify-between lg:gap-0 lg:bg-surface lg:p-12 lg:pb-12 lg:pt-12">
         <header className="order-1 flex flex-col items-center gap-1 text-center lg:hidden">
-          <div className="relative mb-1 flex size-20 items-center justify-center rounded-full bg-primary-dark/10">
-            <div className="flex size-16 items-center justify-center rounded-full bg-primary-dark text-white shadow-[0px_8px_20px_-4px_rgba(13,54,154,0.35)]">
-              <LogoPawIcon size={30} />
-            </div>
+          <div className="relative mb-1 flex h-20 w-44 items-center justify-center">
+            <img src={appLogo} alt={t("pages.login.title")} className="h-20 w-44 object-contain" />
             <span className="absolute bottom-1 right-1 flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
               <Check size={15} aria-hidden="true" strokeWidth={3} />
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <p className="text-[20px] font-extrabold tracking-[-0.5px] text-primary-dark">
-              CAT<span className="text-secondary">CHECK</span>
-            </p>
             {buildVersion ? (
               <span className="rounded-full bg-secondary/30 px-2.5 py-0.5 text-overline font-semibold text-secondary-text-on">
                 {t("login.versionBadge", { version: buildVersion })}

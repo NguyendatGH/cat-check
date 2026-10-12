@@ -68,12 +68,15 @@ export function useCreditLedger(): UseInfiniteQueryResult<InfiniteData<LedgerPag
 }
 
 /** H4 — quyền hiện tại. Không cache lâu: quyền phải có hiệu lực ngay sau khi kích hoạt. */
-export function useEntitlement(): UseQueryResult<Entitlement> {
+export function useEntitlement(enabled = true): UseQueryResult<Entitlement> {
   return useQuery({
     queryKey: entitlementKey,
     queryFn: () => apiFetch<Entitlement>("/entitlements/me"),
     staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    enabled,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

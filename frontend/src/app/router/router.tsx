@@ -1,5 +1,5 @@
-import { createBrowserRouter, type RouteObject } from "react-router";
-import { Suspense, type ReactNode } from "react";
+import { createBrowserRouter, useLocation, type RouteObject } from "react-router";
+import { Suspense, useRef, type ReactNode } from "react";
 import { SkeletonLoader } from "@/shared/ui";
 import { ComingSoonPage } from "@/pages/system/ComingSoonPage";
 import { featureFlags, type FeatureFlagKey } from "@/shared/config/featureFlags";
@@ -10,16 +10,39 @@ import { AppLayout } from "../layouts/AppLayout";
 import { TaskLayout } from "../layouts/TaskLayout";
 import { FullscreenLayout } from "../layouts/FullscreenLayout";
 import { AdminLayout } from "../layouts/AdminLayout";
+import { SellerLayout } from "../layouts/SellerLayout";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
+import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
 import { RequireAuth } from "./guards/RequireAuth";
 import { RequireOnboarding } from "./guards/RequireOnboarding";
 import { RequireRole } from "./guards/RequireRole";
 import { RedirectIfAuthenticated } from "./guards/RedirectIfAuthenticated";
 import { LazyPages } from "./lazy";
+import { ROLES } from "@/shared/auth/roles";
 
 /** Fallback Suspense cho mọi page lazy-load — SkeletonLoader dạng card. */
+function PageEntrance({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return <PageEntranceMotion key={pathname}>{children}</PageEntranceMotion>;
+}
+
+/** Keying the motion boundary by URL makes every client-side route change replay the entrance. */
+function PageEntranceMotion({ children }: { children: ReactNode }) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  usePageReveal(pageRef);
+  return (
+    <div ref={pageRef} className="page-transition-root">
+      {children}
+    </div>
+  );
+}
+
 function PageSuspense({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<SkeletonLoader shape="card" className="m-4" />}>{children}</Suspense>;
+  return (
+    <Suspense fallback={<SkeletonLoader shape="card" className="m-4" />}>
+      <PageEntrance>{children}</PageEntrance>
+    </Suspense>
+  );
 }
 
 /**
@@ -150,7 +173,7 @@ export const routes: RouteObject[] = [
         children: [
           {
             path: "/auth/login",
-            handle: { titleKey: "pages.login.title" },
+            handle: { titleKey: "pages.login.title", hideTopBar: true },
             element: (
               <PageSuspense>
                 <LazyPages.login />
@@ -159,7 +182,7 @@ export const routes: RouteObject[] = [
           },
           {
             path: "/auth/register",
-            handle: { titleKey: "pages.register.title" },
+            handle: { titleKey: "pages.register.title", hideTopBar: true },
             element: (
               <PageSuspense>
                 <LazyPages.register />
@@ -258,7 +281,8 @@ export const routes: RouteObject[] = [
   },
   // Trang chủ xem được khi CHƯA đăng nhập (chế độ khách): vẫn dùng AppLayout nhưng KHÔNG qua
   // RequireAuth/RequireOnboarding. `DashboardPage` tự đổi sang trạng thái khách — không gọi
-  // API cần phiên, thay khối cá nhân hoá bằng CTA đăng nhập. Mọi route còn lại vẫn bị chặn.
+  // API cần phiên, thay khối cá nhân hoá bằng CTA đăng nhập. Catalog shop cũng mở công khai;
+  // giỏ hàng và checkout vẫn cần phiên đăng nhập.
   {
     element: <AppLayout />,
     children: [
@@ -269,6 +293,61 @@ export const routes: RouteObject[] = [
             <LazyPages.dashboard />
           </PageSuspense>
         ),
+      },
+      {
+        path: "/shop",
+        element: featureGated(
+          "shop",
+          <PageSuspense>
+            <LazyPages.shop />
+          </PageSuspense>,
+        ),
+      },
+      {
+        path: "/shop/products/:productId",
+        element: featureGated(
+          "shop",
+          <PageSuspense>
+            <LazyPages.shopProductDetail />
+          </PageSuspense>,
+        ),
+      },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        element: <TaskLayout />,
+        children: [
+          {
+            path: "/cart",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.cart />
+              </PageSuspense>,
+            ),
+          },
+          {
+            path: "/checkout",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.checkout />
+              </PageSuspense>,
+            ),
+          },
+          {
+            path: "/orders/:orderId",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.orderTracking />
+              </PageSuspense>,
+            ),
+          },
+        ],
       },
     ],
   },
@@ -286,6 +365,14 @@ export const routes: RouteObject[] = [
                 element: (
                   <PageSuspense>
                     <LazyPages.assistant />
+                  </PageSuspense>
+                ),
+              },
+              {
+                path: "/notifications",
+                element: (
+                  <PageSuspense>
+                    <LazyPages.notifications />
                   </PageSuspense>
                 ),
               },
@@ -405,24 +492,6 @@ export const routes: RouteObject[] = [
                   </PageSuspense>,
                 ),
               },
-              {
-                path: "/shop",
-                element: featureGated(
-                  "shop",
-                  <PageSuspense>
-                    <LazyPages.shop />
-                  </PageSuspense>,
-                ),
-              },
-              {
-                path: "/shop/products/:productId",
-                element: featureGated(
-                  "shop",
-                  <PageSuspense>
-                    <LazyPages.shopProductDetail />
-                  </PageSuspense>,
-                ),
-              },
             ],
           },
           {
@@ -509,14 +578,6 @@ export const routes: RouteObject[] = [
                 ),
               },
               {
-                path: "/notifications",
-                element: (
-                  <PageSuspense>
-                    <LazyPages.notifications />
-                  </PageSuspense>
-                ),
-              },
-              {
                 path: "/settings/profile",
                 element: (
                   <PageSuspense>
@@ -573,33 +634,6 @@ export const routes: RouteObject[] = [
                   </PageSuspense>,
                 ),
               },
-              {
-                path: "/cart",
-                element: featureGated(
-                  "shop",
-                  <PageSuspense>
-                    <LazyPages.cart />
-                  </PageSuspense>,
-                ),
-              },
-              {
-                path: "/checkout",
-                element: featureGated(
-                  "shop",
-                  <PageSuspense>
-                    <LazyPages.checkout />
-                  </PageSuspense>,
-                ),
-              },
-              {
-                path: "/orders/:orderId",
-                element: featureGated(
-                  "shop",
-                  <PageSuspense>
-                    <LazyPages.orderTracking />
-                  </PageSuspense>,
-                ),
-              },
             ],
           },
           {
@@ -636,7 +670,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.dashboard}>
                 <PageSuspense>
                   <LazyPages.adminDashboard />
                 </PageSuspense>
@@ -646,7 +680,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/users",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.users}>
                 <PageSuspense>
                   <LazyPages.adminUsers />
                 </PageSuspense>
@@ -656,7 +690,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/users/:userId",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.users}>
                 <PageSuspense>
                   <LazyPages.adminUserDetail />
                 </PageSuspense>
@@ -666,7 +700,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/activation-codes",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.activationCodes}>
                 <PageSuspense>
                   <LazyPages.adminActivationCodes />
                 </PageSuspense>
@@ -676,7 +710,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/packages",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.packagesRead}>
                 <PageSuspense>
                   <LazyPages.adminPackages />
                 </PageSuspense>
@@ -686,7 +720,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/products",
             element: (
-              <RequireRole roles={["ADMIN_CATALOG", "ADMIN_SUPER"]}>
+              <RequireRole roles={ROLES.products}>
                 <PageSuspense>
                   <LazyPages.adminProducts />
                 </PageSuspense>
@@ -696,7 +730,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/ph-color-chart",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.colorChart}>
                 <PageSuspense>
                   <LazyPages.adminPhColorChart />
                 </PageSuspense>
@@ -706,7 +740,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/content",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.careTipsWrite}>
                 <PageSuspense>
                   <LazyPages.adminContent />
                 </PageSuspense>
@@ -716,7 +750,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/privacy/requests",
             element: (
-              <RequireRole roles={["DPO"]}>
+              <RequireRole roles={ROLES.privacyRequests}>
                 <PageSuspense>
                   <LazyPages.adminPrivacyRequests />
                 </PageSuspense>
@@ -726,7 +760,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/privacy/retention",
             element: (
-              <RequireRole roles={["DPO"]}>
+              <RequireRole roles={ROLES.retention}>
                 <PageSuspense>
                   <LazyPages.adminPrivacyRetention />
                 </PageSuspense>
@@ -736,15 +770,17 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/places",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
-                <ComingSoonPage />
+              <RequireRole roles={ROLES.adminPortal}>
+                <PageEntrance>
+                  <ComingSoonPage />
+                </PageEntrance>
               </RequireRole>
             ),
           },
           {
             path: "/admin/community/reports",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO", "MODERATOR"]}>
+              <RequireRole roles={ROLES.communityModeration}>
                 <PageSuspense>
                   <LazyPages.adminCommunityReports />
                 </PageSuspense>
@@ -754,7 +790,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/me/security",
             element: (
-              <RequireRole roles={["ADMIN", "ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.adminPortal}>
                 <PageSuspense>
                   <LazyPages.adminMeSecurity />
                 </PageSuspense>
@@ -764,7 +800,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/staff",
             element: (
-              <RequireRole roles={["ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.staff}>
                 <PageSuspense>
                   <LazyPages.adminStaff />
                 </PageSuspense>
@@ -774,7 +810,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/system/broadcast",
             element: (
-              <RequireRole roles={["ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.broadcast}>
                 <PageSuspense>
                   <LazyPages.adminBroadcast />
                 </PageSuspense>
@@ -784,7 +820,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/system/jobs",
             element: (
-              <RequireRole roles={["ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.jobs}>
                 <PageSuspense>
                   <LazyPages.adminJobs />
                 </PageSuspense>
@@ -794,7 +830,7 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/notifications/outbox",
             element: (
-              <RequireRole roles={["ADMIN_SUPER"]}>
+              <RequireRole roles={ROLES.outbox}>
                 <PageSuspense>
                   <LazyPages.adminNotificationsOutbox />
                 </PageSuspense>
@@ -804,11 +840,107 @@ export const routes: RouteObject[] = [
           {
             path: "/admin/audit-log",
             element: (
-              <RequireRole roles={["ADMIN_SUPER", "DPO"]}>
+              <RequireRole roles={ROLES.auditLog}>
                 <PageSuspense>
                   <LazyPages.adminAuditLog />
                 </PageSuspense>
               </RequireRole>
+            ),
+          },
+          {
+            path: "/admin/scans",
+            element: (
+              <RequireRole roles={ROLES.scans}>
+                <PageSuspense>
+                  <LazyPages.adminScans />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+          {
+            path: "/admin/monitoring-rules",
+            element: (
+              <RequireRole roles={ROLES.monitoringRulesRead}>
+                <PageSuspense>
+                  <LazyPages.adminMonitoringRules />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+          {
+            path: "/admin/security",
+            element: (
+              <RequireRole roles={ROLES.securityIncidentsRead}>
+                <PageSuspense>
+                  <LazyPages.adminSecurity />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+          {
+            path: "/admin/policy-versions",
+            element: (
+              <RequireRole roles={ROLES.policyVersionsRead}>
+                <PageSuspense>
+                  <LazyPages.adminPolicyVersions />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+          {
+            path: "/admin/privacy/consents",
+            element: (
+              <RequireRole roles={ROLES.consentsRead}>
+                <PageSuspense>
+                  <LazyPages.adminPrivacyConsents />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        element: (
+          <RequireRole roles={ROLES.seller}>
+            <SellerLayout />
+          </RequireRole>
+        ),
+        children: [
+          {
+            path: "/seller",
+            element: (
+              <PageSuspense>
+                <LazyPages.sellerDashboard />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: "/seller/products",
+            element: (
+              <PageSuspense>
+                <LazyPages.sellerProducts />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: "/seller/color-chart",
+            element: (
+              <PageSuspense>
+                <LazyPages.adminPhColorChart />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: "/seller/content",
+            element: (
+              <PageSuspense>
+                <LazyPages.adminContent />
+              </PageSuspense>
             ),
           },
         ],

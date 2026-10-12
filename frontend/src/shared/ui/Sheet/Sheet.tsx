@@ -1,5 +1,6 @@
-import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
+import { forwardRef, useRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
+import { useSurfaceEnter } from "@/shared/lib/motion/usePageReveal";
 import { cn } from "../cn";
 import { DialogOverlay } from "../Dialog/Dialog";
 
@@ -11,16 +12,21 @@ export const SheetClose = RadixDialog.Close;
 export const SheetContent = forwardRef<
   ComponentRef<typeof RadixDialog.Content>,
   ComponentPropsWithoutRef<typeof RadixDialog.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => {
+  const motionRef = useRef<HTMLElement | null>(null);
+  useSurfaceEnter(motionRef, "sheet");
+  return (
   <RadixDialog.Portal>
     <DialogOverlay />
     <RadixDialog.Content
-      ref={ref}
+      ref={(node) => {
+        motionRef.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) ref.current = node;
+      }}
       className={cn(
         "fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85vh] overflow-y-auto",
         "rounded-t-2xl border-t border-border bg-surface p-6 shadow-top",
-        "transition-transform duration-[var(--duration-slow)] ease-[var(--ease-standard)]",
-        "data-[state=closed]:translate-y-full data-[state=open]:translate-y-0",
         // Xem ghi chú cùng loại ở Dialog: `outline-none` huỷ fallback focus ring toàn cục.
         "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
         className,
@@ -31,7 +37,8 @@ export const SheetContent = forwardRef<
       {children}
     </RadixDialog.Content>
   </RadixDialog.Portal>
-));
+  );
+});
 SheetContent.displayName = "SheetContent";
 
 /**

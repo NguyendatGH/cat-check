@@ -193,7 +193,8 @@ export interface FilterChipsProps {
 }
 
 export function FilterChips({ value, onChange, labels, className }: FilterChipsProps) {
-  const options: HistoryFilterKey[] = ["ALL", "ABNORMAL", "DISPUTED"];
+  // Tranh chấp là trạng thái xử lý nội bộ, không phải một khái niệm lọc hữu ích cho người dùng.
+  const options: HistoryFilterKey[] = ["ALL", "ABNORMAL"];
   return (
     <div className={cn("flex gap-2 overflow-x-auto pb-1", className)} role="tablist">
       {options.map((option) => {

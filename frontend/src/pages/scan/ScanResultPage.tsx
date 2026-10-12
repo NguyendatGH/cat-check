@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
+import { Skeleton as AntSkeleton } from "antd";
 import { useNavigate, useParams } from "react-router";
 import { CalendarClock, LineChart, Repeat2, ScanLine } from "lucide-react";
-import { Button, ErrorState, SkeletonLoader } from "@/shared/ui";
+import { Button, ErrorState } from "@/shared/ui";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { usePhBands } from "@/entities/ph-bands";
 import { ScanAdviceCard, ScanResultSummary, canReassign, useScan, useScanCaptureStore } from "@/features/scan";
@@ -36,10 +37,14 @@ export function ScanResultPage() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-3 p-4 lg:p-0">
-        <SkeletonLoader shape="card" className="h-24" />
+        <AntSkeleton active title={{ width: "30%" }} paragraph={{ rows: 1 }} />
         <div className="grid gap-4 lg:grid-cols-12">
-          <SkeletonLoader shape="card" className="h-72 lg:col-span-5" />
-          <SkeletonLoader shape="card" className="h-72 lg:col-span-7" />
+          <div className="rounded-lg border border-border/70 bg-surface p-5 lg:col-span-5">
+            <AntSkeleton active avatar paragraph={{ rows: 5 }} />
+          </div>
+          <div className="rounded-lg border border-border/70 bg-surface p-5 lg:col-span-7">
+            <AntSkeleton active title={{ width: "42%" }} paragraph={{ rows: 8 }} />
+          </div>
         </div>
       </div>
     );
@@ -81,9 +86,9 @@ export function ScanResultPage() {
   };
 
   return (
-    <>
+    <div className="contents">
       {/* Desktop (>= lg) — `Web - 03 & 04` */}
-      <div className="hidden w-full flex-col gap-4 lg:flex">
+      <div data-reveal className="hidden w-full flex-col gap-4 lg:flex">
         <WebScanHeader
           title={t("web.resultTitle")}
           subtitle={catName ?? t("web.sharedTrayTitle")}
@@ -97,8 +102,8 @@ export function ScanResultPage() {
           ]}
         />
 
-        <div className="grid grid-cols-12 items-start gap-4">
-          <div className="col-span-5 flex flex-col gap-4">
+        <div data-reveal className="grid grid-cols-12 items-start gap-4">
+          <div data-reveal className="col-span-5 flex flex-col gap-4">
             <WebCatCard
               name={result.assignment === "SHARED_UNKNOWN" ? null : catName}
               meta={catMeta}
@@ -108,7 +113,7 @@ export function ScanResultPage() {
             <ScanMetaCard result={result} />
           </div>
 
-          <div className="col-span-7">
+          <div data-reveal className="col-span-7">
             <WebResultPanel
               bands={bands ?? []}
               phValue={result.phValue}
@@ -146,7 +151,7 @@ export function ScanResultPage() {
                 </>
               }
             >
-              <ScanAdviceCard result={result} className="rounded-2xl border-0 shadow-xs" />
+              <ScanAdviceCard result={result} className="rounded-lg border border-border/70 shadow-none" />
               <DisclaimerBanner variant="short" />
               {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" hasWarningFlags /> : null}
             </WebResultPanel>
@@ -154,12 +159,14 @@ export function ScanResultPage() {
         </div>
 
         {result.catId && catName && scanId ? (
-          <RecentScansStrip catId={result.catId} catName={catName} currentScanId={scanId} bands={bands ?? []} />
+          <div data-reveal>
+            <RecentScansStrip catId={result.catId} catName={catName} currentScanId={scanId} bands={bands ?? []} />
+          </div>
         ) : null}
       </div>
 
       {/* Mobile (< lg) — frame `04. Kết quả Quét` */}
-      <div className="flex flex-col gap-4 p-4 lg:hidden">
+      <div data-reveal className="flex flex-col gap-4 p-4 lg:hidden">
         <ScanResultSummary result={result} bands={bands ?? []} matchLabel={t("result.matchLabel")} />
 
         <ScanAdviceCard result={result} />
@@ -199,6 +206,6 @@ export function ScanResultPage() {
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

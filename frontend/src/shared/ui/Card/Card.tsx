@@ -13,14 +13,14 @@ const PADDING_CLASS: Record<NonNullable<CardProps["padding"]>, string> = {
   lg: "p-6",
 };
 
-/** Card custom — padding/elevated, bo góc + nền theo token. */
+/** Card custom — surfaces có phân cấp, không mặc định nổi bằng shadow. */
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, padding = "md", elevated = false, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
-          "rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs",
+          "rounded-lg border border-border/80 bg-surface",
           PADDING_CLASS[padding],
           elevated && "shadow-brand-md",
           className,

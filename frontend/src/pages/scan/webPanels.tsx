@@ -39,7 +39,7 @@ import iconPdf from "@/shared/assets/icons/web-scan/imgContainer16.svg";
  */
 
 function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-2xl bg-surface p-4 shadow-xs", className)}>{children}</div>;
+  return <div className={cn("rounded-lg border border-border/70 bg-surface p-4", className)}>{children}</div>;
 }
 
 /* ---------------- Đầu trang ---------------- */

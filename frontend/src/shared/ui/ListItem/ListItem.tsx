@@ -15,6 +15,7 @@ export const ListItem = forwardRef<HTMLButtonElement, ListItemProps>(
       <button
         ref={ref}
         type="button"
+        data-motion="row"
         className={cn(
           "flex w-full min-h-[var(--touch-target-min)] items-center gap-3 rounded-lg px-3 py-2 text-left",
           "hover:bg-background-alt focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",

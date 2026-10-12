@@ -345,7 +345,7 @@ function MobilePlaceRow({ place, onSelect }: { place: ViewPlace; onSelect: () =>
         onClick={onSelect}
         aria-label={t("actions.showOnMapNamed", { name: place.name })}
         className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-xl transition-transform active:scale-95",
+          "flex size-11 shrink-0 items-center justify-center rounded-xl",
           KIND_CHIP_CLASS[place.kind],
         )}
       >

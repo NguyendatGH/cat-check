@@ -1,0 +1,28 @@
+{
+  "name": "CatCheck",
+  "short_name": "CatCheck",
+  "description": "Theo dõi sức khoẻ mèo qua cát vệ sinh đổi màu theo pH",
+  "theme_color": "#2F4FB2",
+  "background_color": "#FAF8FF",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

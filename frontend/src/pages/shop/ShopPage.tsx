@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { Skeleton as AntSkeleton } from "antd";
 import { ArrowDownUp, ArrowRight, Boxes, Loader2, ShoppingCart, Tag } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { ErrorState, SkeletonLoader } from "@/shared/ui";
+import { ErrorState } from "@/shared/ui";
 import { useShopProducts, type ShopProductApi } from "@/features/shop";
 import { CartPanel } from "./CartPanel";
 import { discountPercent, formatVnd } from "./shopFormat";
@@ -79,7 +80,7 @@ function MobileProductCard({ product }: { product: ShopProductApi }) {
   const outOfStock = product.stockQuantity <= 0;
 
   return (
-    <article className="rounded-2xl bg-surface p-3 shadow-brand-md">
+    <article className="motion-card rounded-2xl bg-surface p-3 shadow-brand-md">
       <div className="flex gap-3">
         <Link to={`/shop/products/${product.id}`} className="shrink-0" tabIndex={-1} aria-hidden="true">
           <ProductGlyph sku={product.sku} imageUrl={product.imageUrl} className="size-[88px]" iconSize={32} />
@@ -121,7 +122,7 @@ function ProductCard({ product }: { product: ShopProductApi }) {
   const pending = pendingProductId === product.id;
 
   return (
-    <article className="flex flex-col rounded-2xl bg-surface p-3 shadow-brand-md">
+    <article className="motion-card flex flex-col rounded-2xl bg-surface p-3 shadow-brand-md">
       <Link to={`/shop/products/${product.id}`} tabIndex={-1} aria-hidden="true">
         <ProductGlyph
           sku={product.sku}
@@ -172,12 +173,16 @@ function CatalogSkeleton() {
     <>
       <div className="flex flex-col gap-3 md:hidden" aria-hidden="true">
         {[0, 1, 2].map((i) => (
-          <SkeletonLoader key={i} className="h-[170px] rounded-2xl" />
+          <div key={i} className="rounded-2xl bg-surface p-4" aria-hidden="true">
+            <AntSkeleton active avatar paragraph={{ rows: 2 }} />
+          </div>
         ))}
       </div>
       <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-3" aria-hidden="true">
         {[0, 1, 2].map((i) => (
-          <SkeletonLoader key={i} className="h-[400px] rounded-2xl" />
+          <div key={i} className="rounded-2xl bg-surface p-4" aria-hidden="true">
+            <AntSkeleton active avatar paragraph={{ rows: 5 }} />
+          </div>
         ))}
       </div>
     </>
@@ -210,7 +215,7 @@ export function ShopPage() {
   return (
     <div className="flex flex-col gap-5 px-4 py-5 lg:px-0 lg:py-0">
       {/* Hero — thẻ xanh đặc ở mobile, thẻ trắng kèm thang pH (API) từ `md`. */}
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary-dark to-primary shadow-brand-lg md:bg-surface md:bg-none">
+      <section data-reveal className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary-dark to-primary shadow-brand-lg md:bg-surface md:bg-none">
         <div className="flex flex-col gap-6 p-5 md:p-6 lg:flex-row lg:items-center lg:gap-8 xl:p-8">
           <div className="min-w-0 flex-1">
             {bestDiscount > 0 ? (
@@ -256,7 +261,7 @@ export function ShopPage() {
       </section>
 
       {/* Danh mục + giỏ hàng */}
-      <div id={CATALOG_ANCHOR} className="flex scroll-mt-4 flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+      <div data-reveal id={CATALOG_ANCHOR} className="flex scroll-mt-4 flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="relative -mx-4 md:mx-0">
             <div

@@ -7,7 +7,7 @@ import { CatAvatar } from "@/entities/cat";
 import { useSessionStore } from "@/entities/user";
 import { useCatList } from "@/features/cat";
 import { formatRemainingSeconds, useCreditBalance } from "@/features/credit";
-import webLogo from "@/shared/assets/images/web-dashboard/logo-lockup.png";
+import webLogo from "@/shared/assets/images/web-auth/logo.png";
 import iconChevron from "@/shared/assets/icons/web-dashboard/side-chevron.svg";
 import iconPromo from "@/shared/assets/icons/web-dashboard/side-promo.svg";
 import navOverview from "@/shared/assets/icons/web-dashboard/nav-overview.svg";
@@ -244,6 +244,7 @@ export function DesktopAside() {
               key={item.to}
               to={item.to}
               end={item.end}
+              data-motion="row"
               className={({ isActive }) =>
                 cn(NAV_ITEM_CLASS, isNavItemActive(item.to, pathname, isActive) ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS)
               }
@@ -256,6 +257,7 @@ export function DesktopAside() {
             <NavLink
               key={item.to}
               to={item.to}
+              data-motion="row"
               className={({ isActive }) => cn(NAV_ITEM_CLASS, isActive ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS)}
             >
               <item.icon size={18} className="shrink-0" aria-hidden="true" />

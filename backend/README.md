@@ -1,11 +1,11 @@
 # CatCheck backend
 
-Backend Spring Boot 4.1.1 / JDK 25 cho CatCheck.
+Backend Spring Boot 4.1.1 / JDK 21 cho CatCheck.
 Xem `spec/04-index.md` ở gốc repo trước khi đọc code — bản đồ tra cứu spec theo mốc/module.
 
 ## Yêu cầu môi trường
 
-- JDK 25 (Temurin).
+- JDK 21 (Temurin hoặc OpenJDK).
 - Maven 3.9.16 — dùng qua wrapper (`./mvnw`), không cần cài Maven thủ công.
 - PostgreSQL 18.x chạy native trên máy; Mailpit là tuỳ chọn nếu muốn xem email local.
 
@@ -48,9 +48,9 @@ nếu không chạy Mailpit, đổi `catcheck.notification.email-sink` sang `fil
 ./mvnw -DskipTests package
 ```
 
-**Lưu ý về JDK:** `pom.xml` khai `<maven.compiler.release>25</maven.compiler.release>` theo
-đúng BOM đã chốt. Nếu máy chỉ có JDK < 25 (ví dụ JDK 21), lệnh trên sẽ báo lỗi kiểu
-`invalid target release: 25` hoặc tương tự — đó là do JDK của máy, không phải lỗi trong code.
+**Lưu ý về JDK:** `pom.xml` khai `<maven.compiler.release>21</maven.compiler.release>`, vì vậy
+cần dùng JDK 21 trở lên để build. Nếu máy đang trỏ tới JDK thấp hơn, Maven sẽ báo lỗi
+`release version 21 not supported` hoặc tương tự.
 
 Docker image không thuộc quy trình local của project này. Nếu cần CI/container deployment,
 hãy dùng pipeline triển khai riêng; không dùng Docker để xác thực các tính năng local.
