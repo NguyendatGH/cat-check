@@ -1,19 +1,6 @@
 @import "tailwindcss";
 @import "./fonts.css";
 
-/*
- * Design tokens — CHÉP NGUYÊN VĂN từ spec/parts/p10-design-system-ui.md §2.9/§2.10.
- * (a) :root — toàn bộ custom property thô, kể cả token không sinh Tailwind utility
- *     (z-index, duration, spacing chi tiết, focus-ring...).
- * (b) @theme — khối Tailwind v4 cho phần cần sinh utility class (color/typography/
- *     radius/shadow/breakpoint).
- *
- * BỔ SUNG (quyết định hợp lý của M0, spec §2.10 là bản trích chưa đầy đủ so với §2.9):
- * --color-secondary-text-on, --radius-xs, --radius-sm, --radius-full, --shadow-xs,
- * --shadow-sm, --shadow-top, --breakpoint-sm — đã có trong :root gốc nhưng thiếu ở
- * @theme, bổ sung vào @theme bên dưới để Tailwind sinh utility tương ứng.
- */
-
 :root {
   color-scheme: light;
   --color-primary: #2f4fb2;
@@ -25,9 +12,7 @@
   --color-text-primary: #161b2c;
   --color-text-secondary: #444652;
   --color-text-tertiary: #63667a;
-  /* Bổ sung khi match Figma pixel-perfect (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw): 2 giá trị
-     xuất hiện lặp lại trong design thật (bottom nav inactive, chữ phụ trên nền primary)
-     nhưng p10 chưa có token — giữ riêng, không đổi ngữ nghĩa token cũ. */
+  
   --color-nav-inactive: #747684;
   --color-on-primary-muted: #becaff;
   --color-border: #c4c5d4;
@@ -36,11 +21,9 @@
   --color-background: #faf8ff;
   --color-background-alt: #f3f2ff;
   --color-chip-bg: #e4e7ff;
-  /* Nền trang trí xoay nhẹ sau ảnh hero màn Chào mừng (Figma 16:7830) — không trùng token nào sẵn có. */
+  
   --color-deco-backdrop: #ebedff;
-  /* Panel giới thiệu bản web (Figma 16:7573 Sign In, 16:8476 OTP): chữ/nền trên nền xanh đậm
-     và bộ xanh lá "đã xác thực". Các giá trị này lặp lại ở nhiều màn web nên tách token thay
-     vì để rgb() rải rác trong .tsx (ESLint cấm hex nên trước đó phải viết rgb()). */
+  
   --color-on-primary-subtle: #dee1f9;
   --color-verified-bright: #6bff8f;
   --color-verified-deep: #004a1d;
@@ -104,9 +87,7 @@
   --color-text-primary: #161b2c;
   --color-text-secondary: #444652;
   --color-text-tertiary: #63667a;
-  /* Bổ sung khi match Figma pixel-perfect (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw): 2 giá trị
-     xuất hiện lặp lại trong design thật (bottom nav inactive, chữ phụ trên nền primary)
-     nhưng p10 chưa có token — giữ riêng, không đổi ngữ nghĩa token cũ. */
+  
   --color-nav-inactive: #747684;
   --color-on-primary-muted: #becaff;
   --color-border: #c4c5d4;
@@ -115,11 +96,9 @@
   --color-background: #faf8ff;
   --color-background-alt: #f3f2ff;
   --color-chip-bg: #e4e7ff;
-  /* Nền trang trí xoay nhẹ sau ảnh hero màn Chào mừng (Figma 16:7830) — không trùng token nào sẵn có. */
+  
   --color-deco-backdrop: #ebedff;
-  /* Panel giới thiệu bản web (Figma 16:7573 Sign In, 16:8476 OTP): chữ/nền trên nền xanh đậm
-     và bộ xanh lá "đã xác thực". Các giá trị này lặp lại ở nhiều màn web nên tách token thay
-     vì để rgb() rải rác trong .tsx (ESLint cấm hex nên trước đó phải viết rgb()). */
+  
   --color-on-primary-subtle: #dee1f9;
   --color-verified-bright: #6bff8f;
   --color-verified-deep: #004a1d;
@@ -135,10 +114,7 @@
   --color-danger-text: #93000a;
   --color-info: #dce1ff;
   --color-info-text: #444652;
-  /* Bộ token dải pH: trước đây CHỈ khai báo ở :root nên Tailwind v4 không sinh utility —
-     `text-ph-normal-text`, `bg-ph-mild-bg`… ở 8 call site render ra KHÔNG MÀU. Khai báo lại
-     ở @theme để các class đó có thật; cú pháp arbitrary `bg-[var(--color-ph-*)]` mà
-     entities/ph-bands/colorToken.ts dùng vẫn chạy nguyên vẹn. */
+  
   --color-ph-normal: var(--color-success);
   --color-ph-normal-bg: var(--color-success-bg);
   --color-ph-normal-text: var(--color-success-text);
@@ -187,21 +163,12 @@
   --shadow-brand-lg: 0 4px 12px rgba(47, 79, 178, 0.08);
   --shadow-brand-xl: 0 8px 12px rgba(47, 79, 178, 0.35);
   --shadow-top: 0 -4px 12px rgba(47, 79, 178, 0.08);
-  /* ⚠ `sm` ở đây là 375px, KHÔNG phải 640px mặc định của Tailwind. Mọi điện thoại hiện đại
-     đều rộng hơn 375px, nên `sm:` kích hoạt ở GẦN NHƯ MỌI thiết bị — nó là "màn hình rất hẹp
-     trở lên", không phải "màn hình to hơn điện thoại".
-     Đã có một bug thật vì hiểu nhầm điều này: ShopPage tách mobile/desktop bằng 30 biến thể
-     `sm:`, nên cây giao diện mobile tồn tại trong code mà không bao giờ render được trên
-     điện thoại. Tách mobile khỏi desktop thì dùng `md:` (768px) hoặc `lg:` (1024px).
-     Dùng `sm:` chỉ cho tinh chỉnh nhỏ giữa máy rất hẹp và máy thường. */
+  
   --breakpoint-sm: 375px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
 }
-
-/* Chỉ light theme ở Phase 1 (đã khai color-scheme: light ở trên tường minh).
-   Token đặt tên theo vai trò (semantic) sẵn cho dark mode tương lai — KHÔNG build dark mode ở M0. */
 
 *,
 *::before,
@@ -239,7 +206,6 @@ body {
   outline-offset: var(--focus-ring-offset);
 }
 
-/* Motion primitives used by lazy-loaded pages. Keep the interaction tactile but restrained. */
 .page-transition-root {
   width: 100%;
   min-width: 0;
@@ -268,7 +234,6 @@ body {
   }
 }
 
-/* Animation utilities for interactive components and highlighted cards */
 @keyframes floatSlow {
   0%, 100% {
     transform: translateY(0px) rotate(0deg);
@@ -350,5 +315,226 @@ body {
   .animate-pop-spring,
   .shimmer-effect::after {
     animation: none;
+  }
+}
+
+.nav-item-animated {
+  position: relative;
+  transform: translateZ(0);
+  transition:
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-item-animated:active {
+  transform: scale(0.98);
+}
+
+@keyframes navItemSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.nav-stagger-enter {
+  opacity: 0;
+  animation: navItemSlideIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.btm-nav-tab {
+  position: relative;
+  transform: translateZ(0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btm-nav-tab:active {
+  transform: scale(0.92);
+}
+
+.btm-nav-tab-pill {
+  position: absolute;
+  inset: 4px 6px;
+  border-radius: 0.875rem;
+  background: rgba(47, 79, 178, 0.08);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.btm-nav-tab-icon {
+  transition:
+    transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 180ms ease;
+}
+
+.btm-nav-tab-label {
+  transition:
+    color 180ms ease,
+    font-weight 180ms ease;
+}
+
+@keyframes navDotPop {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.nav-active-dot {
+  transition:
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 180ms ease;
+}
+
+.tab-pill-animated {
+  transition:
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 160ms ease,
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tab-pill-animated:active {
+  transform: scale(0.96);
+}
+
+@keyframes tabContentEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-content-enter {
+  animation: tabContentEnter 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.double-bezel {
+  border-radius: 1.25rem;
+  background: rgba(243, 242, 255, 0.6);
+  padding: 0.25rem;
+  border: 1px solid rgba(196, 197, 212, 0.45);
+  box-shadow:
+    0 2px 8px rgba(47, 79, 178, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.double-bezel-inner {
+  border-radius: calc(1.25rem - 0.25rem);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes fabPulseRing {
+  0% {
+    box-shadow:
+      0 8px 24px -4px rgba(47, 79, 178, 0.35),
+      0 0 0 0 rgba(47, 79, 178, 0.25);
+  }
+  70% {
+    box-shadow:
+      0 8px 24px -4px rgba(47, 79, 178, 0.35),
+      0 0 0 8px rgba(47, 79, 178, 0);
+  }
+  100% {
+    box-shadow:
+      0 8px 24px -4px rgba(47, 79, 178, 0.35),
+      0 0 0 0 rgba(47, 79, 178, 0);
+  }
+}
+
+.fab-scan-pulse {
+  animation: fabPulseRing 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes sidebarCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sidebar-card-enter {
+  opacity: 0;
+  animation: sidebarCardEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
+}
+
+.header-glass {
+  background: rgba(250, 248, 255, 0.84);
+  backdrop-filter: blur(16px) saturate(1.8);
+  -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  box-shadow:
+    0px 1px 8px 0px rgba(0, 0, 0, 0.04),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.bottom-nav-glass {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow:
+    0px -4px 24px 0px rgba(47, 79, 178, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item-animated,
+  .nav-item-animated::before,
+  .tab-pill-animated,
+  .btm-nav-tab-pill,
+  .tab-content-enter {
+    transition: none;
+    animation: none;
+  }
+
+  .nav-stagger-enter {
+    animation: none;
+    opacity: 1;
+  }
+
+  .btm-nav-tab-icon,
+  .btm-nav-tab-label {
+    transition: none;
+  }
+
+  .btm-nav-tab[data-active="true"] .btm-nav-tab-icon {
+    transform: none;
+  }
+
+  .nav-active-dot[data-visible="true"] {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .fab-scan-pulse {
+    animation: none;
+  }
+
+  .sidebar-card-enter {
+    animation: none;
+    opacity: 1;
   }
 }

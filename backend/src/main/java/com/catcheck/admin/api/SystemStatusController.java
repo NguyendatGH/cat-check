@@ -7,11 +7,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Ví dụ minh hoạ tầng "api" chạy xuyên suốt 4 layer của module admin — mục tiêu M0 là chứng
- * minh khung kiến trúc compile được và chạy thật (không phải business logic đầy đủ). Endpoint
- * này KHÔNG thay thế {@code /actuator/health} — nó chỉ minh hoạ pattern module.
- */
 @RestController
 public class SystemStatusController {
 

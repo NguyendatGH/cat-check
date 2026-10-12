@@ -11,12 +11,6 @@ import {
 import { apiFetch } from "./api";
 import type { ActivationResult, CreditBalance, Entitlement, LedgerPage, PackagePlan, PackagePlanList } from "./types";
 
-/**
- * Query key factory — domain `credit` thuộc `features/credit` (p9 §9.5.3):
- * `['credit','balance']` / `['credit','ledger', page]`. `entitlement` là ngoại lệ — khoá
- * `['entitlement']` (không tiền tố `credit`) vì p9 xếp nó vào miền dùng chung của
- * `entities/user` (mọi feature gate UI theo entitlement, không riêng credit).
- */
 export const creditKeys = {
   all: ["credit"] as const,
   balance: () => [...creditKeys.all, "balance"] as const,
@@ -25,11 +19,6 @@ export const creditKeys = {
 export const entitlementKey = ["entitlement"] as const;
 export const packageCatalogKey = ["credit", "package-catalog"] as const;
 
-/**
- * F3 — danh mục gói đang bán. Công khai, `Cache-Control: public, max-age=300` ở server nên
- * client cũng giữ 5 phút. Đây là NGUỒN DUY NHẤT của tên gói hiển thị: không dịch `code` bằng
- * bảng cứng trong i18n nữa (admin thêm gói mới thì bảng cứng không bao giờ có tên đúng).
- */
 export function usePackageCatalog(): UseQueryResult<PackagePlan[]> {
   return useQuery({
     queryKey: packageCatalogKey,
@@ -39,10 +28,6 @@ export function usePackageCatalog(): UseQueryResult<PackagePlan[]> {
   });
 }
 
-/**
- * H2 — số dư credit. `staleTime: 0` (p9 §9.5.4): số dư + đếm ngược hết hạn phải luôn đúng.
- * `refetchInterval` 60s để đồng hồ đếm ngược của từng lô không đứng yên khi màn đang mở.
- */
 export function useCreditBalance(): UseQueryResult<CreditBalance> {
   return useQuery({
     queryKey: creditKeys.balance(),
@@ -53,7 +38,6 @@ export function useCreditBalance(): UseQueryResult<CreditBalance> {
   });
 }
 
-/** H3 — lịch sử giao dịch, phân trang con trỏ mờ (keyset theo `created_at, id`). */
 export function useCreditLedger(): UseInfiniteQueryResult<InfiniteData<LedgerPage, string | null>> {
   return useInfiniteQuery({
     queryKey: creditKeys.ledger(),
@@ -67,7 +51,6 @@ export function useCreditLedger(): UseInfiniteQueryResult<InfiniteData<LedgerPag
   });
 }
 
-/** H4 — quyền hiện tại. Không cache lâu: quyền phải có hiệu lực ngay sau khi kích hoạt. */
 export function useEntitlement(enabled = true): UseQueryResult<Entitlement> {
   return useQuery({
     queryKey: entitlementKey,
@@ -80,11 +63,6 @@ export function useEntitlement(enabled = true): UseQueryResult<Entitlement> {
   });
 }
 
-/**
- * H1 — kích hoạt mã. Sau khi thành công: invalidate `credit.balance`, `credit.ledger`,
- * `entitlement`, `session` (p9 §9.5.5) — `session` thuộc `entities/user`, cũng chỉ là 1 key
- * string dùng chung, không phải import chéo module.
- */
 export function useActivateCode(): UseMutationResult<ActivationResult, Error, string> {
   const queryClient = useQueryClient();
   return useMutation({

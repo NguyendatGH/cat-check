@@ -4,7 +4,6 @@ import com.catcheck.privacy.application.RetentionService;
 
 import java.time.Instant;
 
-/** Kết quả L58 — số liệu ước tính, không phải lệnh xoá. */
 public record AdminRetentionDryRunResponse(
         String policyCode,
         String targetTable,

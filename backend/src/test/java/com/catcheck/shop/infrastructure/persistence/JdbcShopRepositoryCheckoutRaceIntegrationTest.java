@@ -32,27 +32,6 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Double-click "Dat hang": hai request checkout cua CUNG mot user, CUNG mot gio hang, gan
- * nhu dong thoi.
- *
- * <p><b>Bug that, xac nhan bang thuc nghiem truc tiep tren Postgres that</b> (hai session
- * {@code psql} song song, khong qua Java): cau SELECT goc cua {@link JdbcShopRepository#createOrder}
- * chi khoa {@code shop_product} ({@code FOR UPDATE OF p}), khong khoa {@code shop_cart_line}. Khi
- * giao dich thu hai bi Postgres chan o buoc SELECT (vi cung khoa dong {@code shop_product}) roi
- * duoc mo khoa SAU KHI giao dich dau da COMMIT (da xoa dong gio hang + tru kho), no vAN tra ve
- * dong gio hang CU (da bi xoa) ghep voi dong san pham MOI — tao ra DON HANG THU HAI cho cung mot
- * lan bam. Doi {@code FOR UPDATE OF p} thanh {@code FOR UPDATE} (khoa ca hai bang trong JOIN) thi
- * giao dich thu hai dung thay 0 dong sau khi mo khoa, dung nhu {@code EvalPlanQual} cua Postgres xu
- * ly "dong da bi xoa boi giao dich da commit" cho MOI bang duoc khoa — xem {@code JdbcShopRepository}.
- *
- * <p>Khong Testcontainers/Docker (chu du an cam) — noi thang Postgres local nhu
- * {@code ActivationCreditEndToEndIntegrationTest}. Dung {@link TransactionTemplate} +
- * {@link DataSourceTransactionManager} thay vi dua qua {@code @Transactional} cua Spring AOP: lop
- * repository duoc goi truc tiep (khong proxy), nen phai tu quan ly transaction de FOR UPDATE thuc
- * su giu khoa xuyen suot nhieu cau lenh — dung {@link DriverManagerDataSource} (khong pool) de hai
- * luong co hai KET NOI vat ly khac nhau, dieu kien can de co tranh chap khoa dong thuc su.</p>
- */
 class JdbcShopRepositoryCheckoutRaceIntegrationTest {
 
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
@@ -170,8 +149,6 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
     @Test
     @DisplayName("Ba don lien tiep trong vai ms => ba order_code khac nhau, khong DuplicateKey")
     void ordersPlacedWithinTheSameMomentGetDistinctOrderCodes() {
-        // Mot transaction: ca ba INSERT nam trong vai ms, tuc chac chan cung mot "khung" 256 ms cua
-        // phan timestamp uuidv7 — ma cu trung ngay o don thu hai.
         List<String> codes = txTemplate.execute(status -> {
             List<String> placed = new java.util.ArrayList<>();
             for (int i = 0; i < 3; i++) {

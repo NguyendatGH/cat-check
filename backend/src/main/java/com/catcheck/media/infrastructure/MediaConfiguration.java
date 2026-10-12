@@ -12,10 +12,6 @@ import org.springframework.context.annotation.Primary;
 import java.time.Clock;
 import java.util.Locale;
 
-/**
- * Đăng ký cấu hình media và chọn đúng MỘT {@link ImageStorage} chính ({@code @Primary}) theo
- * {@code catcheck.storage.provider}.
- */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({MediaProperties.class, StorageProperties.class})
 public class MediaConfiguration {
@@ -30,7 +26,6 @@ public class MediaConfiguration {
                 properties.cloudinary(), media, clock, uuidV7));
     }
 
-    /** Logic chọn provider, tách ra để test không cần Spring. */
     static ImageStorage select(StorageProperties properties, LocalImageStorage local,
                                java.util.function.Supplier<ImageStorage> cloudinary) {
         String mode = properties.provider() == null ? "auto" : properties.provider().trim().toLowerCase(Locale.ROOT);

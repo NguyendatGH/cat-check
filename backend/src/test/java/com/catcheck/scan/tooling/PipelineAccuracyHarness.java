@@ -25,54 +25,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-/**
- * GĐ4 — harness đo sai số pipeline quét màu cát so với ground truth
- * ({@code docs/scan-production-plan.md} mục GĐ4/§7(2)).
- *
- * <p>Gọi thẳng {@link ColorPipelineService#analyze} (thuần tính toán, không DB, không credit) —
- * dựng thủ công NGOÀI Spring (không cần {@code @SpringBootTest}/Testcontainers/Docker): hai bean
- * OpenCV ({@link OpenCvRawImageProcessor}, {@link OpenCvVisionEngine}) chỉ cần
- * {@link OpenCvNativeLoader} (native nạp qua reflection thay cho {@code @PostConstruct} của
- * Spring), còn {@link ChartCatalog} là {@link LocalDbChartCatalog} đọc PostgreSQL <b>local</b>
- * (native, không Docker — đúng quy ước chạy local của repo này).
- *
- * <h2>Schema CSV ground truth</h2>
- * <p>File CSV có header, 6 cột theo đúng thứ tự:
- * <pre>filename,true_ph,phone,lighting,minutes_after_wet,has_card</pre>
- * <ul>
- *   <li>{@code filename} — tên file ảnh trong thư mục ảnh (không phải đường dẫn tuyệt đối)</li>
- *   <li>{@code true_ph} — pH đo bằng pH meter đã hiệu chuẩn (số, ví dụ {@code 6.3})</li>
- *   <li>{@code phone} — nhãn điện thoại chụp (chuỗi tự do, ví dụ {@code iphone-13})</li>
- *   <li>{@code lighting} — nhãn điều kiện ánh sáng (chuỗi tự do)</li>
- *   <li>{@code minutes_after_wet} — số phút sau khi ướt, để trống nếu không biết</li>
- *   <li>{@code has_card} — {@code true}/{@code false} — có thẻ chuẩn trong ảnh hay không</li>
- * </ul>
- * <p><b>KHÔNG</b> có cột nào định danh người chụp (đúng p4/CLAUDE.md "không log PII"). CSV
- * KHÔNG bắt buộc có cột "band" — ground truth band được suy ra từ {@code true_ph} bằng chính
- * {@link PhBandClassifier#classify} (confidence giả định 1.0, CI rộng-0) để không có hai nguồn
- * sự thật về ranh giới dải.
- *
- * <h2>Cách chạy</h2>
- * <pre>
- * cd backend
- * ./mvnw -q test-compile dependency:build-classpath -Dmdep.outputFile=/tmp/cc-cp.txt
- * java -cp "target/test-classes:target/classes:$(cat /tmp/cc-cp.txt)" \
- *     com.catcheck.scan.tooling.PipelineAccuracyHarness &lt;thưMụcẢnh&gt; &lt;groundTruth.csv&gt; [báoCáo.md]
- * </pre>
- * <p>Cần Postgres local đang chạy với bảng màu {@code CHART-PLACEHOLDER-v1} (hoặc bảng ACTIVE
- * thật sau GĐ3) — xem {@code backend/README.md}.
- */
 public final class PipelineAccuracyHarness {
 
     private PipelineAccuracyHarness() {
     }
 
-    /** Một dòng CSV ground truth đã parse — xem Javadoc lớp cho schema. */
     record GroundTruthRow(String filename, double truePh, String phone, String lighting,
                            Integer minutesAfterWet, boolean hasCard) {
     }
 
-    /** Kết quả chạy pipeline trên một ảnh, so với ground truth của nó. */
     record SampleResult(String filename, double truePh, PhBandClassifier.Code trueBand,
                          Double predictedPh, PhBandClassifier.Code predictedBand,
                          boolean inconclusive, double confidence, long processingNanos,
@@ -83,7 +44,6 @@ public final class PipelineAccuracyHarness {
         }
     }
 
-    /** Báo cáo tổng hợp — xem {@link #renderMarkdown}. */
     record Report(int csvRows, int imagesFound, int missingImages, int failures, int evaluated,
                    int inconclusiveCount, Double mae, Double within025Pct, Double within05Pct,
                    Long p50Micros, Long p95Micros, Boolean chartIsPlaceholder,
@@ -96,12 +56,7 @@ public final class PipelineAccuracyHarness {
         }
     }
 
-    // ------------------------------------------------------------------ CSV
 
-    /**
-     * Đọc CSV ground truth. Thư mục/CSV rỗng hoặc không tồn tại trả {@code List.of()} — KHÔNG
-     * ném lỗi (điểm 3 của nhiệm vụ: "0 ảnh, chưa có dữ liệu thật" chứ không crash).
-     */
     static List<GroundTruthRow> readGroundTruth(Path csvPath) {
         if (csvPath == null || !Files.isRegularFile(csvPath)) {
             return List.of();
@@ -113,14 +68,14 @@ public final class PipelineAccuracyHarness {
             throw new UncheckedIOException(e);
         }
         List<GroundTruthRow> rows = new ArrayList<>();
-        for (int i = 1; i < lines.size(); i++) { // dòng 0 = header, bỏ qua
+        for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i).strip();
             if (line.isEmpty()) {
                 continue;
             }
             String[] cols = line.split(",", -1);
             if (cols.length < 6) {
-                continue; // dòng hỏng - bỏ qua, không crash cả harness
+                continue;
             }
             try {
                 String filename = cols[0].strip();
@@ -132,7 +87,6 @@ public final class PipelineAccuracyHarness {
                 boolean hasCard = parseBool(cols[5].strip());
                 rows.add(new GroundTruthRow(filename, truePh, phone, lighting, minutesAfterWet, hasCard));
             } catch (NumberFormatException e) {
-                // dòng hỏng (true_ph/minutes_after_wet không phải số) - bỏ qua, không crash.
             }
         }
         return rows;
@@ -142,7 +96,6 @@ public final class PipelineAccuracyHarness {
         return raw.equalsIgnoreCase("true") || raw.equals("1") || raw.equalsIgnoreCase("yes");
     }
 
-    /** {@code true} nếu thư mục không tồn tại, không phải thư mục, hoặc không có file nào. */
     private static boolean isEmptyOrMissingDir(Path dir) {
         if (!Files.isDirectory(dir)) {
             return true;
@@ -154,12 +107,7 @@ public final class PipelineAccuracyHarness {
         }
     }
 
-    // ------------------------------------------------------------------ Pipeline wiring
 
-    /**
-     * Dựng {@link ColorPipelineService} thủ công, NGOÀI Spring — xem Javadoc lớp. Trả về cùng
-     * một {@link ChartCatalog} để harness tái dùng cho việc suy ra ground-truth band.
-     */
     record Wiring(ColorPipelineService pipeline, ChartCatalog chartCatalog) {
     }
 
@@ -174,10 +122,6 @@ public final class PipelineAccuracyHarness {
         RawImagePort rawImagePort = new OpenCvRawImageProcessor(nativeLoader);
         VisionEngine visionEngine = new OpenCvVisionEngine(nativeLoader);
         ChartCatalog chartCatalog = LocalDbChartCatalog.fromSystemPropertiesOrLocalDefaults();
-        // Anh tong hop cua harness khong ve the tham chieu nao (ArUco/QR/contour) nen
-        // detectCard() luon tra Method.NONE -> cardResult.isUsable() luon false -> nhanh CARD_CCM
-        // (ColorPipelineService.tryCardCcm) khong bao gio goi toi cardLayoutCatalog. Stub rong la
-        // du, KHONG can doc bang reference_card_layout thuc cho muc dich cua harness nay.
         CardLayoutCatalog cardLayoutCatalog = code -> Optional.empty();
         var substrateProfileCatalog = (com.catcheck.scan.domain.color.SubstrateProfileCatalog)
                 (line, batch) -> Optional.of(new Lab(66.814, 3.154, 10.461));
@@ -187,11 +131,6 @@ public final class PipelineAccuracyHarness {
         return new Wiring(pipeline, chartCatalog);
     }
 
-    /**
-     * {@link OpenCvNativeLoader#load()} là {@code @PostConstruct} package-private — Spring gọi
-     * nó khi tạo bean. Harness không chạy trong Spring nên gọi lại chính method đó qua reflection
-     * (KHÔNG sao chép logic của nó, KHÔNG sửa production code).
-     */
     private static void invokePostConstruct(OpenCvNativeLoader loader) {
         try {
             Method load = OpenCvNativeLoader.class.getDeclaredMethod("load");
@@ -202,15 +141,7 @@ public final class PipelineAccuracyHarness {
         }
     }
 
-    // ------------------------------------------------------------------ Evaluate
 
-    /**
-     * Chạy pipeline trên toàn bộ ảnh liệt kê trong {@code csvPath}, nằm trong {@code imageDir}.
-     *
-     * <p>Thư mục ảnh không tồn tại HOẶC CSV rỗng/không tồn tại ⇒ in "0 ảnh, chưa có dữ liệu thật"
-     * và trả {@link Report#noData} — KHÔNG ném lỗi, KHÔNG dựng pipeline (không cần OpenCV/DB khi
-     * chưa có gì để chạy).
-     */
     static Report evaluate(Path imageDir, Path csvPath, PrintStream out) {
         List<GroundTruthRow> rows = readGroundTruth(csvPath);
         if (rows.isEmpty() || imageDir == null || isEmptyOrMissingDir(imageDir)) {
@@ -258,8 +189,6 @@ public final class PipelineAccuracyHarness {
                 results.add(new SampleResult(row.filename(), row.truePh(), trueBand, null, null,
                         true, 0.0, 0L, "", "IOException: " + e.getMessage()));
             } catch (RuntimeException e) {
-                // Lỗi nghiệp vụ của pipeline (IMAGE_TOO_SMALL, SCAN_CHART_UNAVAILABLE...) không
-                // được làm sập cả lượt chạy harness - ghi nhận như một mẫu lỗi.
                 results.add(new SampleResult(row.filename(), row.truePh(), trueBand, null, null,
                         true, 0.0, 0L, "", e.getClass().getSimpleName() + ": " + e.getMessage()));
             }
@@ -294,8 +223,6 @@ public final class PipelineAccuracyHarness {
                 }
             }
             mae = sumAbsErr / comparable.size();
-            // % tren TOAN BO mau da chay pipeline thanh cong (usable), khong chi tren mau co ket
-            // qua: INCONCLUSIVE coi nhu "khong trong nguong" - do la cach doc dung dan cho G1/G2.
             within025 = 100.0 * within025Count / usable.size();
             within05 = 100.0 * within05Count / usable.size();
         }
@@ -323,7 +250,6 @@ public final class PipelineAccuracyHarness {
         return Math.max(0, Math.min(size - 1, idx));
     }
 
-    // ------------------------------------------------------------------ Report rendering
 
     static String renderMarkdown(Report r) {
         StringBuilder sb = new StringBuilder();
@@ -401,7 +327,6 @@ public final class PipelineAccuracyHarness {
         return "%.1f%%".formatted(100.0 * count / total);
     }
 
-    // ------------------------------------------------------------------ main
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {

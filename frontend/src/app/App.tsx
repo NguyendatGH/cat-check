@@ -7,7 +7,6 @@ import { useMicroInteractions } from "@/shared/lib/motion/usePageReveal";
 function MotionRoot() {
   const rootRef = useRef<HTMLDivElement>(null);
   useMicroInteractions(rootRef);
-
   return (
     <div ref={rootRef} className="min-h-dvh">
       <RouterProvider router={router} />

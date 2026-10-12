@@ -9,11 +9,6 @@ interface CookieRow {
   party: string;
 }
 
-/**
- * Danh sách cookie THẬT đang dùng — lấy từ hạ tầng identity đã triển khai (p11 §11.1.3),
- * KHÔNG bịa thêm cookie đo lường/quảng cáo nào chưa tồn tại. MVP (ORCHESTRATOR §2) cố ý
- * chưa có phân tích hành vi/quảng cáo — bảng dưới phản ánh đúng thực tế Phase 1.
- */
 const COOKIE_ROWS: CookieRow[] = [
   {
     name: "__Host-CATCHECK_SESSION",
@@ -65,7 +60,6 @@ function CookieTable() {
   );
 }
 
-/** `/legal/cookies` (p9 §9.4.3 #11, p15 §15.8.1 G4, §15.9.6). */
 export function CookiesPage() {
   return <LegalDocumentPage policyCode="COOKIE" extra={<CookieTable />} />;
 }

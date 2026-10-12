@@ -33,20 +33,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Test double cho nhóm test quản trị mã kích hoạt / cấu hình gói.
- *
- * <p>Các fake ở đây <b>lặp lại đúng điều kiện của câu SQL thật</b> (ví dụ
- * {@code markVoid} chỉ đổi dòng còn {@code ISSUED}, {@code markRedeemed} chỉ đổi dòng còn
- * {@code ISSUED}); fake lỏng hơn thì test xanh trong khi adapter thật hành xử khác — đúng cái
- * bẫy mà {@code InMemoryCreditStore} đã ghi chú.</p>
- */
 final class AdminActivationTestDoubles {
 
     private AdminActivationTestDoubles() {
     }
 
-    /** {@code activation_code} trong bộ nhớ. */
     static final class InMemoryActivationCodePort implements ActivationCodePort {
 
         final Map<UUID, ActivationCode> rows = new HashMap<>();
@@ -59,7 +50,6 @@ final class AdminActivationTestDoubles {
 
         @Override
         public void insert(ActivationCode code) {
-            // UNIQUE(code_hash) của V10 — fake phải chặn, nếu không test "mã không trùng" vô nghĩa.
             if (findByCodeHash(code.codeHash()).isPresent()) {
                 throw new IllegalStateException("trùng code_hash: " + code.id());
             }
@@ -207,7 +197,6 @@ final class AdminActivationTestDoubles {
         }
     }
 
-    /** {@code package_plan} một dòng, đủ cho đường phát hành. */
     static final class FixedPackagePlanPort implements PackagePlanPort {
 
         private final Map<String, PackagePlan> plans = new HashMap<>();
@@ -263,11 +252,6 @@ final class AdminActivationTestDoubles {
         }
     }
 
-    /**
-     * Bộ băm bằng SHA-256 + "pepper" cố định. KHÔNG dùng {@code HmacActivationCodeHasher} thật
-     * vì nó đòi biến môi trường {@code ACTIVATION_PEPPER}; điều test cần ở đây là "mã khác thì
-     * hash khác, mã giống thì hash giống", đúng tính chất mà {@code UNIQUE(code_hash)} dựa vào.
-     */
     static final class TestCodeHasher implements ActivationCodeHasher {
 
         @Override
@@ -283,7 +267,6 @@ final class AdminActivationTestDoubles {
         }
     }
 
-    /** Thu lại các dòng audit để test khẳng định "mọi hành động admin đều ghi audit_log". */
     static final class RecordingAuditLog implements AuditLogService {
 
         final List<AuditEvent> events = new ArrayList<>();
@@ -298,10 +281,6 @@ final class AdminActivationTestDoubles {
         }
     }
 
-    /**
-     * {@link ActivationRateLimiter} không bao giờ chặn — dùng cho các test không nhắm vào G3
-     * (test rate limit thật nằm ở nơi khác, dùng {@code Bucket4jActivationRateLimiter} thật).
-     */
     static final class AllowAllRateLimiter implements ActivationRateLimiter {
 
         @Override
@@ -315,7 +294,6 @@ final class AdminActivationTestDoubles {
         }
     }
 
-    /** {@code user_entitlement} trong bộ nhớ — đủ cho đường kích hoạt mã. */
     static final class FakeEntitlementPort implements UserEntitlementPort {
 
         final Map<UUID, Entitlement> rows = new HashMap<>();

@@ -25,13 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Quản trị bảng màu — L27 đến L32 (p8 §8.4.12).
- *
- * <p>Nguyên tắc cốt lõi (p4 D5, p6 §6.6.5): <b>không bao giờ sửa bản {@code ACTIVE}</b>.
- * Publish = tạo version mới + archive bản cũ. Sửa bản {@code ACTIVE} trả
- * {@code 409 COLOR_CHART_IN_USE}.
- */
 @Service
 public class ColorChartAdminService {
 
@@ -53,7 +46,6 @@ public class ColorChartAdminService {
         this.clock = clock;
     }
 
-    // ------------------------------------------------------------------ L27
 
     @Transactional(readOnly = true)
     public PageResult<ColorChart> listForAdmin(ChartStatus status, int page, int size) {
@@ -64,7 +56,6 @@ public class ColorChartAdminService {
         return colorChartRepository.findAll(page, cappedSize);
     }
 
-    // ------------------------------------------------------------------ L28
 
     @Transactional
     public ColorChart createDraft(String code, String name, ProductLine productLine,
@@ -75,8 +66,6 @@ public class ColorChartAdminService {
         if (name == null || name.isBlank()) {
             throw new BusinessRuleException(ColorChartErrorCode.VALIDATION_FAILED, "name");
         }
-        // Dò tuần tự từ version 1 để tìm version trống, tránh vỡ uq_color_chart_code_version.
-        // Số version mỗi mã chỉ vài cái.
         int nextVersion = 1;
         while (colorChartRepository.findByCodeAndVersion(code, nextVersion).isPresent()) {
             nextVersion++;
@@ -108,7 +97,6 @@ public class ColorChartAdminService {
         return colorChartRepository.save(chart);
     }
 
-    // ------------------------------------------------------------------ L29
 
     @Transactional(readOnly = true)
     public ColorChartDetail findDetail(UUID chartId) {
@@ -118,7 +106,6 @@ public class ColorChartAdminService {
         return new ColorChartDetail(chart, points);
     }
 
-    // ------------------------------------------------------------------ L30
 
     @Transactional
     public ColorChart updateDraft(UUID chartId, String name, ProductLine productLine,
@@ -144,15 +131,7 @@ public class ColorChartAdminService {
         return colorChartRepository.save(chart);
     }
 
-    // ------------------------------------------------------------------ L31
 
-    /**
-     * Thay toàn bộ danh sách mức pH (p8 L31). Admin nhập hex hoặc Lab — server tự tính Lab
-     * từ hex khi {@code source = MANUAL_HEX} (p6 §6.6.3 luồng 1).
-     *
-     * <p>Xoá toàn bộ điểm cũ rồi ghi mới trong <b>cùng transaction</b> — không có cửa sổ nào
-     * mà bảng không có điểm.
-     */
     @Transactional
     public ColorChartDetail replacePoints(UUID chartId, List<PointInput> inputs) {
         ColorChart chart = mustFind(chartId);
@@ -179,15 +158,7 @@ public class ColorChartAdminService {
         return new ColorChartDetail(chart, saved);
     }
 
-    // ------------------------------------------------------------------ L32
 
-    /**
-     * Publish: {@code DRAFT} ⇒ {@code ACTIVE}, bản cũ ⇒ {@code ARCHIVED} (p8 L32).
-     *
-     * <p>Validate bốn điều kiện p6 §6.6.2 trước khi cho publish. Thiếu điểm/dải ⇒
-     * {@code 422 COLOR_CHART_INCOMPLETE}. Trùng {@code (product_line, production_batch)} với bản
-     * {@code ACTIVE} khác ⇒ {@code 409 COLOR_CHART_IN_USE}.
-     */
     @Transactional
     public ColorChart publish(UUID chartId) {
         ColorChart chart = mustFind(chartId);
@@ -213,7 +184,6 @@ public class ColorChartAdminService {
         Instant now = clock.instant();
 
         try {
-            // Archive bản ACTIVE cũ của cùng (product_line, production_batch).
             colorChartRepository.findActiveByProductLineAndBatch(
                             chart.getProductLine(), chart.getProductionBatch())
                     .ifPresent(old -> {
@@ -223,27 +193,17 @@ public class ColorChartAdminService {
                         colorChartRepository.save(old);
                     });
 
-            // Publishing validates chart completeness, but it does not establish that a
-            // placeholder was calibrated from real samples. Keep this state until the
-            // calibration workflow or an explicit owner-approved confirmation supplies that
-            // evidence; otherwise a seeded synthetic chart could bypass the production guard.
             chart.setStatus(ChartStatus.ACTIVE);
             chart.setEffectiveFrom(now);
             chart.setPublishedAt(now);
             chart.markUpdated(now);
             return colorChartRepository.save(chart);
         } catch (DataIntegrityViolationException ex) {
-            // Race condition thật: hai admin cùng publish hai DRAFT khác nhau cho CÙNG
-            // (product_line, production_batch) gần như đồng thời — cả hai đều qua được kiểm tra
-            // existsActiveByProductLineAndBatch ở trên (chưa ai commit), rồi cùng cố giành
-            // ACTIVE. uq_color_chart_active_per_batch (V9) chặn ở tầng DB; không bắt ở đây thì
-            // request thua cuộc rơi vào handleUnexpected() và trả 500 thay vì 409 nghiệp vụ.
             throw new ConflictException(ColorChartErrorCode.COLOR_CHART_IN_USE, ex,
                     chartId.toString(), "ACTIVE");
         }
     }
 
-    // ------------------------------------------------------------------ nội bộ
 
     private ColorChart mustFind(UUID chartId) {
         return colorChartRepository.findById(chartId)
@@ -270,16 +230,9 @@ public class ColorChartAdminService {
                 now);
     }
 
-    /**
-     * Kết quả L29 — chi tiết bảng màu + toàn bộ điểm.
-     */
     public record ColorChartDetail(ColorChart chart, List<ColorChartPoint> points) {
     }
 
-    /**
-     * Đầu vào một mức pH (L31). Lab có thể nhập trực tiếp hoặc suy ra từ hex — xem
-     * {@code ColorChartPointRequest} ở tầng API.
-     */
     public record PointInput(
             java.math.BigDecimal phValue,
             java.math.BigDecimal labL,

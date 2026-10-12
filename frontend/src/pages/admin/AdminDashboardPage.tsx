@@ -1,39 +1,33 @@
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { ArrowRight, CircleCheck, CircleX, Loader2 } from "lucide-react";
+import { useGSAP } from "@gsap/react";
+import { gsap } from "gsap";
+import { Card as AntCard, Skeleton as AntSkeleton } from "antd";
+import { Archive, ArrowRight, BookOpenText, Database, Palette, ShieldCheck } from "lucide-react";
 import {
   AccessDeniedState,
-  AdminPageHeader,
   AdminQueryError,
-  DensePanel,
   KpiGrid,
   KpiSkeleton,
   KpiTile,
   formatAdminNumber,
+  useAdminCan,
   useAdminMetrics,
   useAdminSystemStatus,
   type KpiTone,
 } from "@/features/admin";
 import { useGroup3Can } from "./group3Ops";
 import { formatDate } from "@/shared/lib/format/formatDate";
+import { Badge, buttonVariants } from "@/shared/ui";
+import { cn } from "@/shared/lib/cn";
 
-/**
- * `/admin` — tổng quan khu vực quản trị.
- *
- * NỐI API THẬT: `GET /api/v1/admin/system-status` (`admin/api/SystemStatusController`) —
- * endpoint này chỉ trả `databaseReachable` + `checkedAt`, javadoc của nó ghi rõ nó KHÔNG
- * thay `/actuator/health` và không phải business logic đầy đủ. Vì vậy trang này không
- * gọi nó là "sức khoẻ hệ thống".
- *
- * Chỉ số vận hành thật (L63 `GET /admin/metrics/dashboard`) được đọc trực tiếp từ PostgreSQL.
- */
 
-/** Liên kết nhanh tới các màn ĐÃ nối API thật. Đường dẫn khớp `app/router/routes.ts`. */
 const WIRED_LINKS = [
-  { to: "/admin/ph-color-chart", labelKey: "dashboard.linkPhColorChart", specKey: "dashboard.specPhColorChart" },
-  { to: "/admin/content", labelKey: "dashboard.linkContent", specKey: "dashboard.specContent" },
-  { to: "/admin/privacy/retention", labelKey: "dashboard.linkRetention", specKey: "dashboard.specRetention" },
-  { to: "/admin/me/security", labelKey: "dashboard.linkMeSecurity", specKey: "dashboard.specMeSecurity" },
+  { to: "/admin/ph-color-chart", labelKey: "dashboard.linkPhColorChart", capability: "colorChart", icon: Palette },
+  { to: "/admin/content", labelKey: "dashboard.linkContent", capability: "careTipsWrite", icon: BookOpenText },
+  { to: "/admin/privacy/retention", labelKey: "dashboard.linkRetention", capability: "retention", icon: Archive },
+  { to: "/admin/me/security", labelKey: "dashboard.linkMeSecurity", capability: "adminPortal", icon: ShieldCheck },
 ] as const;
 
 const METRIC_KEYS = ["users", "activeCats", "scans", "failedJobs", "pendingOutbox"] as const;
@@ -51,64 +45,72 @@ export function AdminDashboardPage() {
 
 function DashboardContent() {
   const { t } = useTranslation("admin");
+  const can = useAdminCan();
   const status = useAdminSystemStatus();
   const metrics = useAdminMetrics();
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  const availableLinks = WIRED_LINKS.filter((link) => can(link.capability));
+
+  useGSAP(
+    () => {
+      if (!metrics.data || !dashboardRef.current) return;
+      const cards = gsap.utils.toArray<HTMLElement>("[data-admin-kpi]", dashboardRef.current);
+      if (
+        cards.length === 0 ||
+        (typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      )
+        return;
+      const reveal = gsap.fromTo(
+        cards,
+        { autoAlpha: 0, y: 10 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.3,
+          stagger: 0.045,
+          ease: "power2.out",
+          clearProps: "opacity,visibility,transform",
+        },
+      );
+      return () => reveal.kill();
+    },
+    { scope: dashboardRef, dependencies: [metrics.data] },
+  );
 
   return (
-    <div className="flex max-w-5xl flex-col gap-4">
-      <AdminPageHeader title={t("pages.dashboard.title")} description={t("pages.dashboard.description")} />
-
-      <DensePanel title={t("dashboard.statusTitle")} description={t("dashboard.statusDescription")}>
-        {status.isPending ? (
-          <p className="flex items-center gap-2 text-caption text-text-secondary">
-            <Loader2 size={15} className="animate-spin" aria-hidden="true" />
-            {t("feedback.loading")}
-          </p>
-        ) : status.isError ? (
-          <AdminQueryError error={status.error} />
-        ) : (
-          <div className="flex flex-wrap items-center gap-3">
-            <span
-              className={
-                status.data.databaseReachable
-                  ? "inline-flex items-center gap-2 rounded-full bg-success-bg px-3 py-1.5 text-caption font-semibold text-success-text"
-                  : "inline-flex items-center gap-2 rounded-full bg-danger-bg px-3 py-1.5 text-caption font-semibold text-danger-text"
-              }
-            >
-              {status.data.databaseReachable ? (
-                <CircleCheck size={16} aria-hidden="true" />
-              ) : (
-                <CircleX size={16} aria-hidden="true" />
-              )}
-              {status.data.databaseReachable ? t("dashboard.dbUp") : t("dashboard.dbDown")}
-            </span>
-            <span className="text-caption text-text-secondary">
-              {t("dashboard.checkedAt", { at: formatDate(status.data.checkedAt, "dd/MM/yyyy HH:mm:ss") })}
-            </span>
+    <div ref={dashboardRef} className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+      <header
+        data-reveal
+        className="relative overflow-hidden rounded-3xl border border-border/60 bg-surface px-4 py-5 shadow-sm sm:px-6 sm:py-7 md:px-9 md:py-9"
+      >
+        <span className="absolute inset-y-0 left-0 w-1.5 bg-primary-dark" aria-hidden="true" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <div className="min-w-0 max-w-2xl">
+            <Badge tone="info" className="mb-3 sm:mb-4">
+              {t("nav.label")}
+            </Badge>
+            <h1 className="text-h2 font-extrabold tracking-tight text-text-primary sm:text-h1 md:text-display">
+              {t("pages.dashboard.title")}
+            </h1>
+            <p className="mt-2 max-w-xl text-caption text-text-secondary sm:text-body">{t("pages.dashboard.description")}</p>
           </div>
-        )}
-      </DensePanel>
+          <Link
+            to="/admin/me/security"
+            className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full shrink-0 min-h-[44px] justify-center sm:w-auto")}
+          >
+            <ShieldCheck size={18} aria-hidden="true" />
+            {t("nav.settings")}
+          </Link>
+        </div>
+      </header>
 
-      <DensePanel title={t("dashboard.wiredTitle")} description={t("dashboard.wiredDescription")}>
-        <ul className="grid gap-2 md:grid-cols-2">
-          {WIRED_LINKS.map((link) => (
-            <li key={link.to}>
-              <Link
-                to={link.to}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 hover:bg-background-alt/60"
-              >
-                <span className="min-w-0">
-                  <span className="block text-caption font-semibold text-text-primary">{t(link.labelKey)}</span>
-                  <span className="block font-mono text-small text-text-tertiary">{t(link.specKey)}</span>
-                </span>
-                <ArrowRight size={16} className="shrink-0 text-text-tertiary" aria-hidden="true" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </DensePanel>
-
-      <DensePanel title={t("dashboard.metricsTitle")} description={t("dashboard.metricsDescription")}>
+      <section aria-labelledby="admin-metrics-title" data-reveal>
+        <div className="mb-4">
+          <h2 id="admin-metrics-title" className="text-h3 font-extrabold text-text-primary">
+            {t("dashboard.metricsTitle")}
+          </h2>
+          <p className="text-caption text-text-secondary">{t("dashboard.metricsDescription")}</p>
+        </div>
         {metrics.isPending ? <KpiSkeleton /> : null}
         {metrics.isError ? <AdminQueryError error={metrics.error} /> : null}
         {metrics.data ? (
@@ -123,7 +125,69 @@ function DashboardContent() {
             ))}
           </KpiGrid>
         ) : null}
-      </DensePanel>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <AntCard
+          data-reveal
+          title={<h2 className="text-body font-bold">{t("dashboard.statusTitle")}</h2>}
+          className="shadow-brand-md"
+        >
+          <div className="flex items-start gap-3">
+            <span
+              className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark"
+              aria-hidden="true"
+            >
+              <Database size={21} />
+            </span>
+            <div className="min-w-0">
+              {status.isPending ? (
+                <AntSkeleton active title={{ width: "45%" }} paragraph={{ rows: 1 }} />
+              ) : status.isError ? (
+                <AdminQueryError error={status.error} />
+              ) : (
+                <>
+                  <Badge tone={status.data.databaseReachable ? "success" : "danger"}>
+                    {status.data.databaseReachable ? t("dashboard.dbUp") : t("dashboard.dbDown")}
+                  </Badge>
+                  <p className="mt-2 text-caption text-text-secondary">
+                    {t("dashboard.checkedAt", { at: formatDate(status.data.checkedAt, "dd/MM/yyyy HH:mm:ss") })}
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+          <p className="mt-5 border-t border-border/60 pt-4 text-small text-text-tertiary">
+            {t("dashboard.statusDescription")}
+          </p>
+        </AntCard>
+
+        <AntCard
+          data-reveal
+          title={<h2 className="text-body font-bold">{t("dashboard.wiredTitle")}</h2>}
+          className="shadow-brand-md"
+        >
+          <p className="mb-3 text-caption text-text-secondary">{t("dashboard.wiredDescription")}</p>
+          <ul className="grid gap-2 md:grid-cols-2">
+            {availableLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className="flex min-h-14 items-center gap-3 rounded-xl border border-border/70 px-3 text-caption font-semibold text-text-primary transition-colors hover:border-primary/40 hover:bg-background-alt focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-[var(--focus-ring-color)] motion-reduce:transition-none"
+                    data-motion="row"
+                  >
+                    <Icon size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
+                    <span className="min-w-0 flex-1">{t(link.labelKey)}</span>
+                    <ArrowRight size={15} className="shrink-0 text-text-tertiary" aria-hidden="true" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </AntCard>
+      </div>
     </div>
   );
 }

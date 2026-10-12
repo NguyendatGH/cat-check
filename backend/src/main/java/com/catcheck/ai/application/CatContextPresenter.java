@@ -8,29 +8,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Dựng khối "THÔNG TIN BÉ MÈO" từ {@link CatContextPort.CatContext} để làm giàu prompt LLM / câu
- * trả lời fallback (nhiệm vụ wiring A2-A4, mục 3), và tính từ khoá nối thêm vào câu truy vấn tri
- * thức khi mèo có cờ cảnh báo đang mở (mục 4).
- *
- * <p><b>Ràng buộc cứng của nhiệm vụ này:</b> lớp này CHỈ diễn đạt lại SỐ LIỆU THÔ của
- * {@link CatContextPort.CatContext} — không thêm câu đánh giá kiểu "điều này có nghĩa là..." hay
- * khuyến nghị tự chế. Giữ mã phân loại/mã luật (vd {@code SLIGHTLY_HIGH},
- * {@code REPEATED_OUT_OF_RANGE}) nguyên văn thay vì tự dịch sang câu diễn giải y khoa.</p>
- *
- * <p>Không phải Spring bean — cùng kiểu {@code final class} tiện ích như {@link AiPromptRedactor},
- * dùng trực tiếp từ {@link AiChatService} trong cùng package.</p>
- */
 final class CatContextPresenter {
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneOffset.UTC);
 
-    /**
-     * Từ khoá tiếng Việt nối thêm vào câu hỏi gốc trước khi tìm tri thức, theo {@code ruleCode}
-     * của {@code health_flag} đang mở — PHẦN RETRIEVAL THUẦN TUÝ, không phải nội dung hiển thị
-     * (xem {@link #augmentationKeywords}). {@code URGENT_CLINICAL_SIGN} cố ý KHÔNG có mặt: cờ đó
-     * luôn rẽ sang nhánh khẩn cấp ở {@link AiChatService#chat} trước khi tới đây.
-     */
     private static final Map<String, String> FLAG_KEYWORDS = Map.of(
             "REPEATED_OUT_OF_RANGE", "lệch pH nhiều lần",
             "BASELINE_DEVIATION", "khác mức thường ngày",
@@ -40,17 +21,10 @@ final class CatContextPresenter {
     private CatContextPresenter() {
     }
 
-    /** {@code true} nếu có bất kỳ {@code health_flag} nào đang mở ở mức {@code URGENT}. */
     static boolean hasUrgentFlag(CatContextPort.CatContext context) {
         return context.openHealthFlags().stream().anyMatch(flag -> "URGENT".equals(flag.severity()));
     }
 
-    /**
-     * Từ khoá nối thêm vào câu hỏi TRƯỚC khi gọi {@code AiKnowledgePort.search} (mục 4) — chuỗi
-     * rỗng nếu không có cờ nào khớp. Hiệu quả thực tế phụ thuộc kho {@code care_tip} đã có bài gắn
-     * tag theo dải pH/cờ cảnh báo hay chưa; tại thời điểm viết, KHÔNG có bài nào (xem báo cáo bàn
-     * giao) nên bước này hiện chỉ chuẩn bị sẵn cơ chế, chưa đổi kết quả tìm kiếm thực tế.
-     */
     static String augmentationKeywords(CatContextPort.CatContext context) {
         return context.openHealthFlags().stream()
                 .map(flag -> FLAG_KEYWORDS.get(flag.ruleCode()))
@@ -59,11 +33,6 @@ final class CatContextPresenter {
                 .collect(Collectors.joining(" "));
     }
 
-    /**
-     * Khối "THÔNG TIN BÉ MÈO" — chỉ liệt kê field CÓ GIÁ TRỊ, mỗi dòng một sự kiện. Trả về chuỗi
-     * rỗng nếu không có field nào ngoài tên (trường hợp gần như không xảy ra vì {@code name} luôn
-     * có ở {@code cat}, nhưng giữ phòng thủ cho test/fake).
-     */
     static String renderContext(CatContextPort.CatContext context) {
         List<String> lines = new ArrayList<>();
         if (notBlank(context.name())) {

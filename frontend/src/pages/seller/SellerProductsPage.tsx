@@ -74,9 +74,7 @@ export function SellerProductsPage() {
   const [bulkMsg, setBulkMsg] = useState<{ kind: "progress" | "done" | "error"; text: string } | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
 
-  // null = đóng; "new" = tạo; còn lại = id đang sửa.
   const [editing, setEditing] = useState<string | null>(null);
-  // If-Match chốt lúc MỞ form (bản người dùng đang xem), không lấy từ lần refetch sau.
   const [editingEtag, setEditingEtag] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormValues>(emptyProductForm);
   const [showErrors, setShowErrors] = useState(false);

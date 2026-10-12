@@ -6,11 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
-/**
- * {@link ImageRetentionConsentPort} đọc thẳng {@code consent_record} (bảng của {@code privacy}),
- * cùng câu SQL với {@code notification.infrastructure.persistence.JdbcConsentGateAdapter}: dòng
- * MỚI NHẤT của cặp (user, purpose) quyết định — bảng append-only, rút consent là một dòng mới.
- */
 @Repository
 class JdbcImageRetentionConsentAdapter implements ImageRetentionConsentPort {
 
@@ -32,7 +27,6 @@ class JdbcImageRetentionConsentAdapter implements ImageRetentionConsentPort {
                  LIMIT 1
                 """, (rs, rowNum) -> "GRANTED".equals(rs.getString("status")), userId, PURPOSE)
                 .stream().findFirst()
-                // Chưa có dòng nào ⇒ chưa đồng ý ("im lặng không phải là đồng ý", p15 §15.3.1 C4).
                 .orElse(false);
     }
 }

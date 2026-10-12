@@ -11,14 +11,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * L67 — {@code OutboxAdminService}.
- *
- * <p>Diem can kiem: service <b>phan biet</b> ba ket qua (da dua lai hang cho / khong tim thay /
- * khong phai {@code FAILED}) va tim o <b>ca hai</b> bang outbox. L66 tra ve mot danh sach da
- * {@code UNION ALL} hai bang nen nguoi bam nut khong biet dong do thuoc bang nao — neu service chi
- * tim mot bang thi mot nua cac dong {@code FAILED} se tra {@code 404} oan.</p>
- */
 class OutboxAdminServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T12:00:00Z");

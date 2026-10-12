@@ -1,9 +1,5 @@
 type Listener<T> = (payload: T) => void;
 
-/**
- * Event bus tối giản, kiểu-an-toàn, dùng cho giao tiếp chéo feature không qua props/store
- * (ví dụ: sw.ts báo "có bản cập nhật mới" cho app/pwa/useServiceWorkerUpdate.ts).
- */
 export class EventBus<Events extends Record<string, unknown>> {
   private listeners: { [K in keyof Events]?: Set<Listener<Events[K]>> } = {};
 

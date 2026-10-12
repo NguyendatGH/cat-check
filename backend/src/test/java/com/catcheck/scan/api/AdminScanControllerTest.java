@@ -34,15 +34,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Tầng API của L5/L6/L18 — <b>nhánh phân quyền</b> (cột {@code R:} của p8 §8.4.12) và nhánh lỗi
- * chính. p14 §14.5.1 mục 2: UI ẩn nút với vai trò không có quyền, nhưng server vẫn phải kiểm độc
- * lập — đó là thứ được neo ở đây.
- *
- * <p>Ô Q5 của p14 gọi {@code DPO} là <i>"vai trò duy nhất"</i> xem được ảnh scan, nên test
- * khẳng định cả {@code ADMIN_SUPER} cũng bị chặn: đó là ô duy nhất trong toàn ma trận mà Super
- * <b>không</b> mạnh hơn Support.</p>
- */
 class AdminScanControllerTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -65,7 +56,6 @@ class AdminScanControllerTest {
         request.setRemoteAddr("203.0.113.9");
     }
 
-    /* ------------------------------------------------------------------ L5 */
 
     @Test
     @DisplayName("L5: ADMIN_CATALOG không đọc được số liệu scan ⇒ 403, service không chạy")
@@ -102,7 +92,6 @@ class AdminScanControllerTest {
         assertThat(response.masked()).isTrue();
         assertThat(response.items()).hasSize(1);
         assertThat(response.items().getFirst().catName()).isEqualTo("L***");
-        // p11 §11.5.4 dòng "Ảnh scan": Support = Không. Cờ "có ảnh" cũng không trả.
         assertThat(response.items().getFirst().imageStored()).isNull();
         assertThat(response.items().getFirst().disputedNote()).isEqualTo("g***");
         assertThat(response.items().getFirst().phValue()).isEqualByComparingTo("6.40");
@@ -124,7 +113,6 @@ class AdminScanControllerTest {
         assertThat(response.items().getFirst().imageStored()).isTrue();
     }
 
-    /* ------------------------------------------------------------------ L6 */
 
     @Test
     @DisplayName("L6: ADMIN_SUPER cũng KHÔNG xem được ảnh scan — DPO là vai trò duy nhất (p14 ô Q5)")
@@ -151,7 +139,6 @@ class AdminScanControllerTest {
         assertThat(response.getHeaders().getContentLength()).isEqualTo(3L);
     }
 
-    /* ----------------------------------------------------------------- L18 */
 
     @Test
     @DisplayName("L18: DPO không gán lại mèo được (p8 L18 chỉ Support/Super)")
@@ -188,7 +175,6 @@ class AdminScanControllerTest {
         verifyNoInteractions(service);
     }
 
-    /* --------------------------------------------------------------- helper */
 
     private static ScanQueryRepository.Row row() {
         return new ScanQueryRepository.Row(

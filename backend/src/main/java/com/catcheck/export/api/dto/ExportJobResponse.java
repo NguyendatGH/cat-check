@@ -5,7 +5,6 @@ import com.catcheck.export.domain.ExportJob;
 import java.time.Instant;
 import java.time.LocalDate;
 
-/** Trạng thái một job xuất PDF (p8 §8.4.10 J2/J3, p4 G1). */
 public record ExportJobResponse(
         String jobId,
         String catId,

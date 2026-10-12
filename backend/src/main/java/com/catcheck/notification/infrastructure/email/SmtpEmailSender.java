@@ -19,17 +19,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
-/**
- * Gửi email qua SMTP thật. Bật khi {@code catcheck.notification.email-sink=smtp}.
- *
- * <p>Nếu có template HTML cho mã thư ({@code classpath:email/<mã>.html}) thì gửi HTML. Nếu không
- * có thì gửi text thuần như trước, nên mã mới chưa có template vẫn gửi được.</p>
- *
- * <p><b>Hai hop dong, co chu y:</b> {@link #send} nuot loi (hop dong cu cua
- * {@code EmailSender}: SMTP treo khong duoc lam hong luong dang ky — p11 §11.2.1), con
- * {@link #deliver} NEM. Job outbox goi {@code deliver} vi neu khong biet lan gui co that bai
- * hay khong thi backoff/dead-letter cua p12 §12.8.1 vo nghia.</p>
- */
 @Component
 @ConditionalOnProperty(name = "catcheck.notification.email-sink", havingValue = "smtp")
 public class SmtpEmailSender implements EmailSender, EmailTransport {
@@ -54,8 +43,6 @@ public class SmtpEmailSender implements EmailSender, EmailTransport {
             deliver(new OutgoingEmail(message.recipientEmail(), message.templateKey(),
                     message.locale(), message.variables()));
         } catch (RuntimeException ex) {
-            // Chi loai loi, KHONG ex.getMessage(): loi SMTP thuong chep nguyen dia chi nhan
-            // (vd "550 5.1.1 <a@b.vn>: Recipient address rejected") — PII vao log.
             log.warn("Gui email that bai qua SMTP (template={}): {}",
                     message.templateKey(), ex.getClass().getSimpleName());
         }

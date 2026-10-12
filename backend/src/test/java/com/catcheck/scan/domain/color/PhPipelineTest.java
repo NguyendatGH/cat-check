@@ -17,16 +17,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-/**
- * Kiểm thử logic S7→S10: thống kê robust, khớp bảng màu, confidence, phân loại, tách hạt.
- *
- * <p>Đây là phần quyết định <b>số nào người dùng nhìn thấy</b>, nên test ở đây kiểm tra cả hai mặt:
- * đúng về số học, và đúng về hành vi khi dữ liệu xấu (ít hạt, ngoài dải, CI cắt ranh giới) — vì đó là
- * những trường hợp thật sự xảy ra với ảnh chụp trong nhà tắm.
- */
 class PhPipelineTest {
 
-    // ------------------------------------------------------------------ S7
 
     @Test
     @DisplayName("S7 — một hạt hỏng không được phép kéo median đi")
@@ -36,7 +28,6 @@ class PhPipelineTest {
             clean.add(new Lab(55.0 + i * 0.1, 12.0, -20.0));
         }
         List<Lab> withOutlier = new ArrayList<>(clean);
-        // Pixel bắt sáng lóa đọc thành trắng bão hoà.
         withOutlier.add(new Lab(98.0, 2.0, 40.0));
 
         Lab medianOfClean = RobustStats.analyze(clean).median();
@@ -94,7 +85,6 @@ class PhPipelineTest {
         assertThat(RobustStats.analyze(mixed).mixedColors()).isTrue();
     }
 
-    // ------------------------------------------------------------------ S8
 
     private static PhChart sampleChart() {
         return PhChart.of("chart-test", List.of(
@@ -127,7 +117,6 @@ class PhPipelineTest {
         PhChart chart = sampleChart();
         Lab lower = chart.points().get(1).lab();
         Lab upper = chart.points().get(2).lab();
-        // Trung điểm theo ΔE00 của hai mức 6.3 và 6.6.
         Lab midpoint = new Lab((lower.l() + upper.l()) / 2, (lower.a() + upper.a()) / 2,
                 (lower.b() + upper.b()) / 2);
 
@@ -165,7 +154,6 @@ class PhPipelineTest {
         assertThat(ChartMatcher.mismatches(6.4, 6.8)).isTrue();
     }
 
-    // ------------------------------------------------------------------ S9
 
     private static Inputs goodInputs() {
         return new Inputs(1.0, 1.0, 1.0, 0.05, 200.0, 100.0, 0.0, 0.0, 5.0, 30);
@@ -230,7 +218,6 @@ class PhPipelineTest {
                 .isGreaterThanOrEqualTo(2 * ConfidenceCalculator.CI_MIN - 0.11);
     }
 
-    // ------------------------------------------------------------------ S10
 
     private static List<Band> bands() {
         return List.of(
@@ -293,7 +280,6 @@ class PhPipelineTest {
         }
     }
 
-    // ------------------------------------------------------------------ S6
 
     @Test
     @DisplayName("S6 — loại hạt bắt sáng, quá tối, chroma thấp và trùng màu nền")
@@ -302,12 +288,12 @@ class PhPipelineTest {
         Lab substrate = new Lab(70.0, 2.0, 3.0);
 
         List<Candidate> candidates = List.of(
-                new Candidate(40, new Lab(60.0, 20.0, -20.0), 65.0, 55.0),   // hạt thật
-                new Candidate(40, new Lab(98.0, 20.0, -20.0), 99.0, 90.0),   // bắt sáng
-                new Candidate(40, new Lab(5.0, 20.0, -20.0), 10.0, 2.0),     // quá tối
-                new Candidate(40, new Lab(70.0, 1.0, 1.0), 72.0, 68.0),      // chroma thấp
-                new Candidate(40, new Lab(70.0, 5.0, 6.0), 72.0, 68.0),      // gần màu nền
-                new Candidate(5, new Lab(60.0, 20.0, -20.0), 62.0, 58.0));   // quá nhỏ
+                new Candidate(40, new Lab(60.0, 20.0, -20.0), 65.0, 55.0),
+                new Candidate(40, new Lab(98.0, 20.0, -20.0), 99.0, 90.0),
+                new Candidate(40, new Lab(5.0, 20.0, -20.0), 10.0, 2.0),
+                new Candidate(40, new Lab(70.0, 1.0, 1.0), 72.0, 68.0),
+                new Candidate(40, new Lab(70.0, 5.0, 6.0), 72.0, 68.0),
+                new Candidate(5, new Lab(60.0, 20.0, -20.0), 62.0, 58.0));
 
         GrainSelector.Selection selection = GrainSelector.select(
                 candidates, substrate, thresholds, 1000, 3.0);

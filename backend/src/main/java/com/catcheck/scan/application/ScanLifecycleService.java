@@ -31,10 +31,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * {@code DELETE /scans/{id}}, {@code POST /scans/{id}/reassign-cat},
- * {@code POST}/{@code DELETE /scans/{id}/dispute} (p8 §8.4.5, p6 §6.10.3).
- */
 @Service
 public class ScanLifecycleService {
 
@@ -74,7 +70,6 @@ public class ScanLifecycleService {
         scan.softDelete(now);
         scanRepository.save(scan);
 
-        // Xoá cứng file ảnh (p8 E8: "xoá mềm scan + xoá cứng file ảnh"), giữ tombstone scan_image.
         scanImageRepository.findByScanId(scanId).ifPresent(image -> {
             if (image.getDeletedAt() == null && image.getStorageKey() != null) {
                 imageStorage.delete(StorageKey.parse(image.getStorageKey()));

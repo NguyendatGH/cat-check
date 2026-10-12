@@ -33,7 +33,6 @@ describe("validateProductForm", () => {
 
 describe("productToForm", () => {
   it("sản phẩm không có giá gốc (server bỏ hẳn key, không gửi null) ra ô giá gốc trống và form hợp lệ", () => {
-    // JSON thật từ backend (`default-property-inclusion: non_null`): không có `compareAtPriceVnd`/`imageUrl`.
     const fromServer = {
       id: "p1",
       sku: "PAD-01",

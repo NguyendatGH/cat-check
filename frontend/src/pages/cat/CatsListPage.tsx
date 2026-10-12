@@ -27,29 +27,8 @@ import iconAddNow from "@/shared/assets/icons/web-cat/hub-add-now.svg";
 import iconTableTitle from "@/shared/assets/icons/web-cat/hub-table-title.svg";
 import iconExportPdf from "@/shared/assets/icons/web-cat/hub-export-pdf.svg";
 
-/**
- * `/cats` — W1 Multi-Cat Hub.
- *
- * Mobile (mặc định): danh sách hồ sơ + tab lọc như cũ, KHÔNG đổi.
- * Desktop (`lg:` trở lên): dựng theo Figma `26mOVF2zdu4cI1EPz2Syxw` node `16:3703`
- * "Web - 05. Quản lý Đa Mèo & Chuyển đổi Bé Mèo" — banner đầu trang, bento grid 4 cột,
- * bảng so sánh sức khỏe cả đàn.
- */
 
-/**
- * ĐÃ BỎ HẲN (W1-E) — `DESIGN_MOCK_CLINICAL`: BCS/thể trạng, "nguy cơ FLUTD", khay cát liên
- * kết, lịch thú y kế tiếp và bác sĩ phụ trách. `GET /cats` (p8 §8.4.4) chỉ trả hồ sơ; không
- * có trường nào cho những chỉ số đó, và "nguy cơ FLUTD" còn là chẩn đoán — trái quyết định
- * #6/#8. Nguyên tắc: thiếu field thì BỎ khỏi UI, không bịa dữ liệu. Bảng so sánh vì vậy còn
- * 4 cột THẬT.
- */
 
-/**
- * Lần quét gần nhất của từng bé: sự tồn tại/ngày/dải lấy từ `GET /cats` (`lastScanAt`,
- * `lastClassification`); riêng số pH (`phValue`) không có trong `/cats` nên chỉ bé ĐÃ có lần
- * quét mới gọi thêm `GET /scans?catId=…&limit=1` (E2) — bé chưa quét không tốn lượt gọi nào.
- * Trần cứng 8 hồ sơ/tài khoản (C31). `null` = bé thật sự chưa có lần quét.
- */
 function useLastScanByCat(cats: Cat[], enabled: boolean): Record<string, CatLastScan | null> {
   const results = useQueries({
     queries: cats.map((cat) => ({
@@ -74,11 +53,9 @@ export function CatsListPage() {
   const { data, isPending, isError, refetch } = useCatList(status);
   const [catToDelete, setCatToDelete] = useState<Cat | null>(null);
   const deleteCat = useSoftDeleteCat(catToDelete?.id ?? "");
-  // Nhãn/màu dải pH luôn từ API cấu hình (`GET /reference/ph-bands`), không hard-code.
   const { data: bands } = usePhBands();
   const setScanCat = useScanCaptureStore((s) => s.setSelectedCat);
 
-  /** Chọn sẵn đúng bé rồi vào thẳng bước chụp — nút ghi "Quét cát riêng cho {tên}" thì phải đúng bé đó. */
   const scanFor = (cat: Cat) => {
     setScanCat({ id: cat.id, name: cat.name });
     void navigate("/scan");
@@ -101,7 +78,6 @@ export function CatsListPage() {
 
   return (
     <div className="flex flex-col gap-6 px-4 py-5 lg:px-0 lg:py-0">
-      {/* ---------- Mobile / tablet ---------- */}
       <div data-reveal className="flex flex-col gap-6 lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-h2 font-bold text-text-primary">{t("pages.list.title")}</h1>
@@ -162,7 +138,6 @@ export function CatsListPage() {
             }
           />
         ) : (
-          // `sm` của dự án là 375px — hai cột ở 390px cắt cụt tuổi ("4 tuổi 4 thá…").
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {items.map((cat) => (
               <MobileCatCard
@@ -182,13 +157,10 @@ export function CatsListPage() {
         )}
       </div>
 
-      {/* ---------- Desktop: Figma 16:3703 ---------- */}
       <div data-reveal className="hidden flex-col gap-8 lg:flex">
         <HubBanner
           catCount={items.length}
           onScan={() => {
-            // "Quét nhanh khay cát cho bé đang chọn" = bé mặc định (`isPrimary`); chưa có thì
-            // để người dùng tự chọn ở bước chọn bé.
             const primary = items.find((c) => c.isPrimary);
             if (primary) scanFor(primary);
             else void navigate("/scan/select-cat");
@@ -225,8 +197,6 @@ export function CatsListPage() {
                         scanFor(cat);
                       }}
                       onOpen={() => {
-                        // "Xem lịch sử quét" mở đúng timeline lần quét của bé — không gọi là
-                        // "bệnh án" vì CatCheck không chẩn đoán và không lưu hồ sơ y tế.
                         void navigate(`/cats/${cat.id}/history`);
                       }}
                       onDelete={() => {
@@ -276,11 +246,6 @@ export function CatsListPage() {
   );
 }
 
-/**
- * Thẻ một bé ở bản mobile — bố cục theo mockup `05. Chọn Mèo`: ảnh · tên + chip giới tính/tuổi ·
- * giống/cân nặng · hàng dưới là dải pH + thời điểm của lần quét gần nhất (`GET /scans`). Mọi
- * chữ đến từ `GET /cats` + `GET /scans` + `GET /reference/ph-bands`.
- */
 function MobileCatCard({
   cat,
   bands,
@@ -377,7 +342,6 @@ function HubBanner({ catCount, onScan, onAdd }: { catCount: number; onScan: () =
       <div className="flex items-start justify-between gap-8">
         <div className="max-w-[640px]">
           <div className="flex flex-wrap items-center gap-3">
-            {/* Eyebrow là SỐ THẬT (số hồ sơ `GET /cats` trả về), không phải nhãn marketing. */}
             <span className="rounded-full bg-white/15 px-3 py-1 text-overline font-semibold tracking-[0.5px] backdrop-blur-sm">
               {t("web.hub.eyebrow", { count: catCount })}
             </span>
@@ -409,10 +373,6 @@ function HubBanner({ catCount, onScan, onAdd }: { catCount: number; onScan: () =
   );
 }
 
-/**
- * Dải pH của lần quét gần nhất — tra theo `bandCode` của `GET /scans` trong danh mục dải
- * `GET /reference/ph-bands`. Nhãn/màu luôn của API, không hard-code (QĐ #5b, p6 §6.7.4).
- */
 function bandOfScan(scan: CatLastScan | null | undefined, bands: PhBand[]): PhBand | undefined {
   if (!scan) return undefined;
   return bands.find((b) => b.code === scan.bandCode) ?? bands.find((b) => b.code === scan.classification);
@@ -428,7 +388,6 @@ function HubCatCard({
 }: {
   cat: Cat;
   bands: PhBand[];
-  /** `undefined` = đang tải; `null` = bé thật sự chưa có lần quét nào. */
   lastScan: CatLastScan | null | undefined;
   onScan: () => void;
   onOpen: () => void;
@@ -447,11 +406,6 @@ function HubCatCard({
     .filter(Boolean)
     .join(" • ");
 
-  /**
-   * "Chuyển sang theo dõi {tên}" = đặt bé làm mèo mặc định (D8 `PUT /cats/{id}/primary`) — đúng
-   * khái niệm "đang chọn" mà thẻ này và thẻ chuyển bé ở sidebar cùng hiển thị. Trước đây nút
-   * này chỉ mở màn chọn bé để quét, nhãn nói một đằng làm một nẻo.
-   */
   const switchTo = () => {
     setPrimary.mutate(undefined, {
       onSuccess: () => {
@@ -501,8 +455,6 @@ function HubCatCard({
             {cat.weightKg != null ? t("web.hub.weightKg", { value: cat.weightKg }) : "—"}
           </p>
         </div>
-        {/* Ô pH chỉ giữ CON SỐ (ngắn, không bao giờ bị cắt chữ). Nhãn dải — vốn dài, trước
-            đây bị `truncate` thành "Chưa có l…" — được đưa xuống hàng riêng bên dưới. */}
         <div className={cn("rounded-xl px-3 py-2", style.bg)}>
           <p className={cn("text-[10px] uppercase tracking-[0.4px] opacity-80", style.text)}>{t("web.hub.phShort")}</p>
           <p className={cn("text-body font-bold", style.text)}>
@@ -511,8 +463,6 @@ function HubCatCard({
         </div>
       </div>
 
-      {/* Thang pH dựng từ chính `bands` (API), không hard-code ngưỡng. Kim chỉ đặt theo giá
-          trị pH THẬT của lần quét gần nhất (`GET /scans`). */}
       <PhGaugeBar bands={bands} value={lastScan?.phValue ?? null} className="mt-3" />
 
       {band ? (
@@ -611,7 +561,6 @@ function HubComparisonTable({
 }) {
   const { t, i18n } = useTranslation(["cat", "common"]);
   const formatAge = useFormatCatAge();
-  // Chỉ còn các cột có field THẬT trong `GET /cats` + `GET /scans` + `GET /reference/ph-bands`.
   const cols = [t("web.hub.colCat"), t("web.hub.colAge"), t("web.hub.colBody"), t("web.hub.colPh")];
 
   return (
@@ -624,8 +573,6 @@ function HubComparisonTable({
             <p className="pt-1 text-caption text-text-secondary">{t("web.hub.tableIntro")}</p>
           </div>
         </div>
-        {/* Chỉ còn nút có hành vi THẬT. Nút "Lọc chỉ số" cũ không gắn handler nào — một
-            tính năng không tồn tại — nên đã bỏ hẳn thay vì để nút chết. */}
         <button
           type="button"
           onClick={onExport}
@@ -666,7 +613,6 @@ function HubComparisonTable({
                     </div>
                   </td>
                   <td className="px-3 py-3">
-                    {/* Không có giống thì tuổi lên dòng chính, không để một dòng "—" trơ trọi. */}
                     <p className="text-caption text-text-primary">
                       {cat.breedName ?? cat.breedOther ?? formatAge(cat.ageMonths) ?? "—"}
                     </p>
@@ -714,17 +660,6 @@ function HubComparisonTable({
   );
 }
 
-/**
- * Khối cuối trang của Figma `16:3703` — "Chế độ Phân Tách Khay Cát Thông Minh & Nhận Diện
- * Bãi Thải": 3 bước hướng dẫn cho nhà nuôi nhiều mèo.
- *
- * ⚠️ COPY LỆCH BẢN THIẾT KẾ CÓ CHỦ ĐÍCH. Mockup mô tả phần cứng không tồn tại
- * ("AI Vision Multi-Box Hub", "Khay CleanBox IoT cân tải", camera nhận diện khuôn mặt mèo,
- * "Khớp 99.4%", "chuẩn xác 100%", "Tỉ lệ gán đúng bãi thải tự động 98.2%") và một cam kết
- * độ chính xác tuyệt đối — cả hai đều không có trong sản phẩm và vi phạm REQ-COPY-01.
- * Nội dung dưới đây viết lại thành hướng dẫn bố trí khay THẬT, nối với luồng có thật
- * "Chưa rõ / Dùng chung khay" khi quét. Không ảnh minh hoạ phần cứng.
- */
 function HubLitterSeparationGuide({ catCount }: { catCount: number }) {
   const { t } = useTranslation("cat");
   const steps = [
@@ -759,7 +694,6 @@ function HubLitterSeparationGuide({ catCount }: { catCount: number }) {
 
       <div className="mt-4 flex items-start gap-2 rounded-xl bg-info px-4 py-3">
         <img src={iconLastScan} alt="" className="mt-0.5 size-3.5 shrink-0" />
-        {/* Con số là SỐ BÉ THẬT của tài khoản (`GET /cats`) theo quy tắc N+1 khay ở tiêu đề. */}
         <p className="text-caption leading-relaxed text-info-text">
           {t("web.hub.guideNote", { count: catCount, trays: catCount + 1 })}
         </p>

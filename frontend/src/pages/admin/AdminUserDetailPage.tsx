@@ -30,12 +30,10 @@ import { useGroup1Can } from "./group1Access";
 export function AdminUserDetailPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  // Mở che dữ liệu liên hệ: ROLES.users (backend UNMASK_ROLES). Xem/thu hồi phiên: ROLES.userLock.
   const canUnmask = can("users");
   const canSessions = can("userLock");
   const { userId } = useParams<{ userId: string }>();
   const detail = useAdminUserDetail(userId);
-  // Không có quyền xem phiên thì không gọi API (server sẽ trả 403).
   const sessions = useAdminUserSessions(canSessions ? userId : undefined);
   const unmask = useUnmaskAdminUser();
   const revoke = useRevokeAdminUserSessions();

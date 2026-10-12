@@ -23,11 +23,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** L13-L17 — role quản trị và reset TOTP theo quy tắc hai người. */
 @Service
 public class AdminStaffService {
 
-    /** Khớp app_setting.mfa.reset_request_ttl_hours trong seed (24 giờ). */
     private static final Duration REQUEST_TTL = Duration.ofHours(24);
     private static final int MAX_REQUESTS_PER_DAY = 3;
 
@@ -117,7 +115,6 @@ public class AdminStaffService {
         }
         requireNotSelf(request.targetUserId(), context);
         Instant now = clock.instant();
-        // Reset xoá secret và recovery codes; người dùng phải enroll lại MFA khi đăng nhập lần sau.
         totpRepository.delete(request.targetUserId());
         recoveryCodeRepository.deleteByUserId(request.targetUserId());
         int revokedSessions = sessionRevoker.revokeAllByUserId(request.targetUserId());

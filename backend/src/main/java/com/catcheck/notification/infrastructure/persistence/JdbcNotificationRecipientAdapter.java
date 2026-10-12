@@ -11,14 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Đọc {@code app_user} (p4 A1) để lấy địa chỉ nhận, locale và múi giờ.
- *
- * <p>Lọc sẵn các trạng thái không được gửi: {@code ANONYMIZED} (tài khoản đã ẩn danh — p15
- * §15.4.6 ghi rõ email đã bị ẩn danh hoá) và {@code DELETION_REQUESTED} trong thời gian chờ.
- * Gửi thông báo sản phẩm cho hai trạng thái này vừa vô nghĩa vừa là xử lý dữ liệu không có căn
- * cứ.</p>
- */
 @Repository
 class JdbcNotificationRecipientAdapter implements NotificationRecipientPort {
 
@@ -44,8 +36,6 @@ class JdbcNotificationRecipientAdapter implements NotificationRecipientPort {
 
     @Override
     public List<UUID> findActiveRecipientIdsAfter(UUID afterId, int limit) {
-        // `? IS NULL OR id > ?` thay vi ghep chuoi SQL co dieu kien: mot cau lenh duy nhat thi
-        // PostgreSQL cache duoc plan, va khong co nhanh nao de lot mot bo loc trang thai.
         return jdbc.query("""
                 SELECT id
                   FROM app_user
@@ -56,7 +46,6 @@ class JdbcNotificationRecipientAdapter implements NotificationRecipientPort {
                 """, (rs, rowNum) -> rs.getObject("id", UUID.class), afterId, afterId, limit);
     }
 
-    /** Múi giờ hỏng không được làm chết việc gửi — rơi về mặc định của p12 §12.5.2. */
     private ZoneId zone(String raw) {
         if (raw == null || raw.isBlank()) {
             return ZoneId.of("Asia/Ho_Chi_Minh");

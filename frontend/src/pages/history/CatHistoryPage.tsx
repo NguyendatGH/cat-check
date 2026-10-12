@@ -29,8 +29,6 @@ import {
 import tipScanFrequency from "@/shared/assets/images/web-history/tip-scan-frequency.jpg";
 import { WebHistoryScreen } from "./webHistory";
 
-/** `/cats/:catId/history` — timeline lịch sử quét theo mèo (p8 §8.5.4 E2/E3, mockup `07`
- * cho mobile, `Web - 06 & 07` cho desktop). */
 export function CatHistoryPage() {
   const { t } = useTranslation(["history", "cat", "scan", "common"]);
   const { catId } = useParams<{ catId: string }>();
@@ -76,14 +74,11 @@ export function CatHistoryPage() {
   );
 
   const setExportCat = useExportWizardStore((s) => s.setCat);
-  /** Xuất hồ sơ PDF với bé đang xem đã được chọn sẵn ở bước 1. */
   const openExport = () => {
     if (cat) setExportCat({ id: cat.id, name: cat.name });
     void navigate("/export");
   };
 
-  // Dải của trung vị 30 ngày — dùng cho dòng trạng thái ở thanh chuyển bé và nhãn cạnh
-  // "Trung bình". Tra từ `bands` (API), không hard-code ngưỡng.
   const medianBand = summary?.median != null ? findBandForPh(bands ?? [], summary.median) : null;
   const catMeta = [
     formatAge(cat?.ageMonths),
@@ -121,7 +116,6 @@ export function CatHistoryPage() {
   } else {
     mobileContent = (
       <div className="flex flex-col gap-4 p-4">
-        {/* Thanh "đang xem bé nào + đổi bé" (mockup `07` đầu màn) */}
         <CatSwitcherBar
           name={cat?.name ?? t("pages.catHistory.title")}
           avatar={<CatAvatar src={cat?.avatarUrl} name={cat?.name ?? "?"} size="md" />}
@@ -139,8 +133,6 @@ export function CatHistoryPage() {
 
         {summary && summary.count > 0 ? (
           <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs p-4">
-            {/* Tiêu đề và chip trung bình tự xuống hàng khi chật — trước đây chip `shrink-0` ép
-                "Phổ pH gần đây" vỡ thành bốn dòng ở 390px. */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 text-body font-bold text-text-primary">
                 <LineChart className="size-4 shrink-0 text-primary" aria-hidden="true" />
@@ -239,7 +231,6 @@ export function CatHistoryPage() {
 
   return (
     <div className="contents">
-      {/* Desktop (>= lg): bố cục Figma `Web - 06 & 07`, panel dòng thời gian y tế. */}
       <div data-reveal className="hidden lg:block">
         <WebHistoryScreen
           catName={cat?.name ?? null}
@@ -276,7 +267,6 @@ export function CatHistoryPage() {
           timestampLabel={timestampLabel}
         />
       </div>
-      {/* Mobile (< lg): giữ nguyên luồng cũ, kể cả trạng thái loading/lỗi. */}
       <div data-reveal className="lg:hidden">{mobileContent}</div>
     </div>
   );

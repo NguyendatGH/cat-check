@@ -15,13 +15,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link MfaResetRequestRepository} tren {@code JdbcTemplate}.
- *
- * <p>Bang nay KHONG phai append-only (trang thai phai chuyen duoc), nhung
- * {@code reason}, {@code requested_by}, {@code requested_at} khong duoc UPDATE sau khi
- * tao — ep o service, bang chung ben nam o {@code audit_log} (p4 §A9).</p>
- */
 @Repository
 public class JdbcMfaResetRequestRepository implements MfaResetRequestRepository {
 

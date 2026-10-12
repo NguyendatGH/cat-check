@@ -22,14 +22,6 @@ import {
 import { WebExportScreen } from "./webExport";
 import { resolveExportRange } from "./rangeLabel";
 
-/**
- * `/export` — tạo job xuất PDF (p8 §8.4.10 J1).
- *
- * Mockup `10. Xuất Hồ sơ Sức khỏe` là MỘT TRANG CUỘN: cả ba mục cấu hình (chọn mèo → khoảng
- * thời gian → mục nội dung) cộng khối xem trước và CTA hiện cùng lúc, KHÔNG phải wizard từng
- * bước. Bản mobile ở đây dựng đúng như vậy; `store.step` vẫn còn trong store nhưng không còn
- * điều khiển bố cục.
- */
 export function ExportPage() {
   const { t } = useTranslation(["export", "common", "scan"]);
   const navigate = useNavigate();
@@ -39,8 +31,6 @@ export function ExportPage() {
   const formatAge = useFormatCatAge();
   const { catId: selectedCatId, setCat } = wizard;
 
-  // Chưa chọn bé (vào thẳng `/export`, không qua hồ sơ một bé) → chọn sẵn mèo mặc định
-  // (`isPrimary`) như mockup `10`; tài khoản một bé thì chính bé đó.
   useEffect(() => {
     if (selectedCatId || !cats || cats.length === 0) return;
     const fallback = cats.find((c) => c.isPrimary) ?? cats[0];
@@ -66,7 +56,6 @@ export function ExportPage() {
     );
   };
 
-  /** Store chỉ có `toggleSection` — "Chọn tất cả" bật nốt các mục còn thiếu. */
   const handleSelectAllSections = () => {
     EXPORT_SECTIONS.filter((section) => !wizard.sections.includes(section)).forEach((section) => {
       wizard.toggleSection(section);
@@ -114,7 +103,6 @@ export function ExportPage() {
   } else {
     mobileContent = (
       <div className="flex flex-col gap-5 pb-28">
-        {/* 1 — chọn bé mèo */}
         <section className="flex flex-col gap-3">
           <ExportSectionHeading index="1." title={t("web.step1")} hint={t("web.step1Hint")} />
           {cats.length === 0 ? (
@@ -132,15 +120,11 @@ export function ExportPage() {
               primaryLabel={t("wizard.step1.primaryLabel")}
               secondaryLabel={t("wizard.step1.secondaryLabel")}
               ageLabelFor={(cat) => formatAge(cat.ageMonths) ?? undefined}
-              // Mockup `10` xếp 2 cột, nhưng ở 390px mỗi thẻ chỉ còn ~170px và tuổi bị cắt
-              // ("4 tuổi 4 thá…"). Một cột full width để tên/tuổi/badge luôn đọc trọn; tablet
-              // trở lên mới chia 2 cột.
               className={cats.length > 1 ? "grid grid-cols-1 gap-3 md:grid-cols-2" : undefined}
             />
           )}
         </section>
 
-        {/* 2 — giai đoạn theo dõi */}
         <section className="flex flex-col gap-3">
           <ExportSectionHeading index="2." title={t("web.step2")} hint={rangeHint} />
           <RangePickerStep
@@ -162,7 +146,6 @@ export function ExportPage() {
           />
         </section>
 
-        {/* 3 — mục nội dung */}
         <section className="flex flex-col gap-3">
           <ExportSectionHeading
             index="3."
@@ -178,7 +161,6 @@ export function ExportPage() {
               </button>
             }
           />
-          {/* Mockup `10`: danh sách mục nội dung nằm trong MỘT thẻ trắng, không trôi trên nền trang. */}
           <Card padding="none" className="px-4">
             <SectionsChecklist
               items={EXPORT_SECTIONS.map((section) => ({
@@ -197,10 +179,8 @@ export function ExportPage() {
           ) : null}
         </section>
 
-        {/* Xem trước báo cáo */}
         <section className="flex flex-col gap-3">
           <ExportSectionHeading title={t("web.previewTitle")} hint={t("web.previewFormat")} />
-          {/* Mockup `10`: ảnh thu nhỏ + tên/mô tả báo cáo nằm trong CÙNG một thẻ trắng. */}
           <Card className="flex flex-col gap-3">
             <div className="rounded-xl bg-background-alt p-4">
               <ReportPreviewThumbnail watermark={t("web.previewWatermark")} />
@@ -251,7 +231,6 @@ export function ExportPage() {
 
   return (
     <>
-      {/* Desktop (>= lg): cùng nội dung, bố cục 2 cột theo mockup `10`. */}
       <div className="hidden lg:block">
         <WebExportScreen
           cats={cats ?? []}
@@ -279,7 +258,6 @@ export function ExportPage() {
           onSubmit={handleSubmit}
         />
       </div>
-      {/* Mobile (< lg): một trang cuộn đúng mockup `10`. */}
       <div className="lg:hidden">{mobileContent}</div>
     </>
   );

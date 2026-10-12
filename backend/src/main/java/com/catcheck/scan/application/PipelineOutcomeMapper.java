@@ -8,11 +8,6 @@ import com.catcheck.scan.domain.ScanAnalysis;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Dựng lại {@link PipelineOutcome} từ một {@link ScanAnalysis} đã lưu — dùng khi replay
- * idempotent (p5 R8) hoặc khi trả {@code GET /scans/{id}/analysis}, để không phải chạy lại
- * pipeline chỉ để có cùng hình dạng response.
- */
 final class PipelineOutcomeMapper {
 
     private PipelineOutcomeMapper() {

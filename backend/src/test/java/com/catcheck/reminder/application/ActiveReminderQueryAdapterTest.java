@@ -17,7 +17,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** A1 ({@code docs/cat-rag-credit-pipeline.md} mục A4-(1)) — cổng lịch nhắc đang bật cho {@code ai}. */
 class ActiveReminderQueryAdapterTest {
 
     private static final UUID USER_ID = UUID.randomUUID();

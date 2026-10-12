@@ -17,21 +17,6 @@ import {
   useTotpStatus,
 } from "@/features/auth";
 
-/**
- * `/admin/me/security` — bảo mật của CHÍNH tài khoản quản trị đang đăng nhập.
- *
- * NỐI API THẬT (đã đọc `identity/api/AccountController` và `identity/api/AuthController`):
- * `GET|DELETE /account/mfa/totp`, `POST /account/mfa/totp/init|confirm`,
- * `POST /account/mfa/totp/recovery-codes/regenerate` (B13–B17) và
- * `GET|DELETE /auth/sessions`, `POST /auth/sessions/revoke-all` (A14–A16).
- *
- * Đây KHÔNG phải endpoint `/api/v1/admin/**` nên không thuộc bảng `ADMIN_CAPABILITIES`;
- * p17 §17.3.8 TF1 còn nêu đích danh `/account/mfa/totp/*` là **ngoại lệ duy nhất** không
- * bị chặn khi admin chưa bật TOTP — đúng là chỗ admin tự bật 2FA cho mình.
- *
- * Trùng chức năng với `/settings/security` là CỐ Ý: admin bị chặn mọi route admin khi
- * chưa có TOTP `ACTIVE`, nên khu quản trị phải có lối tự khắc phục ngay trong sidebar.
- */
 export function AdminMeSecurityPage() {
   const { t } = useTranslation("admin");
   const queryClient = useQueryClient();

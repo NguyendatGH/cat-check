@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Bộ đôi test dùng chung cho các test của module {@code export}. */
 final class ExportTestDoubles {
 
     private ExportTestDoubles() {
@@ -54,12 +53,10 @@ final class ExportTestDoubles {
         return (catId, from, to) -> List.of();
     }
 
-    /** Render giả: trả đúng số byte cố định để test khẳng định được {@code file_bytes}. */
     static PdfRenderer pdfOf(int bytes, int pages) {
         return xhtml -> new PdfRenderer.Result(new byte[bytes], pages);
     }
 
-    /** {@link com.catcheck.export.domain.port.ReportStorage} trong bộ nhớ. */
     static final class InMemoryReportStorage implements com.catcheck.export.domain.port.ReportStorage {
 
         private final java.util.Map<String, byte[]> files = new java.util.LinkedHashMap<>();

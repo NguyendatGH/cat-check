@@ -35,17 +35,8 @@ import {
   type SortState,
 } from "@/features/admin";
 
-/** Vai trò cấp được qua API; backend từ chối ADMIN_SUPER, DPO, USER (`ROLE_NOT_ASSIGNABLE`). */
 const STAFF_ROLES = ["ADMIN_SUPPORT", "ADMIN_CATALOG", "MODERATOR", "VET"] as const;
 
-/**
- * Khoá `ROLES` (shared/auth/roles.ts) mà trang này hỏi: `staffRolesWrite` (chỉ ADMIN_SUPER),
- * `totpResetRequestsRead` (ADMIN_SUPER, DPO), `totpResetApprove` (chỉ DPO).
- *
- * `AdminLayout` tính khả năng cho MỌI khoá của `ROLES` rồi đặt vào `AdminAccessProvider`, nên
- * ba khoá này có sẵn lúc chạy; kiểu `AdminCapabilityKey` chưa liệt kê chúng nên nới kiểu ở đây.
- * Khoá vắng ⇒ `false` (không có provider thì không hiện nút ghi nào). Backend vẫn kiểm độc lập.
- */
 type StaffCapability = "staffRolesWrite" | "totpResetRequestsRead" | "totpResetApprove";
 
 function useStaffCan(): (key: StaffCapability) => boolean {
@@ -55,11 +46,6 @@ function useStaffCan(): (key: StaffCapability) => boolean {
 
 type ApprovalState = "allowed" | "self" | "expired" | "closed";
 
-/**
- * Quy tắc hai người (backend `approveTotpReset`): người tạo yêu cầu không tự duyệt
- * (`MFA_RESET_TWO_PERSON_REQUIRED`); yêu cầu hết hạn hoặc không còn PENDING bị từ chối
- * (`MFA_RESET_NOT_PENDING`). Chặn sẵn ở UI khi response có đủ dữ liệu.
- */
 function approvalState(item: AdminMfaResetRequest, currentUserId: string | undefined, now: number): ApprovalState {
   if (item.status !== "PENDING") return "closed";
   if (currentUserId !== undefined && item.requestedBy === currentUserId) return "self";
@@ -83,10 +69,6 @@ function ReadOnlyNote({ text }: { text: string }) {
   );
 }
 
-/**
- * `/admin/staff` — L13–L17: cấp/gỡ role staff, tạo yêu cầu reset TOTP (chỉ ADMIN_SUPER), xem
- * hàng đợi (ADMIN_SUPER, DPO) và duyệt reset TOTP theo quy tắc hai người (chỉ DPO).
- */
 export function AdminStaffPage() {
   const { t } = useTranslation("admin");
   const can = useStaffCan();
@@ -120,7 +102,6 @@ export function AdminStaffPage() {
   );
 }
 
-/** Cấp/gỡ role và tạo yêu cầu reset TOTP — chỉ dựng khi có `staffRolesWrite`. */
 function StaffRolePanel() {
   const { t } = useTranslation("admin");
   const [userId, setUserId] = useState("");
@@ -196,7 +177,6 @@ function StaffRolePanel() {
   );
 }
 
-/** Hàng đợi reset TOTP — chỉ dựng khi có `totpResetRequestsRead` để không gọi API sẽ trả 403. */
 function ResetQueuePanel({ canApprove }: { canApprove: boolean }) {
   const { t } = useTranslation("admin");
   const requests = useAdminMfaResetRequests();

@@ -62,7 +62,6 @@ class CommunityServiceTest {
                 .thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
         CommunityService service = service(repository, id -> AccountStatus.ACTIVE, rejectingLimiter());
 
-        // Reaction là toggle idempotent, không có luật rate limit — limiter từ chối cũng không chặn.
         service.reaction(USER_ID, UUID.randomUUID(), "LIKE", true);
     }
 

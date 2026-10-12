@@ -29,29 +29,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
-/**
- * Hiện thực {@link RawImagePort} bằng OpenCV — giải mã, crop ROI, đo chất lượng (S2), hiệu chỉnh
- * màu nhánh S4b (không CCM từ thẻ ở MVP, xem {@code docs/handovers/A6.md}).
- *
- * <p>Cùng nguyên tắc bộ nhớ với {@link OpenCvVisionEngine}: mọi {@link Mat} trong
- * try-with-resources.</p>
- */
 @Component
 public class OpenCvRawImageProcessor implements RawImagePort {
 
     private static final Logger log = LoggerFactory.getLogger(OpenCvRawImageProcessor.class);
 
-    /** Bước lấy mẫu khi ước lượng gain cân bằng trắng — không cần quét từng pixel để đủ chính xác. */
     private static final int NEUTRAL_SAMPLE_STRIDE = 3;
 
-    /** Cạnh dài tối đa của ảnh đưa vào hiệu chỉnh + tách hạt (px); ảnh lớn hơn được thu nhỏ INTER_AREA. */
     static final int ANALYSIS_MAX_EDGE = 1280;
 
-    /**
-     * Tỉ lệ viền bỏ mỗi cạnh khi lấy mẫu vùng lõi một patch trên thẻ (CARD_CCM, p6 §6.5.1 S4).
-     * Mép patch dễ lẫn pixel của patch bên cạnh do sai số nắn phẳng/in ấn/cắt giấy; 10–15% mỗi
-     * cạnh (ở đây 12%) vẫn để lại ~76% diện tích patch — dư dả cho median ổn định.
-     */
     static final double PATCH_BORDER_TRIM = 0.12;
 
     private final OpenCvNativeLoader nativeLoader;
@@ -88,7 +74,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         }
     }
 
-    /** Sniff magic bytes — KHÔNG tin {@code Content-Type} do client khai (p6 §6.4.1). */
     private String sniffContentType(byte[] b) {
         if (b == null || b.length < 12) {
             return null;
@@ -113,8 +98,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
         {
-            // `handle` sở hữu Mat: KHÔNG đóng ở đây (try-with-resources làm Mat bị giải phóng sau lần dùng đầu,
-        // các bước sau của pipeline gặp con trỏ NULL).
             Mat source = handle.mat();
             int width = source.cols();
             int height = source.rows();
@@ -136,7 +119,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         if (!(frame instanceof OpenCvFrameHandle handle)) {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
-        // `handle` sở hữu Mat nguồn: không đưa vào try-with-resources (xem `cropToRoi`).
         final Mat source = handle.mat();
         try (Mat gray = new Mat();
              Mat laplacian = new Mat();
@@ -145,12 +127,10 @@ public class OpenCvRawImageProcessor implements RawImagePort {
 
             opencv_imgproc.cvtColor(source, gray, opencv_imgproc.COLOR_BGR2GRAY);
 
-            // Q1 — do net bang phuong sai Laplacian (chuan cong nghiep, khong phai cong thuc p6).
             opencv_imgproc.Laplacian(gray, laplacian, opencv_core.CV_64F);
             opencv_core.meanStdDev(laplacian, mean, stddev);
             double blurVariance = Math.pow(new DoublePointer(stddev.ptr()).get(0), 2);
 
-            // Q2 — do sang trung binh.
             double meanLuma = opencv_core.mean(gray).get(0);
 
             int total = gray.rows() * gray.cols();
@@ -159,7 +139,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
             double clipHigh = total == 0 ? 0.0 : (double) clipHighCount / total;
             double clipLow = total == 0 ? 0.0 : (double) clipLowCount / total;
 
-            // Q5 — do deu sang: chenh lech giua trung binh 4 goc ROI.
             double lumaGradient = quadrantLumaGradient(gray);
 
             return new QualityMetrics(blurVariance, meanLuma, clipHigh, clipLow, lumaGradient);
@@ -216,16 +195,9 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         if (!(frame instanceof OpenCvFrameHandle handle)) {
             throw new IllegalArgumentException("Phai dung OpenCvFrameHandle");
         }
-        // `handle` sở hữu Mat: KHÔNG đóng ở đây (try-with-resources làm Mat bị giải phóng sau lần dùng đầu,
-        // các bước sau của pipeline gặp con trỏ NULL).
         return handle.mat();
     }
 
-    /**
-     * Phân tích ở độ phân giải vừa đủ: ảnh điện thoại ~12MP không cần quét từng pixel gốc. Dùng
-     * chung cho cả nhánh S4b ({@link #calibrate}) và CARD_CCM ({@link #applyCardCcm}) — hai nhánh
-     * chỉ khác phép sửa áp cho từng pixel, không khác bước thu nhỏ.
-     */
     private CalibrationResult withAnalysisScale(Mat source, Function<Mat, CalibrationResult> onWorkingFrame) {
         Mat scaled = null;
         try {
@@ -248,7 +220,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         }
     }
 
-    /** Bảng tra sRGB 8-bit → linear (cùng công thức {@link ColorSpace#srgb8ToLinear(int)}). */
     private static final double[] LINEAR_LUT = buildLut();
 
     private static double[] buildLut() {
@@ -262,7 +233,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
     private CalibrationResult calibrateOn(Mat source, Lab referenceSubstrateLab) {
         int width = source.cols();
         int height = source.rows();
-        // Đọc cả ảnh BGR một lần (Mat liên tục sau decode/clone/resize).
         Mat contiguous = source.isContinuous() ? source : source.clone();
         byte[] bgr = new byte[width * height * 3];
         try {
@@ -273,7 +243,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
             }
         }
 
-        // --- Buoc 1: lay mau pixel nen cat (S4b) de uoc luong gain.
         List<RgbLinear> substrateSamples = new ArrayList<>();
         long sampledCount = 0;
         for (int y = 0; y < height; y += NEUTRAL_SAMPLE_STRIDE) {
@@ -306,8 +275,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
             gains = solved.toArray();
         }
 
-        // --- Buoc 2: ap gain cho TOAN BO pixel ROI -> XYZ (ghi hang loat) + gom substrateLab (S6 buoc 2)
-        // va do sai lech hue cua nen sau hieu chinh (proxy cho calibration_residual_de00).
         double[] xyzOut = new double[width * height * 3];
         List<Lab> substrateCandidates = new ArrayList<>();
         List<Double> residuals = new ArrayList<>();
@@ -333,8 +300,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
                 }
                 if (x % NEUTRAL_SAMPLE_STRIDE == 0 && y % NEUTRAL_SAMPLE_STRIDE == 0
                         && isSubstrate) {
-                    // So hue/chroma voi profile tai cung do sang: chenh lech do phoi sang khong
-                    // bi tinh nham thanh loi can bang mau.
                     double scale = calibrated.mean() / Math.max(referenceRgb.mean(), 1e-6);
                     Lab expectedAtSameLightness = ColorSpace.linearRgbToLab(referenceRgb.times(scale));
                     residuals.add(DeltaE2000.deltaE(lab, expectedAtSameLightness));
@@ -378,7 +343,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
                 : sorted.get(middle);
     }
 
-    // ------------------------------------------------------------------ CARD_CCM
 
     @Override
     public List<CardPatchSample> sampleNeutralPatches(VisionEngine.FrameHandle canonicalCard, CardLayout cardLayout) {
@@ -399,7 +363,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         for (CardLayout.Patch patch : cardLayout.neutralPatches()) {
             int[] medianBgr = medianCoreChannels(bgr, width, height, patch);
             if (medianBgr == null) {
-                // rect roi ra ngoai khung (layout hong) — bo qua patch nay, khong lam hong ca lan thu CCM.
                 continue;
             }
             samples.add(new CardPatchSample(patch.id(), medianBgr[2], medianBgr[1], medianBgr[0], patch.refLab()));
@@ -407,12 +370,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         return samples;
     }
 
-    /**
-     * Median vùng lõi của một patch (bỏ viền {@link #PATCH_BORDER_TRIM} mỗi cạnh), theo đúng thứ
-     * tự kênh lưu trong Mat OpenCV.
-     *
-     * @return {@code [B, G, R]} median 8-bit, hoặc {@code null} nếu vùng lõi rỗng (rect thoái hoá)
-     */
     private int[] medianCoreChannels(byte[] bgr, int width, int height, CardLayout.Patch patch) {
         int x0 = (int) Math.round(patch.x() * width);
         int y0 = (int) Math.round(patch.y() * height);
@@ -448,7 +405,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         return sorted.get(sorted.size() / 2);
     }
 
-    /** Bảng tra {@code curve.linearize} cho 256 giá trị 8-bit — cùng vai trò với {@link #LINEAR_LUT}. */
     private double[] buildLinearizationLut(LinearizationCurve curve) {
         double[] lut = new double[256];
         for (int i = 0; i < 256; i++) {
@@ -457,11 +413,6 @@ public class OpenCvRawImageProcessor implements RawImagePort {
         return lut;
     }
 
-    /**
-     * Áp {@code curve} rồi {@code ccm} cho toàn ROI (thay cho gain đơn giản của {@link #calibrateOn}).
-     * Dùng {@link VisionEngine#corrected} với gain đơn vị — CCM đã giải từ patch NEUTRAL (so với
-     * {@code ref_lab}) gánh luôn phần việc mà white balance làm ở S4b, không cần gain riêng.
-     */
     private CalibrationResult applyCardCcmOn(Mat source, LinearizationCurve curve, Matrix3 ccm, double residualDe00) {
         int width = source.cols();
         int height = source.rows();

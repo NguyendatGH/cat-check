@@ -3,19 +3,12 @@ import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
 import { cn } from "../cn";
 
 export interface StepperProps {
-  /** Bước hiện tại (1-based). */
   current: number;
   total: number;
-  /** Nhãn bước, vd "Bước 1/4: Thông tin chủ nuôi" — truyền sẵn chuỗi đã ghép i18n. */
   label: string;
   className?: string;
 }
 
-/**
- * Thanh tiến trình nhiều bước dùng chung (p10 §5.2 "RegistrationStepper: dot 4 bước + % +
- * progress") — khớp Figma 01c-1..4: icon paw + nhãn bước bên trái, phần trăm bên phải (đổi
- * thành dấu tick xanh khi hoàn tất 100%), thanh progress bo tròn bên dưới.
- */
 export function Stepper({ current, total, label, className }: StepperProps) {
   const percent = Math.round((current / total) * 100);
   const isComplete = percent >= 100;

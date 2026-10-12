@@ -6,10 +6,6 @@ function readCsrfCookie(): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-/**
- * Upload multipart/form-data (ảnh scan) — tách riêng khỏi apiClient vì openapi-fetch không
- * phù hợp cho multipart. TODO: nối endpoint thật khi có API scan.
- */
 export async function uploadFile(path: string, file: File): Promise<Response> {
   const formData = new FormData();
   formData.append("file", file);

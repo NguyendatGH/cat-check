@@ -13,16 +13,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * {@link OpsQueryPort} trên {@code JdbcTemplate} — L64, L66. Chỉ {@code SELECT}.
- *
- * <p>L66 hợp nhất hai bảng bằng {@code UNION ALL} rồi mới sắp xếp và phân trang. Không gọi hai
- * truy vấn rồi trộn ở Java: trộn ở Java thì không thể phân trang đúng (trang 2 của "cả hai
- * kênh" không phải là hợp của trang 2 từng kênh), và tổng số dòng cũng sai.</p>
- *
- * <p>{@code TIMESTAMPTZ} đọc qua {@code getObject(col, OffsetDateTime.class)} — không dùng
- * {@code getTimestamp()}, vốn suy mốc giờ theo {@code user.timezone} của JVM (R13).</p>
- */
 @Repository
 public class JdbcOpsQueryAdapter implements OpsQueryPort {
 
@@ -30,11 +20,6 @@ public class JdbcOpsQueryAdapter implements OpsQueryPort {
             "id, job_name, status, trigger_type, dry_run, started_at, finished_at, duration_ms, "
                     + "row_count, items_processed, items_deleted, items_failed, instance_id, error_summary";
 
-    /**
-     * Hai nhánh của L66. {@code email_outbox} không có {@code last_error_code} còn
-     * {@code notification_outbox} không có {@code template_code} — mỗi nhánh tự quy về cùng bộ
-     * cột để {@code UNION ALL} hợp lệ.
-     */
     private static final String OUTBOX_UNION = """
             SELECT id,
                    'EMAIL'                          AS channel,

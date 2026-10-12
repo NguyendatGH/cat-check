@@ -42,22 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Orchestration toàn bộ pipeline S1-S10 (p6 §6.5.1) cho MỘT ảnh — thuần tính toán, KHÔNG chạm DB,
- * KHÔNG chạm credit. Gọi TRƯỚC khi mở transaction (xem {@code SubmitScanService}).
- *
- * <p><b>Hiệu chỉnh màu (S4):</b> cả ba nhánh {@link CalibrationMethod} đều chạy thật.
- * {@link VisionEngine#detectCard} dò thẻ tham chiếu (ArUco → QR → contour) và nắn phẳng về khung
- * chuẩn 600×380; khi thẻ dùng được VÀ {@link CardLayoutCatalog} có layout active (bảng
- * {@code reference_card_layout}), pipeline lấy mẫu các patch {@code role=NEUTRAL} trên thẻ, fit
- * {@link LinearizationCurve} rồi giải {@link CcmSolver} so với {@code ref_lab} của chính patch đó
- * — ra {@link CalibrationMethod#CARD_CCM} (tier A). Hậu kiểm bằng ΔE00 trên đúng các patch NEUTRAL
- * sau khi áp ma trận: residual vượt {@link ScanThresholds#CARD_CCM_MAX_RESIDUAL_DE00} (hoặc không
- * có thẻ/không có layout active/hệ CCM suy thoái) thì rơi êm về {@link CalibrationMethod#SUBSTRATE_WB}
- * kèm cờ {@link QualityFlagCode#CARD_UNUSABLE} — đúng nguyên tắc suy giảm p6 §6.5.5: CARD_CCM là
- * lựa chọn TỐT HƠN, không phải lựa chọn DUY NHẤT. Nhánh {@link CalibrationMethod#SUBSTRATE_WB} /
- * {@link CalibrationMethod#NONE} khi không có thẻ không đổi so với M3.</p>
- */
 @Service
 public class ColorPipelineService {
 
@@ -156,7 +140,6 @@ public class ColorPipelineService {
 
         List<VisionEngine.Blob> blobs = visionEngine.selectIndicatorGrains(
                 calibration.xyzFrame(), calibration.substrateLab(), VisionEngine.GrainThresholds.standard());
-        // Kích thước ảnh PHÂN TÍCH (có thể đã thu nhỏ): blob.pixelCount() tính trên cùng hệ toạ độ này.
         VisionEngine.FrameSize roiSize = calibration.xyzFrame().size();
         int roiPixelCount = Math.max(1, roiSize.width() * roiSize.height());
         int totalBlobPixels = blobs.stream().mapToInt(VisionEngine.Blob::pixelCount).sum();
@@ -268,7 +251,6 @@ public class ColorPipelineService {
                                                  PhChart chart, long startedAtMillis,
                                                  RawImagePort.DecodedImage decoded) {
         int processingMs = (int) (clock.millis() - startedAtMillis);
-        // Confidence thấp cố định khi quality gate chặn TRƯỚC khi S8/S9 kịp chạy thật.
         BigDecimal lowConfidence = new BigDecimal("0.20");
         return new PipelineOutcome(
                 true, ScanClassification.INCONCLUSIVE, null, null, null, lowConfidence, "LOW", false,
@@ -279,24 +261,6 @@ public class ColorPipelineService {
                 decoded.width(), decoded.height(), decoded.contentType());
     }
 
-    /**
-     * S4 (nhánh CARD_CCM) — thử giải CCM từ các patch {@code role=NEUTRAL} trên ảnh thẻ đã nắn
-     * phẳng. CARD_CCM là lựa chọn <b>tốt hơn</b> {@code fallback} (SUBSTRATE_WB/NONE đã tính sẵn),
-     * không phải lựa chọn duy nhất (p6 §6.5.5): bất kỳ lý do nào khiến không giải/không tin được
-     * CCM (chưa publish layout, không đủ patch đọc được, hệ suy thoái, ma trận suy biến, residual
-     * quá lớn) đều rơi êm về {@code fallback} kèm cờ {@link QualityFlagCode#CARD_UNUSABLE}.
-     *
-     * <h2>Vì sao phải kiểm định thức, không chỉ residual</h2>
-     * <p>Mọi patch {@code role=NEUTRAL} có {@code ref_lab} với {@code a=b=0} — nghĩa là vế phải
-     * ({@code reference}) của ba hệ WLS trong {@link CcmSolver#solve} (một hệ mỗi kênh đầu ra)
-     * <b>giống hệt nhau</b>, nên ba hàng của ma trận giải được cũng giống hệt nhau một cách TẤT
-     * YẾU về đại số — bất kể dữ liệu đo được "sạch" cỡ nào. Một ma trận ba hàng giống nhau chiếu
-     * MỌI màu về đúng một trục xám (det = 0, hạng 1): residual đo trên chính 5 patch train vẫn có
-     * thể rất nhỏ (nó được fit để đúng y hệt 5 điểm đó), nhưng áp lên ROI thật sẽ xoá sạch chroma
-     * của mọi pixel khác — hỏng cả S6 (tách hạt cần chroma) lẫn S8 (khớp bảng màu cần hue/chroma).
-     * Đây là đúng dạng lỗi {@link Matrix3#inverse()} đã cảnh báo ("hỏng âm thầm đắt nhất"), nên áp
-     * cùng nguyên tắc: từ chối ma trận gần suy biến thay vì tin một residual chỉ đo trên tập train.
-     */
     private RawImagePort.CalibrationResult tryCardCcm(VisionEngine.FrameHandle canonicalCard,
                                                         VisionEngine.FrameHandle roiFrame,
                                                         RawImagePort.CalibrationResult fallback,
@@ -313,9 +277,6 @@ public class ColorPipelineService {
             return fallback;
         }
 
-        // Fit linearization: dải xám NEUTRAL cho cả "encoded" (8-bit đo được) và "linear" tham
-        // chiếu đúng (suy từ ref_lab — trung tính nên r=g=b trong linear, lấy trung bình 3 kênh
-        // cho chắc trước sai số số học).
         double[] encoded = new double[patchSamples.size()];
         double[] linearReferences = new double[patchSamples.size()];
         for (int i = 0; i < patchSamples.size(); i++) {
@@ -357,7 +318,6 @@ public class ColorPipelineService {
         return rawImagePort.applyCardCcm(roiFrame, curve, ccm, residualDe00);
     }
 
-    /** ΔE00 trung bình của các patch NEUTRAL sau khi áp {@code ccm}, so với {@code ref_lab} gốc. */
     private double residualDeltaE(Matrix3 ccm, List<ColorSamples.Sample> ccmSamples,
                                    List<RawImagePort.CardPatchSample> patchSamples) {
         double sum = 0.0;

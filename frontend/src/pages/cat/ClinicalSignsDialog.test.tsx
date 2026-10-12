@@ -4,10 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClinicalSignsDialog } from "./CatDetailPage";
 
-/**
- * `triggeredFlag` null ⇒ server BỎ HẲN key (`default-property-inclusion: non_null`). Màn kết quả
- * từng so `!== null` nên MỌI lần khai dấu hiệu đều ra "đã kích hoạt cảnh báo" kèm khối khẩn cấp.
- */
 vi.mock("@/features/cat/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("@/features/history/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("@/features/scan/mocks", () => ({ handlers: [], worker: {} }));
@@ -19,7 +15,6 @@ vi.mock("@/features/trends/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
-    // `returnObjects` (danh sách ý trong khối khẩn cấp) phải trả mảng, không phải khoá.
     t: (key: string, options?: { returnObjects?: boolean }) => (options?.returnObjects ? [] : key),
     i18n: { language: "vi" },
   }),
@@ -55,9 +50,7 @@ async function submitSigns(serverBody: unknown): Promise<string> {
     await Promise.resolve();
   });
 
-  // Dialog render qua portal ⇒ tìm trong `document.body`.
   const checkboxes = Array.from(document.body.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
-  // Checkbox cuối là ô xác nhận đã đọc; các ô trước là danh sách dấu hiệu.
   act(() => {
     checkboxes[0].click();
   });

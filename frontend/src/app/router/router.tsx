@@ -1,5 +1,5 @@
 import { createBrowserRouter, useLocation, type RouteObject } from "react-router";
-import { Suspense, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useRef, type ReactNode } from "react";
 import { SkeletonLoader } from "@/shared/ui";
 import { ComingSoonPage } from "@/pages/system/ComingSoonPage";
 import { featureFlags, type FeatureFlagKey } from "@/shared/config/featureFlags";
@@ -9,7 +9,6 @@ import { OnboardingLayout } from "../layouts/OnboardingLayout";
 import { AppLayout } from "../layouts/AppLayout";
 import { TaskLayout } from "../layouts/TaskLayout";
 import { FullscreenLayout } from "../layouts/FullscreenLayout";
-import { AdminLayout } from "../layouts/AdminLayout";
 import { SellerLayout } from "../layouts/SellerLayout";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
 import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
@@ -20,13 +19,13 @@ import { RedirectIfAuthenticated } from "./guards/RedirectIfAuthenticated";
 import { LazyPages } from "./lazy";
 import { ROLES } from "@/shared/auth/roles";
 
-/** Fallback Suspense cho mọi page lazy-load — SkeletonLoader dạng card. */
+const AdminLayout = lazy(() => import("../layouts/AdminLayout").then((module) => ({ default: module.AdminLayout })));
+
 function PageEntrance({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return <PageEntranceMotion key={pathname}>{children}</PageEntranceMotion>;
 }
 
-/** Keying the motion boundary by URL makes every client-side route change replay the entrance. */
 function PageEntranceMotion({ children }: { children: ReactNode }) {
   const pageRef = useRef<HTMLDivElement>(null);
   usePageReveal(pageRef);
@@ -45,31 +44,16 @@ function PageSuspense({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Cổng cờ tính năng cho route Phase 2/3 (p9 §9.4.3 mục E, p10 §6.7c).
- *
- * Route vẫn ĐƯỢC ĐĂNG KÝ đầy đủ — chỉ element đổi sang `ComingSoonPage` khi cờ tắt — nên
- * bật lại một mảng tính năng chỉ là đổi `featureFlags.<key>` thành `true`, không phải sửa
- * bảng route. Giữ cả `LazyPages.*` tương ứng để trang thật không bị rụng khỏi bundle graph.
- */
 export function featureGated(flag: FeatureFlagKey, element: ReactNode): ReactNode {
   return featureFlags[flag] ? element : <ComingSoonPage />;
 }
 
-/**
- * `/scan` là route responsive DUY NHẤT: FullscreenLayout trên mobile (chụp ảnh cần toàn
- * màn hình), AppLayout trên desktop (>= breakpoint md) — p9 §9.4.3 ghi "FL mobile/APL
- * desktop". Chọn layout bằng breakpoint thay vì đăng ký 2 route khác nhau.
- */
 function ScanRouteLayout() {
   const isDesktop = useBreakpoint("md");
   return isDesktop ? <AppLayout /> : <FullscreenLayout />;
 }
 
 export const routes: RouteObject[] = [
-  // Màn Chào mừng (M1 màn 1) dùng FullscreenLayout chứ KHÔNG phải PublicLayout: thiết kế bắt
-  // đầu thẳng bằng banner disclaimer, không có thanh header "CatCheck" mà PublicLayout vẽ.
-  // Các trang pháp lý bên dưới vẫn giữ PublicLayout (chúng cần header để quay lại).
   {
     element: <FullscreenLayout />,
     children: [
@@ -279,10 +263,6 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-  // Trang chủ xem được khi CHƯA đăng nhập (chế độ khách): vẫn dùng AppLayout nhưng KHÔNG qua
-  // RequireAuth/RequireOnboarding. `DashboardPage` tự đổi sang trạng thái khách — không gọi
-  // API cần phiên, thay khối cá nhân hoá bằng CTA đăng nhập. Catalog shop cũng mở công khai;
-  // giỏ hàng và checkout vẫn cần phiên đăng nhập.
   {
     element: <AppLayout />,
     children: [
@@ -665,7 +645,11 @@ export const routes: RouteObject[] = [
         ),
       },
       {
-        element: <AdminLayout />,
+        element: (
+          <Suspense fallback={<SkeletonLoader shape="card" className="m-4" />}>
+            <AdminLayout />
+          </Suspense>
+        ),
         children: [
           {
             path: "/admin",

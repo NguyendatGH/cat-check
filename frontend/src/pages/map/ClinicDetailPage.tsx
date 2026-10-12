@@ -14,16 +14,6 @@ import { PlaceMap } from "./PlaceMap";
 import { KindChip, PlaceBadges, RatingLine } from "./placeParts";
 import { directionsUrl, telHref, toViewPlace } from "./placeView";
 
-/**
- * `/map/clinics/:clinicId` — chi tiết một cơ sở.
- *
- * NGUỒN DỮ LIỆU: `GET /places/{id}`, `GET /places/{id}/reviews`, `POST .../reviews`,
- * `POST .../bookings`. KHÔNG có endpoint ảnh cơ sở, giờ mở cửa, bác sĩ, bảng giá, chứng nhận,
- * "khám từ xa" hay chia sẻ hồ sơ trực tiếp — các khối đó trong design đã bị bỏ. Vị trí ảnh
- * bìa trong design được thay bằng bản đồ nhỏ dựng từ toạ độ thật của cơ sở.
- *
- * `#booking` (từ nút "Đặt lịch" ở `/map`): mobile mở sẵn bottom sheet đặt lịch, desktop cuộn tới form.
- */
 
 const BOOKING_FORM_ID = "clinic-booking-form";
 
@@ -90,7 +80,6 @@ function FactsList({ place }: { place: PlaceApi }) {
   );
 }
 
-/** Chuyên khoa do cơ sở công bố (`specialties[]`) — dạng ô như khối "chuyên khoa" của design. */
 function SpecialtyTiles({ specialties, className }: { specialties: string[]; className?: string }) {
   if (specialties.length === 0) return null;
   return (

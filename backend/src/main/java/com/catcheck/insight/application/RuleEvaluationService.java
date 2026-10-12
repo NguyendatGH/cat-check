@@ -22,18 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Đánh giá rule R1-R4 (p6 §6.9) NGAY sau khi một scan hợp lệ được lưu — {@code @EventListener}
- * THƯỜNG (không {@code @Async}, không {@code @TransactionalEventListener}) nên chạy ĐỒNG BỘ,
- * CÙNG transaction với {@code ScanPersistenceService} (p7 §7.4.5): nếu ghi health_flag lỗi, cả
- * giao dịch (kể cả scan vừa lưu) rollback cùng nhau.
- *
- * <p><b>Không đánh giá {@code URGENT_CLINICAL_SIGN} ở đây</b> — rule đó không dựa trên pipeline
- * màu mà dựa trên {@code cat_clinical_sign_report} do chủ nuôi tự khai (p6 §6.9.6), một luồng
- * nhập liệu thuộc "Nhóm D — Hồ sơ mèo" (module {@code cat}, ngoài phạm vi sở hữu file của A6).
- * Đã expose {@link ClinicalSignEscalation} để module đó gọi khi có endpoint thật — xem
- * {@code docs/handovers/A6.md}.</p>
- */
 @Service
 public class RuleEvaluationService {
 
@@ -54,7 +42,6 @@ public class RuleEvaluationService {
 
     @EventListener
     public void onScanSaved(ScanSavedEvent event) {
-        // p6 §6.9.1 nguyên tắc 2: chỉ scan ASSIGNED mới vào baseline/rule của một mèo cụ thể.
         if (event.catId() == null || !"ASSIGNED".equals(event.assignment())) {
             return;
         }
@@ -62,7 +49,6 @@ public class RuleEvaluationService {
 
         evaluateLowQualityStreak(event, now);
         if (event.chartIsPlaceholder()) {
-            // p6 §6.9.1 nguyên tắc 5: R1-R3 tắt khi bảng màu đang placeholder.
             return;
         }
         evaluateRepeatedOutOfRange(event, now);
@@ -70,7 +56,6 @@ public class RuleEvaluationService {
         evaluateMonotonicTrend(event, now);
     }
 
-    // ------------------------------------------------------------------ R1
 
     private void evaluateRepeatedOutOfRange(ScanSavedEvent event, Instant now) {
         MonitoringRule rule = enabledRule(MonitoringRuleCode.REPEATED_OUT_OF_RANGE.name());
@@ -126,7 +111,6 @@ public class RuleEvaluationService {
         return "SLIGHTLY_HIGH".equals(classification) || "HIGH".equals(classification);
     }
 
-    // ------------------------------------------------------------------ R2
 
     private void evaluateBaselineDeviation(ScanSavedEvent event, Instant now) {
         MonitoringRule rule = enabledRule(MonitoringRuleCode.BASELINE_DEVIATION.name());
@@ -139,14 +123,9 @@ public class RuleEvaluationService {
         double minConfidence = rule.paramAsDouble("minConfidence", 0.55);
 
         Instant since = event.capturedAt().minusSeconds(baselineDays * 24 * 3600L);
-        // p6 §6.9.3: chỉ scan CARD_CCM mới đủ tin cậy làm baseline — nhánh SUBSTRATE_WB/NONE của
-        // MVP (xem docs/handovers/A6.md) khiến rule này gần như không bao giờ có đủ mẫu, đúng như
-        // spec dự liệu ("loại scan không hiệu chỉnh tốt khỏi baseline", nguyên tắc 3).
         List<ScanHistoryQuery.RecentScan> baselineScans = validScans(event.catId(), since, minConfidence).stream()
                 .filter(s -> "CARD_CCM".equals(s.calibrationMethod()))
                 .toList();
-        // Lần quét kích hoạt phải đạt cùng chuẩn với baseline: so một scan confidence thấp hoặc
-        // không có thẻ màu với baseline CARD_CCM là đúng loại lệch giả mà bộ lọc trên muốn tránh.
         if (baselineScans.stream().noneMatch(s -> s.scanId().equals(event.scanId()))) {
             return;
         }
@@ -179,7 +158,6 @@ public class RuleEvaluationService {
         raise(rule, event, since, now, explanation, params);
     }
 
-    // ------------------------------------------------------------------ R3
 
     private void evaluateMonotonicTrend(ScanSavedEvent event, Instant now) {
         MonitoringRule rule = enabledRule(MonitoringRuleCode.MONOTONIC_TREND.name());
@@ -198,13 +176,8 @@ public class RuleEvaluationService {
         if (scans.size() < streak) {
             return;
         }
-        // scans đã sắp captured_at DESC (mới nhất trước) - lấy `streak` gần nhất rồi đảo lại thành
-        // thứ tự thời gian tăng dần để kiểm đơn điệu.
         List<ScanHistoryQuery.RecentScan> latest = new ArrayList<>(scans.subList(0, streak));
         java.util.Collections.reverse(latest);
-        // Chuỗi phải kết thúc ở chính lần quét kích hoạt. Nếu lần này bị lọc (confidence thấp,
-        // sát ngưỡng) thì `latest` là chuỗi CŨ: maxSpanDays (7) > cooldown (72h) nên nó sẽ bị
-        // báo lại lần nữa dưới tên một scan không liên quan.
         if (!latest.getLast().scanId().equals(event.scanId())) {
             return;
         }
@@ -264,7 +237,6 @@ public class RuleEvaluationService {
         raise(rule, event, latest.getFirst().capturedAt(), now, explanation, params);
     }
 
-    // ------------------------------------------------------------------ R4
 
     private void evaluateLowQualityStreak(ScanSavedEvent event, Instant now) {
         MonitoringRule rule = enabledRule(MonitoringRuleCode.LOW_QUALITY_STREAK.name());
@@ -296,7 +268,6 @@ public class RuleEvaluationService {
         raise(rule, event, windowFrom, now, explanation, params);
     }
 
-    // ------------------------------------------------------------------ dùng chung
 
     private List<ScanHistoryQuery.RecentScan> validScans(java.util.UUID catId, Instant since, double minConfidence) {
         return scanHistoryQuery.recentValidScans(catId, since, 200).stream()
@@ -324,9 +295,6 @@ public class RuleEvaluationService {
     private void raise(MonitoringRule rule, ScanSavedEvent event, Instant windowFrom, Instant now,
                         String explanationVi, Map<String, Object> params) {
         long cooldownSeconds = rule.getCooldownHours() * 3600L;
-        // Cooldown trượt tính từ flag gần nhất của cùng rule. dedupe_key theo bucket bên dưới chỉ
-        // còn là chốt chặn race ở DB: riêng nó thì flag lúc 23:59 và 00:01 rơi vào hai bucket
-        // khác nhau nên cách nhau 2 phút vẫn lọt.
         if (cooldownSeconds > 0 && healthFlagRepository
                 .findByCatIdAndTriggeredAtBetween(event.catId(), now.minusSeconds(cooldownSeconds), now)
                 .stream().anyMatch(f -> rule.getCode().equals(f.getRuleCode()))) {
@@ -334,9 +302,6 @@ public class RuleEvaluationService {
         }
         long bucket = now.getEpochSecond() / Math.max(1, cooldownSeconds);
         String dedupeKey = rule.getCode() + ":" + event.catId() + ":" + bucket;
-        // ck_health_flag_window đòi window_to > window_from. captured_at do client gửi, được phép
-        // đi trước giờ server tới 2 giờ (SubmitScanService) — không chặn ở đây thì INSERT vỡ
-        // CHECK và kéo rollback cả scan vừa lưu.
         Instant windowTo = now.isAfter(windowFrom) ? now : windowFrom.plusSeconds(1);
 
         HealthFlag flag = new HealthFlag(

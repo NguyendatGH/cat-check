@@ -11,16 +11,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Nhật ký tính lại (nhẹ) khi backfill bảng màu mới ở chế độ "chỉ ghi nhận" — ánh xạ
- * {@code scan_analysis_recompute} (p4 D4).
- *
- * <p><b>Phạm vi M3 (xem {@code docs/handovers/A6.md}):</b> chỉ tạo bảng theo đúng danh mục
- * migration {@code p4 §4.9.2}. Job backfill thật (L33-L35 của colorchart, so sánh kết quả cũ/mới
- * khi admin publish bảng màu mới) là việc của M7 (hiệu chuẩn bảng màu thật) — ngoài phạm vi MVP
- * theo {@code ORCHESTRATOR.md §2}. Entity này tồn tại để schema đầy đủ và để M7 có chỗ ghi vào,
- * không có application service nào ghi dòng ở M3.</p>
- */
 @Entity
 @Table(name = "scan_analysis_recompute")
 public class ScanAnalysisRecompute {

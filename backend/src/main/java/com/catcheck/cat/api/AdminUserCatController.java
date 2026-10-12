@@ -20,25 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Hồ sơ mèo ở màn quản trị — <b>L4</b> ({@code GET /admin/users/{userId}/cats}, p8 §8.4.12
- * mục (a)).
- *
- * <p><b>Vai trò</b> chép đúng cột {@code R:} của p8 L4, ánh xạ 1-1 sang ma trận p11 §11.5.4 (ô
- * Q3 của p14): {@code ADMIN_SUPER}/{@code ADMIN_SUPPORT} đọc <b>dữ liệu che</b>, {@code DPO}
- * đọc đầy đủ <b>chỉ khi</b> người dùng đó đang có {@code dsar_request} mở. p14 §14.5.1 mục 2:
- * UI ẩn nút với vai trò không có quyền, nhưng <b>server vẫn phải kiểm độc lập</b>.</p>
- *
- * <p><b>Chưa có:</b> step-up re-auth ({@code SW} của p8 — một lớp NGOÀI {@code mfaLevel} mà
- * {@code AdminMfaGateFilter} đã kiểm) và chế độ xem tạm thời tự đóng sau 15 phút mà p14 §14.3.2
- * mô tả. Handoff H15.102 (step-up) và H15.104 (cửa sổ 15 phút).</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @Tag(name = "Quản trị hồ sơ mèo", description = "L4 — hồ sơ mèo của một người dùng (dữ liệu che)")
 public class AdminUserCatController {
 
-    /** p8 L4 / p11 §11.5.4 dòng "Hồ sơ mèo": Super + Support đọc dạng che, DPO đọc khi xử lý DSAR. */
     static final Set<String> READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
 
     private final AdminCatViewService adminCatViewService;
@@ -47,10 +33,6 @@ public class AdminUserCatController {
         this.adminCatViewService = adminCatViewService;
     }
 
-    /**
-     * {@code reason} là query param vì {@code GET} không có body — cùng đánh đổi đã ghi cho L12
-     * và L22 (giá trị đi vào access log của proxy). Xem handoff H15.101.
-     */
     @Operation(
             operationId = "listAdminUserCats",
             summary = "L4 — hồ sơ mèo của một người dùng",
@@ -73,8 +55,6 @@ public class AdminUserCatController {
                         .toList(),
                 !listing.fullData());
 
-        // Dữ liệu của người KHÁC: không bao giờ vào cache nào — cùng lý do như L3 (p8 §8.1.10
-        // mặc định `private, no-store` cho dữ liệu người dùng; ở đây nói rõ `no-store`).
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(body);
     }
 }

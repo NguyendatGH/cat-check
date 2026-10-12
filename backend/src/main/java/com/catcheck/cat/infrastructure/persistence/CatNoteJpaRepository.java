@@ -13,12 +13,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Spring Data repository cho {@code cat_note} (D14-D19, p4 C4). */
 interface CatNoteJpaRepository extends JpaRepository<CatNote, UUID> {
 
     Optional<CatNote> findByIdAndCatId(UUID id, UUID catId);
 
-    /** D18/D19 tra bằng {@code id} thuần — xem javadoc bổ sung ở {@code CatNoteRepository}. */
     Optional<CatNote> findById(UUID id);
 
     @Query("""

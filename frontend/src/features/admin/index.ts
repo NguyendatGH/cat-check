@@ -1,5 +1,3 @@
-// features/admin — khu vực quản trị mức MVP (quyết định owner #14).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
 
 export { ADMIN_REASON_MIN_LENGTH, isReasonValid, isHexColor } from "./api";
 
@@ -78,7 +76,6 @@ export {
 } from "./components";
 export type { MissingApiEndpoint, MissingApiNoticeProps } from "./components";
 
-// ------------------------------------------------ quyền hiển thị + 5 trang quản trị mới
 
 export {
   computeCapabilities,

@@ -26,18 +26,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Hai lỗi phân quyền/kiểm dữ liệu thật đã sửa ở {@link AdminOpsController}:
- *
- * <ol>
- *   <li>L63 {@code GET /metrics/dashboard}: bảng Auth ở javadoc lớp ghi "mọi role admin" (p8
- *       Q23), nhưng code chỉ cho {@code ADMIN_SUPER,DPO} — chặn nhầm {@code ADMIN_SUPPORT} và
- *       {@code ADMIN_CATALOG} dù endpoint không chứa PII.</li>
- *   <li>L71 {@code PUT /system/maintenance}: dùng thẳng {@code body.reason().strip()} thay vì
- *       {@link com.catcheck.shared.security.AdminGuard#requireReason}, nên một lý do 1 ký tự lọt
- *       qua trong khi mọi endpoint {@code Rsn} khác (L65/L70/L72) đòi tối thiểu 10 ký tự.</li>
- * </ol>
- */
 class AdminOpsControllerTest {
 
     private final AdminOpsQueryService opsQueryService = Mockito.mock(AdminOpsQueryService.class);

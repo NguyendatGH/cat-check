@@ -33,34 +33,15 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Tra cứu và hỗ trợ tài khoản từ màn quản trị — L1, L2, L3, L7, L8, L11, L12
- * (p8 §8.4.12 mục (a)).
- *
- * <p><b>Đã làm trong gói này</b> là phần lõi để vận hành MVP: tìm/xem/khoá/mở khoá/xem phiên/
- * thu hồi phiên và bỏ mask PII. <b>Chưa làm</b>: L4 (hồ sơ mèo), L5 (số liệu scan), L6 (ảnh
- * scan — chỉ DPO khi có DSAR mở), L9/L10 (credit + điều chỉnh credit thủ công), L13–L17 (cấp/gỡ
- * vai trò, reset TOTP hai người), L18 (gán lại mèo cho scan). Xem handoff H15.106.</p>
- *
- * <p><b>Vai trò</b> theo p11 §11.5.4 (ma trận quyền duy nhất của hệ thống): đọc cho
- * {@code ADMIN_SUPER}/{@code ADMIN_SUPPORT}/{@code DPO}; khoá, mở khoá, xem và thu hồi phiên chỉ
- * {@code ADMIN_SUPER} (p8 L7/L8/L11/L12).</p>
- *
- * <p><b>Chưa có:</b> step-up re-auth ({@code SW}/{@code S1} của p8 — một lớp NGOÀI
- * {@code mfaLevel} mà bộ gác chuỗi filter đã kiểm). Handoff H15.102.</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @Tag(name = "Quản trị người dùng", description = "L1–L3, L7–L8, L11–L12 — tra cứu, khoá, phiên đăng nhập")
 public class AdminUserController {
 
-    /** p11 §11.5.4: Support/Super đọc "dữ liệu che"; DPO đọc đầy đủ khi xử lý DSAR. */
     static final Set<String> READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
 
-    /** p8 L3: bỏ mask cho Super/Support/DPO (Q2). */
     static final Set<String> UNMASK_ROLES = READ_ROLES;
 
-    /** p8 L7/L8/L11/L12: khoá, mở khoá, xem/thu hồi phiên là {@code ADMIN_SUPER} duy nhất. */
     static final Set<String> SUPER_ONLY = Set.of("ADMIN_SUPER");
 
     private static final int MAX_PAGE_SIZE = 100;
@@ -71,7 +52,6 @@ public class AdminUserController {
         this.adminUserService = adminUserService;
     }
 
-    // ------------------------------------------------------------------- L1
 
     @Operation(
             operationId = "listAdminUsers",
@@ -98,7 +78,6 @@ public class AdminUserController {
                 safePage, safeSize, result.totalElements());
     }
 
-    // ------------------------------------------------------------------- L2
 
     @Operation(
             operationId = "getAdminUserDetail",
@@ -114,7 +93,6 @@ public class AdminUserController {
                 userId, AdminUserContext.withoutReason(principal, httpRequest)));
     }
 
-    // ------------------------------------------------------------------- L3
 
     @Operation(
             operationId = "unmaskAdminUserPii",
@@ -131,11 +109,9 @@ public class AdminUserController {
         AdminGuard.requireAnyRole(principal, UNMASK_ROLES);
         AdminUnmaskResponse body = AdminUnmaskResponse.from(adminUserService.unmask(
                 userId, AdminUserContext.withReason(principal, request.reason(), httpRequest)));
-        // Endpoint DUY NHẤT trả PII thô của một người khác: không bao giờ được vào cache nào.
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(body);
     }
 
-    // ------------------------------------------------------------------- L7
 
     @Operation(
             operationId = "lockAdminUser",
@@ -153,7 +129,6 @@ public class AdminUserController {
                 userId, AdminUserContext.withReason(principal, request.reason(), httpRequest)));
     }
 
-    // ------------------------------------------------------------------- L8
 
     @Operation(
             operationId = "unlockAdminUser",
@@ -170,7 +145,6 @@ public class AdminUserController {
                 userId, AdminUserContext.withReason(principal, request.reason(), httpRequest)));
     }
 
-    // ------------------------------------------------------------------ L11
 
     @Operation(
             operationId = "listAdminUserSessions",
@@ -189,13 +163,7 @@ public class AdminUserController {
                 .toList());
     }
 
-    // ------------------------------------------------------------------ L12
 
-    /**
-     * {@code reason} là query param: {@code DELETE} có body bị nhiều proxy và thư viện HTTP bỏ
-     * qua (và {@code fetch} của trình duyệt cũng không gửi body cho {@code DELETE} trong một số
-     * cấu hình). Cùng đánh đổi như L22 — xem handoff H15.101.
-     */
     @Operation(
             operationId = "revokeAdminUserSessions",
             summary = "L12 — thu hồi mọi phiên của một người dùng",
@@ -212,14 +180,11 @@ public class AdminUserController {
         return new AdminSessionListResponse(java.util.List.of(), revoked);
     }
 
-    /* ---------------------------------------------------------------- helper */
 
     private static UserStatus parseStatus(String status) {
         if (status == null || status.isBlank()) {
             return null;
         }
-        // Giá trị lạ ⇒ IllegalArgumentException ⇒ 400 VALIDATION_FAILED, không im lặng bỏ lọc
-        // (bỏ lọc im lặng nghĩa là admin tưởng đang xem "chỉ LOCKED" mà thực ra thấy tất cả).
         return UserStatus.valueOf(status.strip().toUpperCase(Locale.ROOT));
     }
 }

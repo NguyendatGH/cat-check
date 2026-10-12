@@ -21,6 +21,9 @@ import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.security.MfaLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,29 +38,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * TOTP (RFC 6238) va ma khoi phuc — p8 B14..B18, A10, A11; p11 §11.12.
- *
- * <p>Secret TOTP duoc ma hoa AES-256-GCM khoa con {@code mfa.totp} truoc khi ghi
- * xuong {@code user_mfa_totp.secret_enc} (p11 §11.10.3). Ban tho chi ton tai trong
- * response cua {@code init} — {@code PENDING} ghi xuong DB da ma hoa, khong giu
- * trong session (p11 §11.12.3: session attribute bi serialize thang xuong
- * {@code SPRING_SESSION_ATTRIBUTES}).</p>
- *
- * <p>Ma khoi phuc: 10 ma Crockford Base32, hien thi {@code XXXXX-XXXXX}, <b>chi tra
- * dung mot lan</b> khi enroll/reset. Bam {@code HMAC-SHA256(recovery_pepper, code)}
- * (p11 §11.12.3) — khong phai BCrypt.</p>
- */
 @Service
 public class MfaService {
 
-    /** p11 §11.12.3: 10 ma mot lan khi enroll. */
+    private static final Logger log = LoggerFactory.getLogger(MfaService.class);
+
     public static final int RECOVERY_CODE_BATCH_SIZE = 10;
 
-    /** p11 §11.12.3: ban ghi PENDING song 10 phut. */
     public static final Duration PENDING_TTL = Duration.ofMinutes(10);
 
-    /** p11 §11.12.3: khoa buoc MFA 15 phut sai 5 lan / 5 phut. */
     public static final int TOTP_MAX_FAILED = 5;
     public static final Duration TOTP_LOCK_DURATION = Duration.ofMinutes(15);
 
@@ -72,6 +61,7 @@ public class MfaService {
     private final RateLimiter rateLimiter;
     private final AuditLogService auditLogService;
     private final Clock clock;
+    private final boolean devConsoleEnabled;
     private final SecureRandom random = new SecureRandom();
 
     public MfaService(MfaTotpRepository totpRepository,
@@ -81,7 +71,8 @@ public class MfaService {
                       RecoveryCodeHasher recoveryCodeHasher,
                       RateLimiter rateLimiter,
                       AuditLogService auditLogService,
-                      Clock clock) {
+                      Clock clock,
+                      @Value("${catcheck.dev.log-otp:false}") boolean devConsoleEnabled) {
         this.totpRepository = totpRepository;
         this.recoveryCodeRepository = recoveryCodeRepository;
         this.roleRepository = roleRepository;
@@ -90,9 +81,27 @@ public class MfaService {
         this.rateLimiter = rateLimiter;
         this.auditLogService = auditLogService;
         this.clock = clock;
+        this.devConsoleEnabled = devConsoleEnabled;
     }
 
-    /** Ket qua {@code POST /account/mfa/totp/init} — secret chi tra o day, khong luu log. */
+    public void logCurrentTotpForDev(UUID userId, String email) {
+        if (!devConsoleEnabled) {
+            return;
+        }
+        totpRepository.findByUserId(userId)
+                .filter(MfaTotp::isActive)
+                .ifPresent(totp -> {
+                    String secretBase32 = decryptSecret(userId, totp);
+                    long epochSecond = clock.instant().getEpochSecond();
+                    long currentStep = epochSecond / totp.periodSeconds();
+                    long validForSeconds = totp.periodSeconds() - (epochSecond % totp.periodSeconds());
+                    String code = TotpCodeVerifier.now(
+                            totp.algorithm(), totp.digits(), secretBase32, currentStep);
+                    log.warn("[DEV-TOTP] email={} code={} validForSeconds={}",
+                            maskEmail(email), code, validForSeconds);
+                });
+    }
+
     public record Enrollment(
             String secretBase32,
             String otpauthUri,
@@ -102,13 +111,11 @@ public class MfaService {
             String algorithm) {
     }
 
-    /** Ket qua {@code POST /account/mfa/totp/confirm} — 10 ma khoi phuc, chi doc mot lan. */
     public record Confirmation(
             List<String> recoveryCodes,
             Instant activatedAt) {
     }
 
-    /** Trang thái TOTP cho {@code GET /account/mfa/totp} (p8 B14). */
     public record TotpStatusView(
             TotpStatus status,
             Instant activatedAt,
@@ -121,17 +128,12 @@ public class MfaService {
         }
     }
 
-    /**
-     * B15 — sinh secret {@code PENDING} + {@code otpauthUri}. SPA tu ve QR tu URI;
-     * server KHONG sinh anh QR (p8 §8.5.2).
-     */
     @Transactional
     public Enrollment init(UUID userId, String email, MfaLevel sessionMfaLevel, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_INIT, userId.toString());
         totpRepository.findByUserId(userId)
                 .ifPresent(existing -> requireSecondFactorSession(existing, sessionMfaLevel));
 
-        // PENDING cu bi thay boi PENDING moi — khong co cai nao mat (p11 §11.12.3).
         totpRepository.delete(userId);
 
         String secretBase32 = Base32.newTotpSecret();
@@ -175,10 +177,6 @@ public class MfaService {
                 TotpCodeVerifier.DEFAULT_ALGORITHM);
     }
 
-    /**
-     * B16 — xac nhan ma lan dau tung => {@code ACTIVE} + 10 ma khoi phuc.
-     * 10 ma tra <b>dung mot lan</b>, khong co endpoint nao doc lai (p8 §8.5.2).
-     */
     @Transactional
     public Confirmation confirm(UUID userId, String code, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_CONFIRM, userId.toString());
@@ -228,7 +226,6 @@ public class MfaService {
         return new Confirmation(recoveryCodes, now);
     }
 
-    /** A10 — buoc 2 khi dang nhap: kiem tra ma TOTP, tra ve buoc thoi gian da dung. */
     @Transactional
     public long verifyForLogin(UUID userId, String code, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_VERIFY, userId.toString());
@@ -265,11 +262,6 @@ public class MfaService {
         return currentStep;
     }
 
-    /**
-     * A11 — dung ma khoi phuc thay ma TOTP. Cho qua buoc MFA <strong>va</strong> bat
-     * buoc dan toi enroll lai thiet bi trong phien do (p4 §A8: ma khoi phuc la loi
-     * thoat hiem, khong phai phuong thuc dang nhap the thay).
-     */
     @Transactional
     public RecoveryResult verifyRecovery(UUID userId, String recoveryCode, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_RECOVERY, userId.toString());
@@ -314,7 +306,6 @@ public class MfaService {
         return new RecoveryResult(remaining, true);
     }
 
-    /** B17 — sinh lai 10 ma, huyn tron lo cu (p11 §11.12.3). */
     @Transactional
     public Confirmation regenerateRecoveryCodes(UUID userId, MfaLevel sessionMfaLevel, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_REGENERATE, userId.toString());
@@ -340,7 +331,6 @@ public class MfaService {
         return new Confirmation(recoveryCodes, totp.activatedAt());
     }
 
-    /** B18 — tu go TOTP, CHI khi tai khoan khong con role admin (p11 §11.12.3). */
     @Transactional
     public void delete(UUID userId, MfaLevel sessionMfaLevel, AuthRequestContext context) {
         MfaTotp totp = totpRepository.findByUserId(userId)
@@ -369,7 +359,6 @@ public class MfaService {
                 .build());
     }
 
-    /** B14 — trang thai TOTP + so ma khoi phuc con lai. */
     @Transactional(readOnly = true)
     public TotpStatusView status(UUID userId) {
         MfaTotp totp = totpRepository.findByUserId(userId).orElse(null);
@@ -380,7 +369,6 @@ public class MfaService {
         return TotpStatusView.of(totp, remaining);
     }
 
-    /** A10/A11: tai khoan co TOTP ACTIVE khong — dung de quyet dinh buoc 2 khi dang nhap. */
     @Transactional(readOnly = true)
     public boolean totpEnabled(UUID userId) {
         return totpRepository.findByUserId(userId)
@@ -388,7 +376,6 @@ public class MfaService {
                 .orElse(false);
     }
 
-    /** Ket qua {@link #verifyRecovery}. */
     public record RecoveryResult(long recoveryCodesRemaining, boolean enrollmentRequired) {
     }
 
@@ -421,6 +408,14 @@ public class MfaService {
         return new String(plain, StandardCharsets.UTF_8);
     }
 
+    private static String maskEmail(String email) {
+        int at = email.indexOf('@');
+        if (at <= 1) {
+            return "***" + (at < 0 ? "" : email.substring(at));
+        }
+        return email.charAt(0) + "***" + email.substring(at);
+    }
+
     private static String otpauthUri(String email, String secretBase32, String algorithm,
                                      int digits, int periodSeconds) {
         return "otpauth://totp/CatCheck:" + email
@@ -431,12 +426,6 @@ public class MfaService {
                 + "&period=" + periodSeconds;
     }
 
-    /**
-     * Doi/xoa mot TOTP dang ACTIVE (B15 init lai, B17, B18) phai tu phien DA qua buoc TOTP.
-     * Neu khong, phien chi co mat khau (mfaLevel NONE — A6 van mo phien truoc buoc 2) goi B17
-     * lay 10 ma khoi phuc moi roi dung A11, hoac goi B15 thay secret bang secret cua minh, la
-     * nang duoc phien len TOTP va vao {@code /api/v1/admin/**} ma khong can thiet bi that.
-     */
     private static void requireSecondFactorSession(MfaTotp totp, MfaLevel sessionMfaLevel) {
         if (totp.isActive() && sessionMfaLevel != MfaLevel.TOTP) {
             throw new PermissionDeniedException(IdentityErrorCode.TOTP_REQUIRED);

@@ -24,17 +24,6 @@ import {
   usePackageCatalog,
 } from "@/features/credit";
 
-/**
- * `/credits` — p5 §5.8 (p9 route #41). Số dư, chi tiết từng lô, lịch sử, entitlement.
- *
- * DESKTOP (>= lg): `AppLayout` đã cấp hộp nội dung 944px + padding ngang, trang chỉ bỏ trần
- * `max-w-2xl` của mobile rồi chia theo đúng idiom đã chốt ở `settings` — cột nội dung co
- * giãn + cột phụ 360px. Tab "Tổng quan": số dư và các lô ở cột chính, quyền tính năng (khối
- * tham chiếu, ít thay đổi) ở cột phụ. Tab "Lịch sử giao dịch": dòng giao dịch ngắn nên xếp
- * lưới 2 cột thay vì kéo dài hết 944px.
- *
- * Mọi lệnh gọi API giữ nguyên — thay đổi thuần trình bày.
- */
 export function CreditsPage() {
   const { t } = useTranslation(["credit", "common"]);
   const navigate = useNavigate();
@@ -42,15 +31,11 @@ export function CreditsPage() {
   const balanceQuery = useCreditBalance();
   const ledgerQuery = useCreditLedger();
   const entitlementQuery = useEntitlement();
-  // F3 — danh mục gói THẬT. Tên gói hiển thị ở mọi nơi trong trang lấy từ đây, không còn
-  // bảng `credit.json: packages.*` cứng (xem `usePackageCatalog`).
   const packagesQuery = usePackageCatalog();
   const planName = (code: string | null): string =>
     (code ? packagesQuery.data?.find((plan) => plan.code === code)?.name : undefined) ?? code ?? "";
 
   return (
-    // `AppLayout` không cấp padding cho mobile (chỉ `lg:px-8 lg:py-6`) ⇒ trang tự chừa lề + khoảng
-    // đầu trang ở mobile; trước đây tiêu đề dính sát thanh header.
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-6 pt-5 lg:max-w-none lg:p-0">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-h2 font-bold text-text-primary lg:text-h1">{t("pages.credits.title")}</h1>
@@ -68,7 +53,6 @@ export function CreditsPage() {
       </div>
 
       <Tabs defaultValue="overview">
-        {/* Segmented 2 ô bằng nhau trải hết bề ngang — `x1_segmented` của M-16 / Web-17. */}
         <TabsList className="flex w-full">
           <TabsTrigger value="overview" className="flex-1">
             {t("tabs.overview")}
@@ -80,12 +64,6 @@ export function CreditsPage() {
 
         <TabsContent value="overview">
           <div className="flex flex-col gap-6">
-            {/*
-              Web-17: hai cột — trái co giãn (số dư + chi tiết từng lô), phải 360px cố định
-              (quyền tính năng). Bản trước xếp số dư cạnh quyền tính năng rồi đẩy các lô xuống
-              một hàng riêng, để lại một thẻ lô đơn độc nửa bề ngang. Mobile (M-16): số dư → lô →
-              quyền tính năng, đúng thứ tự frame.
-            */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
               <div className="flex min-w-0 flex-1 flex-col gap-6">
                 {balanceQuery.isPending ? (
@@ -173,8 +151,6 @@ export function CreditsPage() {
               </section>
             </div>
 
-            {/* Danh mục gói — F3 `GET /reference/packages`. KHÔNG có trường giá trong
-                response (thanh toán là Phase 3) nên trang không hiển thị giá. */}
             <section className="flex flex-col gap-3">
               <h2 className="text-h3 font-semibold text-text-primary">{t("catalog.sectionTitle")}</h2>
               {packagesQuery.isPending ? (

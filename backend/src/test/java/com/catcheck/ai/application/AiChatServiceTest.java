@@ -30,7 +30,6 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-/** Kiểm chứng luồng RAG ở tầng application mà không gọi provider ngoài hay Docker. */
 class AiChatServiceTest {
 
     private static final UUID USER_ID = UUID.randomUUID();
@@ -38,12 +37,6 @@ class AiChatServiceTest {
     private static final UUID CAT_ID = UUID.randomUUID();
     private static final Instant NOW = Instant.parse("2026-10-04T07:00:00Z");
 
-    /**
-     * Sao chép NGUYÊN VĂN từ {@code frontend/src/shared/i18n/locales/vi/cat.json} khoá
-     * {@code disclaimer.emergency} — PHẢI khớp tuyệt đối giá trị {@code ai.emergency.body} của
-     * {@code messages/ai_vi.properties}. Nếu test này đỏ sau khi ai cập nhật nội dung khẩn cấp ở
-     * một trong hai nơi mà quên nơi còn lại, đây chính là tín hiệu "sửa một bên phải sửa cả hai".
-     */
     private static final String EXPECTED_EMERGENCY_BODY =
             "⚠️ Những dấu hiệu cần đi thú y NGAY — đừng chờ theo dõi thêm\n\n"
             + "Hãy đưa bé đến cơ sở thú y ngay lập tức nếu bạn thấy:\n"
@@ -184,7 +177,6 @@ class AiChatServiceTest {
         assertThat(knowledge.searchedLocales).isEmpty();
     }
 
-    /** Câu mà khi bỏ dấu sẽ trùng chữ với dấu hiệu khẩn cấp (non/nôn, màu/máu, rắn/rặn). */
     @ParameterizedTest
     @ValueSource(strings = {
             "Mèo non nên ăn gì?",
@@ -253,7 +245,6 @@ class AiChatServiceTest {
         assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
     }
 
-    // ============================================================== catId / CatContext (A2-A4)
 
     @Test
     void urgentHealthFlagShortCircuitsToTheVerbatimEmergencyTemplateWithoutCallingTheProvider() {
@@ -279,8 +270,6 @@ class AiChatServiceTest {
         assertThat(result.answer()).contains(EXPECTED_EMERGENCY_BODY);
         assertThat(result.answer()).contains("/cats/" + CAT_ID);
         verifyNoInteractions(provider);
-        // Nhánh khẩn cấp KHÔNG được chạm vào kho tri thức chung — không có bằng chứng kiểm soát
-        // được nào cần thiết, và trả lời đã cố định sẵn.
         assertThat(knowledge.searchedLocales).isEmpty();
         assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
         assertThat(knowledge.savedCitationMessageId).isNotNull();
@@ -312,20 +301,9 @@ class AiChatServiceTest {
         String userPrompt = sentMessages.getLast().get("content");
         assertThat(userPrompt).contains("THÔNG TIN BÉ MÈO:");
         assertThat(userPrompt).contains("pH 6.8", "SLIGHTLY_HIGH", "Mun");
-        // Chỉ số liệu thô — KHÔNG được có câu diễn giải/khuyến nghị tự chế nào trong khối này.
         assertThat(userPrompt).doesNotContain("nên cho", "có thể bị", "nên đưa");
     }
 
-    /**
-     * Bug thật đã sửa: {@code fallbackAnswer} trước đây nhận thêm {@code catContextBlock} và in
-     * thẳng khối "THÔNG TIN BÉ MÈO" (cân nặng/pH/nhắc nhở...) lên đầu CÂU TRẢ LỜI HIỂN THỊ CHO
-     * NGƯỜI DÙNG, không chỉ trong prompt ẩn gửi LLM — xác nhận thật bằng chạy qua UI: hỏi "Cách
-     * vệ sinh khay cát thế nào?" (không liên quan tới mèo) với một mèo không khẩn cấp đang được
-     * chọn, khi chưa cấu hình LLM (provider rỗng), trả về ngay: "THÔNG TIN BÉ MÈO:\n- Tên:
-     * Bo\n..." rồi mới tới nội dung thật. Không có LLM nào "diễn giải"/lọc khối đó trong nhánh
-     * fallback, nên nó luôn lộ nguyên văn — gây rối cho MỌI câu hỏi hễ có chọn mèo, kể cả câu
-     * hỏi không liên quan gì tới dữ liệu riêng của mèo đó.
-     */
     @Test
     void fallbackAnswerNeverLeaksRawCatContextIntoTheUserFacingText() {
         FakeKnowledge knowledge = new FakeKnowledge();
@@ -340,7 +318,7 @@ class AiChatServiceTest {
                 new CatContextPort.LatestScanSummary(NOW, new BigDecimal("6.5"), "IN_RANGE",
                         new BigDecimal("0.8"), "NONE", false),
                 null, List.of(), List.of(), null, List.of(), null);
-        AiProviderPort provider = messages -> Optional.empty(); // chưa cấu hình LLM, như môi trường local hiện tại
+        AiProviderPort provider = messages -> Optional.empty();
 
         AiChatService.ChatResult result = service(knowledge, provider, catContextPort)
                 .chat(USER_ID, null, CAT_ID, "Cách vệ sinh khay cát thế nào?", "vi");
@@ -357,7 +335,7 @@ class AiChatServiceTest {
         knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
                 UUID.randomUUID(), "Theo dõi pH", "/care-tips/ph", "Đo dưới ánh sáng ổn định.", 1));
         FakeCatContextPort catContextPort = new FakeCatContextPort();
-        catContextPort.contextToReturn = null; // mô phỏng CatContextPort trả Optional.empty()
+        catContextPort.contextToReturn = null;
         List<Map<String, String>> sentMessages = new ArrayList<>();
 
         AiChatService.ChatResult result = service(knowledge, messages -> {
@@ -389,13 +367,6 @@ class AiChatServiceTest {
         assertThat(limiter.consumedSubjects).containsExactly(USER_ID.toString());
     }
 
-    /**
-     * {@code [n]} trong prompt/câu trả lời là VỊ TRÍ chunk trong danh sách ({@code i + 1}). Trước
-     * bản sửa, citation trả về/lưu lại dùng {@code chunk.rank()} của SQL — {@code row_number()} ở
-     * {@code AiKnowledgeRepository#search} sắp theo khoá khác ORDER BY ngoài (thiếu
-     * {@code c.ordinal}), nên khi {@code ts_rank}/{@code updated_at} bằng nhau (mọi tài liệu đồng bộ
-     * trong một transaction có cùng {@code updated_at}) "[1]" trong câu trả lời có thể trỏ nhầm nguồn.
-     */
     @Test
     void citationNumbersFollowThePositionUsedForTheMarkersNotTheSqlRank() {
         FakeKnowledge knowledge = new FakeKnowledge();
@@ -416,12 +387,6 @@ class AiChatServiceTest {
         assertThat(knowledge.savedCitationRanks).containsExactly(1, 2);
     }
 
-    /**
-     * I19 (p4 §4.4.9), {@code docs/cat-rag-credit-pipeline.md} A4-(5): tài khoản {@code RESTRICTED}
-     * (và mọi trạng thái khác {@code ACTIVE}) không được lưu tin nhắn mới hay gửi câu hỏi ra LLM.
-     * Trước bản sửa, {@code chat} không đọc trạng thái tài khoản ⇒ vẫn lưu USER+ASSISTANT và gọi
-     * provider.
-     */
     @Test
     void restrictedAccountIsRejectedBeforeAnyMessageIsStoredOrTheProviderIsCalled() {
         FakeKnowledge knowledge = new FakeKnowledge();
@@ -476,11 +441,6 @@ class AiChatServiceTest {
                 userAccountPort, realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    /**
-     * {@code MessageResolver} thật đọc {@code messages/ai_vi.properties} THẬT (không
-     * {@code StaticMessageSource} giả) — để test đường khẩn cấp kiểm chứng đúng nội dung sẽ chạy
-     * ở production, không chỉ hành vi gọi hàm.
-     */
     private static MessageResolver realMessageResolver() {
         ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
         messageSource.setBasenames("classpath:messages/ai");

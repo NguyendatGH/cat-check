@@ -6,10 +6,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Đọc cột an toàn từ {@code ResultSet} — tham khảo {@code credit.infrastructure.persistence.RowReaders}.
- * Mọi adapter của privacy dùng chung để không lặp kiểm tra null/kiểu.
- */
 final class RowReaders {
 
     private RowReaders() {
@@ -33,11 +29,6 @@ final class RowReaders {
         return value;
     }
 
-    /**
-     * Đọc cột {@code TIMESTAMPTZ} qua {@code getObject(col, OffsetDateTime.class)} rồi chuyển
-     * sang {@link Instant} — KHÔNG dùng {@code getTimestamp()}: đó là {@code java.sql.Timestamp},
-     * bị cấm bởi ArchUnit R13 (cùng khuôn với {@code credit.infrastructure.persistence.RowReaders}).
-     */
     static Instant instant(ResultSet rs, String column) throws SQLException {
         OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
         return value == null ? null : value.toInstant();

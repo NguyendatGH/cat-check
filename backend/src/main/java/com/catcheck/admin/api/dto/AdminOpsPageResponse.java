@@ -2,7 +2,6 @@ package com.catcheck.admin.api.dto;
 
 import java.util.List;
 
-/** Phân trang offset cho hai bảng vận hành — p8 §8.1.4 ký hiệu {@code O}. */
 public record AdminOpsPageResponse<T>(
         List<T> items,
         int page,

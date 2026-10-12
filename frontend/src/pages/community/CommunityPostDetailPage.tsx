@@ -28,19 +28,6 @@ import {
   useSharePost,
 } from "./parts";
 
-/**
- * `/community/posts/:postId` — chi tiết bài viết (design `Web - Chi tiết Thảo luận…` + mobile
- * `Chi tiết Thảo luận Cộng đồng`).
- *
- * NGUỒN DỮ LIỆU: 100% `GET /api/v1/community/posts/{id}` (bài + bình luận); thích/lưu qua
- * `POST …/reactions`, bình luận qua `POST …/comments`, báo cáo qua `POST /community/reports`.
- * Đã BỎ so với design vì API không có: thẻ bác sĩ + chỉ số tư vấn, hồ sơ ca bệnh của bé, "ca
- * tương tự", hotline cấp cứu, khối "phân tích AI"/pH gắn trong bài, ý kiến chuyên môn ghim,
- * huy hiệu người dùng, thích/trả lời từng bình luận, sắp xếp bình luận. Cột phải thay bằng quy
- * tắc cộng đồng trung tính.
- *
- * `AppLayout` không cấp padding ngang dưới `lg` nên trang tự thêm `px-4`.
- */
 export function CommunityPostDetailPage() {
   const { postId } = useParams<{ postId: string }>();
   if (!postId) return <NotFound />;
@@ -90,7 +77,6 @@ function DetailSkeleton() {
   );
 }
 
-/** Breadcrumb + Lưu/Chia sẻ ở đầu trang (desktop), nút quay lại (mobile). */
 function DetailTopBar({ post }: { post: CommunityPostApi }) {
   const { t } = useTranslation("community");
   const reaction = useCommunityReaction();
@@ -177,7 +163,6 @@ function PostArticle({ post }: { post: CommunityPostApi }) {
 
       {post.imageUrl ? <img src={post.imageUrl} alt="" className="mt-5 w-full rounded-xl object-cover" /> : null}
 
-      {/* Desktop: Lưu/Chia sẻ đã nằm ở thanh đầu trang (như design web) ⇒ ẩn bản trùng ở chân bài. */}
       <PostActions post={post} secondaryClassName="lg:hidden" className="mt-5 border-t border-border/60 pt-3" />
     </article>
   );
@@ -208,10 +193,6 @@ function CommentItem({ comment }: { comment: CommunityCommentApi }) {
   );
 }
 
-/**
- * Ô bình luận — MỘT form duy nhất: mobile ghim đáy (trên bottom nav, như design mobile),
- * desktop nằm trong khối bình luận kèm avatar người đang đăng nhập (như design web).
- */
 function CommentComposer({ postId }: { postId: string }) {
   const { t } = useTranslation("community");
   const displayName = useSessionStore((s) => s.user?.displayName ?? "");
@@ -327,7 +308,6 @@ function CommentsSection({
         </span>
       </div>
 
-      {/* Mobile: form ghim đáy (fixed) nên khung bọc không chiếm chỗ; desktop: nằm ngay dưới tiêu đề. */}
       <div className="lg:pt-5">
         <CommentComposer postId={postId} />
       </div>

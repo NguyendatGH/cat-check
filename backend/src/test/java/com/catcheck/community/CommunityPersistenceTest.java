@@ -28,7 +28,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** V27 + community/shop repository tren PostgreSQL that. */
 @Testcontainers
 class CommunityPersistenceTest {
 
@@ -51,8 +50,6 @@ class CommunityPersistenceTest {
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         ds.setDriverClassName("org.postgresql.Driver");
         jdbc = new JdbcTemplate(ds);
-        // Test này kiểm persistence, không kiểm I19/rate limit: tài khoản luôn ACTIVE, limiter luôn
-        // cho qua (CommunityService#requireWriteAllowed/#requireRateLimit có test riêng).
         CommunityRateLimiter alwaysAllow = new CommunityRateLimiter() {
             @Override
             public boolean tryConsume(CommunityRateLimitRule rule, String subject) {
@@ -107,7 +104,6 @@ class CommunityPersistenceTest {
         community.report(user, post.id(), null, "SPAM", null);
         assertThatThrownBy(() -> community.report(user, post.id(), null, "OTHER", null))
                 .isInstanceOf(ConflictException.class);
-        // nguoi khac (khong phai tac gia) van bao cao duoc
         community.report(other, post.id(), null, "SPAM", null);
         jdbc.update("UPDATE community_report SET status = 'DISMISSED' WHERE reporter_user_id = ?", user);
         community.report(user, post.id(), null, "SPAM", null);

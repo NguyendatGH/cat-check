@@ -3,14 +3,6 @@ import { useCatStore } from "@/entities/cat";
 import { useCatList } from "@/features/cat";
 import { SkeletonLoader } from "@/shared/ui";
 
-/**
- * `/history` là route redirect-only → `/cats/:activeCatId/history` (p9 §9.4.3).
- *
- * `activeCatId` nằm trong localStorage nên có thể CŨ (bé đã xoá/lưu trữ, hoặc của tài khoản
- * đăng nhập trước trên cùng máy) — chỉ dùng khi nó còn trong danh sách ACTIVE của tài khoản,
- * nếu không thì rơi về mèo mặc định (`isPrimary`) rồi bé đầu tiên. Không còn bé nào hoặc danh
- * sách không tải được thì về `/cats`.
- */
 export function HistoryRedirectPage() {
   const activeCatId = useCatStore((state) => state.activeCatId);
   const { data, isPending, isError } = useCatList("ACTIVE");

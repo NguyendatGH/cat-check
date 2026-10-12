@@ -12,25 +12,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
-/**
- * {@link AiChatRateLimiter} trên Bucket4j + Caffeine trong RAM — cùng cơ chế mà
- * {@code credit.infrastructure.ratelimit.Bucket4jActivationRateLimiter} và
- * {@code shared.infrastructure.ratelimit.Bucket4jPublicIngressRateLimiter} đã dùng (p11 §11.7.1:
- * "backend Caffeine in-memory ở MVP"; khi &gt;1 instance đổi backend sang PostgreSQL/Redis,
- * <b>không đổi code nghiệp vụ</b>).
- *
- * <p><b>Caffeine, không phải {@code ConcurrentHashMap} trần</b>: khoá theo userId là do
- * ATTACKER CONTROL (tài khoản tự tạo được). Một map trần sẽ phình theo số userId bị dò/lạm dụng —
- * tự trao công cụ DoS cho kẻ tấn công. Caffeine dùng TTL để tự thu dọn.</p>
- *
- * <p>Chỉ MỘT {@link AiChatRateLimitRule} nên dùng một {@link Bandwidth} duy nhất thay vì
- * {@code EnumMap} như hai lớp chị em ở trên (hai quy tắc trở lên) — thêm quy tắc thứ hai sau này
- * thì đổi sang {@code EnumMap} theo đúng khuôn đó.</p>
- */
 @Component
 public class Bucket4jAiChatRateLimiter implements AiChatRateLimiter {
 
-    /** Gấp đôi chu kỳ (1 giờ) để thùng không bị xoá giữa chừng. */
     private static final Duration BUCKET_TTL = Duration.ofHours(2);
 
     private static final int MAX_BUCKETS = 200_000;
@@ -43,17 +27,12 @@ public class Bucket4jAiChatRateLimiter implements AiChatRateLimiter {
                 .maximumSize(MAX_BUCKETS)
                 .expireAfterWrite(BUCKET_TTL)
                 .build();
-        // Số liệu ở đây PHẢI khớp AiChatRateLimitRule.documentedRate — xem javadoc của enum đó
-        // để biết vì sao đây là lựa chọn tự chọn, không phải trích từ p11.
         this.bandwidth = Bandwidth.classic(20, Refill.intervally(20, Duration.ofHours(1)));
     }
 
     @Override
     public boolean tryConsume(AiChatRateLimitRule rule, String subject) {
         if (subject == null || subject.isBlank()) {
-            // Không có khoá thì không đếm. Endpoint luôn yêu cầu đăng nhập (xem javadoc enum)
-            // nên trong thực tế subject luôn có giá trị; giữ hành vi "cho qua" để nhất quán với
-            // ActivationRateLimiter/PublicIngressRateLimiter chứ không phải để lách luật ở đây.
             return true;
         }
         return probe(rule, subject).isConsumed();
@@ -69,7 +48,6 @@ public class Bucket4jAiChatRateLimiter implements AiChatRateLimiter {
             return 0;
         }
         long nanos = probe.getNanosToWaitForRefill();
-        // Làm tròn LÊN: trả 0 giây thì client thử lại ngay và bị chặn tiếp.
         return (nanos + Duration.ofSeconds(1).toNanos() - 1) / Duration.ofSeconds(1).toNanos();
     }
 
@@ -79,7 +57,6 @@ public class Bucket4jAiChatRateLimiter implements AiChatRateLimiter {
         return bucket.tryConsumeAndReturnRemaining(1);
     }
 
-    /** Cho test: số thùng đang sống. KHÔNG dùng trong luồng nghiệp vụ. */
     long liveBucketCount() {
         buckets.cleanUp();
         return buckets.estimatedSize();

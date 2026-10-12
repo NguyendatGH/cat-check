@@ -25,18 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Set;
 
-/**
- * L38, L39 — cấu hình rule cảnh báo (p8 §8.4.12 mục (c)).
- *
- * <p><b>Hai tập vai trò khác nhau, lấy đúng từ bảng p8:</b> L38 cho
- * {@code ADMIN_SUPER, ADMIN_CATALOG}; L39 <b>chỉ</b> {@code ADMIN_SUPER}. Hai ô này không có số
- * {@code Qxx} trong ma trận p14 §14.2.2 — p8 là part sở hữu danh mục endpoint nên code theo p8,
- * và ghi handoff H15.163 để p14 bổ sung dòng.</p>
- *
- * <p>Toàn bộ {@code /api/v1/admin/**} đã bị {@code AdminMfaGateFilter} chặn khi phiên chưa đạt
- * {@code mfaLevel = TOTP} (p8 §8.4.12 điều kiện chung #1), nên ở đây chỉ còn phần p8 cấp tới
- * từng endpoint — đúng tinh thần p14 §14.5.1 mục 2: UI ẩn nút, server vẫn kiểm độc lập.</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/monitoring-rules")
 @Tag(name = "Quản trị rule cảnh báo", description = "L38–L39 — đọc và sửa monitoring_rule")
@@ -52,7 +40,6 @@ public class AdminMonitoringRuleController {
         this.adminService = adminService;
     }
 
-    // ------------------------------------------------------------------ L38
 
     @Operation(
             operationId = "listAdminMonitoringRules",
@@ -72,7 +59,6 @@ public class AdminMonitoringRuleController {
                 .body(new AdminMonitoringRuleListResponse(items));
     }
 
-    // ------------------------------------------------------------------ L39
 
     @Operation(
             operationId = "updateAdminMonitoringRule",
@@ -88,9 +74,6 @@ public class AdminMonitoringRuleController {
             @Valid @RequestBody UpdateMonitoringRuleRequest request,
             HttpServletRequest httpRequest) {
         AdminGuard.requireAnyRole(principal, WRITE_ROLES);
-        // Thứ tự có chủ ý: 404 (rule không tồn tại) TRƯỚC 428 (thiếu If-Match). Yêu cầu một
-        // ETag cho tài nguyên không tồn tại là bắt client đoán, và 428 ở đây sẽ che mất lỗi
-        // thật là sai `code`.
         MonitoringRule current = adminService.require(code);
         AdminETag.requireMatch(ifMatch, etagOf(current));
         MonitoringRule updated = adminService.update(
@@ -109,15 +92,10 @@ public class AdminMonitoringRuleController {
         return ResponseEntity.ok().eTag(etag).body(AdminMonitoringRuleResponse.from(updated, etag));
     }
 
-    /** Khoá ETag là {@code code} — khoá chính của {@code monitoring_rule} là khoá tự nhiên (p4 D11). */
     private static String etagOf(MonitoringRule rule) {
         return AdminETag.of(rule.getUpdatedAt(), rule.getCode());
     }
 
-    /**
-     * ETag của cả danh sách = băm các ETag dòng, để sửa bất kỳ rule nào cũng đổi ETag danh sách
-     * (nền của {@code 304} ở lần GET sau).
-     */
     private static String listEtag(List<AdminMonitoringRuleResponse> items) {
         int hash = items.stream().map(AdminMonitoringRuleResponse::etag).toList().hashCode();
         return "W/\"rules-" + Integer.toHexString(hash) + "\"";

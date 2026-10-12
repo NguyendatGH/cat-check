@@ -29,11 +29,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
-/**
- * R8, R11, R12, R13, R15, R16 — quy tắc coding standard chung, không gắn với biên module. Chỉ
- * quét main sources (test class được phép field-injection kiểu Mockito @Mock/@InjectMocks,
- * @Autowired trong @SpringBootTest...).
- */
 @AnalyzeClasses(packages = "com.catcheck", importOptions = ImportOption.DoNotIncludeTests.class)
 class CodingStandardRuleTests {
 
@@ -43,11 +38,6 @@ class CodingStandardRuleTests {
     @ArchTest
     static final ArchRule r8_domainStaysFrameworkFree = classes()
             .that().resideInAPackage("..domain..")
-            // Cùng miễn trừ mà R9 đã áp (ModuleBoundaryRuleTests): `package-info` chỉ mang
-            // metadata ranh giới Modulith — `scan.domain.color` phải là named interface
-            // `scan::color` để `colorchart` dùng chung ΔE00 mà không tạo cycle. Người sửa cycle
-            // đã miễn trừ ở R9 nhưng bỏ sót R8, nên build đỏ. Ý định của R8 vẫn nguyên: không
-            // CLASS nào trong ..domain.. mang annotation Spring; package-info không có hành vi.
             .and().doNotHaveSimpleName("package-info")
             .should(notUseSpringAnnotations())
             .because("R8: class trong ..domain.. không mang annotation org.springframework.. "

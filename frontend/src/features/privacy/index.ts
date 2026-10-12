@@ -1,6 +1,3 @@
-// features/privacy — Trung tâm quyền riêng tư: consent (C1–C4), bảng kiểm kê dữ liệu (C5),
-// DSAR xuất/xoá/hạn chế (C6–C15) và step-up re-auth (A4/A5/A12).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
 export {
   DELETION_GRACE_DAYS,
   PRIVACY_KEYS,

@@ -26,13 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * L38–L39 (p8 §8.4.12 mục (c)).
- *
- * <p>Hai bất biến của p4 D11 là trọng tâm: {@code cooldown_hours >= 0} và <b>{@code 0} chỉ cho
- * {@code URGENT_CLINICAL_SIGN}</b>. Để một rule khác về 0 nghĩa là mỗi lần quét đều bắn một
- * flag — người dùng tắt thông báo và mất luôn cảnh báo thật.</p>
- */
 class MonitoringRuleAdminServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T10:00:00Z");
@@ -136,13 +129,6 @@ class MonitoringRuleAdminServiceTest {
                 "Map long ghi duoc vao JSONB nhung paramAsInt doc ra gia tri mac dinh — rule chay sai lang le");
     }
 
-    /**
-     * Bug thật đã sửa: trigger {@code trg_monitoring_rule_updated_at} ghi {@code updated_at} ở
-     * phía DB, nên nếu service trả về entity trong bộ nhớ thì {@code ETag} của response lệch với
-     * dòng đã lưu và lần {@code PATCH} kế tiếp luôn {@code 412 RESOURCE_MODIFIED}. Test này ép
-     * cổng trả về một giá trị KHÁC để chứng minh service dùng bản đã đọc lại, không dùng bản
-     * trong bộ nhớ.
-     */
     @Test
     void theRuleReturnedComesFromTheReloadNotFromTheInMemoryEntity() {
         rules.put(MonitoringRuleCode.BASELINE_DEVIATION.name(), 72, true);
@@ -156,13 +142,11 @@ class MonitoringRuleAdminServiceTest {
                 "ETag phai tinh tu gia tri DB da ghi, khong tu Clock cua ung dung");
     }
 
-    // ------------------------------------------------------------------ fixtures
 
     private final class FakeRuleRepository implements MonitoringRuleRepository {
 
         private final Map<String, MonitoringRule> store = new LinkedHashMap<>();
 
-        /** Giá trị mà "DB" trả về cho {@code updated_at} sau khi trigger chạy; null = giữ nguyên. */
         private Instant reloadUpdatedAt;
 
         private void put(String code, int cooldownHours, boolean enabled) {

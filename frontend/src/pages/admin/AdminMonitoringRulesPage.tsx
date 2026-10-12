@@ -95,12 +95,6 @@ function formatParamValue(value: unknown): string {
     : JSON.stringify(value);
 }
 
-/**
- * `/admin/monitoring-rules` — L38 (đọc: ADMIN_SUPER, ADMIN_CATALOG), L39 (sửa: chỉ ADMIN_SUPER).
- *
- * Sửa dùng `If-Match` = `etag` của chính dòng đó (server trả trong body từng dòng). Lệch ETag
- * ⇒ 412: trang báo "đã có người sửa" và cho tải lại bản mới trước khi sửa tiếp.
- */
 export function AdminMonitoringRulesPage() {
   const { t } = useTranslation("admin");
   const can = useAdminCan();
@@ -436,7 +430,6 @@ export function AdminMonitoringRulesPage() {
   );
 }
 
-// ------------------------------------------------------------------- sửa rule
 
 interface RuleEditorDialogProps {
   rule: AdminMonitoringRule;
@@ -445,11 +438,6 @@ interface RuleEditorDialogProps {
   onClose: () => void;
 }
 
-/**
- * Mở form thì chụp lại `rule` (kèm `etag`). Dialog được `key` theo `code + etag`, nên sau khi
- * "Tải lại" lấy được ETag mới thì form dựng lại từ bản mới — không gửi ETag cũ lần nữa.
- * Lưu thành công thì đóng form và báo bằng toast (cache đã mang ETag mới).
- */
 function RuleEditorDialog({ rule, canWrite, onReload, onClose }: RuleEditorDialogProps) {
   const { t } = useTranslation("admin");
   const update = useUpdateMonitoringRule();
@@ -645,7 +633,6 @@ function RuleEditorDialog({ rule, canWrite, onReload, onClose }: RuleEditorDialo
   );
 }
 
-// ------------------------------------------------------------------- hàng loạt
 
 interface BulkToggleDialogProps {
   rules: readonly AdminMonitoringRule[];
@@ -655,7 +642,6 @@ interface BulkToggleDialogProps {
   onClose: (outcome: BulkOutcome | null) => void;
 }
 
-/** Bật/tắt nhiều rule: mỗi rule PATCH riêng với `If-Match` của chính nó, chạy lần lượt. */
 function BulkToggleDialog({ rules, selected, enabled, onReload, onClose }: BulkToggleDialogProps) {
   const { t } = useTranslation("admin");
   const update = useUpdateMonitoringRule();

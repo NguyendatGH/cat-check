@@ -21,9 +21,6 @@ import type {
 } from "@/entities/cat";
 import type { CatMutationPayload, CatSummaryResponse } from "./types";
 
-/**
- * Query key factory — domain `cat` thuộc `features/cat` (p9 §9.5.3). `catKeys.all` = `['cat']`.
- */
 export const catKeys = {
   all: ["cat"] as const,
   lists: () => [...catKeys.all, "list"] as const,
@@ -36,7 +33,6 @@ export const catKeys = {
   breeds: () => [...catKeys.all, "breeds"] as const,
 };
 
-// staleTime theo p9 §9.5.4: cat.list/cat.detail 5 phút, breeds gần như tĩnh (24h).
 const CAT_STALE_TIME = 5 * 60 * 1000;
 const BREEDS_STALE_TIME = 24 * 60 * 60 * 1000;
 
@@ -53,23 +49,15 @@ function buildBody(payload: CatMutationPayload): string {
   return JSON.stringify(payload);
 }
 
-/** Sau mọi mutation thay đổi hồ sơ mèo: `cat.lists()`, `cat.detail(id)`, `entitlement` (p9 §9.5.5). */
 function invalidateAfterCatChange(queryClient: ReturnType<typeof useQueryClient>, catId?: string) {
   void queryClient.invalidateQueries({ queryKey: catKeys.lists() });
   if (catId) {
     void queryClient.invalidateQueries({ queryKey: catKeys.detail(catId) });
   }
-  // `entitlement` thuộc `entities/user` (hạn mức hồ sơ đổi theo số mèo) — chỉ là 1 key
-  // string dùng chung của QueryClient, không phải import chéo module.
   void queryClient.invalidateQueries({ queryKey: ["entitlement"] });
 }
 
-// ============================================================== D1/D2 — danh sách/tạo
 
-/**
- * @param enabled đặt `false` cho khách chưa đăng nhập — `/cats` yêu cầu phiên, gọi khi chưa
- *                đăng nhập chắc chắn 403, không cần bắn request rồi nuốt lỗi.
- */
 export function useCatList(status: CatStatus = "ACTIVE", enabled = true): UseQueryResult<ListResponse<Cat>> {
   return useQuery({
     queryKey: catKeys.list(status),
@@ -90,7 +78,6 @@ export function useCreateCat(): UseMutationResult<Cat, Error, CatMutationPayload
   });
 }
 
-// ============================================================== D3/D4/D5 — chi tiết/sửa/xoá
 
 export function useCat(catId: string | undefined): UseQueryResult<Cat> {
   return useQuery({
@@ -101,12 +88,6 @@ export function useCat(catId: string | undefined): UseQueryResult<Cat> {
   });
 }
 
-/**
- * D12 — card tổng quan lâm sàng. Endpoint từng là stub 501, nay đã chạy thật.
- *
- * Không `retry` lỗi 4xx (queryClient đã cấu hình vậy) và KHÔNG `throwOnError`: màn hồ sơ
- * phải render được cả khi summary lỗi — mèo mới tạo chưa có lần quét nào là trạng thái hợp lệ.
- */
 export function useCatSummary(catId: string | undefined): UseQueryResult<CatSummaryResponse> {
   return useQuery({
     queryKey: catKeys.summary(catId ?? ""),
@@ -137,7 +118,6 @@ export function useSoftDeleteCat(catId: string): UseMutationResult<void, Error, 
   });
 }
 
-// ============================================================== D6/D7 — lưu trữ
 
 export function useArchiveCat(catId: string): UseMutationResult<Cat, Error, void> {
   const queryClient = useQueryClient();
@@ -161,7 +141,6 @@ export function useUnarchiveCat(catId: string): UseMutationResult<Cat, Error, vo
   });
 }
 
-// ============================================================== D8 — mèo chính
 
 export function useSetPrimaryCat(catId: string): UseMutationResult<PrimaryCatResult, Error, void> {
   const queryClient = useQueryClient();
@@ -176,13 +155,6 @@ export function useSetPrimaryCat(catId: string): UseMutationResult<PrimaryCatRes
   });
 }
 
-// ============================================================== D9/D10/D11 — ảnh đại diện
-//
-// `catId` nhận qua biến mutate (không bind sẵn ở tham số hook) — cần thiết cho luồng
-// "tạo mèo rồi upload avatar ngay" (`CatNewPage`): hook được khởi tạo LÚC RENDER (khi
-// `catId` của mèo mới còn chưa tồn tại), còn lệnh upload chỉ thực thi SAU KHI tạo xong
-// trong cùng handler — bind `catId` ở tham số hook sẽ đóng băng giá trị rỗng của lần
-// render trước, gọi nhầm `/cats//avatar`.
 
 export function useUploadCatAvatar(): UseMutationResult<{ avatarUrl: string }, Error, { catId: string; file: File }> {
   const queryClient = useQueryClient();
@@ -204,7 +176,6 @@ export function useRemoveCatAvatar(): UseMutationResult<void, Error, { catId: st
   });
 }
 
-// ============================================================== D14/D15 — khảo sát sức khoẻ
 
 export function useHealthSurvey(catId: string | undefined): UseQueryResult<CatHealthSurvey | null> {
   return useQuery({
@@ -213,7 +184,6 @@ export function useHealthSurvey(catId: string | undefined): UseQueryResult<CatHe
       try {
         return await apiFetch<CatHealthSurvey>(`/cats/${catId ?? ""}/health-survey`);
       } catch (error) {
-        // SURVEY_NOT_FOUND (404) = chưa từng khảo sát — không phải lỗi cần hiện ErrorState.
         if (isApiError(error) && error.status === 404) {
           return null;
         }
@@ -241,7 +211,6 @@ export function useSubmitHealthSurvey(
   });
 }
 
-// ============================================================== D16-D19 — ghi chú
 
 export function useCatNotes(catId: string | undefined): UseQueryResult<ListResponse<CatNote>> {
   return useQuery({
@@ -287,7 +256,6 @@ export function useDeleteNote(catId: string, noteId: string): UseMutationResult<
   });
 }
 
-// ============================================================== D20 — dấu hiệu lâm sàng
 
 export function useReportClinicalSigns(
   catId: string,
@@ -305,7 +273,6 @@ export function useReportClinicalSigns(
   });
 }
 
-// ============================================================== F2 — giống mèo
 
 export function useBreeds(): UseQueryResult<BreedListResponse> {
   return useQuery({

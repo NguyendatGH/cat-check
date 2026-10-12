@@ -20,14 +20,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L62 — {@code R:ADMIN_SUPER} + {@code Rsn} kèm {@code incidentId} (p8 §8.4.12).
- *
- * <p>Không bài nào ở đây chạm DB thật, có chủ đích: một lần bấm L62 thật sẽ đá văng mọi
- * phiên đang mở trên DB dùng chung. Phần SQL được chứng minh riêng ở
- * {@code GlobalSessionPurgeIntegrationTest} trên PostgreSQL Testcontainers với dữ liệu của
- * chính bài đó.</p>
- */
 class AdminSecuritySessionControllerTest {
 
     private static final UUID ACTOR = UUID.fromString("0199a1c4-3f7b-7d21-9c88-3ae51f2b6650");

@@ -28,13 +28,6 @@ class CatHealthSurveyRepositoryAdapter implements CatHealthSurveyRepository {
         return jpaRepository.findHistoryByCatId(catId, PageRequest.of(0, Math.max(limit, 1)));
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>"Đã gửi" nghĩa là bản ghi MỚI NHẤT không phải bản bỏ qua — không phải "đã từng gửi bao giờ
-     * chưa". Không có cách viết derived-query cho ngữ nghĩa "chỉ xét bản mới nhất" nên đọc lại bản
-     * mới nhất rồi kiểm tra ở Java, đúng một truy vấn duy nhất.</p>
-     */
     @Override
     public boolean hasSubmittedByCatId(UUID catId) {
         return jpaRepository.findFirstByCatIdOrderByCreatedAtDesc(catId)

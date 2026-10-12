@@ -20,13 +20,6 @@ import { AuthCard } from "./AuthCard";
 
 const INITIAL_RESEND_COOLDOWN_SECONDS = 60;
 
-/**
- * `/auth/forgot-password` (p9 §9.4.3 #5). Backend không có luồng "link trong email" —
- * `p11 §11.2.6`/`PasswordResetService` xác nhận đặt lại mật khẩu đi qua OTP + ticket
- * (giống đăng ký), KHÔNG phải token trong URL như M1 dự tính ban đầu. Màn này vì vậy gộp
- * 2 bước: nhập email -> nhập mã OTP; ticket lấy được mang sang `/auth/reset-password`
- * qua store (không đưa vào query string).
- */
 export function ForgotPasswordPage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
@@ -54,8 +47,6 @@ export function ForgotPasswordPage() {
   });
 
   const onSubmitEmail = async (values: ForgotPasswordFieldValues) => {
-    // A8 luôn 202 kể cả email không tồn tại (không lộ email có đăng ký hay không) — vì
-    // vậy KHÔNG hiện lỗi theo response, luôn chuyển bước tiếp theo.
     await requestReset.mutateAsync(values.email);
     setEmail(values.email);
     setPasswordResetEmail(values.email);

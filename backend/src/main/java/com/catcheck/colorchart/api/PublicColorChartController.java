@@ -20,12 +20,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Danh mục công khai — F1, F5 (p8 §8.4.6).
- *
- * <p>Cả hai endpoint đều {@code public, max-age=300} (p8 §8.1.10) — dữ liệu cấu hình ít đổi và
- * client cần cache để màn hình không phải gọi lại mỗi lần vào app.
- */
 @RestController
 @RequestMapping("/api/v1/reference")
 @Tag(name = "Danh mục công khai", description = "F1, F5 — dải phân loại pH và bảng màu đang ACTIVE")

@@ -18,17 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link EmailOtpRepository} tren {@code JdbcTemplate}.
- *
- * <p>Co mot bat bien o cap DB can giu nguyen: {@code uq_email_otp_active_per_purpose}
- * la unique index cuc bo tren {@code (email, purpose) WHERE consumed_at IS NULL}.
- * No chan hai request gui ma chay song song — ca hai deu "khong co challenge ACTIVE"
- * roi deu thay — nen <b>moi thao tac {@code insert} phai nam trong mot transaction</b>
- * co {@code supersedeActive} chay truoc. Hai lan insert deu duoc, se co mot
- * {@code DuplicateKeyException} la thu hai, va tang {@code attempt_count} de chan
- * thu doan. {@code OtpService} bat buoc co {@code @Transactional} vi chuyen.</p>
- */
 @Repository
 public class JdbcEmailOtpRepository implements EmailOtpRepository {
 
@@ -127,7 +116,6 @@ public class JdbcEmailOtpRepository implements EmailOtpRepository {
 
     @Override
     public int deleteOlderThan(Instant createdBefore) {
-        // p11 §11.2.1: giu 24 gio phuc vu dieu tra brute-force roi job xoa.
         return jdbc.update("DELETE FROM email_otp WHERE created_at < ?", utc(createdBefore));
     }
 

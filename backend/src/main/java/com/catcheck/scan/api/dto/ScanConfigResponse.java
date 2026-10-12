@@ -2,7 +2,6 @@ package com.catcheck.scan.api.dto;
 
 import com.catcheck.scan.application.ScanConfigService;
 
-/** {@code GET /api/v1/scan/config} (p8 §8.4.5 E12, p6 §6.3.4/§6.3.5). */
 public record ScanConfigResponse(
         int maxEdgePx,
         int minEdgePx,

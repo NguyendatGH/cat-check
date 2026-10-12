@@ -19,11 +19,6 @@ import type {
 } from "./types";
 import { SURVEY_QUESTIONNAIRE_VERSION } from "./types";
 
-/**
- * Hooks react-query cho onboarding — mọi call đi qua `apiFetch` (features/onboarding/api.ts)
- * theo hợp đồng p8. W3 nối API thật: thay `apiFetch` bằng `apiClient` + type OpenAPI,
- * hooks không đổi chữ ký.
- */
 
 export function useBreeds(): UseQueryResult<BreedListResponse> {
   return useQuery({
@@ -41,12 +36,6 @@ export function usePhBands(): UseQueryResult<PhBandListResponse> {
   });
 }
 
-/**
- * F6 — định nghĩa bộ câu hỏi khảo sát. Cần phiên đăng nhập (SecurityConfig đặt matcher
- * `/reference/health-survey/**` TRƯỚC `/reference/**` permitAll), nội dung tĩnh theo version
- * nên cache dài. Đây là NGUỒN DUY NHẤT của danh sách câu hỏi/lựa chọn — màn khảo sát không
- * giữ mảng `QUESTION_NAMES` cứng nữa.
- */
 export function useHealthSurveyDefinition(
   version: string = SURVEY_QUESTIONNAIRE_VERSION,
 ): UseQueryResult<HealthSurveyDefinition> {
@@ -119,7 +108,6 @@ export function useActivateCode(): UseMutationResult<ActivationResult, Error, st
         body: JSON.stringify({ code }),
       }),
     onSuccess: () => {
-      // Số dư đã đổi — màn Hoàn tất (và gợi ý lượt thử ở màn này) phải đọc lại, không dùng cache.
       void queryClient.invalidateQueries({ queryKey: ["onboarding", "credit-balance"] });
     },
   });
@@ -148,11 +136,6 @@ interface CatListItem {
   isPrimary?: boolean;
 }
 
-/**
- * D3 `GET /cats` — dùng ở màn Hoàn tất khi store onboarding trống (tải lại trang, mở thẳng
- * `/onboarding/success`): lấy hồ sơ chính (`isPrimary`) thay vì báo "Đã có lỗi xảy ra".
- * Server bỏ key null (`non_null`) nên các field tuỳ chọn khai `?`.
- */
 export function usePrimaryCat(enabled: boolean): UseQueryResult<CreatedCat | null> {
   return useQuery({
     queryKey: ["onboarding", "primary-cat"],

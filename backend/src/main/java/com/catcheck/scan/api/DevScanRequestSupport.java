@@ -13,12 +13,6 @@ import com.catcheck.shared.error.BusinessRuleException;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Chuyển {@link DevManualScanRequest} sang {@link ManualScanCommand} — tách khỏi
- * {@link DevScanController} vì lý do đã ghi ở {@link ScanRequestSupport}: lớp mang
- * {@code @RestController} không được có method nào (kể cả tổng hợp) mang kiểu {@code ..domain..}
- * trong chữ ký (R4).
- */
 final class DevScanRequestSupport {
 
     private DevScanRequestSupport() {
@@ -27,8 +21,6 @@ final class DevScanRequestSupport {
     static ManualScanCommand toCommand(UUID userId, DevManualScanRequest request, String idempotencyKey) {
         UUID catId = request.catId() == null || request.catId().isBlank()
                 ? null : parseUuid(request.catId());
-        // Mặc định suy từ catId: có mèo ⇒ ASSIGNED, không ⇒ SHARED_UNKNOWN. Tránh bắt script
-        // seed phải gửi hai field luôn đi kèm nhau.
         ScanAssignment assignment = request.assignment() == null || request.assignment().isBlank()
                 ? (catId == null ? ScanAssignment.SHARED_UNKNOWN : ScanAssignment.ASSIGNED)
                 : parseEnum(ScanAssignment.class, request.assignment());

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode, type TextareaHTMLAttributes } from "react";
 import { useTranslation } from "react-i18next";
+import { Card as AntCard, Skeleton as AntSkeleton, Statistic } from "antd";
 import { ArrowDown, ArrowUp, ArrowUpDown, RefreshCw, Search, ShieldOff, WifiOff, X } from "lucide-react";
 import { Button, EmptyState, ErrorState, Input, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -8,13 +9,7 @@ import { classifyAdminError } from "./adminAccess";
 import { ariaSortOf, type SortState } from "./tableTools";
 import { shortId } from "./adminFormat";
 
-/**
- * Bộ dựng "bảng dày" cho các trang quản trị: hàng KPI, bảng có header dính, sắp xếp, chọn
- * nhiều, thanh thao tác hàng loạt, và trạng thái tải/trống/lỗi. Chỉ ghép primitive có sẵn
- * của `shared/ui` và token màu của app — không thêm primitive mới.
- */
 
-// ------------------------------------------------------------------- khung
 
 export interface DensePanelProps {
   title: string;
@@ -24,26 +19,31 @@ export interface DensePanelProps {
   className?: string;
 }
 
-/** Khối nội dung mật độ cao: viền mảnh, header gọn, padding 12–16px. */
 export function DensePanel({ title, description, actions, children, className }: DensePanelProps) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={cn("rounded-xl border border-border bg-surface", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <div className="min-w-0">
+    <AntCard
+      role="region"
+      aria-labelledby={headingId}
+      className={cn("shadow-brand-md", className)}
+      title={
+        <div className="py-1">
           <h2 id={headingId} className="text-body font-bold text-text-primary">
             {title}
           </h2>
-          {description !== undefined ? <p className="text-small text-text-secondary">{description}</p> : null}
+          {description !== undefined ? (
+            <p className="text-small font-normal text-text-secondary">{description}</p>
+          ) : null}
         </div>
-        {actions !== undefined ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
-      </div>
-      <div className="flex flex-col gap-3 p-3 sm:p-4">{children}</div>
-    </section>
+      }
+      extra={actions}
+      styles={{ header: { paddingInline: 20 }, body: { padding: 20 } }}
+    >
+      <div className="flex flex-col gap-3">{children}</div>
+    </AntCard>
   );
 }
 
-// ------------------------------------------------------------------- KPI
 
 export type KpiTone = "neutral" | "info" | "success" | "warning" | "danger";
 
@@ -62,22 +62,28 @@ export interface KpiTileProps {
   tone?: KpiTone;
 }
 
-/** Ô số liệu: số dùng font mono + `tabular-nums` để các cột số thẳng hàng. */
 export function KpiTile({ label, value, hint, tone = "neutral" }: KpiTileProps) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-surface px-3 py-2.5">
+    <AntCard size="small" className="relative overflow-hidden shadow-sm transition-all hover:shadow-md" data-admin-kpi>
       <span className={cn("absolute inset-y-0 left-0 w-1", KPI_ACCENT[tone])} aria-hidden="true" />
       <dt className="truncate text-small font-semibold text-text-secondary">{label}</dt>
-      <dd className="pt-0.5 font-mono text-h3 font-bold tabular-nums text-text-primary">{value}</dd>
-      {hint !== undefined ? <dd className="truncate text-small text-text-tertiary">{hint}</dd> : null}
-    </div>
+      <dd className="pt-1 font-mono tabular-nums text-text-primary">
+        <Statistic
+          value={value}
+          styles={{ content: { fontWeight: 800, fontSize: "clamp(1.3rem, 4.5vw, 1.7rem)", lineHeight: 1.2 } }}
+        />
+      </dd>
+      {hint !== undefined ? <dd className="truncate pt-1 text-small text-text-tertiary">{hint}</dd> : null}
+    </AntCard>
   );
 }
 
-/** Hàng KPI trên lưới 12 cột: 2 ô/hàng ở màn hẹp, 4 ô/hàng từ `lg`. */
 export function KpiGrid({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <dl aria-label={label} className="grid grid-cols-2 gap-3 lg:grid-cols-12 lg:[&>*]:col-span-3">
+    <dl
+      aria-label={label}
+      className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 sm:gap-3"
+    >
       {children}
     </dl>
   );
@@ -90,11 +96,6 @@ export interface DistributionSegment {
   tone: KpiTone;
 }
 
-/**
- * Thanh phân bố có chú thích — biểu đồ tối giản cho số liệu phân loại. Không dùng recharts:
- * ESLint của dự án chỉ cho import recharts trong `features/trends` và `features/export`.
- * Chú thích luôn kèm con số, nên không phụ thuộc vào việc phân biệt màu.
- */
 export function DistributionBar({ label, segments }: { label: string; segments: readonly DistributionSegment[] }) {
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
   const summary = segments.map((segment) => `${segment.label}: ${String(segment.value)}`).join(", ");
@@ -131,20 +132,23 @@ export function DistributionBar({ label, segments }: { label: string; segments: 
   );
 }
 
-// ------------------------------------------------------------------- bảng
 
-/** Khung cuộn của bảng: cuộn ngang ở màn hẹp, cuộn dọc để header `sticky` có tác dụng. */
 export function DenseTableFrame({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <div
-      role="region"
-      aria-label={label}
-      // Vùng cuộn phải tới được bằng bàn phím để cuộn ngang/dọc bằng phím mũi tên (WCAG 2.1.1).
-      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-      tabIndex={0}
-      className="max-h-[65vh] overflow-auto rounded-lg border border-border"
-    >
-      {children}
+    <div className="relative flex flex-col">
+      <div
+        role="region"
+        aria-label={label}
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        className="dense-table-frame max-h-[65vh] overflow-auto rounded-lg border border-border"
+      >
+        {children}
+      </div>
+      <p className="mt-1 flex items-center justify-between px-1 text-[11px] text-text-tertiary sm:hidden">
+        <span>Cuộn ngang để xem đầy đủ cột dữ liệu</span>
+        <span aria-hidden="true">↔</span>
+      </p>
     </div>
   );
 }
@@ -163,7 +167,6 @@ export interface SortableThProps<K extends string> {
   className?: string;
 }
 
-/** Tiêu đề cột bấm được để sắp xếp; `aria-sort` đặt trên `<th>` theo đúng ARIA APG. */
 export function SortableTh<K extends string>({ label, sortKey, sort, onSort, className }: SortableThProps<K>) {
   const state = ariaSortOf(sort, sortKey);
   const Icon = state === "ascending" ? ArrowUp : state === "descending" ? ArrowDown : ArrowUpDown;
@@ -190,7 +193,6 @@ export interface CheckboxCellProps {
   disabled?: boolean;
 }
 
-/** Ô chọn dòng / chọn tất cả. `mixed` đặt `indeterminate` qua ref (HTML không có thuộc tính này). */
 export function SelectCheckbox({ checked, onChange, label, disabled = false }: CheckboxCellProps) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -217,7 +219,6 @@ export interface BulkActionBarProps {
   children: ReactNode;
 }
 
-/** Thanh thao tác hàng loạt, chỉ hiện khi có dòng được chọn. */
 export function BulkActionBar({ count, onClear, children }: BulkActionBarProps) {
   const { t } = useTranslation("admin");
   if (count === 0) {
@@ -245,7 +246,6 @@ export function BulkActionBar({ count, onClear, children }: BulkActionBarProps) 
   );
 }
 
-/** Khung xương bảng trong lúc tải — giữ chỗ đúng kích thước để trang không nhảy. */
 export function TableSkeleton({ rows = 6 }: { rows?: number }) {
   const { t } = useTranslation("admin");
   return (
@@ -260,15 +260,16 @@ export function TableSkeleton({ rows = 6 }: { rows?: number }) {
 
 export function KpiSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-hidden="true">
-      {Array.from({ length: 4 }, (_, index) => (
-        <SkeletonLoader key={index} className="h-[72px] rounded-xl" />
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5" aria-hidden="true">
+      {Array.from({ length: 5 }, (_, index) => (
+        <AntCard key={index} size="small">
+          <AntSkeleton active title={{ width: "70%" }} paragraph={{ rows: 1, width: "45%" }} />
+        </AntCard>
       ))}
     </div>
   );
 }
 
-// ------------------------------------------------------------------- ô nhập
 
 export function SearchField({
   label,
@@ -304,7 +305,6 @@ export interface TextAreaFieldProps extends Omit<TextareaHTMLAttributes<HTMLText
   helperText?: string;
 }
 
-/** `<textarea>` có nhãn `htmlFor` và mô tả lỗi — `shared/ui` chưa có Textarea. */
 export function TextAreaField({
   label,
   value,
@@ -353,9 +353,7 @@ export function TextAreaField({
   );
 }
 
-// ------------------------------------------------------------------- hiển thị
 
-/** UUID/hash rút gọn, giá trị đầy đủ ở `title` để rê chuột xem. */
 export function MonoId({ value, chars = 8 }: { value: string | null | undefined; chars?: number }) {
   return (
     <code title={value ?? undefined} className="font-mono text-small text-text-secondary">
@@ -364,7 +362,6 @@ export function MonoId({ value, chars = 8 }: { value: string | null | undefined;
   );
 }
 
-/** Danh sách nhãn–giá trị dạng lưới cho khung chi tiết. */
 export function DetailGrid({ items }: { items: readonly (readonly [string, ReactNode])[] }) {
   return (
     <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
@@ -378,9 +375,7 @@ export function DetailGrid({ items }: { items: readonly (readonly [string, React
   );
 }
 
-// ------------------------------------------------------------------- trạng thái
 
-/** Trang/khối mà người dùng không có vai trò để xem. */
 export function AccessDeniedState({ description }: { description?: string }) {
   const { t } = useTranslation("admin");
   return (
@@ -392,10 +387,6 @@ export function AccessDeniedState({ description }: { description?: string }) {
   );
 }
 
-/**
- * Lỗi của một truy vấn: 401/403 → thông báo quyền (không có nút thử lại, thử lại cũng vô
- * ích); mất mạng → nút thử lại; 412 → nút tải lại; còn lại → thông điệp server + mã lỗi.
- */
 export function AdminQueryError({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useTranslation("admin");
   const kind = classifyAdminError(error);
@@ -433,10 +424,6 @@ export function AdminQueryError({ error, onRetry }: { error: unknown; onRetry?: 
   );
 }
 
-/**
- * Lỗi của một thao tác ghi, hiện ngay dưới form. 412 có nút "Tải lại" để lấy ETag mới;
- * 401/403 nói rõ là thiếu quyền; mất mạng nói rõ là mất mạng.
- */
 export function MutationErrorNote({ error, onReload }: { error: unknown; onReload?: () => void }) {
   const { t } = useTranslation("admin");
   if (error === null || error === undefined) {

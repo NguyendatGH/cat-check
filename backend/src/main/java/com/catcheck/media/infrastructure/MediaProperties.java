@@ -7,24 +7,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Set;
 
-/**
- * Cấu hình backend lưu trữ {@code LOCAL}.
- *
- * <p>A3 không được sửa {@code application.yml} (không thuộc phạm vi sở hữu file), nên mọi
- * thuộc tính đều có {@link DefaultValue} để ứng dụng vẫn khởi động được. Ở môi trường thật,
- * W3 phải khai {@code catcheck.storage.local.*} cho từng profile — đặc biệt
- * {@link #urlSigningKey()}, xem {@code docs/handovers/A3.md}.</p>
- *
- * @param root                 thư mục gốc chứa tệp; đường dẫn tương đối được phép (mặc định
- *                             nằm cạnh JAR để chạy dev được ngay)
- * @param publicBaseUrl        tiền tố URL mà {@code presignedUrl} ghép vào
- * @param urlSigningKey        khoá HMAC ký URL có hạn. RỖNG ⇒ {@code presignedUrl} ném lỗi
- *                             thay vì phát URL không ký.
- * @param maxImageBytes        trần kích thước một ảnh — bằng trần nghiệp vụ lớn nhất (scan 8 MB,
- *                             {@code ScanThresholds.MAX_UPLOAD_BYTES}); avatar tự giữ trần 5 MB riêng
- * @param allowedContentTypes  MIME type được chấp nhận
- * @param stagingTtl           thời gian sống của ảnh staging chưa chốt
- */
 @ConfigurationProperties(prefix = "catcheck.storage.local")
 public record MediaProperties(
         @DefaultValue("./data/media") Path root,

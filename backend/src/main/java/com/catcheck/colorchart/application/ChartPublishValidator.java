@@ -11,41 +11,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Kiểm tra điều kiện publish bảng màu (p6 §6.6.2) — chặn ở tầng service, không chỉ ở UI.
- *
- * <p>Bốn điều kiện, tất cả đều bắt buộc:
- * <ol>
- *   <li>Bảng {@code ACTIVE} phải có <b>≥ 4 mức</b>.</li>
- *   <li>Phải <b>phủ cả 6.3 và 6.6</b> — hai mốc phân loại của quyết định #6.</li>
- *   <li>Hai mức liền kề phải cách nhau <b>≥ 3 ΔE00</b> — nếu gần hơn thì camera không phân
- *       biệt được.</li>
- *   <li>{@code sort_order} phải cùng chiều với {@code ph_value}.</li>
- * </ol>
- *
- * <p>ΔE00 lấy từ {@code scan.domain.color} — module colorchart phụ thuộc scan (xem
- * {@code package-info}). Tham số kL/kC/kH đọc từ {@code color_chart.params} (JSONB) để
- * validation dùng <b>đúng</b> bộ tham số mà pipeline sẽ dùng, không phải bộ riêng.
- */
 @Component
 public class ChartPublishValidator {
 
-    /** Số mức tối thiểu (p6 §6.6.2). */
     public static final int MIN_POINTS = 4;
 
-    /** Khoảng cách ΔE00 tối thiểu giữa hai mức liền kề (p6 §6.6.2). */
     public static final double MIN_ADJACENT_DELTA_E00 = 3.0;
 
-    /** Hai mốc phân loại bắt buộc phải phủ (quyết định #6). */
     public static final double REQUIRED_PH_LOW = 6.3;
     public static final double REQUIRED_PH_HIGH = 6.6;
 
-    /**
-     * Kết quả kiểm tra.
-     *
-     * @param valid      bảng đủ điều kiện publish
-     * @param violations danh sách lỗi (rỗng nếu {@code valid})
-     */
     public record Result(boolean valid, List<String> violations) {
 
         public static Result ok() {
@@ -57,12 +32,6 @@ public class ChartPublishValidator {
         }
     }
 
-    /**
-     * Kiểm tra một bảng màu trước khi publish.
-     *
-     * @param chart  bảng cần kiểm (phải ở trạng thái {@code DRAFT})
-     * @param points các mức pH, đã sắp theo {@code sort_order}
-     */
     public Result validate(ColorChart chart, List<ColorChartPoint> points) {
         List<String> violations = new ArrayList<>();
 
@@ -85,7 +54,6 @@ public class ChartPublishValidator {
             violations.add("MISSING_PH_6_6");
         }
 
-        // sort_order phải đơn điệu theo ph_value (ràng buộc nghiệp vụ, không ép bằng CHECK đơn dòng).
         for (int i = 1; i < points.size(); i++) {
             if (points.get(i).getPhValue().compareTo(points.get(i - 1).getPhValue()) <= 0) {
                 violations.add("SORT_ORDER_NOT_MONOTONIC");
@@ -107,10 +75,6 @@ public class ChartPublishValidator {
         return violations.isEmpty() ? Result.ok() : Result.fail(violations);
     }
 
-    /**
-     * Đọc bộ tham số ΔE00 từ {@code color_chart.params}. Mặc định của sản phẩm là
-     * {@code kL=2, kC=1, kH=1} (p6 §6.5.1 S8) — nếu JSONB thiếu khoá thì dùng mặc định này.
-     */
     public DeltaE2000Params parseParams(ColorChart chart) {
         Map<String, Object> params = chart.getParams();
         if (params == null) {

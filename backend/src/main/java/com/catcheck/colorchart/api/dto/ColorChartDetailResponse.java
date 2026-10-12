@@ -4,9 +4,6 @@ import com.catcheck.colorchart.application.ColorChartAdminService.ColorChartDeta
 
 import java.util.List;
 
-/**
- * Chi tiết bảng màu + toàn bộ điểm (L29).
- */
 public record ColorChartDetailResponse(
         String id,
         String code,

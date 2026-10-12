@@ -3,15 +3,6 @@ package com.catcheck.export.application;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 
-/**
- * Dựng chuỗi XHTML cho hồ sơ PDF, đúng thứ tự khối bắt buộc của p13 §13.3: (1) bìa, (2) disclaimer
- * PDF-HEADER + EMERGENCY, (3) tóm tắt, (4) biểu đồ, (5) bảng chi tiết, (6) giải thích phương pháp,
- * (7) chân trang mọi trang (CSS {@code running()} — GCPM mà openhtmltopdf hỗ trợ, p13 §13.7).
- *
- * <p>Câu chữ disclaimer (PDF-HEADER/EMERGENCY/PDF-FOOTER) chép NGUYÊN VĂN từ p15 §15.7.3 — p13
- * §13.3 Khối 2 bắt buộc "dùng nguyên văn, không viết lại". Đây là bản nháp owner/luật sư chưa
- * duyệt cuối cùng (ghi rõ trong p15), nhưng là bản DUY NHẤT có trong SPEC — không tự viết lại.</p>
- */
 final class PdfDocumentBuilder {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -47,7 +38,6 @@ final class PdfDocumentBuilder {
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><style>").append(css()).append("</style></head><body>");
 
-        // Chân trang mọi trang - phần tử position:running(), CSS Paged Media (p13 §13.7).
         html.append("<div id=\"pdf-footer\">")
                 .append("<div class=\"footer-line1\">").append(PDF_FOOTER_LINE1)
                 .append(" | Xuất ngày ").append(escape(data.generatedAtLocal().format(DATE_FMT)))

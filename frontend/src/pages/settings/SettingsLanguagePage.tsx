@@ -5,18 +5,6 @@ import { cn } from "@/shared/lib/cn";
 import { SUPPORTED_LOCALES } from "@/shared/config/constants";
 import { useProfile, useUpdateProfile } from "@/features/auth";
 
-/**
- * `/settings/language` — ngôn ngữ hiển thị.
- *
- * Đổi ngôn ngữ làm HAI việc, không chỉ một:
- *   1. `i18n.changeLanguage` — đổi ngay giao diện (i18next tự lưu vào localStorage theo
- *      cấu hình `detection.caches` ở `shared/i18n/i18n.ts`);
- *   2. `PATCH /users/me { locale }` — để email/thông báo server gửi đi cũng đúng ngôn ngữ.
- *      Cột `app_user.locale` có CHECK chỉ nhận 'vi' | 'en'.
- * Nếu bước 2 lỗi thì giao diện vẫn đổi và báo rõ là mới chỉ đổi trên thiết bị này.
- *
- * Trang nằm trong `TaskLayout`: layout cấp `px-4 py-6` + hộp 944px, trang không tự thêm.
- */
 export function SettingsLanguagePage() {
   const { t, i18n } = useTranslation("settings");
   const queryClient = useQueryClient();
@@ -89,7 +77,6 @@ export function SettingsLanguagePage() {
           );
         })}
 
-        {/* Vùng thông báo chỉ chiếm chỗ khi có nội dung — để trống thì thẻ không bị dư đáy. */}
         <p aria-live="polite" className="text-caption empty:hidden">
           {updateProfile.isError ? (
             <span className="flex items-start gap-1.5 text-warning-text">

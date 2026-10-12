@@ -20,34 +20,9 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Đường nhập scan THỦ CÔNG (dev-only) — bản song song tối giản của {@link SubmitScanService}
- * cho trường hợp "đã biết pH, không có ảnh".
- *
- * <p><b>Dùng lại nguyên đường ghi thật:</b> mọi thứ sau khi có {@link PipelineOutcome} đều đi
- * qua {@link ScanPersistenceService#persist} y hệt đường {@code POST /scans} — tức là vẫn một
- * transaction cho {@code scan} + {@code scan_analysis} + trừ credit FEFO, vẫn ghi
- * {@code credit_ledger}, vẫn phát {@code ScanSavedEvent} (health flag R1–R4), vẫn đánh dấu
- * mốc onboarding. Không nhánh nào ở đây tự ghi DB.
- *
- * <p><b>Khác {@link SubmitScanService} ở đúng ba điểm:</b> (1) không chạy
- * {@link ColorPipelineService} mà gọi {@link ManualPipelineOutcomeFactory}; (2) không lưu ảnh —
- * truyền {@code storeImageAllowed = false} nên {@code store_image_reason} luôn có giá trị theo
- * đúng CHECK của p4 D1; (3) chỉ đòi credit khi kết quả KHÔNG phải {@code INCONCLUSIVE}, vì ở
- * đây kết quả đã biết trước khi chạm DB (đường ảnh phải chặn sớm để không tốn CPU pipeline).
- *
- * <p>Không có {@code @Transactional} ở lớp này — transaction duy nhất mở ở
- * {@link ScanPersistenceService} (R12), giống {@link SubmitScanService}.
- */
 @Service
 public class ManualScanIngestService {
 
-    /**
-     * {@link SubmitScanCommand} có bất biến "{@code imageBytes} không rỗng" — bất biến ĐÚNG cho
-     * đường ảnh và không được nới ra. Đường nhập tay không có ảnh, mà
-     * {@link ScanPersistenceService#persist} không hề đọc {@code imageBytes}, nên truyền một
-     * byte giữ chỗ là cách dùng lại được record đó mà không làm yếu kiểm tra của đường thật.
-     */
     private static final byte[] NO_IMAGE = new byte[] {0};
 
     private final ScanRepository scanRepository;
@@ -74,7 +49,6 @@ public class ManualScanIngestService {
         this.clock = clock;
     }
 
-    /** Gọi lại cùng {@code idempotencyKey} trả nguyên kết quả cũ, KHÔNG trừ credit lần hai (p5 R8). */
     public ScanSubmitResult ingest(ManualScanCommand cmd) {
         Optional<ScanSubmitResult> replay = tryReplay(cmd.userId(), cmd.idempotencyKey());
         if (replay.isPresent()) {
@@ -137,8 +111,6 @@ public class ManualScanIngestService {
         if (capturedAt == null) {
             throw new BusinessRuleException(ScanErrorCode.SCAN_METADATA_INVALID);
         }
-        // Cùng cửa sổ +2h như đường ảnh (p4 D1 CHECK ck_scan_captured_at). Lùi về quá khứ không
-        // giới hạn là CHỦ Ý: dựng 60–90 ngày lịch sử demo chính là mục đích của lớp này.
         if (capturedAt.isAfter(clock.instant().plusSeconds(2 * 3600L))) {
             throw new BusinessRuleException(ScanErrorCode.SCAN_METADATA_INVALID);
         }

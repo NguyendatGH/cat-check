@@ -10,14 +10,6 @@ import { mapTilesUrl } from "@/shared/config/env";
 import { validCoordinates, type UserLocation } from "./location";
 import { KIND_ICON, KIND_PIN_CLASS, type ViewPlace } from "./placeView";
 
-/**
- * Bản đồ MapLibre dùng chung cho `/map` và mini-map ở chi tiết cơ sở.
- *
- * Tile: OSM raster mặc định, thay provider qua `VITE_MAP_TILES_URL`. Ghim lấy đúng
- * `latitude/longitude` của `GET /places`; cơ sở thiếu toạ độ hợp lệ thì không vẽ ghim.
- * Khung nhìn tự `fitBounds` theo các ghim đang hiển thị (+ vị trí người dùng nếu đã cấp quyền),
- * nên ghim không bị dồn cục ở zoom thành phố.
- */
 
 const DEFAULT_MAP_TILE_TEMPLATES = ["https://tile.openstreetmap.de/{z}/{x}/{y}.png"];
 const mapTileTemplates = mapTilesUrl ? [`${mapTilesUrl}/{z}/{x}/{y}.png`] : DEFAULT_MAP_TILE_TEMPLATES;
@@ -38,7 +30,6 @@ const MAP_STYLE: StyleSpecification = {
 
 const MAPLIBRE_WORKER_URL = "/maplibre/maplibre-gl-worker.mjs";
 
-/** Trung tâm mặc định khi chưa có ghim nào (đang tải / danh sách rỗng): TP. Thủ Đức. */
 const FALLBACK_CENTER = { latitude: 10.804, longitude: 106.735 };
 const PLACE_ZOOM = 15;
 
@@ -49,10 +40,8 @@ interface PlaceMapProps {
   activeId?: string;
   userLocation?: UserLocation | null;
   onSelect?: (id: string) => void;
-  /** Có thì vẽ nút "về vị trí hiện tại" trên bản đồ. */
   onLocate?: () => void;
   isLocating?: boolean;
-  /** `active`: chỉ ghim đang chọn mới có nhãn tên (màn hẹp, tránh nhãn đè nhau). */
   labels?: "all" | "active";
   interactive?: boolean;
   fitPadding?: PaddingOptions;
@@ -82,7 +71,6 @@ export function PlaceMap({
   const plotted = places.filter((place) => validCoordinates(place.latitude, place.longitude));
   const points: Point[] = plotted.map((place) => [place.longitude, place.latitude]);
   if (userLocation) points.push([userLocation.longitude, userLocation.latitude]);
-  // Khoá dạng chuỗi: chỉ fit lại khi TẬP ghim đổi (lọc, tìm kiếm, có vị trí), không phải mỗi lần render.
   const boundsKey = JSON.stringify(points);
   const paddingKey = JSON.stringify(fitPadding);
 

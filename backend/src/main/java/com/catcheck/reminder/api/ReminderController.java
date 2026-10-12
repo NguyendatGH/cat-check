@@ -27,7 +27,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
-/** Nhóm I — Lịch nhắc theo dõi (p8 §8.4.9, 6 endpoint I1–I6). */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Reminder", description = "Lịch nhắc quét cát định kỳ và nhắc cấp tài khoản")
@@ -39,7 +38,6 @@ public class ReminderController {
         this.service = service;
     }
 
-    /** I1 — {@code GET /reminders}. */
     @Operation(operationId = "listReminders", summary = "Danh sách lịch nhắc",
             description = "Lọc tuỳ chọn theo `catId` và `active`.")
     @GetMapping("/reminders")
@@ -53,7 +51,6 @@ public class ReminderController {
         return new ReminderListResponse(items);
     }
 
-    /** I2 — {@code POST /reminders}. */
     @Operation(operationId = "createReminder", summary = "Tạo lịch nhắc",
             description = "`INTERVAL` (mỗi N ngày) hoặc `RRULE` (RFC 5545).")
     @PostMapping("/reminders")
@@ -69,14 +66,12 @@ public class ReminderController {
                 .body(ReminderResponse.from(created));
     }
 
-    /** I3 — {@code GET /reminders/{reminderId}}. */
     @Operation(operationId = "getReminder", summary = "Chi tiết một lịch nhắc")
     @GetMapping("/reminders/{reminderId}")
     public ReminderResponse detail(@CurrentUser SecurityPrincipal user, @PathVariable UUID reminderId) {
         return ReminderResponse.from(service.detail(user.userId(), reminderId));
     }
 
-    /** I4 — {@code PATCH /reminders/{reminderId}}. */
     @Operation(operationId = "patchReminder", summary = "Sửa / bật / tắt lịch nhắc",
             description = "Merge-patch RFC 7396: field vắng mặt nghĩa là không đổi.")
     @PatchMapping(path = "/reminders/{reminderId}",
@@ -91,7 +86,6 @@ public class ReminderController {
                 request.channels(), request.active())));
     }
 
-    /** I5 — {@code DELETE /reminders/{reminderId}}. Xoá mềm. */
     @Operation(operationId = "deleteReminder", summary = "Xoá lịch nhắc")
     @DeleteMapping("/reminders/{reminderId}")
     public ResponseEntity<Void> delete(@CurrentUser SecurityPrincipal user, @PathVariable UUID reminderId) {
@@ -99,14 +93,6 @@ public class ReminderController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * I6 — {@code GET /reminders/{reminderId}/calendar.ics}.
-     *
-     * <p>File .ics TĨNH (p12 §12.5.6, C24): chỉ chứa một VEVENT ở mốc {@code nextRunAt}, KHÔNG
-     * sinh chuỗi lặp. Lý do: {@code nextRunAt} được tính lại sau mỗi lần user quét (nhắc từ mốc
-     * quét, không nhắc cứng theo lịch — p4 F1), nên một RRULE xuất ra đây sẽ lệch khỏi lịch thật
-     * ngay lần quét kế tiếp. Người dùng tải lại file khi cần mốc mới.</p>
-     */
     @Operation(operationId = "getReminderCalendar", summary = "Tải file .ics thêm vào lịch")
     @GetMapping(path = "/reminders/{reminderId}/calendar.ics", produces = "text/calendar")
     public ResponseEntity<String> calendar(

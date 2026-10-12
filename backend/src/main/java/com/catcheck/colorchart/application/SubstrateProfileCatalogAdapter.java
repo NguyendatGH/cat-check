@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-/** Nối profile nền cát của colorchart vào cổng hiệu chỉnh màu do scan khai báo. */
 @Component
 public class SubstrateProfileCatalogAdapter implements SubstrateProfileCatalog {
 

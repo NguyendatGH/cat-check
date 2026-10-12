@@ -24,9 +24,5 @@ public interface AiKnowledgePort {
 
     int syncPublishedCareTips();
 
-    /**
-     * Gỡ nội dung tự do ({@code ai_message.content}, cả câu hỏi lẫn câu trả lời) khỏi mọi hội thoại
-     * của {@code userId}; giữ dòng. Trả số tin nhắn đã gỡ. Xem {@code AiErasureParticipant}.
-     */
     int eraseConversationContent(UUID userId);
 }

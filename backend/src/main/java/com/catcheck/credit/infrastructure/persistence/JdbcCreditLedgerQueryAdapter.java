@@ -12,14 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * {@link CreditLedgerQueryPort} trên {@code JdbcTemplate} — lịch sử giao dịch, phân trang
- * keyset.
- *
- * <p>Đọc thêm một dòng dư ( {@code limit + 1} ) để biết {@code hasMore} mà không cần câu
- * {@code COUNT(*)} thứ hai — câu đếm toàn bảng trên bảng chỉ-INSERT là tệ nhất và không cần
- * thiết cho keyset pagination.</p>
- */
 @Repository
 public class JdbcCreditLedgerQueryAdapter implements CreditLedgerQueryPort {
 
@@ -31,7 +23,6 @@ public class JdbcCreditLedgerQueryAdapter implements CreditLedgerQueryPort {
              WHERE l.user_id = ?
             """;
 
-    /** Lấy tối đa 100 dòng một trang — trần cứng, không phụ thuộc tham số client. */
     private static final int HARD_LIMIT = 100;
 
     private final JdbcTemplate jdbc;
@@ -40,16 +31,6 @@ public class JdbcCreditLedgerQueryAdapter implements CreditLedgerQueryPort {
         this.jdbc = jdbc;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Điều kiện keyset {@code (created_at, id) < (sortKey, idKey)} tương đương
-     * {@code created_at < ? OR (created_at = ? AND id < ?)} — dùng dạng so sánh tuple để điều
-     * kiện vẫn dùng được index {@code ix_credit_ledger_user_created}.</p>
-     *
-     * <p>Luôn có {@code WHERE l.user_id = ?}: không có đường nào đọc được dòng của người khác
-     * (bất biến I14).</p>
-     */
     @Override
     public LedgerPage findByUser(UUID userId, LedgerCursor cursor, int limit) {
         int fetchSize = Math.min(limit + 1, HARD_LIMIT + 1);
@@ -84,14 +65,6 @@ public class JdbcCreditLedgerQueryAdapter implements CreditLedgerQueryPort {
         return new LedgerPage(entries, hasMore, nextCursor);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Hai câu riêng ({@code COUNT(*)} rồi trang dữ liệu) là chi phí mà chế độ offset bắt buộc
-     * phải trả — p8 §8.1.4 đã chấp nhận nó cho các bảng admin. Câu đếm cố ý <b>không</b> JOIN
-     * {@code credit_batch}: {@code package_code} chỉ để hiển thị, không ảnh hưởng con số, nên
-     * {@code LEFT JOIN} trong câu đếm là một lần quét bảng thừa.</p>
-     */
     @Override
     public LedgerOffsetPage findByUserForAdmin(UUID userId, int offset, int limit) {
         int safeLimit = Math.clamp(limit, 1, HARD_LIMIT);

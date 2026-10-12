@@ -5,21 +5,6 @@ import com.catcheck.shared.error.ErrorCode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Dang ky {@link IdentityErrorCode} vao {@code shared.error.ErrorCodeRegistry}.
- *
- * <p><b>Tai sao khong the dung {@code @Bean List<ErrorCode>}</b>: {@code ErrorCodeRegistry}
- * nhan {@code List<ErrorCode>} qua constructor, va Spring gom <b>moi bean co kieu
- * {@code ErrorCode}</b> vao danh sach do. Mot {@code @Bean List<ErrorCode>} tra ve
- * {@code List}, khong phai {@code ErrorCode}, nen <b>khong bao gio</b> duoc gom — va neu
- * nhieu module cung tra bien do thi con khong con bean dinh danh duy nhat. Do vay moi
- * module dang ky <b>tung hang</b> {@link IdentityErrorCode} nhu mot bean {@code ErrorCode}
- * ({@code ErrorCodeRegistry} se tu gop tat ca).</p>
- *
- * <p>Doi voi {@code credit}/{@code content}/{@code media} (A2/A3/A4): ho chua dang ky
- * nen registry hien chi thay ma cua identity. Cac module do chua co trung ma nen
- * registry van pass. Xem {@code docs/handovers/A1.md}.</p>
- */
 @Configuration
 public class IdentityErrorCodeConfiguration {
 

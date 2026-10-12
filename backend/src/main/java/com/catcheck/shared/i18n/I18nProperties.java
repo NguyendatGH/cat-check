@@ -8,10 +8,6 @@ import org.springframework.validation.annotation.Validated;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Cấu hình i18n bắt buộc — thiếu biến bắt buộc thì app KHÔNG khởi động (fail-fast), theo đúng
- * nguyên tắc "validate config bằng @ConfigurationProperties + @Validated" ở p7.
- */
 @ConfigurationProperties(prefix = "catcheck.i18n")
 @Validated
 public record I18nProperties(

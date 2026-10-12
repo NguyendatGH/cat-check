@@ -1,13 +1,3 @@
-/**
- * MSW handlers cho `features/credit` — chế độ degraded khi backend chưa nối (W1 song song).
- * Hợp đồng khớp DTO thật `backend/.../credit/api/dto/*.java` (p8 §8.4.8 H1-H4).
- *
- * Endpoint mock:
- *  - POST /api/v1/activations         (H1)
- *  - GET  /api/v1/credits/balance     (H2)
- *  - GET  /api/v1/credits/ledger      (H3)
- *  - GET  /api/v1/entitlements/me     (H4)
- */
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";
 import type { ActivationResult, CreditBalance, CreditBatch, Entitlement, LedgerEntry } from "./types";
@@ -21,7 +11,6 @@ interface MockActivationCode {
   status: "ACTIVE" | "REDEEMED" | "EXPIRED";
 }
 
-/** Bao gồm ví dụ `CC-PLUS-7K3M9QX2RT` của p5 §5.9 để demo khớp tài liệu. */
 const ACTIVATION_CODES: MockActivationCode[] = [
   {
     code: "CCPLUS7K3M9QX2RT",
@@ -87,9 +76,6 @@ function problem(status: number, code: string, detail: string, extra?: Record<st
       status,
       detail,
       instance: "",
-      // Tên field là `errorCode`, KHÔNG phải `code`: `GlobalExceptionHandler` của backend gọi
-      // `problemDetail.setProperty("errorCode", ...)`. Mock từng phát `code` nên khớp với
-      // wrapper client cũng đang đọc sai — hai cái sai che nhau, chỉ lộ ra khi chạy server thật.
       errorCode: code,
       ...extra,
     },

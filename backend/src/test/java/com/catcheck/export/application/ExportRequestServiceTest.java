@@ -25,19 +25,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * <b>Hồi quy H15.76 — {@code POST /exports} không được kẹt ở {@code QUEUED}.</b>
- *
- * <p>Bản lỗi gọi {@code exportExecutor.execute(...)} ngay trong {@code @Transactional}: worker
- * đọc {@code export_job} trước khi {@code INSERT} commit, không thấy dòng nào, bỏ chạy. Dòng ở
- * lại {@code QUEUED} vĩnh viễn và — vì p4 G1 I25 chỉ cho một job
- * {@code QUEUED}/{@code RUNNING} mỗi user — khoá luôn mọi lần export sau bằng
- * {@code 409 EXPORT_JOB_IN_PROGRESS}.</p>
- *
- * <p>Test dựng lại đúng ranh giới đó bằng {@code TransactionSynchronizationManager}: trong khi
- * "transaction" còn mở, worker <b>chưa được</b> chạy; chỉ sau {@code afterCommit} nó mới chạy,
- * và lúc đó dòng đã đọc được.</p>
- */
 class ExportRequestServiceTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
@@ -49,7 +36,6 @@ class ExportRequestServiceTest {
     private final List<Runnable> submitted = new ArrayList<>();
     private boolean exportEnabled = true;
 
-    /** Chạy ngay khi được submit — thứ tự trong test vì thế là thứ tự thật, không phải tình cờ. */
     private final TaskExecutor directExecutor = command -> {
         submitted.add(command);
         command.run();
@@ -134,7 +120,6 @@ class ExportRequestServiceTest {
     void aSecondExportIsRejectedWhileTheFirstIsStillActive() {
         beginTransaction();
         requestService.request(command());
-        // KHÔNG commit: dòng thứ nhất còn QUEUED.
 
         assertThatThrownBy(() -> requestService.request(command()))
                 .isInstanceOf(ConflictException.class)
@@ -163,7 +148,6 @@ class ExportRequestServiceTest {
         commitTransaction();
     }
 
-    // ------------------------------------------------------------------ dàn dựng
 
     private ExportRequestCommand command() {
         return new ExportRequestCommand(USER_ID, CAT_ID, LocalDate.of(2026, 9, 4),

@@ -13,10 +13,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * {@link SecurityIncidentPort} trên {@code JdbcTemplate}. Bảng bị REVOKE DELETE (V6) nhưng
- * UPDATE được — adapter có save + update, không có delete.
- */
 @Repository
 public class JdbcSecurityIncidentAdapter implements SecurityIncidentPort {
 
@@ -128,8 +124,6 @@ public class JdbcSecurityIncidentAdapter implements SecurityIncidentPort {
     @Override
     public List<SecurityIncident> findForAdmin(IncidentSeverity severity, Boolean unresolved,
                                                int offset, int limit) {
-        // Dùng mệnh đề cố định + tham số nullable thay vì nối chuỗi WHERE động: một câu SQL
-        // duy nhất nên không có nhánh nào chưa bao giờ được chạy thật.
         return jdbc.query("""
                 SELECT\s""" + COLUMNS + """
                   FROM security_incident

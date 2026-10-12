@@ -1,11 +1,5 @@
-/**
- * Hằng số đường dẫn cho TOÀN BỘ 80 route (p9 §9.4.3, đã hoà giải, THẮNG p19 — xem
- * ghi chú "80 route" trong báo cáo M0). KHÔNG hardcode literal path ở nơi khác —
- * luôn import từ đây.
- *
- * Route có :param giữ nguyên cú pháp react-router (dùng trực tiếp làm `path` trong
- * router.tsx, hoặc generatePath()/Link để build URL thật khi cần).
- */
+import { LANDING_PATHS } from "@/shared/auth/landing";
+
 export const ROUTE_PATTERNS = {
   home: "/",
   login: "/auth/login",
@@ -28,7 +22,7 @@ export const ROUTE_PATTERNS = {
   onboardingDisclaimer: "/onboarding/disclaimer",
   onboardingActivate: "/onboarding/activate",
   onboardingSuccess: "/onboarding/success",
-  dashboard: "/dashboard",
+  dashboard: LANDING_PATHS.buyer,
   assistant: "/assistant",
   selectCat: "/scan/select-cat",
   scan: "/scan",
@@ -58,7 +52,7 @@ export const ROUTE_PATTERNS = {
   settingsLanguage: "/settings/language",
   accountPrivacy: "/account/privacy",
   install: "/install",
-  adminDashboard: "/admin",
+  adminDashboard: LANDING_PATHS.admin,
   adminUsers: "/admin/users",
   adminUserDetail: "/admin/users/:userId",
   adminActivationCodes: "/admin/activation-codes",
@@ -69,7 +63,7 @@ export const ROUTE_PATTERNS = {
   adminPrivacyRequests: "/admin/privacy/requests",
   adminPrivacyRetention: "/admin/privacy/retention",
   adminPlaces: "/admin/places",
-  adminCommunityReports: "/admin/community/reports",
+  adminCommunityReports: LANDING_PATHS.moderator,
   adminSetup2fa: "/admin/setup-2fa",
   adminMeSecurity: "/admin/me/security",
   adminStaff: "/admin/staff",
@@ -82,7 +76,7 @@ export const ROUTE_PATTERNS = {
   adminSecurity: "/admin/security",
   adminPolicyVersions: "/admin/policy-versions",
   adminPrivacyConsents: "/admin/privacy/consents",
-  sellerDashboard: "/seller",
+  sellerDashboard: LANDING_PATHS.seller,
   sellerProducts: "/seller/products",
   sellerColorChart: "/seller/color-chart",
   sellerContent: "/seller/content",

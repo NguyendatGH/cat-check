@@ -9,7 +9,6 @@ export interface EmptyStateProps {
   className?: string;
 }
 
-/** EmptyState — icon/title/description/action. Dùng cho danh sách rỗng và placeholder trang M0. */
 export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
     <div className={cn("flex flex-col items-center gap-3 px-6 py-12 text-center", className)}>

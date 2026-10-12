@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/** HTTP adapter for OpenAI-compatible chat-completions APIs. */
 @Component
 public class OpenAiCompatibleClient implements AiProviderPort {
 
@@ -50,8 +49,6 @@ public class OpenAiCompatibleClient implements AiProviderPort {
             Object content = message.get("content");
             return content instanceof String text && !text.isBlank() ? Optional.of(text.strip()) : Optional.empty();
         } catch (RuntimeException ignored) {
-            // A configured provider is an enhancement; the grounded local fallback still keeps
-            // the chatbot usable during local development and provider outages.
             return Optional.empty();
         }
     }

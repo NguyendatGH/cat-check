@@ -4,7 +4,6 @@ import { QueryProvider } from "./QueryProvider";
 import { SessionProvider } from "./SessionProvider";
 import { ToastProvider } from "./ToastProvider";
 
-/** Gộp toàn bộ provider gốc, thứ tự: i18n -> query -> session (chặn render tới khi biết phiên) -> toast. */
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <I18nProvider>

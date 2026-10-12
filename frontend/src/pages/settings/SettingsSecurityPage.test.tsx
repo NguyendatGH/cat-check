@@ -4,11 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsSecurityPage } from "./SettingsSecurityPage";
 
-/**
- * Khoá cache của trạng thái TOTP là `["auth", "totp-status"]` (`useTotpStatus`). Trang từng
- * invalidate `["auth", "totp"]` — khoá đó KHÔNG là tiền tố của `totp-status` (so khớp theo phần
- * tử mảng), nên sau khi tắt/bật 2FA nhãn trạng thái đứng im ở giá trị cũ.
- */
 vi.mock("@/features/auth/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),

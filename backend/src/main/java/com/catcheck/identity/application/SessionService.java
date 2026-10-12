@@ -29,13 +29,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Quan ly phien (p8 A7 + A13) va doi mat khau (p8 B6).
- *
- * <p>Phien HTTP that su nam o Spring Session; {@code user_device_session} la ban sao de
- * hien thi. {@link #listSessions} doc ban sao, {@link #revokeSession} ghi thu hoi vao
- * ca hai — xem {@code docs/handovers/A1.md} ve phan cai dat Spring Session.</p>
- */
 @Service
 public class SessionService {
 
@@ -78,12 +71,9 @@ public class SessionService {
         this.clock = clock;
     }
 
-    /** A13 {@code GET /auth/sessions}. */
     public List<SessionView> listSessions(UUID userId) {
         Instant now = clock.instant();
         String currentHash = sessionGateway.currentSessionIdHash().orElse(null);
-        // Chi hien phien con song that (dong ban sao cua phien da het han khong con la "thiet bi
-        // dang dang nhap") — cung nguon voi gioi han phien dong thoi o LoginService.
         java.util.Set<String> live = sessionRevoker.activeSessionIdsByUserId(userId);
         return sessionRepository.findActiveByUserId(userId, now).stream()
                 .filter(session -> live.contains(session.sessionIdHash()))
@@ -91,10 +81,6 @@ public class SessionService {
                 .toList();
     }
 
-    /**
-     * A15 {@code POST /auth/sessions/revoke-all} — "Dang xuat moi thiet bi KHAC": giu phien dang
-     * dung de thiet bi hien tai con trong A13 (khac {@code revokeAllByUserId}, thu hoi tat ca).
-     */
     @Transactional
     public int revokeOtherSessions(UUID userId, AuthRequestContext context) {
         int revoked = revokeAllExceptCurrent(userId);
@@ -122,18 +108,10 @@ public class SessionService {
         return revoked;
     }
 
-    /**
-     * A7 {@code POST /auth/sessions/{id}/revoke} — thu hoi <b>mot</b> phien khac.
-     *
-     * <p>Phien hien tai khong thu hoi qua API: client muon logout thi goi
-     * {@code POST /auth/logout}. Cho phep thu hoi chinh no se tao trai nghiem dang
-     * nhap xong bi logout ngay.</p>
-     */
     @Transactional
     public void revokeSession(UUID userId, UUID sessionId, AuthRequestContext context) {
         DeviceSession session = sessionRepository.findById(sessionId)
                 .filter(candidate -> candidate.userId().equals(userId))
-                // p11 §11.5.3 + p8 §8.2.4: tai nguyen nguoi khac tra 404 chu khong phai 403.
                 .orElseThrow(() -> new NotFoundException(IdentityErrorCode.SESSION_NOT_FOUND));
 
         if (sessionGateway.currentSessionIdHash()
@@ -156,7 +134,6 @@ public class SessionService {
                 .build());
     }
 
-    /** A7 — dang xuat. Phien hien tai chi tho khi logout, do Spring Session lo. */
     @Transactional
     public void logout(UUID userId, AuthRequestContext context) {
         auditLogService.record(AuditEvent.builder()
@@ -168,7 +145,6 @@ public class SessionService {
                 .build());
     }
 
-    /** B6 {@code POST /account/password} — doi mat khau, thu hhoi phien khac. */
     @Transactional
     public void changePassword(UUID userId, String currentPassword, String newPassword,
                                AuthRequestContext context) {
@@ -193,8 +169,6 @@ public class SessionService {
                     .requestId(context.requestId())
                     .ipAddress(context.ipAddress())
                     .build());
-            // 401 REAUTH_FAILED chu khong phai INVALID_CREDENTIALS: phien van con, chi
-            // buoc xac nhan sai (p8 §8.2.4).
             throw new BusinessRuleException(IdentityErrorCode.REAUTH_FAILED);
         }
         if (passwordHasher.matches(newPassword, identity.passwordHash())) {
@@ -225,19 +199,7 @@ public class SessionService {
                 .build());
     }
 
-    /**
-     * Step-up p11 §11.12.4. Client goi {@code POST /auth/reauth} roi <b>goi lai nguyen
-     * request cu</b> — server so sanh thuoc tinh phien, khong co gi duoc gui them.
-     */
     public void reauthenticate(UUID userId, String method, String secret, AuthRequestContext context) {
-        // Bug that da sua: o day truoc kia co
-        //     if (!sessionGateway.isReauthenticated()) throw REAUTH_REQUIRED;
-        // — dieu kien NGUOC. Chinh endpoint nay la thu LAM CHO phien tro thanh reauthenticated,
-        // nen tren mot phien binh thuong (chua step-up) no luon nem 403 va khong bao gio chay
-        // toi buoc xac minh credential ⇒ toan bo co che step-up (p11 §11.12.4) la code chet:
-        // moi thao tac nhay cam doi S1/SW khong the thuc hien duoc. Xac nhan that bang
-        // POST /auth/reauth tren phien vua dang nhap: 403 REAUTH_REQUIRED.
-        // Sai credential van bi chan boi REAUTH_FAILED ben duoi.
         if (method == null) {
             throw new PermissionDeniedException(IdentityErrorCode.REAUTH_REQUIRED);
         }
@@ -274,7 +236,6 @@ public class SessionService {
             return false;
         }
         try {
-            // TIE ticket ngay trong buoc step-up: dang xac nhan thi ticket phai mat.
             return otpService.consumeTicket(rawTicket, OtpPurpose.LOGIN_STEPUP)
                     .userId()
                     .equals(userId);
@@ -290,7 +251,6 @@ public class SessionService {
         }
     }
 
-    /** Mot dong trong {@code GET /auth/sessions}. KHONG lo {@code sessionIdHash}. */
     public record SessionView(
             UUID id,
             String deviceLabel,
@@ -316,7 +276,6 @@ public class SessionService {
         }
     }
 
-    /** Han phien cho moi phien: 30 ngay neu "nho toi", 12 gio neu khong. */
     public java.time.Duration maxInactiveFor(boolean rememberMe) {
         return rememberMe ? policy.sessionMaxInactive() : policy.sessionDefaultMaxInactive();
     }

@@ -5,7 +5,6 @@ import com.catcheck.insight.domain.HealthFlag;
 import java.time.Instant;
 import java.util.Map;
 
-/** Một dấu hiệu theo dõi (p8 §8.4.7 G1/G2). */
 public record HealthFlagResponse(
         String flagId,
         String catId,

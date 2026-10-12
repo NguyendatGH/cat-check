@@ -21,10 +21,6 @@ import java.time.ZoneOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * {@link LocalImageStorage}: MIME phải khớp NỘI DUNG (magic bytes), không tin {@code Content-Type}
- * do client khai; và {@code commit} giữ đúng namespace của ảnh staging.
- */
 class LocalImageStorageTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-11T00:00:00Z"), ZoneOffset.UTC);

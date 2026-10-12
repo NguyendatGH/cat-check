@@ -2,13 +2,6 @@ import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "@/shared/config/constants";
 
-/**
- * Fetch wrapper cục bộ — cùng quy ước `features/trends/api.ts` (base `/api/v1`,
- * `credentials: include`, CSRF header, lỗi RFC 9457 -> `ApiError`).
- *
- * Mỗi feature tự giữ wrapper của mình vì eslint `boundaries` cấm feature import feature;
- * đây là convention sẵn có của repo, không phải trùng lặp ngoài ý muốn.
- */
 const BASE_URL = "/api/v1";
 
 interface ProblemDetail {
@@ -18,7 +11,6 @@ interface ProblemDetail {
   detail: string;
   instance: string;
   code?: string;
-  /** Backend set đúng field này (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
   errorCode?: string;
 }
 
@@ -44,7 +36,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // bỏ qua — vẫn ném ApiError với status gốc
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

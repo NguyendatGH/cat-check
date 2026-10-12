@@ -35,26 +35,6 @@ import {
   type ViewPlace,
 } from "./placeView";
 
-/**
- * `/map` — Bản đồ chăm sóc mèo.
- *
- * NGUỒN DỮ LIỆU: chỉ `GET /api/v1/places` (`id, name, kind, address, area, latitude, longitude,
- * phone, specialties[], badges[], rating, reviewCount`). Giờ mở cửa, ảnh cơ sở, bác sĩ, bảng
- * giá, chứng nhận, "đối tác đạt chuẩn", hotline của CatCheck, dịch vụ lấy mẫu tại nhà… KHÔNG
- * có trong API nên không có trên màn hình. Khoảng cách chỉ hiện khi người dùng đã cho phép
- * vị trí — tính từ toạ độ API, không phải số tự đặt. Điểm đánh giá chỉ hiện khi `reviewCount > 0`.
- *
- * RIÊNG TƯ: trình duyệt chỉ cung cấp vị trí sau khi người dùng chấp thuận. Bị từ chối thì màn
- * hình vẫn hoạt động với toàn bộ danh sách cơ sở API trả về.
- *
- * PHÒNG KHÁM QUANH BẠN: có vị trí thì gọi thêm `GET /places/nearby` (backend tra OpenStreetMap
- * `amenity=veterinary` trong bán kính `NEARBY_RADIUS_KM`, toạ độ đã làm tròn ~1 km trước khi ra
- * ngoài). Cơ sở OSM (`source: "osm"`) chỉ có tên/địa chỉ/điện thoại/toạ độ: không trang chi tiết,
- * không đặt lịch, không đánh giá — thẻ gắn chip "OpenStreetMap" và chỉ còn Gọi + Chỉ đường. Cơ sở
- * OSM trùng với cơ sở CatCheck (cách nhau < `DUPLICATE_RADIUS_KM`) bị bỏ để không vẽ hai ghim.
- *
- * `?place=<id>` (từ "Xem trên bản đồ" ở trang chi tiết) chọn sẵn cơ sở đó trên bản đồ.
- */
 
 type FilterId = "all" | PlaceKind;
 
@@ -62,7 +42,6 @@ type LocationStatus = "idle" | "requesting" | "ready" | "denied" | "unavailable"
 
 const NEARBY_RADIUS_KM = 25;
 
-/** Mở Google Maps tìm "phòng khám thú y" quanh vị trí user — chỉ gửi toạ độ (làm tròn ~100 m) khi user bấm liên kết. */
 function googleMapsSearchUrl(location: UserLocation): string {
   const lat = location.latitude.toFixed(3);
   const lng = location.longitude.toFixed(3);
@@ -85,14 +64,12 @@ function MoreOnGoogleMaps({ location }: { location: UserLocation }) {
 }
 const DUPLICATE_RADIUS_KM = 0.12;
 
-/** Lọc theo ô tìm kiếm cho cơ sở OSM (API `/nearby` không nhận `query`); cùng tiêu chí name/address của backend. */
 function matchesQuery(place: ViewPlace, query: string): boolean {
   if (!query) return true;
   const q = query.toLowerCase();
   return place.name.toLowerCase().includes(q) || place.address.toLowerCase().includes(q);
 }
 
-/** Tên cơ sở: link tới trang chi tiết khi là cơ sở CatCheck; cơ sở OSM không có trang chi tiết. */
 function PlaceName({ place, className }: { place: ViewPlace; className: string }) {
   if (place.source === "osm") return <span className={cn("block", className)}>{place.name}</span>;
   return (
@@ -201,7 +178,6 @@ function SearchField({
   );
 }
 
-/** Đặt lịch / Gọi / Chỉ đường — nút nào thiếu dữ liệu (điện thoại, toạ độ) thì không vẽ. */
 function PlaceActions({ place, size = "md" }: { place: ViewPlace; size?: "sm" | "md" }) {
   const { t } = useTranslation("map");
   const directions = directionsUrl(place);
@@ -270,9 +246,7 @@ function ListSkeleton({ count = 3 }: { count?: number }) {
   );
 }
 
-/* ------------------------------------------------------------------ mobile */
 
-/** Thẻ cơ sở đang chọn trên bản đồ (mobile). Nhãn là "đang chọn", không phải "nổi bật". */
 function MobileSelectedCard({ place, onClose }: { place: ViewPlace; onClose: () => void }) {
   const { t } = useTranslation("map");
   return (
@@ -385,13 +359,11 @@ function MobilePlaceRow({ place, onSelect }: { place: ViewPlace; onSelect: () =>
   );
 }
 
-/* ----------------------------------------------------------------- desktop */
 
 function DesktopPlaceCard({ place, active, onSelect }: { place: ViewPlace; active: boolean; onSelect: () => void }) {
   const { t } = useTranslation("map");
   const distance = place.distanceKm === null ? null : distanceText(place.distanceKm);
   const ref = useRef<HTMLLIElement>(null);
-  // Chọn từ ghim trên bản đồ: đưa thẻ tương ứng vào vùng nhìn của danh sách.
   useEffect(() => {
     if (active) ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [active]);
@@ -399,8 +371,6 @@ function DesktopPlaceCard({ place, active, onSelect }: { place: ViewPlace; activ
     <li
       ref={ref}
       className={cn(
-        // `shrink-0`: danh sách là flex-column trong khung có max-height — thiếu nó flexbox sẽ
-        // bóp thẻ cho vừa khung rồi cắt mất nửa dưới. Danh sách phải cuộn, không được bóp.
         "relative shrink-0 overflow-hidden rounded-2xl bg-surface p-4 shadow-brand-md transition-shadow",
         active ? "ring-2 ring-primary-dark" : "hover:shadow-brand-lg",
       )}
@@ -447,7 +417,6 @@ function DesktopPlaceCard({ place, active, onSelect }: { place: ViewPlace; activ
   );
 }
 
-/** Thẻ nổi trên bản đồ khi chọn một ghim (desktop): chỉ field API có. */
 function DesktopMapPopup({ place, onClose }: { place: ViewPlace; onClose: () => void }) {
   const { t } = useTranslation("map");
   return (
@@ -509,7 +478,6 @@ function DesktopMapPopup({ place, onClose }: { place: ViewPlace; onClose: () => 
   );
 }
 
-/* -------------------------------------------------------------------- page */
 
 export function CatCareMapPage() {
   const { t } = useTranslation("map");
@@ -546,7 +514,6 @@ export function CatCareMapPage() {
     );
   }, [stopLocationRequest]);
 
-  /** Bấm nút định vị: bỏ chọn cơ sở để bản đồ căn theo vị trí người dùng. */
   const locateFromButton = useCallback(() => {
     setActiveId("");
     requestUserLocation();
@@ -572,7 +539,6 @@ export function CatCareMapPage() {
     placeholderData: keepPreviousData,
   });
 
-  // Toạ độ làm tròn 0,01° (~1 km) làm khoá cache — backend cũng làm tròn như vậy trước khi hỏi OSM.
   const nearbyLat = userLocation ? Math.round(userLocation.latitude * 100) / 100 : null;
   const nearbyLng = userLocation ? Math.round(userLocation.longitude * 100) / 100 : null;
   const nearbyQuery = useQuery({
@@ -585,14 +551,12 @@ export function CatCareMapPage() {
   });
 
   const catcheckPlaces = (placesQuery.data ?? []).map((place) => toViewPlace(place, userLocation));
-  // Cơ sở OSM: bỏ cơ sở trùng vị trí với cơ sở CatCheck; ô tìm kiếm lọc ở client vì `/nearby` không nhận `query`.
   const osmAll = userLocation
     ? (nearbyQuery.data ?? [])
         .map((place) => toViewPlace(place, userLocation))
         .filter((p) => !catcheckPlaces.some((c) => distanceKm(c, p) < DUPLICATE_RADIUS_KM))
     : [];
   const places = [...catcheckPlaces, ...osmAll.filter((p) => matchesQuery(p, debouncedQuery))];
-  // Có vị trí: xếp gần → xa. Không có: giữ thứ tự API (theo tên).
   if (userLocation) places.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
   const nearbyMessage = !userLocation
     ? null
@@ -610,7 +574,6 @@ export function CatCareMapPage() {
   const counts = Object.fromEntries(
     PLACE_KINDS.map((kind) => [kind, places.filter((p) => p.kind === kind).length]),
   ) as Record<PlaceKind, number>;
-  /** Chỉ hiện chip cho loại API thật sự có (chip luôn ra 0 kết quả là chip vô dụng). */
   const filters: { id: FilterId; count: number }[] = [
     { id: "all", count: places.length },
     ...PLACE_KINDS.filter((kind) => counts[kind] > 0 || kind === filter).map((kind) => ({
@@ -807,11 +770,6 @@ export function CatCareMapPage() {
         </div>
       </section>
 
-      {/*
-        Hai cột cao bằng nhau: hàng flex có min/max-height, cả hai cột `stretch` theo nó. Cột trái
-        cao theo nội dung (tối đa max-height) — khối tìm kiếm `shrink-0`, danh sách `min-h-0 flex-1`
-        nên chỉ cuộn khi vượt trần; bản đồ luôn cao đúng bằng cột trái.
-      */}
       <div className="flex max-h-[860px] min-h-[600px] items-stretch gap-6">
         <div className="flex w-[376px] shrink-0 flex-col gap-4">
           <div className="shrink-0 rounded-2xl bg-surface p-4 shadow-brand-md">

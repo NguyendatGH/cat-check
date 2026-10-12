@@ -1,6 +1,3 @@
-// shared/ui — 12 component nền bắt buộc (p10). Mọi import từ feature/page/entity PHẢI
-// qua barrel này (boundaries/entry-point áp dụng cho feature/entity; shared tự do nhưng
-// giữ quy ước 1 cửa cho gọn).
 export { Button, buttonVariants } from "./Button";
 export type { ButtonProps, ButtonVariantProps } from "./Button";
 

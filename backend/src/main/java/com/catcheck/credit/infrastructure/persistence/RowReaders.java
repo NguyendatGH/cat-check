@@ -6,17 +6,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Tiện ích đọc cột dùng chung cho các adapter JDBC của module credit.
- *
- * <p>Cố ý <b>lặp lại</b> {@code identity.infrastructure.persistence.RowReaders} thay vì dùng
- * chung: bản đó là package-private của module identity, và đưa nó vào {@code shared} sẽ vượt
- * phạm vi sở hữu của A4. Một tệp tiện ích nhỏ lặp lại còn hơn là sửa file thuộc module khác.</p>
- *
- * <p>Mọi cột {@code TIMESTAMPTZ} đọc qua {@code getObject(col, OffsetDateTime.class)} rồi chuyển
- * sang {@link Instant}. KHÔNG dùng {@code getTimestamp()} — driver suy ra mốc giờ hiểu theo
- * {@code user.timezone} của JVM, nên giá trị đọc được phụ thuộc thiết bị chạy app (R13).</p>
- */
 final class RowReaders {
 
     private RowReaders() {
@@ -82,7 +71,6 @@ final class RowReaders {
         return value;
     }
 
-    /** Chuyển {@link Instant} sang {@link OffsetDateTime} UTC để bind tham số. */
     static OffsetDateTime utc(Instant instant) {
         return instant == null ? null : OffsetDateTime.ofInstant(instant, java.time.ZoneOffset.UTC);
     }

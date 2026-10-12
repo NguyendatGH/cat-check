@@ -21,17 +21,7 @@ import { phTokenStyle } from "@/entities/ph-bands";
 import type { ScanListItem } from "@/entities/scan-result";
 import type { HistoryFilterKey } from "./types";
 
-/**
- * UI cho `features/history` — ghép `entities/ph-bands` (màu/nhãn) + `entities/scan-result`
- * (dữ liệu quét). Không đặt ở entity vì 1 entity không được import entity khác.
- *
- * Bố cục bám mockup `07. Lịch sử Sức khỏe (Health History)`: thanh chuyển bé ở đầu màn,
- * phổ pH kèm chú giải dải, chip lọc có icon, thẻ timeline có badge dải + chip phụ.
- * Mọi ngưỡng/nhãn dải đến từ `bands` (`GET /reference/ph-bands`) — không hard-code.
- */
 
-/** Nhãn ngày kiểu "Hôm nay, 08:42" / "Hôm qua, 19:15" / "20/09/2026, 08:42" — số hoá, không phụ
- * thuộc locale month-name của date-fns (tránh lệch mock "Th09" không chuẩn). */
 export function formatScanTimestamp(iso: string, todayLabel: string, yesterdayLabel: string): string {
   const date = new Date(iso);
   const time = format(date, "HH:mm");
@@ -44,8 +34,6 @@ export function monthGroupKey(iso: string): string {
   return format(new Date(iso), "yyyy-MM");
 }
 
-/** `{month, year}` số (không zero-pad) để truyền thẳng vào `t("monthGroup.label", {month, year})`
- * (i18next tự nội suy `{{month}}`/`{{year}}` — không tự ráp chuỗi ở tầng component). */
 export function parseMonthGroupKey(key: string): { month: number; year: number } {
   const [year, month] = key.split("-");
   return { month: Number(month), year: Number(year) };
@@ -53,7 +41,6 @@ export function parseMonthGroupKey(key: string): { month: number; year: number }
 
 const isBound = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
-/** Dải nào có ít nhất một đầu mút — bỏ dải "không kết luận" (không nằm trên thang). */
 function scaleBands(bands: PhBand[]): PhBand[] {
   return bands
     .filter((b) => isBound(b.phMin) || isBound(b.phMax))
@@ -61,14 +48,11 @@ function scaleBands(bands: PhBand[]): PhBand[] {
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-/* ---------------- CatSwitcherBar ---------------- */
 
 export interface CatSwitcherBarProps {
   name: string;
   avatar: ReactNode;
-  /** VD "18 tháng tuổi • Cái" — đã dựng sẵn ở trang cha. */
   meta?: string | null;
-  /** Dòng trạng thái pH, lấy từ dải của lần quét/trung vị gần nhất. */
   status: string;
   statusTone: "normal" | "muted";
   changeLabel: string;
@@ -77,10 +61,6 @@ export interface CatSwitcherBarProps {
   className?: string;
 }
 
-/**
- * Thanh "đang xem bé nào + đổi bé" ở đầu màn lịch sử (mockup `07`). Không tự gọi API —
- * trang cha truyền tên/ảnh/trạng thái xuống.
- */
 export function CatSwitcherBar({
   name,
   avatar,
@@ -130,17 +110,12 @@ export function CatSwitcherBar({
   );
 }
 
-/* ---------------- PhBandLegendRow ---------------- */
 
 export interface PhBandLegendRowProps {
   bands: PhBand[];
   className?: string;
 }
 
-/**
- * Ba mốc chú giải dưới thanh phổ pH ("toan • tối ưu • kiềm" của mockup) — dựng từ chính
- * `bands` của API: dải đầu thang, dải `NORMAL`, dải cuối thang. Không hard-code ngưỡng.
- */
 export function PhBandLegendRow({ bands, className }: PhBandLegendRowProps) {
   const { t } = useTranslation("history");
   const scale = scaleBands(bands);
@@ -177,7 +152,6 @@ export function PhBandLegendRow({ bands, className }: PhBandLegendRowProps) {
   );
 }
 
-/* ---------------- FilterChips ---------------- */
 
 const FILTER_ICON: Record<HistoryFilterKey, LucideIcon> = {
   ALL: ListFilter,
@@ -193,7 +167,6 @@ export interface FilterChipsProps {
 }
 
 export function FilterChips({ value, onChange, labels, className }: FilterChipsProps) {
-  // Tranh chấp là trạng thái xử lý nội bộ, không phải một khái niệm lọc hữu ích cho người dùng.
   const options: HistoryFilterKey[] = ["ALL", "ABNORMAL"];
   return (
     <div className={cn("flex gap-2 overflow-x-auto pb-1", className)} role="tablist">
@@ -224,7 +197,6 @@ export function FilterChips({ value, onChange, labels, className }: FilterChipsP
   );
 }
 
-/* ---------------- MonthGroupHeader ---------------- */
 
 export function MonthGroupHeader({ label, count }: { label: string; count: string }) {
   return (
@@ -238,7 +210,6 @@ export function MonthGroupHeader({ label, count }: { label: string; count: strin
   );
 }
 
-/* ---------------- ScanTimelineItem ---------------- */
 
 export interface ScanTimelineItemProps {
   scan: ScanListItem;
@@ -250,13 +221,6 @@ export interface ScanTimelineItemProps {
   className?: string;
 }
 
-/**
- * Thẻ một lần quét trong timeline (mockup `07`): icon trạng thái · ngày giờ · pill
- * "{dải} • pH {giá trị}" · hàng chip phụ (tên bé, độ tin cậy, gần ngưỡng, tranh chấp).
- *
- * KHÔNG có đoạn mô tả văn xuôi như mockup — `GET /scans` không trả trường mô tả nào và
- * không bịa nội dung quan sát.
- */
 export function ScanTimelineItem({
   scan,
   bands,
@@ -327,7 +291,6 @@ export function ScanTimelineItem({
   );
 }
 
-/* ---------------- HistoryTipCard ---------------- */
 
 export interface HistoryTipCardProps {
   title: string;
@@ -336,7 +299,6 @@ export interface HistoryTipCardProps {
   className?: string;
 }
 
-/** Thẻ mẹo tần suất quét — nội dung tĩnh theo mockup `07`, không có endpoint. */
 export function HistoryTipCard({ title, body, imageSrc, className }: HistoryTipCardProps) {
   return (
     <div className={cn("flex gap-3 rounded-xl bg-background-alt p-3", className)}>
@@ -349,7 +311,6 @@ export function HistoryTipCard({ title, body, imageSrc, className }: HistoryTipC
   );
 }
 
-/* ---------------- ExportCtaCard ---------------- */
 
 export interface ExportCtaCardProps {
   title: string;

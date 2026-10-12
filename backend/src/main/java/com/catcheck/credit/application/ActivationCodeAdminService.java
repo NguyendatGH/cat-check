@@ -22,28 +22,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Quản trị mã kích hoạt — L19, L20, L21, L22, L23, L24 (p8 §8.4.12 mục (b)).
- *
- * <p>Việc sinh mã thật vẫn nằm ở {@link ActivationCodeIssuanceService} (nơi duy nhất mã thô tồn
- * tại); lớp này thêm phần <b>quản trị</b>: trần số lượng theo hợp đồng API, định danh lô, một
- * lần tải CSV, void, và {@code audit_log} cho mọi hành động (p14 §14.3.2 mục 4 — ba action
- * {@code ACTIVATION_CODE_BATCH_CREATE}, {@code ACTIVATION_CODE_CSV_DOWNLOAD},
- * {@code ACTIVATION_CODE_VOID}).</p>
- *
- * <p><b>Định danh lô = {@code production_batch}.</b> p8 L21/L22/L24 nói tới một {@code batchId},
- * nhưng p4 §4.9.2 không có bảng {@code activation_batch} và CLAUDE.md cấm thêm migration ngoài
- * danh mục. {@code production_batch} đã là thứ p5 §5.5 dùng để nối lô cát với {@code color_chart},
- * nên nó làm định danh lô mà không cần bịa khoá mới — với một điều kiện: nó phải duy nhất, nếu
- * không "cả lô" là một tập mã không xác định. Vì vậy {@link #issueBatch} từ chối
- * {@code 409 ACTIVATION_BATCH_EXISTS} khi lô đã có mã. Xem handoff H15.98.</p>
- */
 @Service
 public class ActivationCodeAdminService {
 
     private static final Logger log = LoggerFactory.getLogger(ActivationCodeAdminService.class);
 
-    /** Dòng tiêu đề CSV. Không có cột nào ngoài bốn cột này — xem {@link #toCsv}. */
     private static final String CSV_HEADER = "code,package_code,production_batch,valid_until";
 
     private final ActivationCodePort codePort;
@@ -61,7 +44,6 @@ public class ActivationCodeAdminService {
         this.auditLogService = auditLogService;
     }
 
-    /* ------------------------------------------------------------------ L19 */
 
     @Transactional(readOnly = true)
     public Page<ActivationCode> search(ActivationCodeFilter filter, int page, int size) {
@@ -70,16 +52,7 @@ public class ActivationCodeAdminService {
                 codePort.count(filter));
     }
 
-    /* ------------------------------------------------------------------ L20 */
 
-    /**
-     * Sinh một lô mã.
-     *
-     * <p>Thứ tự kiểm là có chủ ý: trần số lượng trước (từ chối rẻ nhất), rồi trùng lô, rồi mới
-     * tới {@link ActivationCodeIssuanceService#issue} — nơi kiểm gói tồn tại và thực sự ghi.</p>
-     *
-     * @return lô vừa tạo; CSV mã thô nằm trong {@link ActivationCsvVault} chờ đúng một lần đọc
-     */
     @Transactional
     public ActivationBatchSummary issueBatch(String packageCode, int quantity, String productionBatch,
                                              int validForDays, AdminActionContext context) {
@@ -88,9 +61,6 @@ public class ActivationCodeAdminService {
                     ActivationCodeIssuanceService.MAX_CODES_PER_BATCH);
         }
         String batchId = requireBatchId(productionBatch);
-        // production_batch có nhiều dòng activation_code nên không thể đặt UNIQUE ở schema.
-        // Khoá transaction này phải đứng TRƯỚC findBatch: nếu không hai request đồng thời đều
-        // thấy lô chưa tồn tại rồi cùng phát hành mã cho cùng batchId.
         codePort.lockProductionBatch(batchId);
         if (codePort.findBatch(batchId).isPresent()) {
             throw new ConflictException(CreditErrorCode.ACTIVATION_BATCH_EXISTS, batchId);
@@ -99,7 +69,6 @@ public class ActivationCodeAdminService {
         ActivationCodeIssuanceService.IssuedBatch issued =
                 issuanceService.issue(packageCode, quantity, batchId, validForDays);
 
-        // CSV vào bộ nhớ, KHÔNG vào DB và KHÔNG vào log (p5 §5.9).
         csvVault.store(batchId, toCsv(issued));
 
         auditLogService.record(AuditEvent.builder()
@@ -117,8 +86,6 @@ public class ActivationCodeAdminService {
                 .userAgent(context.userAgent())
                 .build());
 
-        // Log chỉ có số lượng + mã gói + lô. Method này KHÔNG đọc field nào tên khớp regex PII
-        // của R16, và biến `issued` giữ mã thô thì không bao giờ đi vào logger.
         log.info("Admin sinh lô mã: packageCode={} productionBatch={} quantity={}",
                 issued.packageCode(), batchId, quantity);
 
@@ -126,27 +93,17 @@ public class ActivationCodeAdminService {
                 issued.issuedAt(), issued.validUntil());
     }
 
-    /* ------------------------------------------------------------------ L21 */
 
     @Transactional(readOnly = true)
     public Page<ActivationBatchSummary> listBatches(int page, int size) {
         return new Page<>(codePort.listBatches(page * size, size), codePort.countBatches());
     }
 
-    /** CSV của lô này còn tải được không — cột {@code csvAvailable}. */
     public boolean csvAvailable(String batchId) {
         return csvVault.isAvailable(batchId);
     }
 
-    /* ------------------------------------------------------------------ L22 */
 
-    /**
-     * Tải CSV mã thô — <b>một lần duy nhất</b>.
-     *
-     * @throws NotFoundException     {@code 404} lô không tồn tại
-     * @throws BusinessRuleException {@code 410 ACTIVATION_CSV_ALREADY_DOWNLOADED} nếu đã tải
-     *                               (hoặc mã thô không còn trong bộ nhớ)
-     */
     @Transactional
     public String downloadCsv(String batchId, AdminActionContext context) {
         ActivationBatchSummary batch = requireBatch(batchId);
@@ -170,16 +127,7 @@ public class ActivationCodeAdminService {
         return csv;
     }
 
-    /* ------------------------------------------------------------------ L23 */
 
-    /**
-     * Vô hiệu hoá một mã.
-     *
-     * <p>Mã {@code REDEEMED} không void được (p14 §14.3.2 mục 4: đã tạo {@code credit_batch},
-     * muốn thu hồi phải qua nghiệp vụ điều chỉnh credit) ⇒ {@code 409
-     * ACTIVATION_CODE_ALREADY_USED}. Mã đã {@code VOID} thì trả về như không có gì xảy ra —
-     * void là thao tác idempotent, bấm hai lần không phải lỗi.</p>
-     */
     @Transactional
     public ActivationCode voidCode(UUID codeId, AdminActionContext context) {
         ActivationCode code = codePort.findById(codeId)
@@ -208,13 +156,7 @@ public class ActivationCodeAdminService {
         return codePort.findById(codeId).orElse(code);
     }
 
-    /* ------------------------------------------------------------------ L24 */
 
-    /**
-     * Vô hiệu hoá cả lô (in hỏng, thu hồi lô sản xuất).
-     *
-     * @return số mã thực sự chuyển sang {@code VOID} — mã đã {@code REDEEMED} không bị đụng tới
-     */
     @Transactional
     public int voidBatch(String batchId, AdminActionContext context) {
         ActivationBatchSummary batch = requireBatch(batchId);
@@ -256,13 +198,6 @@ public class ActivationCodeAdminService {
         return batchId.strip();
     }
 
-    /**
-     * CSV cho khâu in bao bì. RFC 4180: bọc ngoặc kép khi giá trị có dấu phẩy/ngoặc/xuống dòng.
-     *
-     * <p>Mã kích hoạt theo {@code ActivationCodeFormat} chỉ gồm {@code A-Z0-9-} nên không bao
-     * giờ cần bọc, nhưng {@code production_batch} là chuỗi admin tự nhập — không escape thì một
-     * dấu phẩy trong tên lô làm lệch cả cột của 50 000 dòng.</p>
-     */
     private static String toCsv(ActivationCodeIssuanceService.IssuedBatch issued) {
         StringBuilder csv = new StringBuilder(issued.rawCodes().size() * 32);
         csv.append(CSV_HEADER).append('\n');
@@ -288,12 +223,6 @@ public class ActivationCodeAdminService {
         return '"' + value.replace("\"", "\"\"") + '"';
     }
 
-    /**
-     * Một trang kết quả admin: dòng của trang + tổng số dòng.
-     *
-     * <p>Không trả về {@code Page} của Spring Data: R7 chỉ cho {@code ..infrastructure.persistence..}
-     * phụ thuộc {@code org.springframework.data..}.</p>
-     */
     public record Page<T>(List<T> items, long totalElements) {
 
         public Page {

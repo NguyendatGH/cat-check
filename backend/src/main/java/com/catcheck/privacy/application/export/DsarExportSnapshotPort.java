@@ -11,6 +11,5 @@ public interface DsarExportSnapshotPort {
     List<String> consents(UUID userId);
     List<String> notifications(UUID userId);
     List<String> orders(UUID userId);
-    /** Lịch sử hội thoại trợ lý AI ({@code ai_conversation}/{@code ai_message}, V21) — dữ liệu do chính user nhập. */
     List<String> aiMessages(UUID userId);
 }

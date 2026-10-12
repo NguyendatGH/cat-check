@@ -12,7 +12,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Mọi hằng {@link PlaceErrorCode} phải là một {@code @Bean ErrorCode} để {@link ErrorCodeRegistry} kiểm trùng mã. */
 class PlaceErrorCodeConfigurationTest {
 
     @Test

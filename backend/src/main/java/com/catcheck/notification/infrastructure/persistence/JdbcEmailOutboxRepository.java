@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Bảng {@code email_outbox} (V13, p4 F5). */
 @Repository
 class JdbcEmailOutboxRepository implements EmailOutboxRepository {
 
@@ -47,11 +46,6 @@ class JdbcEmailOutboxRepository implements EmailOutboxRepository {
         return inserted.stream().findFirst();
     }
 
-    /**
-     * {@code FOR UPDATE SKIP LOCKED} là lớp bảo vệ thứ hai, độc lập với ShedLock (p12 §12.7):
-     * nếu một lần chạy vượt {@code lockAtMostFor} thì instance khác có thể giành khoá và chạy
-     * song song — khoá ở tầng dòng mới là thứ đảm bảo không gửi trùng.
-     */
     @Override
     public List<EmailOutboxMessage> claimPending(Instant now, int limit) {
         return jdbc.query("""
@@ -65,17 +59,6 @@ class JdbcEmailOutboxRepository implements EmailOutboxRepository {
                 """, (rs, rowNum) -> read(rs), NotificationRowReaders.offset(now), limit);
     }
 
-    /**
-     * Gửi xong thì <b>xoá luôn {@code payload}</b>.
-     *
-     * <p>p12 §12.4 muốn {@code payload} không bao giờ chứa mã OTP thô ("job đọc mã từ
-     * {@code email_otp} lúc render"). Điều đó bất khả thi với mô hình của p11 §11.2.1:
-     * {@code email_otp} chỉ lưu {@code code_hash = HMAC-SHA256(pepper, purpose‖email‖code)} —
-     * một chiều, không giải ra mã được (xem {@code OtpService}). Mã vì thế buộc phải đi qua
-     * {@code payload}. Bù lại, cửa sổ tồn tại của nó bị thu hẹp xuống đúng khoảng từ lúc
-     * {@code INSERT} tới lúc gửi thành công (≤ 30 giây ở lịch của p12 §12.6.3) thay vì nằm lại
-     * trong bảng mãi mãi.</p>
-     */
     @Override
     public void markSent(UUID id, Instant sentAt) {
         jdbc.update("""

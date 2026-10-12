@@ -6,18 +6,6 @@ import { DesktopHeader } from "./shell/DesktopHeader";
 import { OfflineBar } from "./shell/OfflineBar";
 import appLogo from "@/shared/assets/images/web-auth/logo.png";
 
-/**
- * Layout tác vụ đơn (TL routes: form, chi tiết, giỏ hàng, cài đặt con…).
- *
- * - `< lg`: task header có nút back + nhận diện CATCHECK, không bottom nav (đang làm một việc).
- * - `>= lg`: CÙNG khung desktop với AppLayout — sidebar 288px + header 64px (kèm nút back).
- *   Các frame web của nhóm này (`Web - 09` Nhắc nhở, `Web - 14 & Giỏ hàng`, `Web - Đặt hàng
- *   thành công`, `Web - 08 & 10` Xuất hồ sơ…) đều nằm trong khung đó; trước đây ở desktop
- *   layout này chỉ có một thanh trắng với mũi tên quay lại, mất toàn bộ điều hướng.
- *
- * Hộp nội dung GIỮ NGUYÊN hợp đồng cũ mà các trang dựa vào: `px-4 py-6`, ở `lg` là hộp
- * 992px có `px-6` (nội dung 944px), canh giữa — trang KHÔNG tự thêm padding ngang.
- */
 export function TaskLayout() {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
@@ -26,7 +14,7 @@ export function TaskLayout() {
     <div className="flex min-h-dvh bg-background">
       <DesktopAside />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-[var(--z-sticky-header)] border-b border-primary/10 bg-background/90 px-3 shadow-[0_4px_18px_rgba(47,79,178,0.06)] backdrop-blur-md lg:hidden">
+        <header className="header-glass sticky top-0 z-[var(--z-sticky-header)] border-b border-primary/10 px-3 lg:hidden">
           <div className="mx-auto flex h-14 max-w-[480px] items-center justify-between">
             <button
               type="button"
@@ -34,7 +22,7 @@ export function TaskLayout() {
                 void navigate(-1);
               }}
               aria-label={t("actions.back")}
-              className="flex size-11 items-center justify-center rounded-full text-text-primary transition-colors hover:bg-surface hover:text-primary-dark"
+              className="flex size-11 items-center justify-center rounded-full text-text-primary transition-all duration-200 hover:bg-surface hover:text-primary-dark active:scale-95"
             >
               <ArrowLeft size={20} aria-hidden="true" />
             </button>

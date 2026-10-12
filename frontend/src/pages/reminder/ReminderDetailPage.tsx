@@ -38,13 +38,6 @@ import {
   type ReminderFormValues,
 } from "./reminderUi";
 
-/**
- * `/reminders/:reminderId` — chi tiết + sửa một lịch nhắc (I3 đọc, I4 sửa, I5 xoá mềm, I6 .ics).
- *
- * Dùng lại nguyên bộ field của trang tạo mới (frame `09`), thêm cột tóm tắt bên phải ở desktop
- * theo khuôn `SettingsSecurityPage` (cột nội dung + panel 360px). Trang nằm trong `TaskLayout`
- * nên không tự thêm padding ngang.
- */
 
 export function ReminderDetailPage() {
   const { t } = useTranslation(["reminder", "common"]);
@@ -77,7 +70,6 @@ export function ReminderDetailPage() {
       preferredTimeEnd: "",
       channels: [],
       active: true,
-      // Mèo đã gắn lúc tạo và server không cho đổi — không bắt buộc chọn lại ở trang này.
       requireCat: false,
     },
   });
@@ -92,7 +84,6 @@ export function ReminderDetailPage() {
   const values = watch();
   const errorCode = reminderErrorCode(reminderQuery.error);
 
-  // ── Trạng thái tải ───────────────────────────────────────────────────────────────────
   if (isFeatureLocked(reminderQuery.error)) {
     return (
       <div className="flex flex-col gap-4">
@@ -144,7 +135,6 @@ export function ReminderDetailPage() {
     );
   }
 
-  // ── Dữ liệu dẫn xuất ─────────────────────────────────────────────────────────────────
   const cats = catsQuery.data?.items ?? [];
   const catName =
     reminder.catId === undefined
@@ -230,7 +220,6 @@ export function ReminderDetailPage() {
           </Button>
         </div>
 
-        {/* Panel tóm tắt 360px ở desktop — cùng khuôn `SettingsSecurityPage`. */}
         <aside className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md lg:sticky lg:top-6 lg:w-[360px] lg:shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-h3 font-bold text-text-primary">{t(`type.${reminder.type}`)}</h2>

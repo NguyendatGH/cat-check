@@ -20,10 +20,6 @@ import {
   type CommunityReaction,
 } from "./api";
 
-/**
- * Query-key factory cho Community API. Gốc `["community"]`, nhánh `posts` (bảng tin, theo
- * chuyên mục) và `post` (chi tiết + bình luận) để invalidate theo cụm.
- */
 export const communityKeys = {
   all: ["community"] as const,
   feeds: () => [...communityKeys.all, "posts"] as const,
@@ -31,11 +27,9 @@ export const communityKeys = {
   detail: (postId: string) => [...communityKeys.all, "post", postId] as const,
 };
 
-/** Bảng tin đổi theo hoạt động người dùng — 30s đủ tươi mà không gọi lại liên tục. */
 const COMMUNITY_STALE_TIME = 30_000;
 export const COMMUNITY_PAGE_SIZE = 10;
 
-/** Bảng tin phân trang offset (`page`/`size`/`hasMore`) — lọc chuyên mục ở SERVER (`?category=`). */
 export function useCommunityFeed(category: CommunityCategory | "ALL") {
   return useInfiniteQuery({
     queryKey: communityKeys.feed(category),
@@ -55,7 +49,6 @@ export function useCommunityPost(postId: string) {
   return useQuery({
     queryKey: communityKeys.detail(postId),
     queryFn: () => getCommunityPost(postId),
-    // 404 (bài không tồn tại / đã bị ẩn) không bị thử lại: `queryClient` mặc định bỏ retry với 4xx.
     staleTime: COMMUNITY_STALE_TIME,
   });
 }
@@ -119,10 +112,6 @@ function applyEverywhere(
   );
 }
 
-/**
- * Thích / lưu bài. Cập nhật lạc quan ở MỌI cache đang chứa bài (chi tiết + mọi trang bảng
- * tin), rồi luôn refetch khi xong để giao diện khớp đúng trạng thái server trả về.
- */
 export function useCommunityReaction() {
   const queryClient = useQueryClient();
   return useMutation({

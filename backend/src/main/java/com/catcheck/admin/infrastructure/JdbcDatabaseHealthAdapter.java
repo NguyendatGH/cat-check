@@ -5,11 +5,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * Adapter tầng infrastructure: chứng minh app thật sự nói chuyện được với PostgreSQL thật (mục
- * tiêu M0 "app rỗng chạy được trên trình duyệt với DB thật") bằng một câu SELECT 1 tối giản,
- * không đụng tới bảng nghiệp vụ nào (M0 chưa có bảng nghiệp vụ).
- */
 @Component
 public class JdbcDatabaseHealthAdapter implements DatabaseHealthPort {
 

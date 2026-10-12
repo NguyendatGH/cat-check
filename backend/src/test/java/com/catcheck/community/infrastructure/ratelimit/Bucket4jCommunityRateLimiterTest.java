@@ -6,10 +6,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Ba luồng ghi của community (đăng bài, bình luận, report) — ngưỡng theo
- * {@link CommunityRateLimitRule} (5/20/10 trong 10 phút, tự chọn vì không còn spec).
- */
 class Bucket4jCommunityRateLimiterTest {
 
     @ParameterizedTest

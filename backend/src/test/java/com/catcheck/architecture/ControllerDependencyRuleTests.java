@@ -11,13 +11,6 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
-/**
- * R5 — cần quét CẢ test sources (khác với các rule khác trong package này chỉ quét main) vì
- * quy tắc cho phép ngoại lệ "chính test của controller đó" (ví dụ
- * {@code SystemStatusControllerTest} được phép phụ thuộc {@code SystemStatusController}, còn
- * lớp khác thì không) — ngoại lệ này chỉ có ý nghĩa khi lớp test thật sự nằm trong tập được
- * phân tích. Ở M0 chưa có class nào (kể cả test) phụ thuộc *Controller nên rule PASS.
- */
 @AnalyzeClasses(packages = "com.catcheck")
 class ControllerDependencyRuleTests {
 
@@ -32,11 +25,6 @@ class ControllerDependencyRuleTests {
             public void check(JavaClass item, ConditionEvents events) {
                 for (Dependency dependency : item.getDirectDependenciesFromSelf()) {
                     JavaClass target = dependency.getTargetClass();
-                    // Chỉ tính *Controller do CHÍNH CatCheck viết (package com.catcheck..) — nếu chỉ
-                    // so tên, `@RestController`/`@Controller` của Spring (org.springframework..) cũng
-                    // khớp ".*Controller" và mọi lớp mang annotation đó (kể cả chính nó qua bytecode
-                    // annotation reference) sẽ bị báo vi phạm R5 dù không hề phụ thuộc controller nào
-                    // khác — phát hiện thật bằng mvn test (build FAILURE trên SystemStatusController).
                     if (item.equals(target)
                             || !target.getSimpleName().endsWith("Controller")
                             || !target.getPackageName().startsWith("com.catcheck")) {

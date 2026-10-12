@@ -39,11 +39,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Chưa đăng nhập phải nhận {@code 401 UNAUTHENTICATED}, còn đã đăng nhập mà thiếu quyền vẫn
- * {@code 403}. Chuỗi {@code /api/v1/users/**} giả lập chuỗi riêng của identity để kiểm entry point
- * áp cho mọi {@link SecurityFilterChain}, không chỉ chuỗi của {@link SecurityConfig}.
- */
 @SpringJUnitWebConfig(SecurityConfigAuthenticationEntryPointTest.TestConfig.class)
 class SecurityConfigAuthenticationEntryPointTest {
 
@@ -121,7 +116,6 @@ class SecurityConfigAuthenticationEntryPointTest {
             return new AcceptHeaderLocaleResolver();
         }
 
-        /** Giống {@code JsonMapper} của Spring Boot: có mixin để thuộc tính ProblemDetail nằm ở gốc. */
         @Bean
         JsonMapper jsonMapper() {
             return JsonMapper.builder().addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class).build();

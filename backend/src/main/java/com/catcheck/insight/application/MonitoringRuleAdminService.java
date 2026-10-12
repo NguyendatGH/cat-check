@@ -19,18 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * L38, L39 — cấu hình rule cảnh báo phía quản trị (p8 §8.4.12 mục (c)).
- *
- * <p>Bảng {@code monitoring_rule} là <b>cấu hình toàn hệ thống</b>: đổi một dòng ở đây đổi hành
- * vi cảnh báo cho mọi con mèo của mọi người dùng. Vì vậy L39 đi kèm {@code If-Match} (kiểm ở
- * tầng api), {@code reason} bắt buộc và {@code audit_log} trong cùng transaction — đúng ba thứ
- * mà p8 §8.1.11 và p15 REQ-AUD-03 đòi cho endpoint ghi cấu hình admin.</p>
- */
 @Service
 public class MonitoringRuleAdminService {
 
-    /** Vai trò ghi {@code audit_log.actor_role}: L39 chỉ {@code ADMIN_SUPER} (p8 §8.4.12 L39). */
     public static final String ACTOR_ROLE = "ADMIN_SUPER";
 
     private final MonitoringRuleRepository ruleRepository;
@@ -45,7 +36,6 @@ public class MonitoringRuleAdminService {
         this.clock = clock;
     }
 
-    // ------------------------------------------------------------------ L38
 
     @Transactional(readOnly = true)
     public List<MonitoringRule> listForAdmin() {
@@ -58,15 +48,7 @@ public class MonitoringRuleAdminService {
                 .orElseThrow(() -> new NotFoundException(InsightErrorCode.MONITORING_RULE_NOT_FOUND, code));
     }
 
-    // ------------------------------------------------------------------ L39
 
-    /**
-     * Sửa một rule. Trường {@code null} = không đổi (merge-patch, p8 §8.1.11).
-     *
-     * @param params tham số mới; phải là map phẳng gồm giá trị vô hướng — một map lồng ghi được
-     *               vào JSONB nhưng {@code MonitoringRule.paramAsInt/Double} sẽ đọc ra giá trị
-     *               mặc định một cách im lặng, nghĩa là rule chạy sai mà không ai biết
-     */
     @Transactional
     public MonitoringRule update(String code, Boolean enabled, Map<String, Object> params,
                                  Integer cooldownHours, Boolean pushEnabled, RuleAdminAction action) {
@@ -77,8 +59,6 @@ public class MonitoringRuleAdminService {
         try {
             rule.applyAdminUpdate(enabled, params, cooldownHours, pushEnabled, now);
         } catch (IllegalArgumentException ex) {
-            // Bất biến của p4 D11 (cooldown >= 0, cooldown = 0 chỉ cho URGENT_CLINICAL_SIGN).
-            // Cú pháp đúng, ràng buộc nghiệp vụ sai ⇒ 422 (p8 §8.1.12).
             throw new BusinessRuleException(InsightErrorCode.MONITORING_RULE_INVALID, ex.getMessage());
         }
         MonitoringRule saved = ruleRepository.saveAndReload(rule);
@@ -101,9 +81,6 @@ public class MonitoringRuleAdminService {
             return;
         }
         if (params.isEmpty()) {
-            // monitoring_rule.params là NOT NULL và mỗi rule đọc tham số của mình từ đó; map
-            // rỗng làm mọi rule rơi về giá trị mặc định hard-code trong Java — ngược hẳn với
-            // "rule là dữ liệu cấu hình" của p6 §6.9.
             throw new BusinessRuleException(InsightErrorCode.MONITORING_RULE_INVALID, "params");
         }
         for (Map.Entry<String, Object> entry : params.entrySet()) {
@@ -116,7 +93,6 @@ public class MonitoringRuleAdminService {
         }
     }
 
-    /** Ảnh {@code before}/{@code after} cho {@code audit_log} — không có PII, chỉ cấu hình. */
     private static Map<String, Object> snapshot(MonitoringRule rule) {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("enabled", rule.isEnabled());
@@ -126,15 +102,6 @@ public class MonitoringRuleAdminService {
         return values;
     }
 
-    /**
-     * Ai làm, vì sao, từ đâu — p4 §4.6.3 + p15 REQ-AUD-03.
-     *
-     * @param actorId   người thực hiện
-     * @param reason    lý do đã {@code strip()}, ≥ 10 ký tự (kiểm ở tầng api)
-     * @param requestId {@code X-Request-Id} (p8 §8.1.9)
-     * @param ipAddress IP nguồn
-     * @param userAgent User-Agent nguồn
-     */
     public record RuleAdminAction(UUID actorId, String reason, String requestId,
                                   String ipAddress, String userAgent) {
     }

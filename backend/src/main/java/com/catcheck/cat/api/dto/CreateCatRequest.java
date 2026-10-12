@@ -8,12 +8,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * D2 — body tạo hồ sơ mèo.
- *
- * <p>Độ dài {@code name} khớp p4 {@code cat.name VARCHAR(60)}. Cân nặng theo p4 {@code 0 < weight_kg < 30}
- * (khác với ví dụ 0.1–25 trong phần test của p8; chốt theo p4 là chuẩn thứ nhất).</p>
- */
 public record CreateCatRequest(
         @NotBlank(message = "Vui lòng nhập tên bé mèo")
         @Size(max = 60, message = "Tên bé mèo tối đa 60 ký tự")

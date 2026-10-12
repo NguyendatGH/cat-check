@@ -8,11 +8,6 @@ import com.catcheck.privacy.domain.DsarRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-/**
- * Chuyển {@link DsarRequest} (domain) thành DTO trả về client — tách riỏi controller
- * vì ArchUnit R4 quét MỌI method của {@code @RestController} (kể cả private) nên
- * controller không được chạm vào type {@code ..domain..}.
- */
 final class PrivacyDtoMapper {
 
     private PrivacyDtoMapper() {
@@ -66,7 +61,6 @@ final class PrivacyDtoMapper {
                 request.resultDownloadedAt());
     }
 
-    /** Cursor base64url của {@code received_at|id} — client không được tự sinh (p8 §8.1.4). */
     static String encodeCursor(DsarRequest last) {
         String raw = last.receivedAt().toString() + "|" + last.id();
         return Base64.getUrlEncoder().withoutPadding()

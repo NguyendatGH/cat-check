@@ -1,0 +1,80 @@
+.admin-shell {
+  background: #f5f7fb;
+}
+
+.admin-sidebar {
+  background: #14213d;
+  box-shadow: 8px 0 32px rgb(20 33 61 / 8%);
+}
+
+.admin-nav-scroll {
+  scrollbar-color: rgb(207 216 236 / 35%) transparent;
+  scrollbar-width: thin;
+}
+
+.admin-mobile-scroll {
+  scrollbar-color: rgb(255 255 255 / 15%) transparent;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-mobile-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.admin-mobile-scroll::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 15%);
+  border-radius: 9999px;
+}
+
+.admin-nav-menu .ant-menu-item,
+.admin-nav-menu .ant-menu-submenu-title {
+  min-height: 44px;
+  line-height: 44px;
+  cursor: pointer;
+}
+
+.admin-nav-menu .ant-menu-submenu-title {
+  font-weight: 750;
+}
+
+.admin-nav-menu .ant-menu-item a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  font-weight: 650;
+}
+
+.admin-nav-menu.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: #ffffff;
+}
+
+.admin-nav-menu .ant-menu-item:focus-visible,
+.admin-nav-menu .ant-menu-submenu-title:focus-visible,
+.admin-back-link:focus-visible {
+  outline: 2px solid #fdcf52;
+  outline-offset: 2px;
+}
+
+.admin-back-link {
+  color: #dce5fa;
+}
+
+.admin-back-link:hover {
+  color: #ffffff !important;
+  background: #25365a !important;
+}
+
+.dense-table-frame {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav-menu *,
+  .admin-back-link {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+

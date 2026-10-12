@@ -14,16 +14,11 @@ function csrf(): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-/**
- * p9 §9.6.3: tab mở lâu / lần tải đầu có thể chưa có cookie CSRF ⇒ request ghi sẽ 403. Gọi
- * `GET /auth/csrf` một lần để server phát cookie trước khi gửi (cùng cách `features/auth`).
- */
 async function ensureCsrfCookie(): Promise<void> {
   if (csrf()) return;
   try {
     await fetch(`${BASE_URL}/auth/csrf`, { credentials: "include" });
   } catch {
-    // Bỏ qua — request gốc vẫn thử, lỗi CSRF thật (nếu có) sẽ nổi lên ở đó.
   }
 }
 
@@ -43,7 +38,6 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      /* lỗi không có JSON */
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -55,18 +49,12 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return (await response.json()) as T;
 }
 
-/** Enum chuyên mục thật của bài viết (CHECK `ck_community_post_category`, bỏ giá trị lọc `ALL`). */
 export const COMMUNITY_CATEGORIES = ["QA", "TIP", "EXPERIENCE"] as const;
 export type CommunityCategory = (typeof COMMUNITY_CATEGORIES)[number];
 
-/**
- * Lý do báo cáo gửi lên `POST /community/reports` (`reason`, tối đa 32 ký tự). Backend nhận
- * chuỗi tự do và màn kiểm duyệt admin hiển thị nguyên văn, nên dùng mã ổn định viết hoa.
- */
 export const COMMUNITY_REPORT_REASONS = ["SPAM", "MISLEADING", "HARASSMENT", "PRIVACY", "OTHER"] as const;
 export type CommunityReportReason = (typeof COMMUNITY_REPORT_REASONS)[number];
 
-/** Giới hạn độ dài — sao y ràng buộc `@Size` của DTO backend để chặn sớm ở form. */
 export const COMMUNITY_LIMITS = {
   title: 180,
   body: 10_000,
@@ -83,7 +71,6 @@ export interface CommunityPostApi {
   title: string;
   body: string;
   tags: string[];
-  /** Backend bỏ hẳn key khi null (Jackson NON_NULL) nên có thể vắng mặt. */
   imageUrl?: string | null;
   likeCount: number;
   commentCount: number;

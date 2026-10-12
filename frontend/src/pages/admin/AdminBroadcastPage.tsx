@@ -24,10 +24,6 @@ import {
   type BroadcastForm,
 } from "./group3Ops";
 
-/**
- * `/admin/system/broadcast` — chế độ bảo trì (app_setting) và phát thông báo hệ thống (L72).
- * Phát thật cần `confirmed: true` qua hộp xác nhận; chế độ thử chỉ đếm người nhận.
- */
 export function AdminBroadcastPage() {
   const { t } = useTranslation("admin");
   const can = useGroup3Can();

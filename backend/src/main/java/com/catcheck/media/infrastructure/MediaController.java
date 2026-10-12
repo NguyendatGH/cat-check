@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.InputStream;
 
-/** Phục vụ các URL local đã ký do {@link LocalImageStorage#presignedUrl} phát ra. */
 @RestController
 @RequestMapping("/api/v1/media")
 public class MediaController {
@@ -26,12 +25,6 @@ public class MediaController {
         this.storage = storage;
     }
 
-    /**
-     * R18 (ArchUnit {@code WebLayerRuleTests}) đòi {@code operationId} trên <b>mọi</b> method
-     * public của {@code @RestController}. Thiếu nó ở đây làm test kiến trúc đỏ cho toàn repo —
-     * một lỗi đã tồn tại trước W5-A và được sửa ở đây vì {@code media/**} thuộc vùng của gói việc
-     * này.
-     */
     @Operation(
             operationId = "getSignedMedia",
             summary = "Phục vụ một URL local đã ký (presigned) của ảnh đã lưu",
@@ -45,7 +38,6 @@ public class MediaController {
             @RequestParam String sig) {
         final StorageKey storageKey;
         try {
-            // `/{*key}` giữ nguyên dấu `/` đầu của phần đường dẫn còn lại; khoá lưu trữ không có nó.
             storageKey = StorageKey.parse(key.startsWith("/") ? key.substring(1) : key);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

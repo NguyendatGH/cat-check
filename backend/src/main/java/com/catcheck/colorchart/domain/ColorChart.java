@@ -13,16 +13,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Bảng màu pH — ánh xạ 1-1 với bảng {@code color_chart} (p4 D5).
- *
- * <p>Đây là aggregate gốc của module {@code colorchart}. {@code cardLayoutId} và {@code createdBy}
- * là cột UUID thuần trỏ sang {@code reference_card_layout} / {@code app_user} — KHÔNG dùng
- * {@code @ManyToOne} (R6: cấm association JPA trỏ ra ngoài module).
- *
- * <p>Không có cột {@code version} riêng cho {@code If-Match}: ETag lấy từ {@code updatedAt}
- * (p8 §8.1.11).
- */
 @Entity
 @Table(name = "color_chart")
 public class ColorChart {

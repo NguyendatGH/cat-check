@@ -61,19 +61,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Nhóm D — Hồ sơ mèo (20 endpoint, p8 §8.4.4) + F2 (giống mèo, cùng bảng {@code cat_breed}).
- *
- * <p><b>D12/D13 đã triển khai</b> (trước đây là stub 501 chờ module {@code scan}/{@code insight}).
- * Hai module đó nay đã có, nhưng {@code cat} vẫn KHÔNG được phép phụ thuộc chúng
- * ({@code cat/package-info.java}), nên dữ liệu quét/flag đọc qua {@code ScanInsightPort} — cổng
- * SPI riêng của cat, hiện thực bằng JDBC thô, không import type nào của hai module kia.</p>
- *
- * <p><b>D18/D19 không có {@code catId} trên path</b> ({@code /cat-notes/{id}}) nên nằm cùng
- * controller này thay vì tách controller riêng — cùng module, cùng bảng, không có lý do kiến trúc
- * nào để tách (giống cách {@code AccountController} của identity gộp {@code /users/me} lẫn
- * {@code /account/...}).</p>
- */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Cats", description = "Nhóm D — hồ sơ mèo, ghi chú, khảo sát sức khoẻ, dấu hiệu lâm sàng")
@@ -106,17 +93,7 @@ public class CatController {
         this.responseAssembler = responseAssembler;
     }
 
-    // ============================================================== D1/D2 — danh sách/tạo
 
-    /**
-     * D1 — danh sách mèo của tôi.
-     *
-     * <p>{@code sort} chỉ được VALIDATE (whitelist {@code name}/{@code createdAt} —
-     * {@code CatProfileService}), thứ tự trả về THỰC TẾ luôn {@code isPrimary desc, name asc}:
-     * {@code CatRepository.findAllByOwnerId} (port của A3) không nhận tham số sắp xếp động. Đây là
-     * giới hạn có sẵn từ chữ ký port, không phải lỗi ở tầng glue HTTP này — xem
-     * {@code docs/handovers/A3-backend-fix.md}.</p>
-     */
     @Operation(operationId = "listCats", summary = "D1 — Danh sách mèo của tôi")
     @GetMapping("/cats")
     public CatPageResponse<CatResponse> listCats(
@@ -130,7 +107,6 @@ public class CatController {
         return CatPageResponse.of(items, items.size(), false);
     }
 
-    /** D2 — tạo hồ sơ mèo. */
     @Operation(operationId = "createCat", summary = "D2 — Tạo hồ sơ mèo")
     @PostMapping("/cats")
     @ResponseStatus(HttpStatus.CREATED)
@@ -155,9 +131,7 @@ public class CatController {
         return ResponseEntity.created(location).body(responseAssembler.toResponse(saved, locale));
     }
 
-    // ============================================================== D3/D4/D5 — chi tiết/sửa/xoá
 
-    /** D3 — chi tiết hồ sơ mèo. */
     @Operation(operationId = "getCat", summary = "D3 — Chi tiết hồ sơ mèo")
     @GetMapping("/cats/{catId}")
     public CatResponse getCat(
@@ -165,7 +139,6 @@ public class CatController {
         return responseAssembler.toResponse(catProfileService.get(user.userId(), catId), locale);
     }
 
-    /** D4 — sửa hồ sơ (merge-patch). */
     @Operation(operationId = "patchCat", summary = "D4 — Sửa hồ sơ mèo (merge-patch)")
     @PatchMapping("/cats/{catId}")
     public CatResponse patchCat(
@@ -189,7 +162,6 @@ public class CatController {
         return responseAssembler.toResponse(saved, locale);
     }
 
-    /** D5 — xoá mềm hồ sơ. */
     @Operation(operationId = "deleteCat", summary = "D5 — Xoá mềm hồ sơ mèo")
     @DeleteMapping("/cats/{catId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -197,25 +169,20 @@ public class CatController {
         catProfileService.softDelete(user.userId(), catId);
     }
 
-    // ============================================================== D6/D7 — lưu trữ
 
-    /** D6 — "bé đã mất / đã cho đi" ⇒ {@code status = ARCHIVED}. */
     @Operation(operationId = "archiveCat", summary = "D6 — Lưu trữ hồ sơ mèo")
     @PostMapping("/cats/{catId}/archive")
     public CatResponse archiveCat(@CurrentUser SecurityPrincipal user, @PathVariable UUID catId, Locale locale) {
         return responseAssembler.toResponse(catProfileService.archive(user.userId(), catId), locale);
     }
 
-    /** D7 — đưa trở lại theo dõi. */
     @Operation(operationId = "unarchiveCat", summary = "D7 — Bỏ lưu trữ hồ sơ mèo")
     @PostMapping("/cats/{catId}/unarchive")
     public CatResponse unarchiveCat(@CurrentUser SecurityPrincipal user, @PathVariable UUID catId, Locale locale) {
         return responseAssembler.toResponse(catProfileService.unarchive(user.userId(), catId), locale);
     }
 
-    // ============================================================== D8 — mèo chính
 
-    /** D8 — đặt mèo chính. */
     @Operation(operationId = "setPrimaryCat", summary = "D8 — Đặt mèo chính")
     @PutMapping("/cats/{catId}/primary")
     public PrimaryCatResultDto setPrimaryCat(@CurrentUser SecurityPrincipal user, @PathVariable UUID catId) {
@@ -225,9 +192,7 @@ public class CatController {
                 result.previousPrimaryCatId() == null ? null : result.previousPrimaryCatId().toString());
     }
 
-    // ============================================================== D9/D10/D11 — ảnh đại diện
 
-    /** D9 — ảnh mèo (stream). */
     @Operation(operationId = "getCatAvatar", summary = "D9 — Ảnh đại diện mèo")
     @GetMapping("/cats/{catId}/avatar")
     public ResponseEntity<byte[]> getCatAvatar(@CurrentUser SecurityPrincipal user, @PathVariable UUID catId) {
@@ -242,7 +207,6 @@ public class CatController {
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(content.contentType())).body(bytes);
     }
 
-    /** D10 — tải ảnh mèo (multipart). */
     @Operation(operationId = "uploadCatAvatar", summary = "D10 — Tải ảnh đại diện mèo")
     @PutMapping("/cats/{catId}/avatar")
     public AvatarUrlResponse uploadCatAvatar(
@@ -259,7 +223,6 @@ public class CatController {
         }
     }
 
-    /** D11 — gỡ ảnh mèo. */
     @Operation(operationId = "removeCatAvatar", summary = "D11 — Gỡ ảnh đại diện mèo")
     @DeleteMapping("/cats/{catId}/avatar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -267,28 +230,13 @@ public class CatController {
         catAvatarService.removeAvatar(user.userId(), catId);
     }
 
-    // ============================================================== D12/D13 — tổng quan & xu hướng
 
-    /**
-     * D12 — card tổng quan cho dashboard (p8 §8.9 dòng 1185).
-     *
-     * <p>Trước đây là stub 501 với lý do "chờ port từ scan/insight" — lý do đó đã cũ; hai module
-     * đều đã có, nhưng chiều phụ thuộc {@code cat -> scan} vẫn không hợp lệ nên dữ liệu quét được
-     * đọc qua {@code ScanInsightPort} (SPI riêng của cat, JDBC thô).</p>
-     */
     @Operation(operationId = "getCatSummary", summary = "D12 — Card tổng quan")
     @GetMapping("/cats/{catId}/summary")
     public CatSummaryResponse getCatSummary(@CurrentUser SecurityPrincipal user, @PathVariable UUID catId) {
         return CatSummaryResponse.from(catInsightService.summary(user.userId(), catId));
     }
 
-    /**
-     * D13 — chuỗi pH + thống kê (p8 §8.9 dòng 1186). Cần entitlement {@code E:trend}, thiếu thì
-     * {@code 403 FEATURE_NOT_IN_PLAN}.
-     *
-     * @param range {@code 7D|30D|90D|CUSTOM}, mặc định {@code 30D}; {@code CUSTOM} bắt buộc có
-     *              cả {@code from} lẫn {@code to}
-     */
     @Operation(operationId = "getCatTrends", summary = "D13 — Xu hướng pH")
     @GetMapping("/cats/{catId}/trends")
     public CatTrendsResponse getCatTrends(
@@ -300,9 +248,7 @@ public class CatController {
         return CatTrendsResponse.from(catInsightService.trends(user.userId(), catId, range, from, to));
     }
 
-    // ============================================================== D14/D15 — khảo sát sức khoẻ
 
-    /** D14 — nộp/bỏ qua khảo sát sức khoẻ. */
     @Operation(operationId = "submitHealthSurvey", summary = "D14 — Nộp khảo sát sức khoẻ")
     @PostMapping("/cats/{catId}/health-survey")
     @ResponseStatus(HttpStatus.CREATED)
@@ -314,7 +260,6 @@ public class CatController {
                 user.userId(), catId, request.questionnaireVersion(), request.answers(), request.skipped()));
     }
 
-    /** D15 — bản khảo sát mới nhất. */
     @Operation(operationId = "getHealthSurvey", summary = "D15 — Bản khảo sát mới nhất")
     @GetMapping("/cats/{catId}/health-survey")
     public CatHealthSurveyResponse getHealthSurvey(
@@ -322,9 +267,7 @@ public class CatController {
         return CatHealthSurveyResponse.from(catHealthSurveyService.latest(user.userId(), catId));
     }
 
-    // ============================================================== D16/D17 — ghi chú (theo mèo)
 
-    /** D16 — nhật ký ghi chú. */
     @Operation(operationId = "listCatNotes", summary = "D16 — Nhật ký ghi chú")
     @GetMapping("/cats/{catId}/notes")
     public CatPageResponse<CatNoteResponse> listCatNotes(
@@ -341,7 +284,6 @@ public class CatController {
         return CatPageResponse.of(items, pageSize, result.hasMore());
     }
 
-    /** D17 — thêm ghi chú. */
     @Operation(operationId = "createCatNote", summary = "D17 — Thêm ghi chú")
     @PostMapping("/cats/{catId}/notes")
     @ResponseStatus(HttpStatus.CREATED)
@@ -354,9 +296,7 @@ public class CatController {
         return CatNoteResponse.from(note);
     }
 
-    // ============================================================== D18/D19 — ghi chú (theo id)
 
-    /** D18 — sửa ghi chú của chính mình (merge-patch). Path KHÔNG mang {@code catId} (p8 §8.4.4). */
     @Operation(operationId = "patchCatNote", summary = "D18 — Sửa ghi chú")
     @PatchMapping("/cat-notes/{noteId}")
     public CatNoteResponse patchCatNote(
@@ -368,7 +308,6 @@ public class CatController {
         return CatNoteResponse.from(note);
     }
 
-    /** D19 — xoá mềm ghi chú. */
     @Operation(operationId = "deleteCatNote", summary = "D19 — Xoá mềm ghi chú")
     @DeleteMapping("/cat-notes/{noteId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -376,9 +315,7 @@ public class CatController {
         catNoteService.softDelete(user.userId(), noteId);
     }
 
-    // ============================================================== D20 — dấu hiệu lâm sàng
 
-    /** D20 — khai dấu hiệu lâm sàng. */
     @Operation(operationId = "reportClinicalSigns", summary = "D20 — Khai dấu hiệu lâm sàng")
     @PostMapping("/cats/{catId}/clinical-signs")
     @ResponseStatus(HttpStatus.CREATED)
@@ -391,9 +328,7 @@ public class CatController {
                 clinicalSignReportService.create(user.userId(), catId, signs, request.source()));
     }
 
-    // ============================================================== F2 — giống mèo
 
-    /** F2 — danh mục giống mèo đang hoạt động, nhãn theo locale. */
     @Operation(operationId = "listCatBreeds", summary = "F2 — Danh mục giống mèo")
     @GetMapping("/reference/cat-breeds")
     public CatBreedListResponse listCatBreeds(Locale locale) {

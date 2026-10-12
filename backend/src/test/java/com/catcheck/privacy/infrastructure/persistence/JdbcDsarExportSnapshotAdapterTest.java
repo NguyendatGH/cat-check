@@ -16,7 +16,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Gói xuất DSAR trên PostgreSQL thật: thứ tự hội thoại trợ lý AI phải cố định. */
 @Testcontainers
 class JdbcDsarExportSnapshotAdapterTest {
 
@@ -39,11 +38,6 @@ class JdbcDsarExportSnapshotAdapterTest {
         adapter = new JdbcDsarExportSnapshotAdapter(jdbc);
     }
 
-    /**
-     * {@code AiChatService} lưu tin USER rồi ASSISTANT trong CÙNG một transaction nên cả hai có
-     * cùng {@code created_at = now()}, còn {@code id} là UUID ngẫu nhiên. Chèn ASSISTANT trước
-     * (vật lý) để thứ tự "ăn may" theo heap/index không còn trùng với thứ tự hội thoại.
-     */
     @Test
     void aiMessagesOfOneTurnSharingCreatedAtAreExportedUserThenAssistant() {
         UUID user = jdbc.queryForObject(

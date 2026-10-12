@@ -29,10 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * L33–L35 phía nghiệp vụ quản trị — ba nhánh lỗi mà p8 §8.4.12 nêu đích danh
- * ({@code 409 COLOR_CHART_IN_USE}, {@code 422 COLOR_CHART_INCOMPLETE}) cộng cửa sổ thời gian.
- */
 class ChartBackfillAdminServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T10:00:00Z");
@@ -146,9 +142,7 @@ class ChartBackfillAdminServiceTest {
                 "P100Y quet toan bo scan_analysis trong mot transaction — phai co tran");
     }
 
-    // ------------------------------------------------------------------ fixtures
 
-    /** {@link ChartBackfill} chỉ ghi lại lời gọi — phép tính đã có test riêng ở module scan. */
     private static final class RecordingBackfill implements ChartBackfill {
 
         private final List<UUID> previews = new ArrayList<>();
@@ -261,7 +255,6 @@ class ChartBackfillAdminServiceTest {
 
         @Override
         public void saveAll(Iterable<ColorChartPoint> newPoints) {
-            // Backfill chi doc diem, khong ghi — fake nay khong can luu.
         }
     }
 }

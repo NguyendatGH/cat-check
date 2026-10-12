@@ -14,17 +14,6 @@ const SLUG_TO_CODE: Record<string, PolicyCode> = {
   "medical-disclaimer": "MEDICAL_DISCLAIMER",
 };
 
-/**
- * `/legal/:policyCode/v/:version` (p9 §9.4.3 #16, REQ-LEGAL-03 — "URL của phiên bản cụ thể
- * phải truy cập được vĩnh viễn").
- *
- * Nguồn dữ liệu là **F10 `GET /policies/{code}/versions/{version}`** — permalink phục vụ CẢ
- * bản đã hết hiệu lực, không bao giờ trả 410, chỉ 404 khi phiên bản chưa từng tồn tại. Trang
- * trước đây gọi C16 (bản hiện hành) và báo "chưa có bản lưu trữ" cho mọi phiên bản cũ; đó là
- * hiển thị sai chứ không phải giới hạn backend.
- *
- * DESKTOP (>= lg): cùng bố cục với `LegalDocumentPage` — cột văn bản 560px + cột phụ 360px.
- */
 export function PolicyVersionDetailPage() {
   const { t, i18n } = useTranslation(["legal", "common"]);
   const { policyCode: slug, version } = useParams<{ policyCode: string; version: string }>();
@@ -73,7 +62,6 @@ export function PolicyVersionDetailPage() {
         <article className={cn(LEGAL_COLUMN, "gap-6")}>
           <header className="flex flex-col gap-2">
             <h1 className="text-h1 font-bold text-text-primary">{data.title}</h1>
-            {/* Từ `lg` dòng phiên bản nằm ở cột phụ, nên bản inline này chỉ phục vụ mobile/in ấn. */}
             <p className="text-caption text-text-secondary lg:hidden lg:print:block">{versionLine}</p>
           </header>
           {data.summaryOfChanges ? (

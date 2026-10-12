@@ -36,8 +36,6 @@ public class JdbcPlaceRepository implements PlaceRepository {
         if (query != null && !query.isBlank()) { sql.append(" AND (lower(p.name) LIKE lower(?) OR lower(p.address) LIKE lower(?))"); args.add("%" + query.strip() + "%"); args.add("%" + query.strip() + "%"); }
         if (kind != null && !kind.isBlank()) { sql.append(" AND p.kind = ?"); args.add(kind.toUpperCase()); }
         if (area != null && !area.isBlank()) { sql.append(" AND p.area = ?"); args.add(area); }
-        // Có vị trí: KHÔNG loại cơ sở xa, mà xếp gần → xa để luôn có "gần nhất" (trước đây hộp ±1° khiến
-        // người dùng ngoài khu vực seed nhận danh sách rỗng). Khoảng cách phẳng hiệu chỉnh cos(vĩ độ).
         boolean nearest = latitude != null && longitude != null;
         sql.append(" GROUP BY p.id ORDER BY ");
         if (nearest) {

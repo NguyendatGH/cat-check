@@ -106,8 +106,6 @@ class IdentitySecurityLogicReviewTest {
 
     @Test
     void proxyHopAddressIsNotOneSharedLoginBucketForEveryone() {
-        // Behind Caddy / the Vite proxy every request has the proxy's private address; counting it
-        // would turn the 10/min IP layer into one global bucket for all users.
         LoginService service = loginServiceWith(new Bucket4jRateLimiter());
 
         for (String proxy : List.of("127.0.0.1", "172.18.0.5", "::1")) {
@@ -238,7 +236,7 @@ class IdentitySecurityLogicReviewTest {
 
         MfaService service = new MfaService(totps, mock(MfaRecoveryCodeRepository.class),
                 mock(UserRoleRepository.class), mock(com.catcheck.identity.api.PiiCipher.class),
-                mock(RecoveryCodeHasher.class), allowingLimiter(), audit(), CLOCK);
+                mock(RecoveryCodeHasher.class), allowingLimiter(), audit(), CLOCK, false);
 
         assertThatThrownBy(() -> service.confirm(USER_A, "123456", CONTEXT))
                 .isInstanceOf(RateLimitedException.class)
@@ -341,7 +339,6 @@ class IdentitySecurityLogicReviewTest {
     @Test
     void emailChangeTicketWithoutOwnerIsRejectedNotA500() {
         OtpService otp = mock(OtpService.class);
-        // A4 /auth/otp/request is public: an EMAIL_CHANGE ticket requested there has userId = null.
         when(otp.consumeTicket("ticket", OtpPurpose.EMAIL_CHANGE)).thenReturn(new EmailOtpChallenge(
                 UUID.randomUUID(), null, "new@example.com", "hash", 1, OtpPurpose.EMAIL_CHANGE,
                 NOW.plusSeconds(60), 0, 5, null, CONTEXT.ipAddress(), NOW, "ticket-hash",
@@ -379,7 +376,7 @@ class IdentitySecurityLogicReviewTest {
         when(hasher.currentPepperVersion()).thenReturn(1);
         when(hasher.hash(any(Integer.class), any())).thenReturn("hash");
         return new MfaService(totps, codes, mock(UserRoleRepository.class),
-                mock(com.catcheck.identity.api.PiiCipher.class), hasher, allowingLimiter(), audit(), CLOCK);
+                mock(com.catcheck.identity.api.PiiCipher.class), hasher, allowingLimiter(), audit(), CLOCK, false);
     }
 
     private static LoginService loginServiceWith(RateLimiter limiter) {

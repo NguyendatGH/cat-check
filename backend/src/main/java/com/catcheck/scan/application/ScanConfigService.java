@@ -4,10 +4,6 @@ import com.catcheck.scan.domain.ScanThresholds;
 import com.catcheck.scan.domain.color.ChartCatalog;
 import org.springframework.stereotype.Service;
 
-/**
- * {@code GET /api/v1/scan/config} (p8 E12, p6 §6.3.4/§6.3.5) — tham số & ngưỡng chất lượng cho
- * client, để đổi ngưỡng không cần deploy lại frontend.
- */
 @Service
 public class ScanConfigService {
 
@@ -41,8 +37,6 @@ public class ScanConfigService {
     public Snapshot snapshot() {
         ActiveChartSummary chartSummary = chartCatalog
                 .findActiveChart(ScanThresholds.DEFAULT_PRODUCT_LINE, null)
-                // `code` con người đọc (vd "CHART-STD-2026A") không đi qua ChartCatalog — cổng chỉ
-                // trả `id` (UUID). Dùng tạm `id` làm `code` (xem docs/handovers/A6.md).
                 .map(chart -> new ActiveChartSummary(chart.id(), chart.version(), chart.isPlaceholder()))
                 .orElse(new ActiveChartSummary(null, 0, true));
 

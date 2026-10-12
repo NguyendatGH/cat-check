@@ -6,13 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Part {@code metadata} (application/json) của {@code POST /api/v1/scans} (p8 §8.5.4).
- *
- * <p>{@code clientPrecheck}/{@code clientTimings} nhận nguyên khối JSON tự do (chỉ để log/quan
- * sát) — server KHÔNG tin metric của client (p6 mục a: "Server làm toàn bộ colorimetry, và không
- * tin metric của client").</p>
- */
 public record ScanMetadataRequest(
         @NotBlank String scanRequestId,
         String catId,

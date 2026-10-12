@@ -81,17 +81,6 @@ import { CatBiomarkerCard, CatProfileActions, CatRecentScansCard, CatStatGrid } 
 const NOTE_TYPES: NoteType[] = ["GENERAL", "DIET_CHANGE", "SYMPTOM", "VET_VISIT", "LITTER_CHANGE"];
 const SURVEY_QUESTION_NAMES = ["litterType", "urinaryHistory", "dietType", "urinationFrequency"] as const;
 
-/**
- * `/cats/:catId` — M2 06 · W1 10 · P15 §15.7.2 P3 (p9 route #29).
- *
- * Hai bố cục, chọn bằng `useBreakpoint("lg")` để CHỈ MỘT cây được dựng (tránh hai dialog
- * "thao tác khác" cùng mở và truy vấn trùng):
- *  - mobile (mockup `06`): thẻ nhận diện + 3 tab Tổng quan / Lịch sử sức khoẻ / Ghi chú;
- *  - desktop (Figma `Web - 06 & 07`): thanh chọn hồ sơ đầu trang + lưới 5/7. Cột trái là hồ sơ
- *    (nhận diện, thông tin, cơ sở thú y), cột phải là theo dõi (chỉ số, thang pH, dòng thời
- *    gian có sửa ghi chú, khảo sát + báo dấu hiệu) — hai cột cao xấp xỉ nhau thay vì cột trái
- *    dài gấp đôi cột phải như trước.
- */
 export function CatDetailPage() {
   const { t } = useTranslation(["cat", "common"]);
   const navigate = useNavigate();
@@ -99,13 +88,9 @@ export function CatDetailPage() {
   const isDesktop = useBreakpoint("lg");
 
   const { data: cat, isPending, isError, refetch } = useCat(catId);
-  // D12 — số liệu lâm sàng thật. Không chặn render: lỗi/đang tải thì panel tự rơi về
-  // trạng thái "chưa có dữ liệu" (mèo mới tạo chưa quét lần nào là hợp lệ).
   const { data: catSummary } = useCatSummary(catId);
-  // Tổng số lần quét THẬT cho nhãn "Xem toàn bộ lịch sử (N bản ghi)" ở panel dòng thời gian.
   const { data: catScanSummary } = useScanSummary(catId);
   const { data: phBands } = usePhBands();
-  // Thanh chọn hồ sơ (desktop) — cùng query với thẻ chuyển bé ở sidebar nên không gọi thêm.
   const { data: activeCats } = useCatList("ACTIVE", isDesktop);
   const setExportCat = useExportWizardStore((s) => s.setCat);
   const archiveCat = useArchiveCat(catId ?? "");
@@ -184,7 +169,6 @@ export function CatDetailPage() {
   const actionLoading = archiveCat.isPending || unarchiveCat.isPending || softDelete.isPending || setPrimary.isPending;
 
   const openExport = () => {
-    // Chọn sẵn đúng bé đang xem ở bước 1 của màn xuất hồ sơ.
     setExportCat({ id: cat.id, name: cat.name });
     void navigate("/export");
   };
@@ -229,8 +213,6 @@ export function CatDetailPage() {
             <div className="col-span-5 flex flex-col gap-6">
               <CatProfileHero cat={cat} menu={menuButton} />
               <EmergencyDisclaimerBanner forceExpanded={flagged} />
-              {/* `unacknowledgedFlagCount` (D10/D12) bấm được: bung danh sách THẬT từ G1 và
-                  xác nhận từng mục bằng G3. */}
               <HealthFlagDisclosure catId={catId} count={cat.unacknowledgedFlagCount ?? 0} />
               <CatInfoCard cat={cat} />
               <CatIdentityExtras />
@@ -301,7 +283,6 @@ export function CatDetailPage() {
         </>
       )}
 
-      {/* Dialog "thao tác khác" dựng MỘT lần, nút ⋮ trên thẻ nhận diện chỉ mở nó. */}
       <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
         <DialogContent aria-label={t("actions.moreActions")}>
           <DialogTitle>{t("actions.moreActions")}</DialogTitle>
@@ -417,9 +398,7 @@ export function CatDetailPage() {
   );
 }
 
-/* ================================================================== Thông tin hồ sơ */
 
-/** Bảng thông tin hồ sơ — toàn bộ từ `GET /cats/{id}`; ghi chú chung là `notes` của chính bé. */
 function CatInfoCard({ cat }: { cat: Cat }) {
   const { t } = useTranslation("cat");
   const formatAge = useFormatCatAge();
@@ -477,7 +456,6 @@ function CatInfoCard({ cat }: { cat: Cat }) {
   );
 }
 
-/* ================================================================== Thẻ hành động */
 
 function SurveyCard({ catId, onOpen, className }: { catId: string; onOpen: () => void; className?: string }) {
   const { t, i18n } = useTranslation("cat");
@@ -527,7 +505,6 @@ function ClinicalSignsCard({ onOpen, className }: { onOpen: () => void; classNam
   );
 }
 
-/* ================================================================== Overview tab (mobile) */
 
 function OverviewTab({
   catId,
@@ -553,7 +530,6 @@ function OverviewTab({
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      {/* Mockup `06` — khối chỉ thị sinh học + 4 chỉ số + lần quét gần đây. */}
       <CatBiomarkerCard bands={bands ?? []} summary={summary} />
       <CatStatGrid catId={catId} summary={summary} scanSummary={scanSummary} />
       <CatRecentScansCard
@@ -573,11 +549,9 @@ function OverviewTab({
       <SurveyCard catId={catId} onOpen={onOpenSurvey} />
       <ClinicalSignsCard onOpen={onOpenSigns} />
 
-      {/* Hai nút hành động chính + ghi chú miễn trừ cuối màn (mockup `06`). */}
       <CatProfileActions
         name={cat.name}
         onScan={() => {
-          // "Bắt đầu quét mới cho {tên}" — chọn sẵn đúng bé rồi vào thẳng bước chụp.
           setScanCat({ id: cat.id, name: cat.name });
           void navigate("/scan");
         }}
@@ -590,12 +564,7 @@ function OverviewTab({
   );
 }
 
-/* ================================================================== History tab */
 
-/**
- * Tab "Lịch sử sức khoẻ" của mockup `06` — timeline quét THẬT (`GET /scans`), gom nhóm
- * theo tháng như màn `/cats/:catId/history`, kèm link sang màn đầy đủ.
- */
 function HistoryTab({ catId }: { catId: string }) {
   const { t } = useTranslation(["cat", "history", "common"]);
   const navigate = useNavigate();
@@ -702,7 +671,6 @@ function HistoryTab({ catId }: { catId: string }) {
   );
 }
 
-/* ================================================================== Notes tab */
 
 function NotesTab({
   catId,
@@ -781,7 +749,6 @@ function NotesTab({
   );
 }
 
-/* ================================================================== Health survey dialog */
 
 const EMPTY_SURVEY_ANSWERS: CatHealthSurveyAnswers = {
   litterType: "",
@@ -930,7 +897,6 @@ function HealthSurveyDialog({
   );
 }
 
-/* ================================================================== Clinical signs dialog */
 
 export function ClinicalSignsDialog({
   catId,
@@ -1076,7 +1042,6 @@ export function ClinicalSignsDialog({
   );
 }
 
-/* ================================================================== Note form dialog */
 
 function NoteFormDialog({
   catId,
@@ -1222,7 +1187,6 @@ function NoteFormDialog({
   );
 }
 
-/* ================================================================== Delete note confirm */
 
 function DeleteNoteConfirm({ catId, noteId, onClose }: { catId: string; noteId: string | null; onClose: () => void }) {
   const { t } = useTranslation("cat");

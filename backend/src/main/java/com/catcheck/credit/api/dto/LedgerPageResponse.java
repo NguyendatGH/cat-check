@@ -6,13 +6,6 @@ import com.catcheck.credit.domain.port.CreditLedgerQueryPort.LedgerRow;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * {@code GET /api/v1/credits/ledger} (p8 H3).
- *
- * @param entries    các dòng của trang, mới nhất trước
- * @param hasMore    còn trang kế tiếp không
- * @param nextCursor khoá trang kế tiếp, {@code null} khi đã tới cuối
- */
 public record LedgerPageResponse(
         List<LedgerEntryResponse> entries,
         boolean hasMore,
@@ -26,16 +19,6 @@ public record LedgerPageResponse(
                 nextCursor);
     }
 
-    /**
-     * Một dòng sổ cái.
-     *
-     * @param type      loại biến động
-     * @param amount    dương = vào, âm = ra
-     * @param batchId   lô bị biến động, {@code null} nếu ghi ở mức tài khoản
-     * @param expiresAt hạn của LÔ bị biến động, {@code null} nếu dòng không gắn lô (G4 —
-     *                  {@code docs/cat-rag-credit-pipeline.md} B2: để frontend hiện "lô nào vừa
-     *                  bị trừ, còn hạn tới khi nào" cạnh mỗi dòng lịch sử)
-     */
     public record LedgerEntryResponse(
             String id,
             String type,

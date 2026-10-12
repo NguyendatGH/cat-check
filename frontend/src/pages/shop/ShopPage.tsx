@@ -11,36 +11,16 @@ import { discountPercent, formatVnd } from "./shopFormat";
 import { BuyingFacts, CareNoteCard, CartShortcut, PhBandScale, PriceRow, ProductGlyph, StockChip } from "./shopUi";
 import { useAddToCart } from "./useCartActions";
 
-/**
- * `/shop` — Cửa hàng CatCheck (design `Web - 14 & Giỏ hàng` / mobile `14. Cửa hàng`).
- *
- * Hai layout responsive (mốc `md`, vì token `--breakpoint-sm` của dự án là 375px nên `sm:`
- * bật ngay trên điện thoại):
- *   - từ `md`: hero hai cột + lưới sản phẩm; từ `lg` thêm cột giỏ hàng dính bên phải;
- *   - dưới `md`: hero thẻ xanh đặc + danh sách sản phẩm dạng hàng ngang, không có cột giỏ
- *     hàng (đã có route `/cart` riêng).
- *
- * NỘI DUNG: chỉ hiển thị field `GET /api/v1/shop/products` trả thật (`sku`, `name`,
- * `description`, `imageUrl`, `priceVnd`, `compareAtPriceVnd`, `stockQuantity`). API không có
- * xếp hạng, đánh giá, thành phần hay chứng nhận ⇒ UI không hiển thị những thứ đó. Banner
- * "chính sách bác sĩ thú y…" đầu trang, ảnh hero, chip quà tặng/freeship, khối "tư vấn với bác
- * sĩ" và "cam kết an toàn tuyệt đối" của mockup đã bỏ (tuyên bố chưa kiểm chứng / không có API).
- * Nhãn phân loại pH đến từ `entities/ph-bands`.
- *
- * Khung app (sidebar trái + thanh tìm kiếm trên) thuộc `AppLayout`, KHÔNG dựng ở đây.
- */
 
 const FILTERS = ["all", "subscription", "single"] as const;
 type FilterKey = (typeof FILTERS)[number];
 
 const CATALOG_ANCHOR = "shop-catalog";
 
-/** Gói định kỳ nhận ra bằng họ SKU thật của catalogue, không bằng nhãn marketing. */
 function isSubscription(sku: string): boolean {
   return sku.startsWith("SUBSCRIPTION");
 }
 
-/** Nút thêm giỏ dùng chung: khoá khi hết hàng, spinner khi đang chờ máy chủ. */
 function AddToCartButton({
   product,
   className,
@@ -74,7 +54,6 @@ function AddToCartButton({
   );
 }
 
-/** Thẻ sản phẩm bản mobile: ô hình vuông bên trái, giá + nút thêm giỏ ở hàng dưới. */
 function MobileProductCard({ product }: { product: ShopProductApi }) {
   const { t } = useTranslation("shop");
   const outOfStock = product.stockQuantity <= 0;
@@ -194,8 +173,6 @@ export function ShopPage() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [priceAscending, setPriceAscending] = useState(true);
   const productsQuery = useShopProducts();
-  // `useMemo` chứ không phải `?? []` tại chỗ: mảng mới mỗi render sẽ làm memo lọc/sắp xếp
-  // bên dưới chạy lại liên tục (react-hooks/exhaustive-deps).
   const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data]);
 
   const visibleProducts = useMemo(() => {
@@ -214,7 +191,6 @@ export function ShopPage() {
 
   return (
     <div className="flex flex-col gap-5 px-4 py-5 lg:px-0 lg:py-0">
-      {/* Hero — thẻ xanh đặc ở mobile, thẻ trắng kèm thang pH (API) từ `md`. */}
       <section data-reveal className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary-dark to-primary shadow-brand-lg md:bg-surface md:bg-none">
         <div className="flex flex-col gap-6 p-5 md:p-6 lg:flex-row lg:items-center lg:gap-8 xl:p-8">
           <div className="min-w-0 flex-1">
@@ -260,7 +236,6 @@ export function ShopPage() {
         </div>
       </section>
 
-      {/* Danh mục + giỏ hàng */}
       <div data-reveal id={CATALOG_ANCHOR} className="flex scroll-mt-4 flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="relative -mx-4 md:mx-0">
@@ -326,14 +301,12 @@ export function ShopPage() {
             </p>
           ) : (
             <>
-              {/* Bản mobile: danh sách hàng ngang */}
               <div className="flex flex-col gap-3 md:hidden">
                 {visibleProducts.map((p) => (
                   <MobileProductCard key={p.id} product={p} />
                 ))}
               </div>
 
-              {/* Bản web: lưới sản phẩm */}
               <div className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-3">
                 {visibleProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />
@@ -345,7 +318,6 @@ export function ShopPage() {
           <CareNoteCard />
         </div>
 
-        {/* Cột giỏ hàng chỉ từ `lg` (design web). Dưới `lg` dùng route `/cart` riêng. */}
         <div className="hidden lg:sticky lg:top-6 lg:block lg:w-[300px] lg:shrink-0 xl:w-[320px]">
           <CartPanel />
         </div>

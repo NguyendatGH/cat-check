@@ -25,14 +25,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L56/L57/L58 — ô {@code Q28} ({@code retention_policy}: chỉ {@code DPO} sửa, REQ-RET-06) và
- * ô {@code Q29} (dry-run: {@code ADMIN_SUPER} + {@code DPO}).
- *
- * <p>Bài {@link #exceedingTheI15CeilingSurfacesAs422RetentionLimitExceeded()} là nhánh mã lỗi
- * mà ô L57 của p8 gọi tên đích danh; nó đi qua controller để chứng minh lỗi không bị bộ gác
- * vai trò hay bước merge-patch che mất trước khi tới service.</p>
- */
 class AdminRetentionControllerTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T03:00:00Z");

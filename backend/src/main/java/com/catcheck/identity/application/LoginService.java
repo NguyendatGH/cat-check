@@ -27,18 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Dang nhap (p8 A6, p11 §11.1.5, §11.7.2).
- *
- * <p><b>Quan trong nhat cua ca module: khong lo tai khoan co ton tai.</b> Ba ve khac nhau
- * — email sai, mat khau sai, tai khoan bi khoa — deu tra <b>cung mot</b> ma
- * {@link IdentityErrorCode#INVALID_CREDENTIALS} va phai ton tai <b>cung thoi gian phan
- * hoi</b>. Do do khi khong tim thay tai khoan, van phai chay BCrypt tren hash gia
- * ({@link PasswordHasher#dummyHash()}).</p>
- *
- * <p>Rate limit chay truoc ca tra DB: 5/phut theo email + 10/phut theo IP
- * (p11 §11.7.2).</p>
- */
 @Service
 public class LoginService {
 
@@ -72,7 +60,6 @@ public class LoginService {
         this.clock = clock;
     }
 
-    /** Ket qua dang nhap: controller dung {@code userId} + {@code roles} de mo phien. */
     public record LoginResult(UUID userId, EmailAddress email, String fullName, Set<String> roles) {
     }
 
@@ -82,8 +69,6 @@ public class LoginService {
         EmailAddress email = EmailAddress.parseOrNull(rawEmail);
         String lookupEmail = email == null ? normalizeBlind(rawEmail) : email.value();
 
-        // Rate limit dung email CHUA chuan hoa khi email khong hop le — nguoi goi khac
-        // nghia dang ky 1 lan ma van khong lo doi do loc. Dung 1 khoa cho ca ca hai nhanh.
         requireRateLimit(lookupEmail, context);
 
         Optional<UserAccount> found = email == null
@@ -93,7 +78,6 @@ public class LoginService {
                 .flatMap(account -> identityRepository.findLocal(account.id()))
                 .orElse(null);
 
-        // Nhanh "khong co tai khoan" van phai ton thoi gian BCrypt.
         String storedHash = identity != null && identity.hasPassword()
                 ? identity.passwordHash()
                 : passwordHasher.dummyHash();
@@ -107,8 +91,6 @@ public class LoginService {
         UserAccount account = found.get();
         Instant now = clock.instant();
 
-        // Khoa tam thoi theo so lan sai (p11 §11.7.2). Kiem tra TRUOC khi xet ACTIVE:
-        // tai khoan da LOCKED van phai tra INVALID_CREDENTIALS chu khong phai mot ma khac.
         if (account.lockedUntil() != null && account.lockedUntil().isAfter(now)) {
             auditDenied(account.id(), "account_locked", context);
             throw new BusinessRuleException(IdentityErrorCode.INVALID_CREDENTIALS);
@@ -119,8 +101,6 @@ public class LoginService {
         }
         if (account.status() != UserStatus.ACTIVE || account.emailVerifiedAt() == null) {
             auditDenied(account.id(), "not_active", context);
-            // Client da gui mat khau dung -> no khong phai nguoi la, nen noi ro tai khoan
-            // chua xac minh moi an toan (p8 §8.2.4 ACCOUNT_NOT_VERIFIED).
             if (account.emailVerifiedAt() == null) {
                 throw new BusinessRuleException(IdentityErrorCode.ACCOUNT_NOT_VERIFIED);
             }
@@ -131,13 +111,10 @@ public class LoginService {
             throw new BusinessRuleException(IdentityErrorCode.ACCOUNT_RESTRICTED);
         }
 
-        // Ket qua dung: reset bo dem sai va ghi lan dang nhap gan nhat.
         accountRepository.updateLoginState(account.id(), UserStatus.ACTIVE, 0, null, now);
 
         int activeSessions = countActiveSessions(account.id(), now);
         if (activeSessions >= policy.maxConcurrentSessions()) {
-            // p8 §8.2.4 SESSION_LIMIT_REACHED: thong bao thay vi thu hoi ngam — nguoi
-            // dung phai duoc chon phien nao de giu.
             throw new BusinessRuleException(IdentityErrorCode.SESSION_LIMIT_REACHED,
                     policy.maxConcurrentSessions());
         }
@@ -162,10 +139,6 @@ public class LoginService {
                 roles.stream().map(Enum::name).collect(java.util.stream.Collectors.toUnmodifiableSet()));
     }
 
-    /**
-     * Dang xuat (p8 A7). Khong the huy phien hien tai qua API (p8 A7 + A13) — phien hien
-     * tai chi tho khi logout, do Spring Session lo.
-     */
     @Transactional
     public void logout(UUID userId, AuthRequestContext context) {
         auditLogService.record(AuditEvent.builder()
@@ -233,9 +206,6 @@ public class LoginService {
             throw new com.catcheck.shared.error.RateLimitedException(
                     IdentityErrorCode.RATE_LIMITED, byEmail.headerSeconds(), "EMAIL");
         }
-        // Subject phai la IP that: RateLimiter.tryConsume() bo qua khi subject null (xem javadoc
-        // RateLimiter#tryConsume). LOGIN_BY_IP (10/phut, p11 §11.7.2) chan mot IP thu mat khau
-        // tren nhieu email khac nhau; lop theo email chi chan tung email rieng.
         RateLimiter.RetryAfter byIp = rateLimiter.rejectIfLimited(RateLimitRule.LOGIN_BY_IP, context.ipAddress());
         if (byIp != null) {
             throw new com.catcheck.shared.error.RateLimitedException(
@@ -243,11 +213,6 @@ public class LoginService {
         }
     }
 
-    /**
-     * Khi email khong dung dinh dang, van can mot khoa rate limit ổn dinh de khong bi
-     * bo qua bang cach gui email sai hinh thuc. Chuoi rong tra rong — khoa rong thi
-     * {@link RateLimiter} bo qua quy tac, va nhanh IP van chan.
-     */
     private static String normalizeBlind(String rawEmail) {
         if (rawEmail == null) {
             return "";

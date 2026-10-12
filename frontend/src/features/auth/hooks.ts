@@ -23,14 +23,7 @@ import type {
   UpdateProfileRequest,
 } from "./types";
 
-/**
- * Hooks react-query cho auth — mọi call đi qua `apiFetch` (features/auth/api.ts) theo
- * hợp đồng thật của `AuthController`/`AccountController` (đọc trực tiếp từ
- * `backend/.../identity/api/*.java`, KHÔNG suy từ p8 lý thuyết vì vài chỗ controller trả
- * `Map.of(...)` khác DTO record chưa dùng tới — xem `docs/handovers/A1-fe.md`).
- */
 
-/* ---------------- A3/A4/A5 — Đăng ký + OTP ---------------- */
 
 export interface RegisterPayload {
   email: string;
@@ -84,7 +77,6 @@ export function useVerifyOtp(): UseMutationResult<
   });
 }
 
-/** C1 (module privacy, công khai) — dùng để vẽ checkbox consent ở màn đăng ký (p15 §15.3.3). */
 export function useConsentPurposes(): UseQueryResult<ConsentPurposeOption[]> {
   return useQuery({
     queryKey: ["auth", "consent-purposes"],
@@ -96,10 +88,6 @@ export function useConsentPurposes(): UseQueryResult<ConsentPurposeOption[]> {
   });
 }
 
-/**
- * `GET /system/status` (công khai, `PublicSystemStatusController`) — chỉ lấy `buildVersion`
- * cho huy hiệu phiên bản ở màn đăng nhập (M1 01b). Không hard-code số phiên bản ở FE.
- */
 export function useBuildVersion(): UseQueryResult<string | null> {
   return useQuery({
     queryKey: ["system", "status", "buildVersion"],
@@ -111,7 +99,6 @@ export function useBuildVersion(): UseQueryResult<string | null> {
   });
 }
 
-/* ---------------- A6/A7 — Đăng nhập / đăng xuất ---------------- */
 
 export function useLogin(): UseMutationResult<
   LoginResponse,
@@ -133,7 +120,6 @@ export function useLogout(): UseMutationResult<undefined, Error, undefined> {
   });
 }
 
-/** A2 — bootstrap phiên, dùng ở `/auth/oauth/complete` để biết redirect Google có set được cookie hay không. */
 export function useAuthSessionQuery(enabled: boolean): UseQueryResult<SessionBootstrapResponse> {
   return useQuery({
     queryKey: ["auth", "session-bootstrap"],
@@ -143,7 +129,6 @@ export function useAuthSessionQuery(enabled: boolean): UseQueryResult<SessionBoo
   });
 }
 
-/* ---------------- A8/A9 — Quên / đặt lại mật khẩu (luồng OTP-ticket) ---------------- */
 
 export function useRequestPasswordReset(): UseMutationResult<undefined, Error, string> {
   return useMutation({
@@ -165,7 +150,6 @@ export function useConfirmPasswordReset(): UseMutationResult<undefined, Error, {
   });
 }
 
-/* ---------------- A10/A11 — MFA bước 2 khi đăng nhập ---------------- */
 
 export function useVerifyLoginTotp(): UseMutationResult<TotpLoginVerifyResponse, Error, string> {
   return useMutation({
@@ -187,7 +171,6 @@ export function useVerifyLoginRecoveryCode(): UseMutationResult<TotpRecoveryResp
   });
 }
 
-/* ---------------- A13/A14/A15 — Quản lý phiên đăng nhập ---------------- */
 
 export function useSessions(enabled = true): UseQueryResult<SessionListResponse> {
   return useQuery({
@@ -209,7 +192,6 @@ export function useRevokeAllSessions(): UseMutationResult<undefined, Error, unde
   });
 }
 
-/* ---------------- B1/B2 — Hồ sơ tài khoản ---------------- */
 
 export function useProfile(enabled = true): UseQueryResult<ProfileResponse> {
   return useQuery({
@@ -229,11 +211,9 @@ export function useUpdateProfile(): UseMutationResult<ProfileResponse, Error, Up
   });
 }
 
-/* ---------------- B4/B5 — Ảnh đại diện người dùng ---------------- */
 
 export const MY_AVATAR_PATH = "/api/v1/users/me/avatar";
 
-/** `PUT /users/me/avatar` (multipart `file`, JPEG/PNG/WebP ≤ 5MB). Trả `{ avatarUrl }`. */
 export function useUploadMyAvatar(): UseMutationResult<{ avatarUrl: string }, Error, File> {
   return useMutation({
     mutationFn: (file) => {
@@ -244,19 +224,13 @@ export function useUploadMyAvatar(): UseMutationResult<{ avatarUrl: string }, Er
   });
 }
 
-/** `DELETE /users/me/avatar` (204). */
 export function useRemoveMyAvatar(): UseMutationResult<undefined, Error, void> {
   return useMutation({
     mutationFn: () => apiFetch<undefined>("/users/me/avatar", { method: "DELETE" }),
   });
 }
 
-/* ---------------- B6 — Đổi mật khẩu ---------------- */
 
-/**
- * Server trả 204 và thu hồi mọi phiên KHÁC (phiên hiện tại giữ nguyên) — nên sau khi
- * thành công phải invalidate `["auth","sessions"]` ở nơi gọi, danh sách thiết bị đã khác.
- */
 export function useChangePassword(): UseMutationResult<undefined, Error, ChangePasswordRequest> {
   return useMutation({
     mutationFn: (payload) =>
@@ -267,7 +241,6 @@ export function useChangePassword(): UseMutationResult<undefined, Error, ChangeP
   });
 }
 
-/* ---------------- B7/B8 — Đổi email ---------------- */
 
 export function useRequestEmailChange(): UseMutationResult<EmailChangeRequestResponse, Error, string> {
   return useMutation({
@@ -289,7 +262,6 @@ export function useConfirmEmailChange(): UseMutationResult<{ emailChanged: boole
   });
 }
 
-/* ---------------- B9/B10 — Identity liên kết (Google) ---------------- */
 
 export function useIdentities(enabled = true): UseQueryResult<IdentityListResponse> {
   return useQuery({
@@ -305,7 +277,6 @@ export function useUnlinkIdentity(): UseMutationResult<undefined, Error, string>
   });
 }
 
-/* ---------------- B14-B18 — MFA TOTP quản lý trong tài khoản ---------------- */
 
 export function useTotpStatus(enabled = true): UseQueryResult<TotpStatusResponse> {
   return useQuery({

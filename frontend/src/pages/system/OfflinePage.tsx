@@ -4,22 +4,6 @@ import { RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { useOnlineStatus } from "@/shared/lib/hooks/useOnlineStatus";
 
-/**
- * `/offline` — màn hình khi thiết bị mất mạng.
- *
- * Layout: `FullscreenLayout` (xem `app/router/router.tsx`) — bare `min-h-dvh`, không header
- * và không padding, nên trang tự khai báo hộp của mình.
- *
- * ĐÚNG VỚI SERVICE WORKER HIỆN TẠI (`src/sw.ts`): SW chỉ làm hai việc —
- * `precacheAndRoute(self.__WB_MANIFEST)` và một `NavigationRoute` trả `index.html` cho mọi
- * điều hướng. Nghĩa là **vỏ ứng dụng** (JS/CSS/HTML/SVG/woff2) mở được khi offline, còn
- * **mọi lời gọi `/api/v1/*` đều không được cache** — không có runtime caching, không có
- * hàng chợ gửi lại (background sync). Câu chữ bên dưới nói đúng chừng đó, không hứa thêm.
- *
- * KHÔNG MẠNG VẪN PHẢI CHẠY: trang không gọi API, không ảnh từ xa, không web font — icon là
- * SVG inline của lucide (nằm trong bundle đã precache), chữ Nunito tự host ở `/fonts/*.woff2`
- * (đã nằm trong `injectManifest.globPatterns`).
- */
 export function OfflinePage() {
   const { t } = useTranslation(["errors", "common"]);
   const online = useOnlineStatus();

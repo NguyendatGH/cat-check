@@ -25,7 +25,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/** L13-L17 — quản trị staff và hàng đợi reset TOTP. */
 @RestController
 @RequestMapping("/api/v1/admin")
 @Tag(name = "Quản trị nhân sự", description = "Cấp/gỡ role và duyệt reset MFA hai người")

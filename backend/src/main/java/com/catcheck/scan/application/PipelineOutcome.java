@@ -9,19 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Kết quả tính toán của {@link ColorPipelineService} — chưa persist, chưa liên quan credit.
- * {@link ScanPersistenceService} ánh xạ record này vào {@code ScanAnalysis} bên trong transaction.
- *
- * @param inconclusive       {@code true} nếu {@link #classification} = {@code INCONCLUSIVE}
- * @param classification     phân loại (p6 §6.7.1)
- * @param phValue             pH ước lượng, {@code null} khi không đủ dữ liệu để chạy S8 (quality gate chặn sớm)
- * @param matchedPointId      mức pH gần nhất trên bảng màu, {@code null} nếu chưa chạy tới S8
- * @param calibrationMethod   phương pháp hiệu chỉnh đã dùng (p6 §6.5.1 S4/S4b)
- * @param calibration         snapshot JSONB {@code {method, wbGains, neutralPixelRatio}}
- * @param qualityMetrics      snapshot JSONB {@code {blurVar, meanLuma, clipHigh, clipLow, lumaGradient}}
- * @param engineVersion       semver pipeline (bump khi thay đổi thuật toán, p4 D3)
- */
 public record PipelineOutcome(
         boolean inconclusive,
         ScanClassification classification,

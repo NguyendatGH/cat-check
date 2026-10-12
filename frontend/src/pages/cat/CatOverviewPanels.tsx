@@ -19,30 +19,10 @@ import type { CatSummaryResponse } from "@/features/cat";
 import { useScanHistory } from "@/features/history";
 import { useReminders } from "@/features/reminder";
 
-/**
- * Các khối TỔNG QUAN của `/cats/:catId` ở MOBILE — dựng theo mockup
- * `06. Hồ sơ Bé Mèo (Cat Profile)`: thẻ trạng thái chỉ thị sinh học, lưới 4 chỉ số,
- * danh sách lần quét gần đây, hai nút hành động chính.
- *
- * TOÀN BỘ SỐ LIỆU LÀ THẬT:
- *  - `GET /cats/{id}/summary` → số lần quét 30 ngày, tỉ lệ trong ngưỡng, lần quét gần nhất;
- *  - `GET /scans/summary`     → tổng số lần quét, trung vị, khoảng pH;
- *  - `GET /scans`             → 2 lần quét gần nhất;
- *  - `GET /reference/ph-bands`→ nhãn/màu/ngưỡng của dải.
- *
- * KHÁC MOCKUP CÓ CHỦ ĐÍCH: ô "Chuỗi theo dõi (14 ngày)" của mockup không có endpoint nào
- * tính streak → thay bằng "Tỉ lệ trong ngưỡng" (số thật).
- *
- * Ô "Lần nhắc tiếp theo" đọc `GET /reminders?catId=…&active=true` (I1) — KHÔNG đọc
- * `summary.nextReminderAt`: backend luôn trả `null` ở trường đó dù module nhắc lịch đã chạy.
- * Trước đây ô này in "sẽ bật ở bản cập nhật sau" — hứa một tính năng thật ra đã có.
- */
 
-/* ================================================================== Lịch nhắc kế tiếp */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Lịch nhắc đang bật có `nextRunAt` sớm nhất của bé; `null` khi bé chưa có lịch nào. */
 export function useNextReminder(catId: string): { nextRunAt: string | null; isPending: boolean } {
   const { data, isPending, isError } = useReminders({ catId, active: true });
   let nextRunAt: string | null = null;
@@ -53,7 +33,6 @@ export function useNextReminder(catId: string): { nextRunAt: string | null; isPe
   return { nextRunAt, isPending: isPending && !isError };
 }
 
-/** Giá trị + dòng phụ của ô "Lần nhắc tiếp theo", dùng chung mobile/desktop. */
 export function useReminderStatText(nextRunAt: string | null): { value: string; foot: string } {
   const { t, i18n } = useTranslation("cat");
   if (!nextRunAt) return { value: t("overview.statReminderNone"), foot: t("overview.statReminderFoot") };
@@ -70,14 +49,11 @@ export function useReminderStatText(nextRunAt: string | null): { value: string; 
 
 const isBound = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
-/* ================================================================== Biomarker status */
 
 export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary: CatSummaryResponse | undefined }) {
   const { t } = useTranslation("cat");
   const lastScan = summary?.lastScan ?? null;
   const phValue = lastScan?.phValue ?? null;
-  // `classification` của lần quét gần nhất CHÍNH LÀ mã dải (IN_RANGE / SLIGHTLY_HIGH...),
-  // tra thẳng theo code trước rồi mới rơi về dò theo giá trị pH.
   const band =
     (lastScan ? bands.find((b) => b.code === lastScan.classification) : undefined) ??
     (phValue != null ? findBandForPh(bands, phValue) : undefined) ??
@@ -131,7 +107,6 @@ export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary:
   );
 }
 
-/* ================================================================== 4 chỉ số */
 
 function StatTile({
   label,
@@ -228,7 +203,6 @@ export function CatStatGrid({
   );
 }
 
-/* ================================================================== Lần quét gần đây */
 
 const RECENT_LIMIT = 2;
 
@@ -321,7 +295,6 @@ export function CatRecentScansCard({
   );
 }
 
-/* ================================================================== Hành động chính */
 
 export function CatProfileActions({ name, onScan, onEdit }: { name: string; onScan: () => void; onEdit: () => void }) {
   const { t } = useTranslation("cat");

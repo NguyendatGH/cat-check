@@ -2,11 +2,6 @@ package com.catcheck.notification.domain;
 
 import java.util.UUID;
 
-/**
- * Một đích gửi push đã phân giải: hoặc FID (đường mới) hoặc registration token (đường cũ).
- *
- * @param subscriptionId để map kết quả FCM trở lại đúng dòng {@code notification_outbox}
- */
 public record PushTarget(UUID subscriptionId, String installationId, String legacyToken) {
 
     public PushTarget {
@@ -19,7 +14,6 @@ public record PushTarget(UUID subscriptionId, String installationId, String lega
         return installationId != null;
     }
 
-    /** Chuỗi truyền cho FCM: {@code addAllFids(...)} nếu có FID, ngược lại {@code addAllTokens(...)}. */
     public String value() {
         return installationId != null ? installationId : legacyToken;
     }

@@ -16,25 +16,18 @@ import type {
   UpdateSecurityIncidentPayload,
 } from "./governanceTypes";
 
-/**
- * Logic form của 5 trang quản trị mới: dựng merge-patch chỉ gồm trường đã đổi, kiểm ràng
- * buộc giống DTO backend, lập kế hoạch thao tác hàng loạt. Hàm thuần, có test riêng.
- */
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** `@PathVariable UUID`/`@RequestParam UUID` — sai định dạng thì server trả 400, chặn trước. */
 export function isUuid(value: string): boolean {
   return UUID_PATTERN.test(value.trim());
 }
 
-// ------------------------------------------------------------------- ngày giờ
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
 }
 
-/** ISO → giá trị `<input type="datetime-local">` theo giờ máy người dùng. Rỗng nếu không có. */
 export function toLocalInputValue(iso: string | null | undefined): string {
   if (iso === null || iso === undefined || iso === "") {
     return "";
@@ -46,7 +39,6 @@ export function toLocalInputValue(iso: string | null | undefined): string {
   return `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/** Giá trị `datetime-local` → ISO UTC (`Instant` của backend). `null` nếu rỗng hoặc sai. */
 export function fromLocalInputValue(value: string): string | null {
   if (value.trim() === "") {
     return null;
@@ -55,7 +47,6 @@ export function fromLocalInputValue(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-// ------------------------------------------------------------- quy tắc theo dõi
 
 export type ParamKind = "number" | "boolean" | "string" | "json";
 
@@ -79,7 +70,6 @@ function kindOf(value: unknown): ParamKind {
   return "json";
 }
 
-/** Biến `params` thành danh sách ô nhập, giữ kiểu gốc của từng khoá. */
 export function paramsToDraft(params: Record<string, unknown> | null | undefined): ParamDraft[] {
   return Object.entries(params ?? {}).map(([key, value]) => {
     const kind = kindOf(value);
@@ -87,7 +77,6 @@ export function paramsToDraft(params: Record<string, unknown> | null | undefined
   });
 }
 
-/** Đọc lại ô nhập theo kiểu gốc. Trả danh sách khoá nhập sai. */
 export function draftToParams(
   drafts: readonly ParamDraft[],
 ): { ok: true; params: Record<string, unknown> } | { ok: false; invalidKeys: string[] } {
@@ -121,7 +110,6 @@ export function draftToParams(
   return invalidKeys.length > 0 ? { ok: false, invalidKeys } : { ok: true, params };
 }
 
-/** JSON có khoá sắp xếp — để so hai map `params` không phụ thuộc thứ tự khoá. */
 export function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(",")}]`;
@@ -130,7 +118,6 @@ export function stableStringify(value: unknown): string {
     const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
     return `{${entries.map(([key, inner]) => `${JSON.stringify(key)}:${stableStringify(inner)}`).join(",")}}`;
   }
-  // `JSON.stringify(undefined)` trả `undefined` (dù type nói `string`) — quy về "null".
   return value === undefined || typeof value === "function" ? "null" : JSON.stringify(value);
 }
 
@@ -143,7 +130,6 @@ export function ruleToDraft(rule: AdminMonitoringRule): RuleDraft {
   };
 }
 
-/** Mã rule duy nhất được phép `cooldownHours = 0` (p4 D11, `MonitoringRule.applyAdminUpdate`). */
 export const ZERO_COOLDOWN_RULE = "URGENT_CLINICAL_SIGN";
 
 export interface RulePatchErrors {
@@ -153,10 +139,6 @@ export interface RulePatchErrors {
   unchanged?: true;
 }
 
-/**
- * Dựng body L39: chỉ gửi trường đã đổi (merge-patch). `params` đổi thì gửi cả map vì server
- * thay toàn bộ map chứ không merge từng khoá.
- */
 export function buildRulePatch(
   rule: AdminMonitoringRule,
   draft: RuleDraft,
@@ -198,7 +180,6 @@ export interface RuleToggleTask {
   etag: string;
 }
 
-/** Bật/tắt hàng loạt: chỉ gửi rule đang ở trạng thái khác, mỗi rule dùng `etag` của chính nó. */
 export function planRuleToggle(
   rules: readonly AdminMonitoringRule[],
   selectedCodes: ReadonlySet<string>,
@@ -217,7 +198,6 @@ export function planRuleToggle(
   return { tasks, skipped };
 }
 
-/** Thay một dòng trong danh sách bằng bản server vừa trả (giữ thứ tự). */
 export function replaceRule(
   rules: readonly AdminMonitoringRule[],
   updated: AdminMonitoringRule,
@@ -225,11 +205,9 @@ export function replaceRule(
   return rules.map((rule) => (rule.code === updated.code ? updated : rule));
 }
 
-// ------------------------------------------------------------------- dữ liệu quét
 
 export const SHARED_UNKNOWN = "SHARED_UNKNOWN";
 
-/** Chuyển hàng loạt: bỏ qua scan đã ở đúng đích. */
 export function planReassign(
   scans: readonly AdminScanItem[],
   selectedIds: ReadonlySet<string>,
@@ -250,14 +228,12 @@ export function planReassign(
   return { tasks, skipped };
 }
 
-/** Body L18: đúng một trong `toCatId` / `toAssignment`. */
 export function reassignBody(target: ReassignTarget, reason: string): Record<string, string> {
   return target.kind === "cat"
     ? { toCatId: target.catId, reason: reason.trim() }
     : { toAssignment: SHARED_UNKNOWN, reason: reason.trim() };
 }
 
-// ------------------------------------------------------------------- sự cố
 
 export interface IncidentForm {
   severity: IncidentSeverity;
@@ -325,7 +301,6 @@ export function incidentToForm(incident: AdminSecurityIncident): IncidentForm {
   };
 }
 
-/** "A1, B2 ,," → ["A1","B2"]. Mỗi mã ≤ 8 ký tự (`List<@Size(max = 8) String>`). */
 export function parseDataCodes(value: string): { ok: true; codes: string[] } | { ok: false } {
   const codes = value
     .split(/[,\s]+/)
@@ -341,7 +316,6 @@ function parseCount(value: string): number | null | "invalid" {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : "invalid";
 }
 
-/** Kiểm chung cho mở mới và sửa: độ dài, số đếm, mã dữ liệu. */
 function validateIncidentCommon(form: IncidentForm, errors: IncidentFormErrors): void {
   if (form.summary.trim() === "") errors.summary = "required";
   else if (form.summary.length > 4000) errors.summary = "tooLong";
@@ -350,7 +324,6 @@ function validateIncidentCommon(form: IncidentForm, errors: IncidentFormErrors):
   if (!parseDataCodes(form.affectedDataCodes).ok) errors.affectedDataCodes = "invalid";
 }
 
-/** Body L60 — mở hồ sơ sự cố. */
 export function buildOpenIncidentPayload(
   form: IncidentForm,
   reason: string,
@@ -377,10 +350,6 @@ export function buildOpenIncidentPayload(
   return { ok: true, payload };
 }
 
-/**
- * Body L61 — merge-patch chỉ gồm trường đã đổi. Không có cách xoá một mốc đã ghi (vắng
- * trường = không đổi), nên để trống một mốc đang có giá trị là lỗi chứ không phải "xoá".
- */
 export function buildIncidentPatch(
   incident: AdminSecurityIncident,
   form: IncidentForm,
@@ -431,13 +400,11 @@ export function buildIncidentPatch(
   return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, payload };
 }
 
-/** So khớp cụm xác nhận cho thao tác phá huỷ — không phân biệt hoa thường và dấu. */
 export function isConfirmPhraseMatch(input: string, phrase: string): boolean {
   const expected = normalizeSearchText(phrase);
   return expected.length > 0 && normalizeSearchText(input) === expected;
 }
 
-// ------------------------------------------------------------ phiên bản chính sách
 
 export interface PolicyDraftForm {
   policyType: PolicyType;
@@ -456,7 +423,6 @@ export interface PolicyDraftForm {
 export type PolicyDraftErrorCode = "required" | "tooLong" | "invalid" | "notFuture";
 export type PolicyDraftErrors = Partial<Record<keyof PolicyDraftForm | "reason", PolicyDraftErrorCode>>;
 
-/** `@Pattern` của `CreatePolicyVersionRequest.version`. */
 const POLICY_VERSION_PATTERN = /^\d{1,4}\.\d{1,4}(\.\d{1,4})?$/;
 
 export function emptyPolicyDraft(): PolicyDraftForm {
@@ -475,7 +441,6 @@ export function emptyPolicyDraft(): PolicyDraftForm {
   };
 }
 
-/** Kiểm như `CreatePolicyVersionRequest` + luật nghiệp vụ 422 của L47. */
 export function validatePolicyDraft(form: PolicyDraftForm, reason: string, now: Date): PolicyDraftErrors {
   const errors: PolicyDraftErrors = {};
   if (!POLICY_VERSION_PATTERN.test(form.version.trim())) errors.version = "invalid";
@@ -497,7 +462,6 @@ export function validatePolicyDraft(form: PolicyDraftForm, reason: string, now: 
   return errors;
 }
 
-/** Body L47 — gửi đúng một nguồn nội dung theo lựa chọn. */
 export function policyDraftToPayload(form: PolicyDraftForm, reason: string): CreatePolicyVersionPayload {
   const payload: CreatePolicyVersionPayload = {
     policyType: form.policyType,
@@ -515,12 +479,7 @@ export function policyDraftToPayload(form: PolicyDraftForm, reason: string): Cre
   return payload;
 }
 
-// ------------------------------------------------------------------- consent
 
-/**
- * Bản ghi mới nhất của từng mục đích, theo `occurredAt` (bằng nhau thì giữ bản đứng trước,
- * vì server trả theo `(occurred_at, id)` giảm dần). Chỉ đúng trên phần đã tải.
- */
 export function latestConsentByPurpose(records: readonly AdminConsentRecord[]): AdminConsentRecord[] {
   const latest = new Map<string, AdminConsentRecord>();
   for (const record of records) {

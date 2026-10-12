@@ -12,12 +12,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * {@link UserActivityLogPort} trên {@code JdbcTemplate}.
- *
- * <p>{@code props} là JSONB — KHÔNG chứa PII, KHÔNG chứa giá trị pH (bất biến I29, ép
- * bằng test quét ngược ở p17). Xoá cứng khi xoá tài khoản (p4 B11).</p>
- */
 @Repository
 public class JdbcUserActivityLogAdapter implements UserActivityLogPort {
 

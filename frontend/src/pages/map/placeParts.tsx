@@ -4,7 +4,6 @@ import { cn } from "@/shared/lib/cn";
 import { formatNumber } from "@/shared/lib/format/formatNumber";
 import { KIND_CHIP_CLASS, KIND_ICON, distanceText, isAroundTheClockBadge, type PlaceKind } from "./placeView";
 
-/** Chip loại cơ sở — suy từ `place.kind` của API, không phải nhãn tự đặt. */
 export function KindChip({ kind, size = "sm" }: { kind: PlaceKind; size?: "sm" | "md" }) {
   const { t } = useTranslation("map");
   const Icon = KIND_ICON[kind];
@@ -22,7 +21,6 @@ export function KindChip({ kind, size = "sm" }: { kind: PlaceKind; size?: "sm" |
   );
 }
 
-/** Chip nguồn cho cơ sở lấy từ OpenStreetMap — để người dùng biết CatCheck không tổng hợp cơ sở này. */
 export function OsmSourceChip({ size = "sm" }: { size?: "sm" | "md" }) {
   const { t } = useTranslation("map");
   return (
@@ -38,7 +36,6 @@ export function OsmSourceChip({ size = "sm" }: { size?: "sm" | "md" }) {
   );
 }
 
-/** Badge do cơ sở công bố (API `badges[]`). Không tự thêm badge nào. */
 export function PlaceBadges({ badges, size = "sm" }: { badges: string[]; size?: "sm" | "md" }) {
   if (badges.length === 0) return null;
   return (
@@ -74,10 +71,6 @@ export function Stars({ value, size = 11 }: { value: number; size?: number }) {
   );
 }
 
-/**
- * Điểm trung bình chỉ hiện khi `reviewCount > 0`. API trả `rating: 0` khi chưa có đánh giá —
- * in "0.0" là con số vô nghĩa, nên lúc đó chỉ có một dòng trung tính (hoặc ẩn hẳn nếu `hideEmpty`).
- */
 export function RatingLine({
   rating,
   reviewCount,
@@ -113,7 +106,6 @@ export function RatingLine({
   );
 }
 
-/** Khoảng cách tính từ vị trí người dùng đã cấp quyền; không có vị trí thì không vẽ gì. */
 export function DistanceLabel({ km, className }: { km: number | null; className?: string }) {
   const { t } = useTranslation("map");
   if (km === null) return null;

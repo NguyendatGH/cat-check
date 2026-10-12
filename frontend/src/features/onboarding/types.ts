@@ -1,7 +1,3 @@
-/**
- * Types cho luồng onboarding 5 bước (p9 §9.4.3 route #17–21, p3 F4–F5).
- * Tên field khớp hợp đồng API p8 (nhóm D/H) và schema p4 (cat, cat_health_survey).
- */
 
 export type OnboardingStep = 1 | 2 | 3 | 4 | 5;
 
@@ -52,7 +48,6 @@ export interface BreedListResponse {
   items: Breed[];
 }
 
-/** Đáp án khảo sát — khớp JSONB `answers` của `cat_health_survey` (p4 C3). */
 export interface SurveyAnswers {
   litterType: string;
   urinaryHistory: string;
@@ -61,14 +56,8 @@ export interface SurveyAnswers {
   symptoms: string[];
 }
 
-/** Version bộ câu hỏi đang dùng — gửi kèm D14 và dùng để tra F6. */
 export const SURVEY_QUESTIONNAIRE_VERSION = "v1";
 
-/**
- * F6 — `GET /reference/health-survey/{version}` (p8 §8.4.6). Backend trả `labelKey` (khoá
- * i18n) chứ không trả câu chữ, đúng quy ước `monitoring_rule.message_key` (quyết định #15);
- * client resolve bằng namespace `onboarding`.
- */
 export interface SurveyQuestionOption {
   code: string;
   labelKey: string;
@@ -76,7 +65,6 @@ export interface SurveyQuestionOption {
 
 export interface SurveyQuestionDefinition {
   key: string;
-  /** `SINGLE` chọn một, `MULTI` chọn nhiều. Giữ `string`: version sau có thể thêm kiểu mới. */
   type: string;
   required: boolean;
   sortOrder: number;
@@ -97,13 +85,6 @@ export const EMPTY_SURVEY_ANSWERS: SurveyAnswers = {
   symptoms: [],
 };
 
-/**
- * Một lô trong `GET /credits/balance` — khớp `BalanceResponse.BatchResponse` của backend.
- *
- * Bug thật đã sửa: bản cũ khai `id`/`packageName`/`remaining` (không tồn tại trong response)
- * và `CreditBalance.totalAvailable` (server trả `availableBalance`), nên màn Hoàn tất luôn
- * đọc `undefined`. Cùng hợp đồng với `features/credit/types.ts`.
- */
 export interface CreditBatch {
   batchId: string;
   packageCode: string;
@@ -121,11 +102,6 @@ export interface CreditBalance {
   batches: CreditBatch[];
 }
 
-/**
- * `POST /activations` — khớp `ActivationResponse` của backend (phẳng, KHÔNG bọc `{batch,
- * balance}`). Bản cũ đọc `result.batch.packageName` ⇒ TypeError ngay sau khi mã đã bị tiêu
- * thụ thành công, màn hình báo "Đã có lỗi xảy ra" dù gói đã được kích hoạt.
- */
 export interface ActivationResult {
   packageCode: string;
   packageName: string;
@@ -134,17 +110,6 @@ export interface ActivationResult {
   balanceAfter: number;
 }
 
-/**
- * Khớp ĐÚNG response thật của F1 `GET /reference/ph-bands`.
- *
- * Bug thật đã sửa, hai chỗ cùng lúc:
- *  1. `severity` trước đây khai `"normal" | "mild" | "abnormal"` — server trả CHỮ HOA
- *     `NORMAL | ATTENTION | WATCH | NEUTRAL` (p6 §6.7.1, đã hoà giải R-F05, xem
- *     `entities/ph-bands/model.ts`). Mọi chỗ `find(b => b.severity === "normal")` vì thế
- *     luôn trả `undefined`, dải chuẩn không bao giờ hiện.
- *  2. Dải đầu KHÔNG có `phMin`, dải cuối KHÔNG có `phMax` và server BỎ HẲN key đó khỏi
- *     JSON — khai `number` bắt buộc là nói dối, phải là optional.
- */
 export interface PhBand {
   code: string;
   phMin?: number;
@@ -155,22 +120,8 @@ export interface PhBand {
   sortOrder: number;
 }
 
-/**
- * F1 trả BARE ARRAY, không bọc `{items}` — xem `PublicColorChartController.listPhBands`
- * và ghi chú cùng nội dung ở `entities/ph-bands/hooks.ts`. Bản cũ khai `{items: PhBand[]}`
- * nên `data.items` luôn `undefined`, danh sách dải luôn rỗng và card tham chiếu ở
- * onboarding kẹt vĩnh viễn ở trạng thái "Đang tải dải pH tham chiếu…".
- */
 export type PhBandListResponse = PhBand[];
 
-/**
- * Khớp ĐÚNG response thật của D12 `GET /cats/{catId}/summary`.
- *
- * Bug thật đã sửa: bản cũ khai `cat: CreatedCat` + `lastScanAt` + `lastClassification` —
- * server KHÔNG trả field nào trong số đó, nên `summary?.cat` luôn `undefined` và
- * `OnboardingSuccessPage` lúc nào cũng rơi vào nhánh `?? createdCat`. Type nói dối khiến
- * TypeScript không bắt được, lại tốn một request thừa mỗi lần mở màn hình.
- */
 export interface CatSummary {
   catId: string;
   lastScan: {

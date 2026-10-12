@@ -27,7 +27,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
-/** Nhóm J — Xuất hồ sơ PDF (p8 §8.4.10, 4 endpoint). */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Export", description = "Xuất hồ sơ PDF theo dõi sức khoẻ cho bác sĩ thú y")
@@ -41,7 +40,6 @@ public class ExportController {
         this.queryService = queryService;
     }
 
-    /** J1 — {@code POST /exports}. */
     @Operation(operationId = "requestExport", summary = "Yêu cầu xuất hồ sơ PDF",
             description = "Tạo job xử lý nền, trả `202` + `Location`. Poll `GET /exports/{jobId}` để biết khi nào xong.")
     @PostMapping("/exports")
@@ -55,7 +53,6 @@ public class ExportController {
                 .body(ExportJobResponse.from(job));
     }
 
-    /** J2 — {@code GET /exports}. */
     @Operation(operationId = "listExports", summary = "Danh sách bản xuất của tôi")
     @GetMapping("/exports")
     public ExportJobListResponse listExports(
@@ -67,14 +64,12 @@ public class ExportController {
         return new ExportJobListResponse(items, page.nextCursor() != null, page.nextCursor());
     }
 
-    /** J3 — {@code GET /exports/{jobId}}. */
     @Operation(operationId = "getExportJob", summary = "Trạng thái một job xuất PDF")
     @GetMapping("/exports/{jobId}")
     public ExportJobResponse getExportJob(@CurrentUser SecurityPrincipal user, @PathVariable UUID jobId) {
         return ExportJobResponse.from(queryService.detail(user.userId(), jobId));
     }
 
-    /** J4 — {@code GET /exports/{jobId}/download}. */
     @Operation(operationId = "downloadExportJob", summary = "Tải file PDF đã xuất")
     @GetMapping("/exports/{jobId}/download")
     public ResponseEntity<InputStreamResource> downloadExportJob(

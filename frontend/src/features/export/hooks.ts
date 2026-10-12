@@ -19,12 +19,10 @@ export const exportKeys = {
 const ACTIVE_STATUSES = new Set(["QUEUED", "RUNNING"]);
 const POLL_INTERVAL_MS = 2500;
 
-/** D1 — danh sách mèo cho bước 1 wizard. */
 export function useActiveCatsForExport(): UseQueryResult<Cat[]> {
   return useQuery({ queryKey: exportKeys.activeCats(), queryFn: listActiveCats, staleTime: 60 * 1000 });
 }
 
-/** J1 — tạo job xuất PDF. */
 export function useRequestExport(): UseMutationResult<ExportJob, Error, ExportRequestPayload> {
   const queryClient = useQueryClient();
   return useMutation({
@@ -35,12 +33,10 @@ export function useRequestExport(): UseMutationResult<ExportJob, Error, ExportRe
   });
 }
 
-/** J2 — danh sách bản xuất của tôi. */
 export function useExportJobs(): UseQueryResult<ExportJobPage> {
   return useQuery({ queryKey: exportKeys.list(), queryFn: () => listExports() });
 }
 
-/** J3 — poll trạng thái job tới khi `READY`/`FAILED`/`EXPIRED`. */
 export function useExportJob(jobId: string | undefined): UseQueryResult<ExportJob> {
   return useQuery({
     queryKey: exportKeys.job(jobId ?? ""),

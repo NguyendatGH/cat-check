@@ -3,11 +3,6 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { CatHistoryPage } from "./CatHistoryPage";
 
-/**
- * `GET /scans/summary` và `GET /scans` bỏ hẳn các key null: cat chỉ có lần quét không đo được pH
- * ⇒ `count > 0` nhưng KHÔNG có `median`; lần quét không có `confidence`. Trang từng so `!== null`
- * rồi gọi `.toFixed()` / nhân với `undefined`.
- */
 const data = vi.hoisted((): { summary?: unknown; history?: unknown } => ({}));
 
 vi.mock("@/features/history/mocks", () => ({ handlers: [], worker: {} }));

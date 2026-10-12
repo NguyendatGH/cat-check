@@ -22,17 +22,6 @@ import {
   useLogout,
 } from "@/features/auth";
 
-/**
- * `/settings/profile` — hồ sơ chủ nuôi.
- *
- * Nối API thật: `GET|PATCH /users/me` (B1/B2), `POST /account/email-change/request|confirm`
- * (B7/B8), `GET|DELETE /account/identities` (B9/B10). Không có frame Figma riêng cho màn
- * này — thiết kế gộp phần hồ sơ vào thẻ "Thông tin tài khoản chủ nuôi" của `Web - 16`, nên
- * trang này giữ đúng cụm trường và tone của thẻ đó ở dạng form chỉnh sửa.
- *
- * Trang nằm trong `TaskLayout` — layout đã cấp `px-4 py-6` và hộp nội dung desktop 944px,
- * trang KHÔNG tự thêm padding ngang.
- */
 
 const PHONE_PATTERN = /^(0|\+84)\d{8,10}$/;
 
@@ -52,7 +41,6 @@ export function SettingsProfilePage() {
   const setSession = useSessionStore((state) => state.setSession);
   const [avatarMessage, setAvatarMessage] = useState<"saved" | "removed" | "failed" | null>(null);
 
-  /** Cập nhật store phiên để header đổi ảnh ngay; `?v=` phá cache vì URL ảnh không đổi giữa các lần upload. */
   const syncSessionAvatar = (avatarUrl: string | null) => {
     if (sessionUser) setSession({ ...sessionUser, avatarUrl });
   };
@@ -116,8 +104,6 @@ export function SettingsProfilePage() {
   }, [profile, reset]);
 
   const onSubmit = (values: FieldValues) => {
-    // Gửi chuỗi rỗng (không phải `undefined`) khi người dùng xoá số: B2 là merge-patch — vắng
-    // field = giữ nguyên, còn `""` = xoá số đã lưu (`ProfileService.updateProfile`).
     updateProfile.mutate(
       { fullName: values.fullName, phone: values.phone },
       {

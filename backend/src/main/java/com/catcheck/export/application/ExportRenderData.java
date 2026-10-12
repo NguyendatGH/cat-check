@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Dữ liệu đã gom đủ để dựng HTML PDF (p13 §13.3) — tách khỏi truy vấn để {@code PdfDocumentBuilder} thuần string-building. */
 record ExportRenderData(
         String documentCode,
         String catName,

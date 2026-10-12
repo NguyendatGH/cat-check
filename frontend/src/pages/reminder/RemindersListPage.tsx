@@ -23,15 +23,6 @@ import {
 import { ReminderQuickPlan } from "./ReminderQuickPlan";
 import { WebRemindersScreen, type ReminderTab } from "./webReminders";
 
-/**
- * `/reminders` — danh sách lịch nhắc theo dõi (I1 `GET /reminders`, I4 cho công tắc bật/tắt).
- *
- * `< lg` dựng theo frame `09. Nhắc nhở Theo dõi`; `>= lg` dựng theo `Web - 09` trong
- * `webReminders.tsx`. Trang nằm trong `TaskLayout` (layout cấp `px-4 py-6` + hộp 944px) nên
- * KHÔNG tự thêm padding ngang ở bất kỳ breakpoint nào.
- *
- * Tên mèo lấy từ D1 `GET /cats` qua `features/cat` — không thêm endpoint mới.
- */
 export function RemindersListPage() {
   const { t } = useTranslation(["reminder", "common"]);
   const [tab, setTab] = useState<ReminderTab>("ALL");
@@ -50,7 +41,6 @@ export function RemindersListPage() {
   const catById = useMemo(() => new Map((catItems ?? []).map((cat) => [cat.id, cat] as const)), [catItems]);
   const catNameById = useMemo(() => new Map((catItems ?? []).map((cat) => [cat.id, cat.name] as const)), [catItems]);
 
-  /** Bật/tắt bằng merge-patch tối thiểu: chỉ gửi `active`, mọi field khác giữ nguyên. */
   const handleToggle = (reminder: Reminder) => {
     setTogglingId(reminder.id);
     updateReminder.mutate(
@@ -118,8 +108,6 @@ export function RemindersListPage() {
           const displayName =
             cat?.name ?? (reminder.catId === undefined ? t("list.accountWide") : t("list.unknownCat"));
 
-          /* Frame 09 gắn chip giống mèo cạnh tên. Mèo chưa khai giống (hoặc lịch cấp tài
-             khoản, không gắn mèo) thì rơi về loại lịch — vẫn là dữ liệu thật, không bịa giống. */
           const chipLabel = cat?.breedName ?? cat?.breedOther ?? t(`type.${reminder.type}`);
           const overdue = due.kind === "overdue";
 
@@ -145,8 +133,6 @@ export function RemindersListPage() {
                   />
                 </div>
 
-                {/* Hộp "Lần kiểm tra tiếp theo" chỉ có khi server THỰC SỰ trả `nextRunAt`
-                    (lịch tắt thì field vắng hẳn) — đúng như thẻ thứ hai của frame 09. */}
                 {reminder.nextRunAt === undefined ? null : (
                   <div className="flex items-center gap-3 rounded-xl bg-background-alt p-3">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-primary-dark">
@@ -162,7 +148,6 @@ export function RemindersListPage() {
                   </div>
                 )}
 
-                {/* Hàng quá hạn của frame 09: chữ đỏ bên trái, "Quét nhanh ngay →" bên phải. */}
                 {overdue ? (
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-caption font-bold text-danger-text">
@@ -196,7 +181,6 @@ export function RemindersListPage() {
 
   return (
     <>
-      {/* Desktop (>= lg) — bố cục `Web - 09`. */}
       <div className="hidden lg:block">
         <WebRemindersScreen
           reminders={reminders}
@@ -214,7 +198,6 @@ export function RemindersListPage() {
         />
       </div>
 
-      {/* Mobile (< lg) — frame `09`: danh sách + khối chỉnh lịch + 2 nút ở chân màn. */}
       <div className="flex flex-col gap-4 lg:hidden">
         <PageHeader title={t("pages.list.title")} subtitle={t("list.subtitle")} action={newLink} />
         <h2 className="text-body font-bold text-text-primary">{t("list.sectionCats")}</h2>

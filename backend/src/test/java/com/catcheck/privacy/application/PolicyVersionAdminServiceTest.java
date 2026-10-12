@@ -31,14 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * L46–L48 — quản trị {@code policy_version} (p8 §8.4.12 mục (c), ô Q22).
- *
- * <p>Điều quan trọng nhất: <b>bản nháp không bao giờ được có hiệu lực</b>. Bảng không có cột
- * {@code status} (p4 B1) nên "nháp" = {@code published_by IS NULL} + {@code effective_from} ở
- * tương lai; nếu L47 nhận một ngày trong quá khứ thì bản vừa soạn trở thành bản hiện hành ngay
- * lúc INSERT và bước publish của DPO bị vòng qua hoàn toàn.</p>
- */
 class PolicyVersionAdminServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T10:00:00Z");
@@ -55,7 +47,6 @@ class PolicyVersionAdminServiceTest {
                     UUID.fromString("00000000-0000-0000-0000-0000000000d1"), "DPO",
                     "Cap nhat chinh sach theo ND356", "req-1", "127.0.0.1", "curl");
 
-    // ------------------------------------------------------------------ L47
 
     @Test
     void draftIsStoredUnpublishedAndReportedAsDraft() {
@@ -122,7 +113,6 @@ class PolicyVersionAdminServiceTest {
         assertEquals(409, ex.errorCode().status().value());
     }
 
-    // ------------------------------------------------------------------ L48
 
     @Test
     void publishStampsThePublisherAndClosesThePreviousEffectiveVersion() {
@@ -175,7 +165,6 @@ class PolicyVersionAdminServiceTest {
                         () -> service.publish(UUID.randomUUID(), null, ACTION)).errorCode());
     }
 
-    // ------------------------------------------------------------------ L46
 
     @Test
     void listPagesAndDerivesStatusPerRow() {
@@ -194,7 +183,6 @@ class PolicyVersionAdminServiceTest {
 
     @Test
     void seededRowsWithoutAPublisherStillCountAsEffectiveNotDraft() {
-        // R__seed_policy_version.sql ghi published_by = NULL va effective_from o qua khu.
         UUID seeded = policies.seedEffective(PolicyType.COOKIE, "1.0", "vi");
 
         assertEquals(PolicyVersionAdminService.PolicyVersionStatus.EFFECTIVE,
@@ -208,7 +196,6 @@ class PolicyVersionAdminServiceTest {
                         () -> service.list("KHONG_CO", "vi", 0, 20)).errorCode());
     }
 
-    // ------------------------------------------------------------------ fixtures
 
     private static final class FakePolicyPort implements PolicyVersionPort {
 
@@ -305,7 +292,6 @@ class PolicyVersionAdminServiceTest {
         }
     }
 
-    /** Chỉ cần một purpose hợp lệ để kiểm nhánh "purpose lạ bị từ chối". */
     private static final class FakePurposePort implements ConsentPurposePort {
 
         @Override

@@ -43,33 +43,9 @@ import { cn } from "@/shared/lib/cn";
 import { formatDate } from "@/shared/lib/format/formatDate";
 import { formatRelative } from "@/shared/lib/format/formatRelative";
 
-/**
- * Trang chủ (Home Dashboard).
- *
- * Figma có HAI frame cho màn này và cả hai đều được dựng ở đây:
- * - mobile 390px (node 1:2017) — cây `lg:hidden`.
- * - web 1280px (node 16:7086) — cây `hidden lg:block`: hàng chào mừng chiếm trọn bề ngang,
- *   bên dưới là lưới 12 cột (8/12 nội dung chính + 4/12 cột phải).
- * Chrome (sidebar 288px + header 64px) nằm ở `AppLayout`; `main` đã cấp sẵn padding nên cây
- * desktop dưới đây KHÔNG tự đặt padding ngang.
- *
- * NGUYÊN TẮC DỮ LIỆU: trang này KHÔNG bịa mèo/ảnh/lần quét/chỉ số để ảnh chụp giống Figma.
- * Mọi con số đều đến từ API thật (`/cats`, `/scans`, `/scans/summary`, `/reminders`,
- * `/reference/ph-bands`, `/cats/{id}/trends`, `/care-tips`); không có dữ liệu thì khối tự
- * render empty state, đang tải thì skeleton.
- *
- * COPY: quyết định #8 — "Chỉ số đo: Chỉ pH. Không phát hiện máu." Các câu của Figma hứa hẹn
- * phát hiện máu/khoáng chất/"dấu ấn sinh học", hay khẳng định "dữ liệu sáng nay hoàn toàn ổn
- * định" KHÔNG được chép vào: nhận xét lấy thẳng `band.description` do API trả về, câu chào dựng
- * từ tên mèo + lần quét gần nhất thật.
- *
- * Hai thẻ "Cơ sở đồng hành" và "Kho cát gia đình" của Figma bỏ: phòng khám "đang mở cửa", điểm
- * đánh giá, khoảng cách và tồn kho cát tại nhà đều không có field nào trong API.
- */
 
 const WEB_RANGES: TrendRange[] = ["7D", "30D", "90D"];
 
-/** Thang hiển thị suy ra TỪ DỮ LIỆU `bands` — không hard-code ngưỡng (p6 §6.7.3). */
 interface PhScale {
   min: number;
   max: number;
@@ -78,8 +54,6 @@ interface PhScale {
 
 function buildScale(bands: PhBand[] | undefined): PhScale | null {
   if (!bands || bands.length === 0) return null;
-  // `number | null | undefined`: server bỏ hẳn key `phMin`/`phMax` ở dải mở (LOW/HIGH) chứ
-  // không gửi null — xem ghi chú ở `PhBand.phMin`.
   const isNumber = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
   const lower = bands.map((b) => b.phMin).filter(isNumber);
   const upper = bands.map((b) => b.phMax).filter(isNumber);
@@ -91,7 +65,6 @@ function buildScale(bands: PhBand[] | undefined): PhScale | null {
   };
 }
 
-/** `description` của dải mang placeholder `{0}` cho giá trị pH — thay tại chỗ hiển thị. */
 function bandSentence(band: PhBand | undefined, phValue: number | null | undefined): string | null {
   if (!band || band.description === "") return null;
   if (phValue === null || phValue === undefined) return band.description.replace("{0}", "");
@@ -102,24 +75,14 @@ function formatRangeBound(value: number | null | undefined, fallback: number): s
   return (value ?? fallback).toFixed(1);
 }
 
-/**
- * `GET /scans` đã trả sẵn `confidenceBand` (HIGH/MEDIUM/LOW) — chỗ hiển thị chỉ đổi nhãn, KHÔNG
- * tự tính ngưỡng từ `confidence` và không in "% độ tin cậy thuật toán".
- */
 const CONFIDENCE_LABEL_KEY: Record<ConfidenceBand, string> = {
   HIGH: "dashboardWeb.confidenceHIGH",
   MEDIUM: "dashboardWeb.confidenceMEDIUM",
   LOW: "dashboardWeb.confidenceLOW",
 };
 
-/** Lịch đang bật có `nextRunAt` (lịch tắt thì server bỏ hẳn khoá). */
 type ScheduledReminder = Reminder & { nextRunAt: string };
 
-/**
- * Thứ tự hiển thị lịch nhắc: lịch SẮP TỚI trước (gần nhất lên đầu), lịch đã quá hạn xuống
- * cuối. Trước đây lấy phần tử đầu của API nên lịch "Nhắc hạn gói" đã quá hạn 11 giờ được in
- * thành "Quét định kỳ mỗi 1 ngày · khoảng 11 giờ trước".
- */
 function orderReminders(reminders: Reminder[], now: number): ScheduledReminder[] {
   const scheduled = reminders.filter((r): r is ScheduledReminder => r.nextRunAt !== undefined);
   const at = (r: ScheduledReminder) => Date.parse(r.nextRunAt);
@@ -131,18 +94,12 @@ function orderReminders(reminders: Reminder[], now: number): ScheduledReminder[]
 export function DashboardPage() {
   const { t } = useTranslation(["common", "cat", "reminder"]);
   const user = useSessionStore((s) => s.user);
-  // Trang chủ mở cho cả khách chưa đăng nhập (route nằm ngoài RequireAuth). Khách KHÔNG gọi
-  // `/cats`, `/scans`, `/reminders` — các endpoint này cần phiên, gọi sẽ 403. `/reference/ph-bands`
-  // và `/care-tips` là endpoint công khai nên vẫn gọi được.
   const isGuest = !user;
   const catsQuery = useCatList("ACTIVE", !isGuest);
   const cats = useMemo(() => catsQuery.data?.items ?? [], [catsQuery.data]);
   const { data: bands } = usePhBands();
   const historyQuery = useScanHistory(undefined, "ALL", !isGuest);
   const scans = useMemo(() => historyQuery.data?.pages[0]?.items ?? [], [historyQuery.data]);
-  // "Xem toàn bộ N lượt quét" phải là TỔNG THẬT (E3 `GET /scans/summary`), không phải số đã tải.
-  // `displayableScanCount` bỏ bản ghi `INCONCLUSIVE` mà `GET /scans` không trả — một nguồn đếm
-  // chung với màn Lịch sử.
   const { data: scanSummary } = useScanSummary(undefined, undefined, undefined, !isGuest);
   const totalScanCount = scanSummary ? displayableScanCount(scanSummary) : scans.length;
   const { data: entitlement } = useEntitlement(!isGuest);
@@ -158,21 +115,16 @@ export function DashboardPage() {
 
   const latestScan = scans.at(0);
   const recentScans = useMemo(() => scans.slice(0, 5), [scans]);
-  // `!= null`: server BỎ HẲN khoá `thumbnailHex` khi lần quét không có màu (không gửi null),
-  // nên so `!== null` cho `undefined` lọt qua và cột màu hiện header trên một cột trống.
   const recentHasColor = recentScans.some((scan) => scan.thumbnailHex != null);
   const latestBand = latestScan ? bands?.find((b) => b.code === latestScan.bandCode) : undefined;
   const scale = buildScale(bands);
   const primaryCat = cats.find((c) => c.isPrimary) ?? cats.at(0);
   const nextReminder =
     reminders.find((r) => r.type === "SCAN_ROUTINE" && Date.parse(r.nextRunAt) >= now) ?? reminders.at(0);
-  /** Tổng dấu hiệu chưa xác nhận của cả đàn (`GET /cats` → `unacknowledgedFlagCount`). */
   const unacknowledgedFlagCount = cats.reduce((sum, cat) => sum + (cat.unacknowledgedFlagCount ?? 0), 0);
-  // F7 — nội dung chăm sóc đã công bố. Công khai nên khách chưa đăng nhập vẫn đọc được.
   const { data: careTips } = useCareTips(3);
   const careTip = careTips?.[0];
 
-  /** Lần quét gần nhất CỦA TỪNG BÉ — suy ra từ chính `/scans`, không gọi thêm endpoint. */
   const latestByCat = useMemo(() => {
     const map = new Map<string, ScanListItem>();
     for (const scan of scans) {
@@ -187,7 +139,6 @@ export function DashboardPage() {
   const stamp = (iso: string) => formatScanTimestamp(iso, todayLabel, yesterdayLabel);
 
   const [range, setRange] = useState<TrendRange>("30D");
-  // D13 `GET /cats/{id}/trends` — CÙNG nguồn với màn `/cats/:catId/trends`.
   const { data: trendData } = useCatTrends(primaryCat?.id, range, canUseTrend);
   const trendPoints = useMemo(
     () => toTrendPoints(trendData?.points).map((p) => ({ date: p.date, value: p.phValue })),
@@ -226,7 +177,6 @@ export function DashboardPage() {
       .filter((part): part is string => typeof part === "string" && part.length > 0)
       .join(" • ");
 
-  /** Câu dưới lời chào — dựng từ tên mèo + lần quét gần nhất THẬT, không khẳng định tĩnh. */
   const introText = (() => {
     const names = new Intl.ListFormat("vi", { style: "long", type: "conjunction" }).format(cats.map((c) => c.name));
     const wish =
@@ -296,7 +246,6 @@ export function DashboardPage() {
 
   return (
     <div className="contents">
-      {/* Dải báo chế độ khách — hiện ở cả mobile lẫn desktop khi chưa đăng nhập. */}
       {isGuest ? (
         <div className="mx-auto mb-2 flex max-w-[480px] flex-col gap-3 px-4 pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0">
           <div className="flex flex-col gap-2 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background-alt to-secondary/10 p-4 shadow-xs lg:flex-row lg:items-center lg:justify-between lg:p-5">
@@ -307,7 +256,6 @@ export function DashboardPage() {
               <p className="text-[12px] leading-relaxed text-text-secondary">
                 {t("dashboard.guestBanner.body", { ns: "common" })}
               </p>
-              {/* Feature chips from welcome.features */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-chip-bg px-2.5 py-1 text-overline font-semibold text-primary-dark">
                   <Camera size={13} aria-hidden="true" />
@@ -352,11 +300,9 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* ============================ MOBILE (Figma 1:2017) ============================ */}
       <div data-reveal className="mx-auto max-w-[480px] px-4 pb-6 lg:hidden">
         {loadError}
 
-        {/* Section 1 — Hero quét cát. Figma mobile KHÔNG có dòng chào ở trên hero. */}
         <div className="relative mt-4 overflow-hidden rounded-2xl bg-primary p-5 text-white shadow-[0px_10px_24px_-6px_rgba(47,79,178,0.28)]">
           <PawPrint
             aria-hidden="true"
@@ -390,7 +336,6 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Section 2 — Mèo của bạn (carousel cuộn ngang có chủ đích: thẻ sau ló ra ở mép phải) */}
         {!isGuest ? (
           <section className="pt-6">
             <div className="flex items-center justify-between gap-3">
@@ -464,8 +409,6 @@ export function DashboardPage() {
                             </p>
                           </div>
                         </div>
-                        {/* Dải phân loại lần quét gần nhất + giờ quét: hai dòng, không ép
-                            nhãn dài của API ("Trong khoảng tham chiếu") vỡ 3 dòng cạnh giờ. */}
                         <div
                           className={cn(
                             "flex flex-col gap-0.5 rounded-lg px-2.5 py-1.5",
@@ -509,7 +452,6 @@ export function DashboardPage() {
           </section>
         ) : null}
 
-        {/* Section 3 — Lần theo dõi gần nhất */}
         {!isGuest ? (
           <section className="pt-5">
             <div className="flex items-baseline justify-between gap-3">
@@ -548,8 +490,6 @@ export function DashboardPage() {
                 </div>
 
                 <div className="mt-3 rounded-xl bg-background-alt/60 p-3">
-                  {/* Chỉ số pH (Figma: "Chỉ số pH nước tiểu" · "pH 6.8 (…)"): nhãn dải đã nằm
-                      ở badge phía trên nên ô giá trị chỉ còn con số — không lặp nhãn cho vỡ dòng. */}
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-text-secondary">
                       <Droplet size={14} className="shrink-0 text-primary" aria-hidden="true" />
@@ -570,9 +510,6 @@ export function DashboardPage() {
 
                   {bands ? (
                     <div className="pt-3">
-                      {/* ponytail: Figma chỉ có MỘT hàng nhãn thang (đã kèm cận dưới/trên trong
-                          chữ), còn `PhGaugeBar` luôn tự in thêm hàng số min/max -> ẩn hàng cuối
-                          bằng variant con. Nâng cấp: thêm prop `showBounds` cho `entities/ph-bands`. */}
                       <PhGaugeBar bands={bands} value={latestScan.phValue} className="[&>div:last-child]:hidden" />
                       {scale ? (
                         <div className="flex items-center justify-between gap-2 pt-1.5 text-[10px] text-text-secondary">
@@ -595,7 +532,6 @@ export function DashboardPage() {
                   ) : null}
                 </div>
 
-                {/* Câu nhận xét — LẤY TỪ API (`band.description`), không viết lại ở FE. */}
                 {bandSentence(latestBand, latestScan.phValue) !== null ? (
                   <p className="mt-3 flex gap-2 text-[14px] leading-5 text-text-secondary">
                     <Activity size={15} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
@@ -629,7 +565,6 @@ export function DashboardPage() {
           </section>
         ) : null}
 
-        {/* Section 4 — Lịch kiểm tra tiếp theo (nguồn: `GET /reminders?active=true`) */}
         {!isGuest ? (
           <div className="mt-4 flex items-center gap-3 rounded-2xl bg-warning-bg px-3.5 py-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
@@ -650,10 +585,8 @@ export function DashboardPage() {
           </div>
         ) : null}
 
-        {/* Dấu hiệu theo dõi chưa xác nhận (G1/G3) */}
         <HealthFlagDisclosure count={unacknowledgedFlagCount} enabled={!isGuest} className="mt-3" />
 
-        {/* Section 5 — Thói quen chăm sóc trong ngày (F7 `GET /care-tips`) */}
         {careTip ? (
           <div className="mt-3 flex flex-col gap-1 rounded-2xl bg-surface p-3.5 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]">
             <p className="flex items-center gap-1 text-[11px] font-semibold text-secondary-text-on">
@@ -667,7 +600,6 @@ export function DashboardPage() {
           </div>
         ) : null}
 
-        {/* Footer — miễn trừ y tế */}
         <div className="flex justify-center pt-5">
           <p className="flex max-w-[358px] items-center gap-2 rounded-3xl bg-info px-3 py-1.5 text-[11px] leading-4 tracking-[0.4px] text-info-text">
             <ShieldCheck size={15} className="shrink-0" aria-hidden="true" />
@@ -676,18 +608,15 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* ============================ DESKTOP (Figma 16:7086) ============================ */}
       <div data-reveal className="hidden lg:block">
         {loadError}
 
-        {/* Section: Welcome & Primary Callouts (16:7089) — chiếm trọn bề ngang */}
         <section className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between xl:gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-4">
               <span className="rounded bg-secondary/30 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.4px] text-secondary-text-on">
                 {t("dashboardWeb.monitorBadge", { ns: "common" })}
               </span>
-              {/* Mốc đồng bộ = lúc `GET /scans` trả về lần cuối, không phải giờ hiện tại. */}
               {historyQuery.dataUpdatedAt > 0 ? (
                 <span className="flex items-center gap-2 text-[11px] text-text-secondary">
                   <span className="size-1.5 rounded-full bg-success" />
@@ -722,12 +651,8 @@ export function DashboardPage() {
           </div>
         </section>
 
-        {/* Lưới 12 cột: 8/12 nội dung chính + 4/12 cột phải (bắt đầu NGAY từ dải mèo). */}
         <section className="mt-6 grid grid-cols-12 items-start gap-6">
-          {/* `< xl` (1024–1279px) cột 8/12 quá hẹp cho thẻ mèo và bảng nhật ký: xếp một cột,
-              cột phải xuống dưới thành lưới 2 cột. */}
           <div className="col-span-12 flex flex-col gap-6 xl:col-span-8">
-            {/* Dải chuyển mèo (16:7113) */}
             {catsLoading ? (
               <div className="grid grid-cols-2 gap-4" aria-hidden="true">
                 {[0, 1].map((i) => (
@@ -778,8 +703,6 @@ export function DashboardPage() {
                           </p>
                           <p className="text-[12px] leading-4 text-text-secondary">{catMeta(cat)}</p>
                         </div>
-                        {/* Vị trí chip trạng thái của Figma: con số pH thật của lần quét gần
-                            nhất (ngắn, một dòng), màu theo dải. Nhãn dải dài nằm ở hàng dưới. */}
                         {scan?.phValue != null ? (
                           <span
                             className={cn(
@@ -827,7 +750,6 @@ export function DashboardPage() {
               </div>
             ) : null}
 
-            {/* Widget: Chỉ thị màu hạt cát & Nồng độ pH (lần quét gần nhất) */}
             <article className="rounded-2xl bg-surface p-6 shadow-xs">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -851,9 +773,6 @@ export function DashboardPage() {
                 <div aria-hidden="true" className="mt-4 h-[150px] animate-pulse rounded-xl bg-chip-bg/60" />
               ) : latestScan ? (
                 <div className="mt-4 flex gap-5 rounded-xl bg-background-alt/60 p-4">
-                  {/* `GET /scans` KHÔNG trả URL ảnh — chỉ `thumbnailHex` (màu đo được của vùng
-                      hạt). Có màu thì vẽ đúng ô màu đó thay cho ảnh hạt cát của Figma; lần quét
-                      nhập tay không có màu thì không vẽ ô trống. */}
                   {latestScan.thumbnailHex != null ? (
                     <div
                       className="relative min-h-[150px] w-[170px] shrink-0 self-stretch overflow-hidden rounded-xl border border-border"
@@ -917,7 +836,6 @@ export function DashboardPage() {
                       </div>
                     ) : null}
 
-                    {/* Nhận xét lấy từ API — KHÔNG chép câu "…hồng cầu" của Figma (QĐ #8). */}
                     {bandSentence(latestBand, latestScan.phValue) !== null ? (
                       <p className="pt-3 text-[14px] leading-5 text-text-secondary">
                         {bandSentence(latestBand, latestScan.phValue)}
@@ -941,7 +859,6 @@ export function DashboardPage() {
               )}
             </article>
 
-            {/* Widget: Xu hướng pH (mèo chính) */}
             {primaryCat ? (
               <article className="rounded-2xl bg-surface p-6 shadow-xs">
                 <div className="flex items-start justify-between gap-4">
@@ -1027,7 +944,6 @@ export function DashboardPage() {
               </article>
             ) : null}
 
-            {/* Widget: Nhật ký 5 lần quét gần nhất */}
             {!isGuest ? (
               <article className="rounded-2xl bg-surface p-6 shadow-xs">
                 <div className="flex items-center justify-between gap-4">
@@ -1050,7 +966,6 @@ export function DashboardPage() {
                     <thead>
                       <tr className="border-b border-border text-overline tracking-[0.4px] text-text-secondary">
                         <th className="w-[28%] pb-2.5 font-semibold">{t("dashboardWeb.colTime", { ns: "common" })}</th>
-                        {/* Cột màu CHỈ tồn tại khi ít nhất một lần quét thật sự đo được màu. */}
                         {recentHasColor ? (
                           <th className="w-[24%] pb-2.5 font-semibold">{t("dashboardWeb.colColor", { ns: "common" })}</th>
                         ) : null}
@@ -1075,8 +990,6 @@ export function DashboardPage() {
                                 </span>
                               ) : null}
                             </td>
-                            {/* Ô màu THẬT từ `thumbnailHex` (E2). Chưa có endpoint trả TÊN màu nên
-                                hiển thị mã màu thay vì bịa tên. */}
                             {recentHasColor ? (
                               <td className="py-2 text-[14px] text-text-secondary">
                                 {scan.thumbnailHex != null ? (
@@ -1131,9 +1044,7 @@ export function DashboardPage() {
             ) : null}
           </div>
 
-          {/* Cột phải (4/12) */}
           <aside className="col-span-12 grid grid-cols-2 items-start gap-6 xl:col-span-4 xl:flex xl:flex-col">
-            {/* Lối tắt — ba lối tắt đều trỏ tới route có thật, cùng chiều cao 56px. */}
             <article className="rounded-2xl bg-surface p-5 shadow-xs">
               <p className="text-overline tracking-[0.5px] text-text-secondary">
                 {t("dashboardWeb.shortcutsLabel", { ns: "common" })}
@@ -1183,7 +1094,6 @@ export function DashboardPage() {
               </ul>
             </article>
 
-            {/* LỊCH CHĂM SÓC (nguồn: `GET /reminders?active=true`) */}
             {!isGuest ? (
               <article className="rounded-2xl bg-surface p-5 shadow-xs">
                 <div className="flex items-center justify-between gap-2">
@@ -1250,8 +1160,6 @@ export function DashboardPage() {
               </article>
             ) : null}
 
-            {/* Mẹo chăm sóc — F7 `GET /care-tips`. Thẻ "LỜI KHUYÊN BÁC SĨ FELINE" của Figma bỏ:
-                lời khuyên y tế viết cứng kèm ngưỡng pH hard-code. */}
             {careTips && careTips.length > 0 ? (
               <article className="rounded-2xl border-l-4 border-primary-dark bg-info/60 p-5">
                 <p className="flex items-center gap-2 text-overline tracking-[0.5px] text-primary-dark">
@@ -1296,15 +1204,9 @@ interface TrendChartProps {
 
 const CHART_W = 600;
 const CHART_H = 170;
-/** Lề trong vùng vẽ (đơn vị viewBox = px vì cao 170 vẽ ra đúng 170px) để chấm ở mép không bị cắt nửa. */
 const CHART_PAD_X = 10;
 const CHART_PAD_Y = 10;
 
-/**
- * Biểu đồ xu hướng pH — SVG thuần (recharts bị eslint giới hạn trong `features/trends` và
- * `features/export`). Thang đứng lấy từ `bands` qua props, KHÔNG hard-code ngưỡng; nếu điểm đo
- * vượt ra ngoài thang thì thang nới theo dữ liệu thay vì kẹp điểm vào mép.
- */
 function TrendChart({
   points,
   domainMin,
@@ -1324,7 +1226,6 @@ function TrendChart({
   const y = (v: number) => CHART_PAD_Y + plotH - ((v - lo) / span) * plotH;
   const step = points.length > 1 ? (CHART_W - CHART_PAD_X * 2) / (points.length - 1) : 0;
   const x = (i: number) => CHART_PAD_X + i * step;
-  // Catmull-Rom -> Bézier bậc 3: Figma vẽ đường trơn, `polyline` cho ra đường gấp khúc.
   const coords = points.map((p, i) => ({ x: x(i), y: y(p.value) }));
   const at = (i: number) => coords[Math.min(coords.length - 1, Math.max(0, i))];
   const line = coords
@@ -1339,21 +1240,17 @@ function TrendChart({
   const path = `M ${String(coords[0].x)} ${String(coords[0].y)} ${line}`;
   const ticks = [hi, (lo + hi) / 2, lo];
 
-  // Tối đa 6 nhãn trục hoành, luôn giữ điểm đầu và điểm cuối. "Hôm nay" chỉ khi điểm cuối
-  // thật sự là hôm nay — trước đây điểm cuối luôn bị gắn "Hôm nay" kể cả khi là hôm qua.
   const labelCount = Math.min(6, points.length);
   const xLabels = Array.from({ length: labelCount }, (_, i) => {
     const index = labelCount === 1 ? 0 : Math.round((i * (points.length - 1)) / (labelCount - 1));
     return { index, iso: points[index].date };
   }).filter((l, i, all) => {
-    // Nhiều lần quét cùng ngày cho nhãn trùng nhau: chỉ giữ nhãn cuối của mỗi ngày.
     const next = all[i + 1] as (typeof all)[number] | undefined;
     return !next || dateLabel(next.iso) !== dateLabel(l.iso);
   });
 
   return (
     <div className="mt-4 flex flex-col gap-2">
-      {/* Chú giải vùng tham chiếu đặt riêng phía trên, không đè lên đường dữ liệu. */}
       <p className="flex items-center gap-2 text-[12px] font-semibold text-success-text">
         <span aria-hidden="true" className="size-3 shrink-0 rounded-sm bg-success-bg ring-1 ring-success/40" />
         {safeLabel}

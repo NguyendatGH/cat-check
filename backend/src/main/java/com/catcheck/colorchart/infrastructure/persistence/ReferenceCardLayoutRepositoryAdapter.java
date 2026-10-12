@@ -7,9 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bộ chuyển đổi từ cổng {@link ReferenceCardLayoutRepository} sang Spring Data (R2).
- */
 @Repository
 class ReferenceCardLayoutRepositoryAdapter implements ReferenceCardLayoutRepository {
 

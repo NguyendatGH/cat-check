@@ -11,19 +11,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@code export_job} trong bộ nhớ, giữ nguyên hai ràng buộc thật của p4 G1:
- * {@code UNIQUE(document_code)} và bất biến <b>I25</b>
- * ({@code UNIQUE(user_id) WHERE status IN ('QUEUED','RUNNING')}).
- *
- * <p>I25 là điểm mấu chốt của H15.76: không mô phỏng nó thì test sẽ bỏ qua đúng hậu quả nặng
- * nhất — một dòng kẹt khoá mọi lần export sau của user đó.</p>
- */
 final class FakeExportJobRepository implements ExportJobRepository {
 
     private final LinkedHashMap<UUID, ExportJob> rows = new LinkedHashMap<>();
 
-    /** Mọi trạng thái đã đi qua, theo thứ tự ghi — dùng để khẳng định QUEUED → RUNNING → READY. */
     final List<String> statusTrail = new ArrayList<>();
 
     @Override

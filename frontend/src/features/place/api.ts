@@ -1,16 +1,8 @@
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 
-/**
- * Client cho `PlaceController` (`/api/v1/places`). Kiểu dữ liệu khớp 1-1 với DTO backend:
- * `PlaceResponse` (12 field), `PlaceReviewResponse` (không có danh tính người viết),
- * `PlaceBookingRequest` (`serviceCode`, `date`, `timeSlot`, `note ≤ 1000`) và
- * `PlaceReviewRequest` (`rating 1..5`, `body ≤ 2000`). Không có endpoint giờ mở cửa, ảnh,
- * bác sĩ, bảng giá hay lịch trống — UI không được dựng các khối đó.
- */
 const BASE_URL = "/api/v1";
 
-/** `kind` theo ràng buộc `ck_place_kind` của bảng `place`. */
 export type PlaceKindApi = "CLINIC" | "EMERGENCY" | "LAB" | "STORE";
 
 export interface PlaceApi {
@@ -26,7 +18,6 @@ export interface PlaceApi {
   badges: string[];
   rating: number;
   reviewCount: number;
-  /** `CATCHECK` = bảng `place`; `OSM` = phòng khám thú y từ OpenStreetMap (`GET /places/nearby`). Thiếu ⇒ CatCheck. */
   source?: "CATCHECK" | "OSM";
 }
 
@@ -37,7 +28,6 @@ export interface PlaceReviewApi {
   createdAt: string;
 }
 
-/** Lỗi HTTP giữ lại status để UI phân biệt 401 / 404 / 409 (trùng khung giờ) với lỗi chung. */
 export class PlaceRequestError extends Error {
   readonly status: number;
   constructor(status: number) {
@@ -74,11 +64,6 @@ export function listPlaces(
   return getJson<PlaceApi[]>(`/places${suffix}`, signal);
 }
 
-/**
- * Phòng khám thú y thật quanh một toạ độ (`GET /places/nearby`, nguồn OpenStreetMap, backend đã
- * làm tròn toạ độ ~1 km trước khi gọi ra ngoài). Kết quả có `source: "OSM"`, `id` dạng `osm:node/…`
- * — không dùng được với `getPlace`, đặt lịch hay đánh giá.
- */
 export function listNearbyPlaces(
   params: { latitude: number; longitude: number; radiusKm?: number },
   signal?: AbortSignal,
@@ -105,7 +90,6 @@ function csrfToken(): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-/** POST không có body phản hồi: booking trả 202, review trả 204. */
 async function postPlace(path: string, body: unknown, acceptedStatus: 202 | 204): Promise<void> {
   const headers = new Headers({
     Accept: "application/json",
@@ -126,19 +110,15 @@ async function postPlace(path: string, body: unknown, acceptedStatus: 202 | 204)
 
 export interface PlaceBookingPayload {
   serviceCode: string;
-  /** `yyyy-MM-dd` (LocalDate). */
   date: string;
-  /** `HH:mm`, tối đa 16 ký tự (`place_booking.time_slot`). */
   timeSlot: string;
   note?: string;
 }
 
-/** Tạo YÊU CẦU đặt lịch (`REQUESTED`), không phải lịch hẹn đã xác nhận. 409 = khung giờ đã có người gửi. */
 export function createPlaceBooking(placeId: string, payload: PlaceBookingPayload) {
   return postPlace(`/places/${encodeURIComponent(placeId)}/bookings`, payload, 202);
 }
 
-/** Upsert: mỗi tài khoản một đánh giá cho mỗi cơ sở — gửi lại sẽ ghi đè đánh giá cũ. */
 export function createPlaceReview(placeId: string, payload: { rating: number; body?: string }) {
   return postPlace(`/places/${encodeURIComponent(placeId)}/reviews`, payload, 204);
 }

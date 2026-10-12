@@ -17,23 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link CreditLedgerPort} trên {@code JdbcTemplate} — nơi hiện thực thật sự đường FEFO.
- *
- * <p>Ba câu SQL đáng chú ý:</p>
- * <ol>
- *   <li>{@link #lockLiveBatchesForFefo} — {@code ORDER BY expires_at, id} + {@code FOR UPDATE}.
- *       Thứ tự sắp xếp KHÔNG chỉ quyết định lô nào bị trừ trước: nó còn là thứ tự khoá cố định
- *       giữa các transaction, nhờ đó hai request cùng trừ của một user không kẹt nhau (p5 §5.6).
- *       Thiếu phần {@code id} trong ORDER BY thì khi hai lô trùng {@code expires_at}, PostgreSQL
- *       có quyền khoá theo thứ tự bất kỳ → deadlock.</li>
- *   <li>{@link #updateRemaining} — có điều kiện {@code remaining_amount >= ?} để câu UPDATE tự
- *       bảo vệ bất biến I2 ngay cả khi ai đó vô tình gọi ngoài luồng khoá. Kết quả 0 dòng nghĩa
- *       là có transaction khác đã trừ trước, và đó là lý do để rollback chứ không bỏ qua.</li>
- *   <li>{@link #append} — INSERT thuần, không có UPDATE/DELETE nào trên bảng này (append-only,
- *       p4 §4.6.2).</li>
- * </ol>
- */
 @Repository
 public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
 
@@ -55,13 +38,6 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
         this.jdbc = jdbc;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Câu này là <b>điểm nóng duy nhất</b> của module credit: mọi lần trừ credit đều đi qua đây,
-     * trong transaction của module scan, với {@code FOR UPDATE} để chống hai request trừ đồng
-     * thời vào cùng một lô.</p>
-     */
     @Override
     public List<CreditBatchSnapshot> lockLiveBatchesForFefo(UUID userId, Instant now) {
         return jdbc.query("""
@@ -83,8 +59,6 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
 
     @Override
     public Optional<CreditBatchSnapshot> lockBatchForRefund(UUID batchId) {
-        // Cố ý KHÔNG lọc status/expires_at/remaining: xem javadoc cổng. Khoá theo khoá chính
-        // một dòng nên không tranh chấp với lockLiveBatchesForFefo đang khoá cả danh sách.
         return jdbc.query("""
                 SELECT id, expires_at, remaining_amount, initial_amount
                   FROM credit_batch
@@ -98,13 +72,6 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                 batchId).stream().findFirst();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>{@code FOR UPDATE SKIP LOCKED} chứ không phải {@code FOR UPDATE}: job hết hạn chạy mỗi
-     * giờ và không có gì phải gấp với một lô đang bị transaction khác giữ — bỏ qua rồi gặp lại
-     * ở lần chạy sau rẻ hơn là xếp hàng chờ sau một lần trừ credit đang mở.</p>
-     */
     @Override
     public Optional<ExpiringCreditBatch> lockBatchForExpiry(UUID batchId, Instant now) {
         return jdbc.query("""
@@ -138,7 +105,6 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                 .stream().findFirst();
     }
 
-    /** Cột cờ "đã nhắc mốc này" trên {@code credit_batch} (p4 §4.5.1) — nguồn là enum, không phải input. */
     private static String notifiedColumn(ExpiryReminderMilestone milestone) {
         return switch (milestone) {
             case T48H -> "t48h_notified_at";
@@ -161,18 +127,10 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                 "UPDATE credit_batch SET remaining_amount = ? WHERE id = ?",
                 remainingAmount, batchId);
         if (updated != 1) {
-            // Dòng vừa được FOR UPDATE mà vẫn không UPDATE được là mâu thuẫn nội tại — ném để
-            // rollback thay vì ghi ledger nửa vời rồi phá vỡ bất biến I1.
             throw new IllegalStateException("Không cập nhật được credit_batch đang khoá: " + batchId);
         }
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Chỉ đóng lô khi thực sự còn 0. Lô đã hết credit KHÔNG bị xoá — còn làm bằng chứng đối
-     * soát (p5 R3, p4 §4.1.4).</p>
-     */
     @Override
     public void markExhausted(UUID batchId) {
         jdbc.update("""
@@ -182,12 +140,6 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                 """, batchId);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Chuyển sang {@code EXPIRED} kèm {@code remaining_amount = 0}. Dòng ledger {@code EXPIRE}
-     * do {@code ExpireCreditBatchesJob} ghi ở use case gọi, không ẩn trong adapter này.</p>
-     */
     @Override
     public void markActive(UUID batchId) {
         jdbc.update("""
@@ -231,12 +183,6 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                 entry.note());
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Đọc bằng {@code COALESCE(SUM(...), 0)} vì {@code SUM} trên tập rỗng trả NULL — mà
-     * {@code balance_after} là cột NOT NULL.</p>
-     */
     @Override
     public int availableBalance(UUID userId, Instant now) {
         Integer sum = jdbc.queryForObject("""
@@ -286,16 +232,6 @@ public class JdbcCreditLedgerAdapter implements CreditLedgerPort {
                 """.formatted(COLUMNS), (rs, rowNum) -> map(rs), refType.name(), refId);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>{@code COALESCE(SUM(abs(amount)), 0)} vì {@code SUM} trên tập rỗng trả NULL — và một
-     * admin chưa điều chỉnh gì hôm nay là trường hợp phổ biến nhất, không phải ngoại lệ.</p>
-     *
-     * <p>Đếm cả {@code GRANT} lẫn {@code ADJUST}: chiều "cấp thêm" của L10 ghi {@code GRANT}
-     * (p14 §14.4.4 bước 8), nên nếu chỉ đếm {@code ADJUST} thì nửa số thao tác không vào trần —
-     * tức là trần chỉ chặn việc thu hồi, còn việc phát credit thì vô hạn.</p>
-     */
     @Override
     public int sumAdminAdjustedAbsSince(UUID adminId, Instant since) {
         Integer total = jdbc.queryForObject("""

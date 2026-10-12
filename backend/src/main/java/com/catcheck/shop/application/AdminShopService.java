@@ -44,12 +44,6 @@ public class AdminShopService {
         return p;
     }
 
-    /**
-     * PUT ghi đè cả {@code stock_quantity}: form mở lâu mà checkout trừ kho trong lúc đó thì lưu form
-     * sẽ trả kho về số cũ (bán vượt). Vì vậy bắt {@code If-Match} — so trên dòng đã KHOÁ trong cùng
-     * transaction với UPDATE, để checkout không chen được vào giữa lúc so và lúc ghi.
-     * Thứ tự 404 → 428/412 giống {@code AdminMonitoringRuleController}.
-     */
     @Transactional
     public AdminProduct update(UUID id, AdminProductRequest r, String ifMatch, UUID adminId, String role) {
         AdminProduct current = repository.adminLockProduct(id).orElseThrow(() -> new NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND));
@@ -65,7 +59,6 @@ public class AdminShopService {
         return p;
     }
 
-    /** {@code W/"<updatedAt epoch ms>-<id>"} — frontend dựng lại đúng chuỗi này từ {@code updatedAt} + {@code id}. */
     public static String etagOf(AdminProduct p) {
         return AdminETag.of(p.updatedAt(), p.id().toString());
     }

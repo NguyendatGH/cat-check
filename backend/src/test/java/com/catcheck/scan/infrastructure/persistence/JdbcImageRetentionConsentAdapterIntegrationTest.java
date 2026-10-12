@@ -10,10 +10,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * SQL của {@link JdbcImageRetentionConsentAdapter} trên Postgres local (không Docker): chưa có
- * dòng ⇒ chưa đồng ý; dòng MỚI NHẤT quyết định (GRANTED rồi WITHDRAWN ⇒ không còn đồng ý).
- */
 class JdbcImageRetentionConsentAdapterIntegrationTest {
 
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";

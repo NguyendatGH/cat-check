@@ -18,19 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link ReminderRepository} trên {@code JdbcTemplate}, bảng {@code reminder} (V13).
- *
- * <p>Hai điều bắt buộc của repo này, dễ làm sai:</p>
- * <ul>
- *   <li>Đọc cột TIMESTAMPTZ bằng {@code rs.getObject(col, OffsetDateTime.class)} chứ KHÔNG
- *       {@code rs.getTimestamp()} — ArchUnit R13 cấm {@code java.sql.Timestamp}.</li>
- *   <li>{@code channels} là JSONB: ghi phải ép {@code ?::jsonb}, nếu không driver gửi kiểu
- *       {@code text} và Postgres từ chối.</li>
- * </ul>
- *
- * <p>Mọi câu lệnh đều mang {@code user_id = ?} — bất biến I14, không dựa vào tầng trên nhớ lọc.</p>
- */
 @Repository
 class JdbcReminderRepository implements ReminderRepository {
 
@@ -86,7 +73,6 @@ class JdbcReminderRepository implements ReminderRepository {
             sql.append(" AND active = ?");
             args.add(activeFilter);
         }
-        // Lịch đang bật lên trước, rồi tới mốc chạy gần nhất — khớp thứ tự màn M2 09.
         sql.append(" ORDER BY active DESC, next_run_at NULLS LAST, created_at DESC");
         return jdbc.query(sql.toString(), (rs, rowNum) -> read(rs), args.toArray());
     }
@@ -109,9 +95,6 @@ class JdbcReminderRepository implements ReminderRepository {
 
     @Override
     public void softDelete(UUID id, UUID userId) {
-        // active = false cùng lúc: partial unique index uq_reminder_cat_type_active lọc theo CẢ
-        // active lẫn deleted_at, nhưng để active = true trên một dòng đã xoá mềm khiến mọi truy
-        // vấn "đang bật" của job sau này phải nhớ thêm điều kiện.
         jdbc.update("""
                 UPDATE reminder
                    SET deleted_at = now(), active = false, next_run_at = NULL, updated_at = now()
@@ -128,11 +111,9 @@ class JdbcReminderRepository implements ReminderRepository {
                 .stream().findFirst();
     }
 
-    /* ------------------------------------------------------- scheduler (SendDueRemindersJob) */
 
     @Override
     public List<UUID> findDueIds(Instant now, int limit) {
-        // Dùng đúng index partial ix_reminder_next_run (active AND deleted_at IS NULL).
         return jdbc.query("""
                 SELECT id
                   FROM reminder
@@ -194,11 +175,6 @@ class JdbcReminderRepository implements ReminderRepository {
         return value == null ? null : value.toInstant();
     }
 
-    /**
-     * {@code channels} luôn là mảng chuỗi phẳng (3 giá trị cố định ở {@code Reminder
-     * .SUPPORTED_CHANNELS}), nên tự dựng/đọc JSON ở đây thay vì kéo {@code ObjectMapper} vào
-     * repository — tránh phụ thuộc không cần thiết cho một hình dạng đã bị CHECK khoá chặt.
-     */
     private static String toJsonArray(List<String> values) {
         return values.stream()
                 .map(v -> "\"" + v + "\"")

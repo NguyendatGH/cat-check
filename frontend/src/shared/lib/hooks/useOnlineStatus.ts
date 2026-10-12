@@ -9,7 +9,6 @@ function subscribe(onStoreChange: () => void): () => void {
   };
 }
 
-/** Trạng thái online/offline — dùng cho fallback /offline và UI cảnh báo mất mạng. */
 export function useOnlineStatus(): boolean {
   return useSyncExternalStore(
     subscribe,

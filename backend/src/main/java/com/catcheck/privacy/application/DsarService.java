@@ -26,23 +26,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Điều phối yêu cầu quyền của chủ thể dữ liệu — DSAR (p15 §15.4, p8 nhóm C).
- *
- * <p>Mọi thao tác tự phục vụ đều tạo {@code dsar_request} (REQ-DSAR-01). SLA: phản hồi
- * 02 ngày làm việc (tính qua {@code holiday_calendar}), thực hiện 10/15/20 ngày theo
- * loại yêu cầu (p15 §15.4.1). Xuất/xoá bắt buộc step-up re-authentication
- * (REQ-DSAR-04) — fail-closed khi chưa có adapter.</p>
- */
 @Service
 public class DsarService {
 
     public static final String SCOPE_DATA_EXPORT = "DATA_EXPORT";
     public static final String SCOPE_ACCOUNT_ERASE = "ACCOUNT_ERASE";
 
-    /** 7 ngày ân hạn xoá tài khoản (TD-05, p15 §15.4.6). */
     public static final long DELETION_GRACE_DAYS = 7;
-    /** Giới hạn 1 yêu cầu xuất / 24 giờ (p15 §15.4.5). */
     public static final long EXPORT_RATE_LIMIT_HOURS = 24;
 
     private static final Set<DsarRequestType> SELF_SERVICE_MANUAL_TYPES = EnumSet.of(
@@ -72,11 +62,6 @@ public class DsarService {
         this.clock = clock;
     }
 
-    /**
-     * C6 — tạo {@code dsar_request(ACCESS_EXPORT)}. Giới hạn 1/24 giờ
-     * ({@code DSAR_EXPORT_RATE_LIMITED}); bắt buộc step-up
-     * ({@code DSAR_IDENTITY_VERIFICATION_REQUIRED}).
-     */
     @Transactional
     public DsarRequest createExportRequest(UUID userId, RequestEvidence evidence) {
         requireStepUp(userId, SCOPE_DATA_EXPORT);
@@ -93,16 +78,9 @@ public class DsarService {
         return saveSelfServiceRequest(userId, DsarRequestType.ACCESS_EXPORT, evidence, now);
     }
 
-    /**
-     * C9 — yêu cầu xoá tài khoản: tạo {@code dsar_request(ERASE)} + chuyển tài khoản
-     * sang {@code DELETION_REQUESTED} qua {@link UserAccountPort} (adapter của identity).
-     * Ân hạn 7 ngày (TD-05).
-     */
     @Transactional
     public DsarRequest requestAccountDeletion(UUID userId, RequestEvidence evidence) {
         requireStepUp(userId, SCOPE_ACCOUNT_ERASE);
-        // Partial unique index uq_dsar_request_open_erase là lưới cuối; kiểm tra trước để
-        // trả lỗi thân thiện kèm publicRef/scheduledAt (p8 DELETION_ALREADY_REQUESTED).
         if (dsarPort.existsOpenEraseRequest(userId)) {
             DsarRequest open = findOpenEraseRequest(userId);
             throw new BusinessRuleException(
@@ -115,10 +93,6 @@ public class DsarService {
         return request;
     }
 
-    /**
-     * C10 — huỷ yêu cầu xoá trong ân hạn (cũng gọi được từ link email). Quá 7 ngày ⇒
-     * {@code DELETION_GRACE_EXPIRED}; không có yêu cầu ⇒ {@code DELETION_NOT_REQUESTED}.
-     */
     @Transactional
     public void cancelAccountDeletion(UUID userId) {
         DsarRequest open = findOpenEraseRequest(userId);
@@ -131,14 +105,6 @@ public class DsarService {
         dsarPort.update(open.withStatus(DsarStatus.COMPLETED).withCompletedAt(now));
     }
 
-    /**
-     * C11 — bật hạn chế xử lý: dữ liệu GIỮ NGUYÊN, hệ thống chỉ lưu trữ (p15 §15.4.7).
-     * Tạo {@code dsar_request(RESTRICT)} + chuyển tài khoản sang {@code RESTRICTED}.
-     *
-     * <p>Bắt buộc step-up re-authentication ({@link #requireStepUp}, REQ-DSAR-04) như C6, C9 và
-     * {@link #createManualRequest}: {@code RESTRICTED} chặn đăng nhập ({@code LoginService.login})
-     * và lối khôi phục {@code DELETE /api/v1/privacy/restriction} cần phiên đang hoạt động.</p>
-     */
     @Transactional
     public void enableRestriction(UUID userId, RequestEvidence evidence) {
         requireStepUp(userId, "DSAR_" + DsarRequestType.RESTRICT.name());
@@ -151,7 +117,6 @@ public class DsarService {
         userAccountPort.setProcessingRestricted(userId);
     }
 
-    /** C12 — rút yêu cầu hạn chế ⇒ về ACTIVE. Idempotent khi không hạn chế (không có mã lỗi "chưa hạn chế" trong p8). */
     @Transactional
     public void disableRestriction(UUID userId) {
         UserAccountSnapshot snapshot = userAccountPort.snapshot(userId);
@@ -167,11 +132,6 @@ public class DsarService {
                         open.withStatus(DsarStatus.COMPLETED).withCompletedAt(clock.instant())));
     }
 
-    /**
-     * C13 — DSAR không tự phục vụ được: {@code RECTIFY}, {@code OBJECT},
-     * {@code PROTECTION_MEASURE}, {@code COMPLAINT}. Loại ngoài danh sách ⇒
-     * {@code DSAR_REQUEST_TYPE_UNSUPPORTED}.
-     */
     @Transactional
     public DsarRequest createManualRequest(UUID userId, DsarRequestType type, DsarChannel channel, RequestEvidence evidence) {
         if (!SELF_SERVICE_MANUAL_TYPES.contains(type)) {
@@ -183,11 +143,6 @@ public class DsarService {
         return saveSelfServiceRequest(userId, type, channel, evidence, clock.instant());
     }
 
-    /**
-     * Tạo DSAR do DPO/Super tiếp nhận thay mặt người dùng (p8 L54). Không tự động đổi
-     * trạng thái tài khoản: các yêu cầu ERASE chỉ là đề xuất cho tới khi DPO duyệt ở
-     * workflow hai người riêng.
-     */
     @Transactional
     public DsarRequest createAdminRequest(UUID userId, DsarRequestType type, DsarChannel channel) {
         if (type == null || channel == null || channel == DsarChannel.SELF_SERVICE) {
@@ -204,12 +159,10 @@ public class DsarService {
                         ? DsarStatus.IDENTITY_PENDING : DsarStatus.RECEIVED);
     }
 
-    /** C14 — yêu cầu của tôi, mới nhất trước (cursor pagination theo p8 §8.1.4). Caller đã clamp limit. */
     public List<DsarRequest> listMine(UUID userId, Instant before, UUID beforeId, int limit) {
         return dsarPort.findByUser(userId, before, beforeId, limit);
     }
 
-    /** C7/C15 — chi tiết theo {@code publicRef}; không thuộc user ⇒ 404 (p8 §8.2.5). */
     public DsarRequest getByPublicRef(UUID userId, String publicRef) {
         DsarRequest request = dsarPort.findByPublicRef(publicRef)
                 .orElseThrow(() -> new BusinessRuleException(PrivacyErrorCode.DSAR_NOT_FOUND));
@@ -219,10 +172,6 @@ public class DsarService {
         return request;
     }
 
-    /**
-     * C8 — đánh dấu link tải đã dùng (một lần). Gọi bởi tầng tải file sau khi xác
-     * minh login + hạn 72 giờ + chưa tải. Trả về request đã cập nhật.
-     */
     @Transactional
     public DsarRequest markDownloaded(UUID userId, String publicRef) {
         DsarRequest request = getByPublicRef(userId, publicRef);
@@ -242,7 +191,6 @@ public class DsarService {
         return updated;
     }
 
-    /** Yêu cầu xoá đang mở của user — ném DELETION_NOT_REQUESTED nếu không có (C10). */
     private DsarRequest findOpenEraseRequest(UUID userId) {
         return dsarPort.findByUser(userId, clock.instant(), null, 50).stream()
                 .filter(r -> r.requestType() == DsarRequestType.ERASE
@@ -254,7 +202,6 @@ public class DsarService {
 
     private void requireStepUp(UUID userId, String scope) {
         if (!stepUpVerificationPort.isVerified(userId, scope)) {
-            // Fail-closed: không có bằng chứng step-up thì không xuất/xoá (REQ-DSAR-04).
             throw new BusinessRuleException(PrivacyErrorCode.DSAR_IDENTITY_VERIFICATION_REQUIRED, null, null);
         }
     }

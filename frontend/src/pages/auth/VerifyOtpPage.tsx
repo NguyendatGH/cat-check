@@ -33,20 +33,6 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${domain}`;
 }
 
-/**
- * `/auth/verify-otp` (p9 §9.4.3 #4, M1 01c-2 · W1 Web-01c-2) — bước 2 của đăng ký.
- *
- * Backend KHÔNG có endpoint "activate" riêng: `POST /auth/otp/verify` chỉ trả
- * `otpTicket` (bằng chứng đã xác minh), việc kích hoạt tài khoản đi qua gọi LẠI
- * `POST /auth/register` kèm `otpTicket` (xem `RegistrationService.completePreverifiedRegistration`,
- * `docs/handovers/A1.md`). `AuthController.register()` đã tự gọi `sessionGateway.establish()`
- * khi `result.authenticated()` — activation xong là ĐÃ có phiên thật, KHÔNG được gọi thêm
- * `POST /auth/login` sau đó: cùng 1 HTTP session gọi `establish()` 2 lần trong cùng request
- * cycle làm `SessionAuthenticationStrategy` đổi session id, nhưng `user_device_session` vẫn
- * insert theo id CŨ ở lần gọi thứ hai → `duplicate key value violates unique constraint
- * "uq_device_session_hash"` (500) — xác nhận thật bằng cách gọi trực tiếp API, tạo tài khoản
- * demo. Vào thẳng onboarding sau khi activation trả `authenticated: true`.
- */
 export function VerifyOtpPage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
@@ -137,15 +123,12 @@ export function VerifyOtpPage() {
       <WebRegisterSteps current={2} />
 
       <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
-        {/* ══ Cột trái: thẻ xác thực (web 7 cột) ══ */}
         <div className="flex flex-col gap-6 lg:col-span-7 lg:relative lg:gap-8 lg:overflow-hidden lg:rounded-xl lg:bg-surface lg:p-10 lg:shadow-xs">
           <div
             className="pointer-events-none absolute -right-16 -top-16 hidden size-48 rounded-full bg-[rgba(13,54,154,0.05)] blur-[20px] lg:block"
             aria-hidden="true"
           />
 
-          {/* Header thẻ — chỉ web (Figma 16:8479). Chip "Bảo mật cấp 1" và nhãn "MÃ HÓA Y TẾ
-              256-BIT" của mockup đã bỏ — không phải mô tả đúng của hệ thống. */}
           <div className="relative hidden items-center gap-3 pb-4 lg:flex">
             <span className="flex size-12 items-center justify-center rounded-xl bg-deco-backdrop shadow-xs">
               <img src={mailBox} alt="" className="h-[21px] w-[24.5px]" />
@@ -158,7 +141,6 @@ export function VerifyOtpPage() {
             </span>
           </div>
 
-          {/* Tiêu đề + email — chỉ web */}
           <div className="relative hidden lg:flex lg:flex-col lg:gap-3">
             <h1 className="text-[32px] font-extrabold leading-10 tracking-[-0.8px] text-text-primary">
               {t("web.otp.title")}
@@ -227,7 +209,6 @@ export function VerifyOtpPage() {
             </p>
           </div>
 
-          {/* Mẹo bảo mật: bản mobile. Web dùng khối "Clinical Security Notice" bên dưới CTA. */}
           <div className="flex items-start gap-3 rounded-xl bg-background-alt p-4 lg:hidden">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
               <ShieldCheck size={16} aria-hidden="true" />
@@ -255,7 +236,6 @@ export function VerifyOtpPage() {
             <ArrowRight size={18} aria-hidden="true" />
           </Button>
 
-          {/* Ghi chú bảo mật — chỉ web (Figma 16:8545) */}
           <div className="relative hidden gap-3 rounded-xl bg-deco-backdrop p-4 lg:flex">
             <img src={infoIcon} alt="" className="h-[18.667px] w-[16.667px] shrink-0" />
             <p className="text-[14px] leading-5 text-text-secondary">{t("web.otp.noticeBody")}</p>
@@ -269,9 +249,6 @@ export function VerifyOtpPage() {
           </p>
         </div>
 
-        {/* ══ Cột phải CHỈ CÓ Ở WEB (Figma 16:8553). Thẻ mèo "Luna" + chủ "Anna Nguyễn" mẫu,
-            "cảnh báo FLUTD", "Bác sĩ 24/7", hotline 1900 8899 và dải chứng nhận ISO/ISFM của
-            mockup đã BỎ. Thẻ đầu chỉ hiện đúng thông tin người dùng vừa nhập ở bước 1. ══ */}
         <aside className="hidden lg:col-span-5 lg:flex lg:flex-col lg:gap-6">
           <div className="rounded-xl bg-surface p-6 shadow-xs">
             <div className="flex items-center justify-between gap-3">

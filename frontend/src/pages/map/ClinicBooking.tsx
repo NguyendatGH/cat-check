@@ -7,14 +7,6 @@ import { cn } from "@/shared/lib/cn";
 import { createPlaceBooking, placeErrorStatus, type PlaceApi } from "@/features/place";
 import { telHref } from "./placeView";
 
-/**
- * Form YÊU CẦU đặt lịch — gọi thật `POST /places/{id}/bookings` (202, trạng thái `REQUESTED`).
- *
- * API chỉ nhận `serviceCode`, `date`, `timeSlot`, `note`. Không có danh mục dịch vụ, lịch trống,
- * bác sĩ, giá hay chọn mèo — nên form không có các khối đó. "Dịch vụ" lấy từ chính
- * `specialties[]` cơ sở công bố, cộng một lựa chọn "khác" (mô tả trong ghi chú). Ô ngày là 8 ngày
- * tới (chỉ là lối tắt chọn ngày, không phải lịch trống của cơ sở); giờ là ô nhập tự do.
- */
 
 const OTHER_SERVICE = "OTHER";
 const SERVICE_CODE_MAX = 48;
@@ -32,7 +24,6 @@ function serviceOptions(specialties: string[]): string[] {
 interface BookingPanelProps {
   place: PlaceApi;
   formId: string;
-  /** `card`: khối nổi ở cột phải (desktop). `sheet`: nằm trong bottom sheet (mobile), tiêu đề do Sheet vẽ. */
   variant?: "card" | "sheet";
 }
 

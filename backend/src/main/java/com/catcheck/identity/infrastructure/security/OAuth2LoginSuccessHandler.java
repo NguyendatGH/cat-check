@@ -17,14 +17,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-/**
- * Completes the Google login in the CatCheck identity model.
- *
- * <p>Spring's default OAuth2 success flow leaves an {@link OidcUser} in the
- * security context. CatCheck endpoints expect {@code AuthPrincipal} instead,
- * so the Google identity must first be mapped to an application account and
- * persisted in the CatCheck session.</p>
- */
 @Component
 public class OAuth2LoginSuccessHandler
         implements AuthenticationSuccessHandler, AuthenticationFailureHandler {

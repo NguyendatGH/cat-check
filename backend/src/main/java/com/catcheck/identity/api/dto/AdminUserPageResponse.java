@@ -2,14 +2,6 @@ package com.catcheck.identity.api.dto;
 
 import java.util.List;
 
-/**
- * Phân trang offset cho các bảng admin của module identity — p8 §8.1.4 ký hiệu {@code O}.
- *
- * <p>Hình dạng giống {@code credit.api.dto.AdminPageResponse} một cách cố ý (client admin xử lý
- * mọi bảng bằng cùng một component), nhưng là type riêng: dùng chung sẽ buộc {@code identity}
- * phụ thuộc {@code credit}, điều mà {@code allowedDependencies} của cả hai module không cho và
- * {@code ModularityTests} bắt được ngay.</p>
- */
 public record AdminUserPageResponse<T>(
         List<T> items,
         int page,

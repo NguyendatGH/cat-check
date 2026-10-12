@@ -7,13 +7,7 @@ import { cn } from "@/shared/lib/cn";
 import { CLINICAL_SIGNS, type CatBreed, type ClinicalSign } from "@/entities/cat";
 import type { CatFormSchemaValues } from "./schemas";
 
-/**
- * Component dùng chung cho `features/cat` — gom 1 file root theo khuôn mẫu bắt buộc của
- * `features/onboarding` (xem `docs/handovers/A7.md` mục 6: cấu trúc phẳng, không thư mục
- * con, để khớp quy ước chung giữa các agent chạy song song ở wave này).
- */
 
-/* ---------------- FieldError ---------------- */
 
 export function FieldError({ message }: { message?: string }) {
   const { t } = useTranslation("cat");
@@ -25,9 +19,8 @@ export function FieldError({ message }: { message?: string }) {
   );
 }
 
-/* ---------------- AvatarUpload ---------------- */
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // p8 §8.2.4(c)
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 interface AvatarUploadProps {
@@ -126,7 +119,6 @@ export function AvatarUpload({
   );
 }
 
-/* ---------------- BreedPicker ---------------- */
 
 interface BreedPickerProps {
   breeds: CatBreed[] | undefined;
@@ -249,7 +241,6 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
   );
 }
 
-/* ---------------- OptionCard (radio/checkbox lớn) ---------------- */
 
 interface OptionCardProps {
   name: string;
@@ -259,7 +250,6 @@ interface OptionCardProps {
   type?: "radio" | "checkbox";
   title: string;
   disabled?: boolean;
-  /** Đệm/khoảng cách hẹp hơn — cho hàng 3 lựa chọn ngắn ở bề ngang điện thoại. */
   compact?: boolean;
 }
 
@@ -312,7 +302,6 @@ export function OptionCard({
   );
 }
 
-/* ---------------- CatFormFields ---------------- */
 
 interface CatFormFieldsProps {
   register: UseFormRegister<CatFormSchemaValues>;
@@ -327,7 +316,6 @@ interface CatFormFieldsProps {
   hasExistingAvatar?: boolean;
 }
 
-/** Bộ field dùng chung cho `CatNewPage` và `CatEditPage` (D2/D4, p8 §8.4.4). */
 export function CatFormFields({
   register,
   watch,
@@ -389,8 +377,6 @@ export function CatFormFields({
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-caption font-semibold text-text-secondary">{t("form.sex.label")}</legend>
-        {/* Ba lựa chọn ngắn — giữ một hàng ở mọi bề ngang (bản compact), không để "Chưa rõ"
-            vỡ hai dòng ở 390px như trước. */}
         <div className="grid grid-cols-3 gap-2 md:gap-3">
           {(["MALE", "FEMALE", "UNKNOWN"] as const).map((value) => (
             <OptionCard
@@ -423,7 +409,6 @@ export function CatFormFields({
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-caption font-semibold text-text-secondary">{t("form.ageMode.label")}</legend>
-        {/* `sm` của dự án là 375px — hai cột ở 390px làm "Chỉ biết tuổi ước lượng" vỡ dòng. */}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <OptionCard
             name="ageMode"
@@ -511,7 +496,6 @@ export function CatFormFields({
   );
 }
 
-/* ---------------- StatusBadge / PrimaryBadge ---------------- */
 
 export function ArchivedBadge() {
   const { t } = useTranslation("cat");
@@ -527,7 +511,6 @@ export function PrimaryBadge() {
   );
 }
 
-/* ---------------- ConfirmDialog ---------------- */
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -582,16 +565,7 @@ export function ConfirmDialog({
   );
 }
 
-/* ---------------- EmergencyDisclaimerBanner / ClinicalSignEmergencyNotice ---------------- */
 
-/**
- * Nội dung khối `EMERGENCY` (p15 §15.7.3, nguyên văn) — dùng chung cho 2 nơi:
- *  1. `ClinicalSignEmergencyNotice` — bắt buộc hiện TRƯỚC khi cho khai dấu hiệu lâm sàng
- *     (domain `CatClinicalSignReport.blockingShown`, p4 C5), luôn mở, không được rút gọn.
- *  2. `EmergencyDisclaimerBanner` — biến thể `EMERGENCY` trên `/cats/:catId` (p9 §9.13.5 /
- *     p15 §15.7.2 P3): mặc định thu gọn, tự bung khi có `warning_flags`.
- * Copy đặt tại `cat.json` (`disclaimer.emergency.*`), KHÔNG bịa thêm chữ.
- */
 function EmergencyContent({ showTitle = true }: { showTitle?: boolean }) {
   const { t } = useTranslation("cat");
   const points = t("disclaimer.emergency.points", { returnObjects: true }) as string[];
@@ -621,7 +595,6 @@ export function ClinicalSignEmergencyNotice({ className }: { className?: string 
 }
 
 export interface EmergencyDisclaimerBannerProps {
-  /** `true` khi mèo có `unacknowledgedFlagCount > 0` — tự bung, không cho thu lại. */
   forceExpanded?: boolean;
   className?: string;
 }
@@ -652,7 +625,6 @@ export function EmergencyDisclaimerBanner({ forceExpanded = false, className }: 
         )}
       >
         <span className="flex items-center gap-2">
-          {/* Tiêu đề bản bung (copy nguyên văn p15) đã có sẵn emoji ⚠️ — không vẽ thêm icon nữa. */}
           {forceExpanded ? null : <AlertTriangle className="size-5 shrink-0 text-text-tertiary" aria-hidden="true" />}
           <span className={cn("text-body font-semibold", forceExpanded ? "text-danger-text" : "text-text-primary")}>
             {forceExpanded ? t("disclaimer.emergency.title") : t("disclaimer.emergencyCollapsedTitle")}
@@ -675,7 +647,6 @@ export function EmergencyDisclaimerBanner({ forceExpanded = false, className }: 
   );
 }
 
-/* ---------------- ClinicalSignPicker ---------------- */
 
 interface ClinicalSignPickerProps {
   value: ClinicalSign[];
@@ -728,7 +699,6 @@ export function ClinicalSignPicker({ value, onChange, error }: ClinicalSignPicke
   );
 }
 
-/* ---------------- SectionHeading ---------------- */
 
 export function SectionHeading({ children, hint, id }: { children: ReactNode; hint?: string; id?: string }) {
   return (

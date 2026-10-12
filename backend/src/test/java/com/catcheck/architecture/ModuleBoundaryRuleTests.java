@@ -19,13 +19,6 @@ import jakarta.persistence.OneToMany;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
-/**
- * R1, R2, R3, R6, R7, R9, R10 — biên module + biên layer trong một module (xem mục 6 nhiệm vụ
- * M0). R6 áp dụng cho MỌI class (không lọc `.that()`) nên luôn có lớp để kiểm — 0 vi phạm vẫn
- * là PASS bình thường. R9/R10 lọc `.that()` xuống 0 lớp ở M0 (package/implementation chưa tồn
- * tại) nên cần `.allowEmptyShould(true)` tường minh, nếu không ArchUnit 1.5.1 coi "0 lớp khớp"
- * là FAILURE — xác nhận bằng `mvn test` thật, không phải suy đoán.
- */
 @AnalyzeClasses(packages = "com.catcheck", importOptions = ImportOption.DoNotIncludeTests.class)
 class ModuleBoundaryRuleTests {
 
@@ -59,15 +52,9 @@ class ModuleBoundaryRuleTests {
             .should().dependOnClassesThat().resideInAnyPackage("org.springframework.data..", "jakarta.persistence.criteria..")
             .because("R7: chỉ class trong ..infrastructure.persistence.. được phụ thuộc org.springframework.data.. và jakarta.persistence.criteria..");
 
-    // R9/R10 dùng .allowEmptyShould(true): package `scan.domain.color` và implementation của
-    // `ErasureParticipant` chưa tồn tại ở M0. Không có nó, ArchUnit 1.5.1 mặc định
-    // failOnEmptyShould=true và coi "0 lớp khớp .that()" là BUILD FAILURE chứ không phải PASS —
-    // phát hiện thật bằng mvn test (giả định "rule rỗng thì tự pass" trong bản trước SAI).
     @ArchTest
     static final ArchRule r9_colorDomainStaysPureJava = noClasses()
             .that().resideInAPackage("com.catcheck.scan.domain.color..")
-            // Package metadata declares the Modulith boundary; the color implementation itself
-            // remains dependency-free and runnable without Spring/native libraries.
             .and().doNotHaveSimpleName("package-info")
             .should().dependOnClassesThat().resideInAnyPackage("org.bytedeco..", "org.springframework..", "jakarta..")
             .because("R9: com.catcheck.scan.domain.color không phụ thuộc org.bytedeco.., org.springframework.., jakarta.. "

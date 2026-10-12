@@ -41,13 +41,11 @@ public class PlaceController {
         return service.search(query, kind, area, latitude, longitude, limit).stream().map(PlaceResponse::from).toList();
     }
 
-    /** Sai kiểu (vd "abc") ⇒ chỉ báo tên trường: không phản hồi lại giá trị client gửi (toạ độ là dữ liệu vị trí). */
     @InitBinder("nearbyPlacesQuery")
     void hideRejectedValue(WebDataBinder binder) {
         binder.setBindingErrorProcessor(new RedactedBindingErrorProcessor());
     }
 
-    /** Phòng khám thú y thật quanh vị trí người dùng (OpenStreetMap), xếp gần → xa. */
     @GetMapping("/nearby")
     @Operation(operationId = "listNearbyPlaces")
     public List<PlaceResponse> nearby(@Valid NearbyPlacesQuery query) {

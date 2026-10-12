@@ -4,48 +4,56 @@ import { useSurfaceEnter } from "@/shared/lib/motion/usePageReveal";
 import { cn } from "../cn";
 import { DialogOverlay } from "../Dialog/Dialog";
 
-/** Sheet — bottom sheet mobile, bọc @radix-ui/react-dialog + biến thể trượt từ dưới lên. */
 export const Sheet = RadixDialog.Root;
 export const SheetTrigger = RadixDialog.Trigger;
 export const SheetClose = RadixDialog.Close;
 
+export interface SheetContentProps extends ComponentPropsWithoutRef<typeof RadixDialog.Content> {
+  side?: "bottom" | "left" | "right" | "top";
+}
+
 export const SheetContent = forwardRef<
   ComponentRef<typeof RadixDialog.Content>,
-  ComponentPropsWithoutRef<typeof RadixDialog.Content>
->(({ className, children, ...props }, ref) => {
+  SheetContentProps
+>(({ className, children, side = "bottom", ...props }, ref) => {
   const motionRef = useRef<HTMLElement | null>(null);
   useSurfaceEnter(motionRef, "sheet");
+
+  const sideClasses = {
+    bottom: "inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t border-border bg-surface p-6 shadow-top",
+    left: "inset-y-0 left-0 h-dvh w-[86vw] max-w-sm rounded-r-2xl border-r border-border bg-surface p-6 shadow-2xl",
+    right: "inset-y-0 right-0 h-dvh w-[86vw] max-w-sm rounded-l-2xl border-l border-border bg-surface p-6 shadow-2xl",
+    top: "inset-x-0 top-0 max-h-[85vh] rounded-b-2xl border-b border-border bg-surface p-6 shadow-bottom",
+  };
+
   return (
-  <RadixDialog.Portal>
-    <DialogOverlay />
-    <RadixDialog.Content
-      ref={(node) => {
-        motionRef.current = node;
-        if (typeof ref === "function") ref(node);
-        else if (ref) ref.current = node;
-      }}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[85vh] overflow-y-auto",
-        "rounded-t-2xl border-t border-border bg-surface p-6 shadow-top",
-        // Xem ghi chú cùng loại ở Dialog: `outline-none` huỷ fallback focus ring toàn cục.
-        "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
-        className,
-      )}
-      {...props}
-    >
-      <div className="mx-auto mb-4 h-1 w-10 shrink-0 rounded-full bg-border" aria-hidden="true" />
-      {children}
-    </RadixDialog.Content>
-  </RadixDialog.Portal>
+    <RadixDialog.Portal>
+      <DialogOverlay />
+      <RadixDialog.Content
+        ref={(node) => {
+          motionRef.current = node;
+          if (typeof ref === "function") ref(node);
+          else if (ref) ref.current = node;
+        }}
+        data-side={side}
+        className={cn(
+          "fixed z-[var(--z-modal)] overflow-y-auto",
+          sideClasses[side],
+          "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
+          className,
+        )}
+        {...props}
+      >
+        {side === "bottom" && (
+          <div className="mx-auto mb-4 h-1 w-10 shrink-0 rounded-full bg-border" aria-hidden="true" />
+        )}
+        {children}
+      </RadixDialog.Content>
+    </RadixDialog.Portal>
   );
 });
 SheetContent.displayName = "SheetContent";
 
-/**
- * Bọc lại title/description của Radix với token typography — bản trước export thẳng
- * primitive nên `<h2>`/`<p>` rơi về cỡ chữ mặc định của trình duyệt, lệch hẳn so với
- * `DialogTitle`/`DialogDescription` vốn đã có `text-h3`/`text-caption`.
- */
 export const SheetTitle = forwardRef<
   ComponentRef<typeof RadixDialog.Title>,
   ComponentPropsWithoutRef<typeof RadixDialog.Title>

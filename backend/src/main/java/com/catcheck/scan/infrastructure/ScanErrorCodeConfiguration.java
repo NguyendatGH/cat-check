@@ -5,17 +5,6 @@ import com.catcheck.shared.error.ErrorCode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Đăng ký {@link ScanErrorCode} vào {@code shared.error.ErrorCodeRegistry} — mỗi hằng một
- * {@code @Bean ErrorCode} riêng, đúng khuôn {@code CreditErrorCodeConfiguration} /
- * {@code IdentityErrorCodeConfiguration} (KHÔNG dùng {@code @Bean List<ErrorCode>}, xem javadoc
- * của các lớp đó).
- *
- * <p>Đã kiểm tra trùng mã với {@code identity}/{@code privacy}/{@code cat}/{@code credit}/
- * {@code colorchart} (đọc {@code *ErrorCode.java} hiện có của từng module): 24 mã của scan đều
- * duy nhất. {@code CREDIT_INSUFFICIENT}/{@code WRITE_ACCESS_EXPIRED} KHÔNG lặp lại — scan ném
- * thẳng {@code credit.api.CreditErrorCode} (một mã lỗi một nguồn sự thật).</p>
- */
 @Configuration
 public class ScanErrorCodeConfiguration {
 

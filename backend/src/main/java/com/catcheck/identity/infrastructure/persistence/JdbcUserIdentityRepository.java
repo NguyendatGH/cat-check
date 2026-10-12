@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** {@link UserIdentityRepository} tren {@code JdbcTemplate}. */
 @Repository
 public class JdbcUserIdentityRepository implements UserIdentityRepository {
 

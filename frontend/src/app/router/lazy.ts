@@ -1,9 +1,5 @@
 import { lazy } from "react";
 
-/**
- * React.lazy cho từng page P1 (code-splitting theo route). Route Phase 2/3 dùng chung
- * ComingSoonPage (import thường, không cần lazy vì rất nhẹ) — xem router.tsx.
- */
 export const LazyPages = {
   home: lazy(() => import("@/pages/public/HomePage").then((m) => ({ default: m.HomePage }))),
   login: lazy(() => import("@/pages/auth/LoginPage").then((m) => ({ default: m.LoginPage }))),
@@ -138,7 +134,6 @@ export const LazyPages = {
   adminAuditLog: lazy(() => import("@/pages/admin/AdminAuditLogPage").then((m) => ({ default: m.AdminAuditLogPage }))),
   offline: lazy(() => import("@/pages/system/OfflinePage").then((m) => ({ default: m.OfflinePage }))),
   notFound: lazy(() => import("@/pages/system/NotFoundPage").then((m) => ({ default: m.NotFoundPage }))),
-  // Shop (Phase 3) — chỉ có UI + mock data, chưa có backend. Xem src/pages/shop/mockData.ts.
   shop: lazy(() => import("@/pages/shop/ShopPage").then((m) => ({ default: m.ShopPage }))),
   shopProductDetail: lazy(() =>
     import("@/pages/shop/ProductDetailPage").then((m) => ({ default: m.ProductDetailPage })),
@@ -146,12 +141,9 @@ export const LazyPages = {
   cart: lazy(() => import("@/pages/shop/CartPage").then((m) => ({ default: m.CartPage }))),
   checkout: lazy(() => import("@/pages/shop/CheckoutPage").then((m) => ({ default: m.CheckoutPage }))),
   orderTracking: lazy(() => import("@/pages/shop/OrderTrackingPage").then((m) => ({ default: m.OrderTrackingPage }))),
-  // Cộng đồng (Phase 2 theo p4 — `post`/`comment` chưa đặc tả, chưa viết migration ở Phase 1).
-  // Chỉ có UI + mock data. Xem src/pages/community/mockData.ts.
   communityFeed: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityFeedPage }))),
   communityPostDetail: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityPostDetailPage }))),
   communityNewPost: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityNewPostPage }))),
-  // Bản đồ & phòng khám (Phase 2 — `place`/`place_review` cùng lý do trên).
   catCareMap: lazy(() => import("@/pages/map").then((m) => ({ default: m.CatCareMapPage }))),
   clinicDetail: lazy(() => import("@/pages/map").then((m) => ({ default: m.ClinicDetailPage }))),
   adminScans: lazy(() => import("@/pages/admin/AdminScansPage").then((m) => ({ default: m.AdminScansPage }))),

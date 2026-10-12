@@ -4,13 +4,6 @@ import { useNavigate } from "react-router";
 import { Button, EmptyState, SkeletonLoader } from "@/shared/ui";
 import { useAuthSessionQuery } from "@/features/auth";
 
-/**
- * `/auth/oauth/complete` (p9 §9.4.3 #7, P15 §15.3.3). Google OAuth là redirect toàn trang
- * do backend điều khiển (p11 §11.1.4) — SPA không tự gọi API OAuth, chỉ cần kiểm tra lại
- * phiên khi Google trả về đây rồi vào app.
- *
- * Backend cấu hình success handler để tạo session CatCheck rồi redirect thẳng về route này.
- */
 export function OAuthCompletePage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
@@ -18,7 +11,7 @@ export function OAuthCompletePage() {
 
   useEffect(() => {
     if (data?.authenticated) {
-      window.location.assign("/dashboard");
+      window.location.assign("/");
     }
   }, [data]);
 

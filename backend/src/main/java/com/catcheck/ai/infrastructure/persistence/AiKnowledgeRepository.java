@@ -17,7 +17,6 @@ import java.util.UUID;
 @Repository
 public class AiKnowledgeRepository implements AiKnowledgePort {
 
-    /** Dấu thay nội dung tin nhắn đã gỡ khi xoá tài khoản — xem {@link #eraseConversationContent}. */
     static final String ERASED_CONTENT = "[erased]";
 
     private final JdbcTemplate jdbc;
@@ -32,18 +31,8 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
         return count != null && count > 0;
     }
 
-    /**
-     * Ngưỡng liên quan của nhánh OR: số từ NỘI DUNG (đã bỏ {@link #STOPWORDS}) của câu hỏi có mặt
-     * trong chunk phải đạt {@code least(MIN_MATCHED_TERMS, số từ nội dung của câu hỏi)}. Hiệu chỉnh
-     * trên 5 care tip seed: câu liên quan khớp 2-9 từ nội dung với bài đúng, câu lạc đề khớp tối đa
-     * 1 (vd "thời" trong "thời tiết" trùng "thời gian"). {@code ts_rank} không tách được hai nhóm.
-     */
     private static final int MIN_MATCHED_TERMS = 2;
 
-    /**
-     * Hư từ tiếng Việt (đại từ, từ hỏi, trợ từ) — tách theo âm tiết như parser {@code 'simple'}.
-     * Câu hỏi chỉ gồm các từ này không có từ nội dung nào ⇒ không truy hồi.
-     */
     private static final String STOPWORDS = String.join(" ",
             "là", "gì", "của", "tôi", "bạn", "mình", "em", "anh", "chị", "cho", "và", "có", "không",
             "thể", "được", "thì", "nên", "làm", "sao", "bao", "nhiêu", "lâu", "những", "các", "một",
@@ -78,10 +67,6 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
         if (!results.isEmpty()) {
             return results;
         }
-        // Natural-language questions often contain connective/context words absent from a
-        // short care tip. Preserve the precise AND search above first; only relax to OR when
-        // it found nothing, ranking chunks that match more query terms ahead of weaker hits.
-        // A chunk must still match enough content terms (MIN_MATCHED_TERMS) to count as evidence.
         String relaxed = """
                 WITH q AS (
                     SELECT to_tsquery('simple', replace(plainto_tsquery('simple', ?)::text, ' & ', ' | ')) AS query,
@@ -147,12 +132,6 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
         return id;
     }
 
-    /**
-     * USER và ASSISTANT của cùng một lượt có cùng {@code created_at} ({@code now()} của một
-     * transaction); {@code id} là UUIDv4 ngẫu nhiên và bảng không có cột tăng dần nào khác ⇒ khoá
-     * phụ theo vai: trong một lượt câu hỏi đứng trước câu trả lời (danh sách DESC rồi đảo lại, nên
-     * ASSISTANT xếp trước ở đây).
-     */
     public List<String[]> history(UUID conversationId, int limit) {
         return jdbc.query("""
                 SELECT role, content FROM ai_message WHERE conversation_id = ?
@@ -163,11 +142,6 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
                 .reversed();
     }
 
-    /**
-     * {@code content} là {@code NOT NULL} + {@code CHECK length(btrim(content)) BETWEEN 1 AND 20000}
-     * (V21) nên không đặt NULL được — thay bằng một dấu cố định, không chứa dữ liệu gì của user.
-     * Điều kiện {@code <>} giữ cho lần gọi lặp lại không đếm lại dòng đã gỡ.
-     */
     @Override
     public int eraseConversationContent(UUID userId) {
         return jdbc.update("""
@@ -195,12 +169,6 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
                 parseJsonArray(rs.getString("tags"))));
         for (SourceRow source : sources) {
             UUID documentId = UUID.nameUUIDFromBytes(("care_tip:" + source.id() + ":" + source.locale()).getBytes(StandardCharsets.UTF_8));
-            // Nhúng tag vào ĐẦU content (mục 4, nhiệm vụ wiring A2-A4): tuý tsvector 'simple' khớp
-            // theo từ nên một dòng [Chủ đề: ...] ở đầu đủ để chunk có tag được ưu tiên khi câu hỏi
-            // chạm đúng từ đó — KHÔNG cần cột tags/embedding mới ở ai_chunk/ai_document (p4 §4.9.2
-            // không có migration nào cho việc này). Chỉ nằm trong chunk ordinal 0 (content ngắn,
-            // phần lớn care tip hiện có 1 chunk) — đủ dùng ở quy mô 5 bài hiện tại; hiệu quả thực
-            // tế còn hạn chế vì CHƯA bài nào gắn tag theo dải pH/cờ cảnh báo (xem báo cáo bàn giao).
             String content = tagLine(source.tags()) + source.title() + "\n\n" + source.summary() + "\n\n" + source.body();
             jdbc.update("""
                     INSERT INTO ai_document(id, source_type, source_id, locale, title, source_url, content_hash)
@@ -223,22 +191,10 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
                               List<String> tags) {
     }
 
-    /**
-     * Dòng đầu chunk đọc được bằng tiếng Việt thường, KHÔNG dùng ký hiệu lập trình (vd JSON thô)
-     * — nếu lọt vào câu trả lời ghép (fallback không LLM đọc nguyên văn {@code chunk.content()},
-     * xem {@code AiChatService#fallbackAnswer}) thì vẫn là một câu đọc được, không phải mã khó
-     * hiểu. Rỗng nếu {@code care_tip.tags} rỗng (giữ nguyên hành vi cũ, không thêm dòng thừa).
-     */
     private static String tagLine(List<String> tags) {
         return tags.isEmpty() ? "" : "[Chủ đề: " + String.join(", ", tags) + "]\n\n";
     }
 
-    /**
-     * {@code care_tip.tags} luôn là mảng chuỗi phẳng (xem {@code CreateCareTipRequest.tags}: mỗi
-     * phần tử {@code @Size(max = 40) String}), nên tự đọc JSON ở đây thay vì kéo {@code
-     * ObjectMapper} vào repository — cùng lý luận/hình dạng
-     * {@code JdbcReminderRepository#parseJsonArray}.
-     */
     private static List<String> parseJsonArray(String json) {
         if (json == null || json.isBlank()) {
             return List.of();

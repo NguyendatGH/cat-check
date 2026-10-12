@@ -14,19 +14,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bộ chuyển đổi từ cổng {@link CareTipRepository} sang Spring Data.
- *
- * <p>Lớp này là "keo dán" giữa domain và Spring Data: application chỉ cầm
- * {@link CareTipRepository}, nên sau này đổi sang JDBC hay JdbcTemplate thì chỉ sửa một chỗ.</p>
- */
 @Repository
 class CareTipRepositoryAdapter implements CareTipRepository {
 
-    /**
-     * p8 §8.1.4: {@code limit} mặc định 20, tối đa 100; vượt trần trả {@code 400 VALIDATION_FAILED}
-     * chứ không âm thầm kẹp. Việc kiểm tra nằm ở controller, ở đây chỉ chặn phòng thủ.
-     */
     private static final int MAX_LIMIT = 100;
 
     private final CareTipJpaRepository jpaRepository;

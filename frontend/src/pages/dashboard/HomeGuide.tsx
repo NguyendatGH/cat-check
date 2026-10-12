@@ -18,11 +18,6 @@ export interface HomeGuideProps {
   className?: string;
 }
 
-/**
- * Hướng dẫn 3 bước đầu tiên trên Dashboard cho người dùng đã đăng nhập (FE-MOTION-AND-GUIDE).
- * Tái sử dụng trọn vẹn copy từ `onboarding.web.success.roadmap` (không tạo claim y tế mới),
- * có thể đóng và lưu trạng thái vào localStorage.
- */
 export function HomeGuide({ catName, className }: HomeGuideProps) {
   const { t } = useTranslation(["onboarding", "common"]);
   const [isDismissed, setIsDismissed] = useState(true);
@@ -34,7 +29,6 @@ export function HomeGuide({ catName, className }: HomeGuideProps) {
         setIsDismissed(false);
       }
     } catch {
-      // Trường hợp localStorage bị chặn (private browsing)
       setIsDismissed(false);
     }
   }, []);
@@ -43,7 +37,6 @@ export function HomeGuide({ catName, className }: HomeGuideProps) {
     try {
       localStorage.setItem(HOME_GUIDE_STORAGE_KEY, "true");
     } catch {
-      // Bỏ qua nếu không ghi được
     }
     setIsDismissed(true);
   };
@@ -86,7 +79,6 @@ export function HomeGuide({ catName, className }: HomeGuideProps) {
         })}
       </p>
 
-      {/* 3 bước lộ trình */}
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
         {ROADMAP_STEPS.map(({ key, icon: Icon }, index) => (
           <div
@@ -111,7 +103,6 @@ export function HomeGuide({ catName, className }: HomeGuideProps) {
         ))}
       </div>
 
-      {/* Thanh hành động */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-3">
         <Link
           to="/scan/select-cat"

@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { FlaskConical, LayoutDashboard, Lightbulb, Package, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
@@ -14,41 +14,60 @@ const SELLER_NAV_ITEMS: readonly { to: string; labelKey: string; icon: LucideIco
 const focusRing =
   "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]";
 
-/** Layout khu vực người bán: sidebar ở desktop, thanh điều hướng gọn ở mobile. */
 export function SellerLayout() {
   const { t } = useTranslation("seller");
+  const { pathname } = useLocation();
+
   return (
     <div className="flex min-h-dvh flex-col bg-background md:flex-row">
       <nav
         aria-label={t("nav.label")}
-        className="border-b border-border bg-surface md:flex md:w-56 md:shrink-0 md:flex-col md:gap-1 md:border-r md:border-b-0 md:p-4"
+        className="header-glass sticky top-0 z-[var(--z-sticky-header)] border-b border-border/60 md:static md:flex md:w-60 md:shrink-0 md:flex-col md:gap-1.5 md:border-r md:border-b-0 md:bg-surface md:p-4"
       >
-        <p className="hidden px-3 pb-2 text-overline text-text-tertiary md:block">{t("nav.label")}</p>
+        <div className="hidden px-3 py-2 md:block">
+          <p className="text-overline font-bold tracking-wider text-text-tertiary">{t("nav.label")}</p>
+        </div>
         <ul className="flex gap-1 overflow-x-auto p-2 md:flex-col md:overflow-visible md:p-0">
-          {SELLER_NAV_ITEMS.map((item) => {
+          {SELLER_NAV_ITEMS.map((item, index) => {
             const Icon = item.icon;
+            const isMatch = item.end ? pathname === item.to : pathname.startsWith(item.to);
             return (
-              <li key={item.to} className="shrink-0">
+              <li key={item.to} className="shrink-0 md:w-full">
                 <NavLink
                   to={item.to}
                   end={item.end}
+                  style={{ animationDelay: `${index * 40}ms` }}
                   className={({ isActive }) =>
                     cn(
-                      "flex min-h-[var(--touch-target-min)] items-center gap-2 rounded-lg px-3 py-2 text-caption font-semibold text-text-secondary hover:bg-background-alt md:text-body md:font-normal",
+                      "tab-pill-animated group flex min-h-[var(--touch-target-min)] items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-caption font-semibold transition-all duration-200 md:text-body md:font-medium",
                       focusRing,
-                      isActive && "bg-info text-primary",
+                      isActive
+                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(47,79,178,0.25)]"
+                        : "text-text-secondary hover:bg-background-alt hover:text-text-primary md:hover:translate-x-1",
                     )
                   }
                 >
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  {t(item.labelKey)}
+                  <Icon
+                    className={cn(
+                      "size-4 shrink-0 transition-transform duration-200",
+                      isMatch ? "scale-110" : "group-hover:scale-105",
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span className="flex-1 truncate">{t(item.labelKey)}</span>
+                  {isMatch ? (
+                    <span
+                      className="size-1.5 rounded-full bg-secondary shadow-[0_0_6px_rgba(255,200,50,0.8)] animate-pop-spring hidden md:inline-block"
+                      aria-hidden="true"
+                    />
+                  ) : null}
                 </NavLink>
               </li>
             );
           })}
         </ul>
       </nav>
-      <main className="min-w-0 flex-1 p-4 md:p-6">
+      <main className="min-w-0 flex-1 p-4 md:p-6 lg:p-8 animate-reveal">
         <Outlet />
       </main>
     </div>

@@ -1,9 +1,3 @@
-// features/cat — CRUD hồ sơ mèo, ảnh đại diện, ghi chú, khảo sát sức khoẻ, dấu hiệu lâm
-// sàng (p8 §8.4.4 nhóm D). Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
-//
-// GHI CHÚ CẤU TRÚC: theo khuôn mẫu bắt buộc của `features/onboarding` (docs/handovers/A3-fe.md
-// mục "Judgment calls") — code nằm ở các file root của feature (không thư mục con) để nhất
-// quán với các agent khác đang chạy song song trong cùng wave.
 export {
   AvatarUpload,
   ArchivedBadge,

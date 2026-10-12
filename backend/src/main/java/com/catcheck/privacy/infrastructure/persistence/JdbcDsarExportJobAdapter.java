@@ -22,20 +22,6 @@ public class JdbcDsarExportJobAdapter implements DsarExportJobPort {
         return findByRequestId(requestId).orElseThrow();
     }
 
-    /**
-     * <b>Bug thật đã sửa, phát hiện bằng curl chứ không bằng đọc code:</b> hai cột
-     * {@code TIMESTAMPTZ} trước đây đọc bằng {@code rs.getObject(col, Instant.class)}, mà
-     * driver PostgreSQL <b>không</b> hỗ trợ chuyển {@code timestamptz → java.time.Instant}:
-     * {@code conversion to class java.time.Instant from timestamptz not supported}. Hậu quả
-     * không phải "sai giá trị" mà là <b>ném ngoại lệ mỗi khi có dòng để đọc</b> — và
-     * {@code enqueue()} gọi chính phương thức này ngay sau INSERT, nên <b>toàn bộ</b> đường
-     * xuất dữ liệu cá nhân (C6 tự phục vụ lẫn L52 của admin) trả {@code 500} ở lần gọi đầu
-     * tiên có dữ liệu thật. Vô hình với test cũ vì {@code DataExportJobServiceTest} mock
-     * {@code DsarExportJobPort}, nên không bài nào chạy câu SQL này.
-     *
-     * <p>Cách đúng là {@code OffsetDateTime} rồi {@code toInstant()} — đã có sẵn ở
-     * {@link RowReaders#instant}, và {@code java.sql.Timestamp} thì bị ArchUnit R13 cấm.</p>
-     */
     @Override
     public Optional<DsarExportJob> findByRequestId(UUID requestId) {
         return jdbc.query("SELECT id, dsar_request_id, status, attempt_count, storage_key, expires_at, downloaded_at FROM dsar_export_job WHERE dsar_request_id = ?",

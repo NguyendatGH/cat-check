@@ -5,36 +5,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Che PII truoc khi ghi {@code audit_log.metadata/before/after}.
- *
- * <p>p4 §4.6.4: cac cot nay "KHONG bao gio chua PII tho — mat khau, OTP, token, secret,
- * khoa, cau hinh"; chi ghi id, loai, hash. p11 §11.10.3 nhom lai: "chi ghi id, loai,
- * hash — khong ghi ten, email, so dien thoai". Che o TANG UNG DUNG (R2: khong
- * phai trong adapter JDBC) de moi duong ghi audit deu di qua mot noi.</p>
- *
- * <p>Phong bi (defence in depth), KHONG phay thay the quy tac cua nguoi goi: tai
- * lop trung gian co the truyen nham mot gia tri doc lap vao chuoi (vi du ghi chuoi
- * ban ghi vao {@code note}) va regex o day se khong bat duoc.</p>
- *
- * <p>{@code @NamedInterface("api")}: type nay vat ly nam o {@code audit.application} nhung module
- * {@code identity} dung truc tiep de tu che PII truoc khi goi audit (xem
- * {@code IdentityConfiguration.piiRedactor()}). Gan thang annotation len type (khong doi package)
- * de gop vao named interface "api" da co cua audit — cung co che voi
- * {@code credit.domain.CreditLedgerRefType}, xem javadoc o do.</p>
- */
 @org.springframework.modulith.NamedInterface("api")
 public final class PiiRedactor {
 
     public static final String REDACTED = "[REDACTED]";
 
-    /**
-     * Khop khoa nhay cam. Phai bao phu MOT chuoi con dau tien CI la chuoi trong
-     * quy tac CI chan PII (p17 §17.10b) — {@code otp}, {@code token}, {@code secret},
-     * {@code password}, {@code activationCode}, {@code fid}, {@code apiKey}.
-     * Dinh nghia bang regex chu khong phai {@code contains} de tranh bo sot bien theo
-     * kieu viet camelCase/snake_case.
-     */
     private static final Pattern SENSITIVE_KEY = Pattern.compile(
             ".*("
                     + "password|passwd|passphrase"
@@ -46,25 +21,13 @@ public final class PiiRedactor {
                     + ").*",
             Pattern.CASE_INSENSITIVE);
 
-    /** Gia tri chuoi co hinh dang email — p11 §11.10.3 cam ghi email vao audit. */
     private static final Pattern EMAIL_VALUE = Pattern.compile(
             "[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}");
 
-    /**
-     * Day so dai >= 7 — so dien thoai, so CCCD, ma giao dich. Ngan phai khop nua chuoi
-     * {@code 2026-01-15} hay {@code 42} trong metadata.
-     */
     private static final Pattern LONG_DIGITS = Pattern.compile("(?<!\\d)\\d{7,}(?!\\d)");
 
-    /** Gia tri chuoi dai >= 32, nghi la JWT/hex blob. */
     private static final Pattern LONG_TOKEN_LIKE = Pattern.compile("(?<![A-Za-z0-9])[A-Za-z0-9+/=_\\-]{32,}(?![A-Za-z0-9])");
 
-    /**
-     * UUID dang chuoi (8-4-4-4-12 hex) duoc giu nguyen: p4 §4.6.4 doi audit ghi id, va gia tri
-     * kieu {@link java.util.UUID} von da di qua khong bi che. Truoc day mot UUID {@code toString()}
-     * khop {@link #LONG_TOKEN_LIKE}/{@link #LONG_DIGITS} nen bi xoa hoac bi cat mot phan, lam mat
-     * id trong cac su kien nhu {@code SCAN.DELETED} (H15.156).
-     */
     private static final Pattern UUID_VALUE = Pattern.compile(
             "(?<![A-Za-z0-9])[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?![A-Za-z0-9])");
 
@@ -100,7 +63,6 @@ public final class PiiRedactor {
             }
             return out;
         }
-        // So, boolean, UUID, enum, Instant: khong can che.
         return value;
     }
 

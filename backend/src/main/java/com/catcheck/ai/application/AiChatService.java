@@ -35,15 +35,8 @@ public class AiChatService {
             + "không đủ dữ liệu và khuyên người dùng liên hệ bác sĩ thú y. Trích dẫn bằng [1], [2] "
             + "theo danh sách nguồn. Không yêu cầu hoặc lặp lại email/số điện thoại của người dùng.";
 
-    /**
-     * Đường khẩn cấp chỉ có bản tiếng Việt đã duyệt (xem {@code messages/ai_vi.properties} và
-     * {@code messages/ai_en.properties}) — KHÔNG dịch máy nội dung an toàn tính mạng khi chưa có
-     * bản duyệt, nên luôn tra khối {@code ai.emergency.*} theo locale này bất kể
-     * {@code Accept-Language} của request.
-     */
     private static final Locale EMERGENCY_LOCALE = Locale.forLanguageTag("vi");
 
-    /** Hậu kiểm trích dẫn (mục 6): bắt mọi {@code [n]} xuất hiện trong câu trả lời LLM. */
     private static final Pattern CITATION_MARKER = Pattern.compile("\\[(\\d+)]");
 
     private final AiKnowledgePort repository;
@@ -81,16 +74,9 @@ public class AiChatService {
                              List<Citation> citations, Instant createdAt) {
     }
 
-    /**
-     * @param catId tuỳ chọn — xem javadoc {@code AiChatRequest.catId}. {@code null} hoặc mèo
-     *              không thuộc {@code userId} đều xử lý như KHÔNG có catId (im lặng bỏ qua).
-     */
     @Transactional
     public ChatResult chat(UUID userId, UUID conversationId, UUID catId, String message, String locale) {
         requireWriteAllowed(userId);
-        // Giới hạn tần suất ÁP DỤNG CHO MỌI CÂU HỎI, kể cả câu hỏi sẽ bị từ chối ở bước kiểm định
-        // dạng ngay sau đây — cùng lý luận ActivateCreditCodeService#doActivate: đặt sau bước kiểm
-        // định dạng thì một kẻ gọi lặp lại vẫn không bị đếm miễn mỗi lần gửi một chuỗi khác nhau.
         requireRateLimit(userId);
 
         String normalized = message == null ? "" : message.strip();
@@ -105,9 +91,6 @@ public class AiChatService {
             throw new BusinessRuleException(AiErrorCode.CONVERSATION_NOT_FOUND);
         }
 
-        // catId là Optional.empty() khi không gửi HOẶC khi mèo không thuộc userId —
-        // CatContextPort.loadContext tự kiểm sở hữu và không phân biệt hai trường hợp (không lộ
-        // "mèo tồn tại nhưng không phải của bạn").
         Optional<CatContextPort.CatContext> catContext =
                 catId == null ? Optional.empty() : catContextPort.loadContext(userId, catId);
 
@@ -119,15 +102,10 @@ public class AiChatService {
         String requestedLocale = locale == null || locale.isBlank() ? "vi" : locale;
         int contextLimit = Math.clamp(config.maxContextChunks(), 1, 12);
 
-        // Làm giàu truy vấn (mục 4): nối thêm từ khoá theo trạng thái mèo, KHÔNG thay thế câu hỏi
-        // gốc — xem javadoc CatContextPresenter#augmentationKeywords.
         String augmentation = catContext.map(CatContextPresenter::augmentationKeywords).orElse("");
         String searchQuery = augmentation.isBlank() ? normalized : normalized + " " + augmentation;
 
         List<AiKnowledgePort.RetrievedChunk> chunks = repository.search(requestedLocale, searchQuery, contextLimit);
-        // The UI can render Vietnamese through i18n fallback while the browser preference
-        // still reports `en`; use the published Vietnamese corpus rather than silently
-        // returning no evidence for an unsupported knowledge locale.
         if (chunks.isEmpty() && !"vi".equalsIgnoreCase(requestedLocale)) {
             chunks = repository.search("vi", searchQuery, contextLimit);
         }
@@ -146,8 +124,6 @@ public class AiChatService {
                 "content", buildPrompt(AiPromptRedactor.redact(normalized), chunks, catContextBlock)));
 
         repository.saveMessage(conversation.id(), "USER", AiPromptRedactor.redact(normalized), "user");
-        // Không gửi câu hỏi ra provider khi retrieval không có bằng chứng. Prompting một LLM
-        // chỉ với câu hỏi sẽ biến RAG thành chatbot tự do và có thể tạo lời khuyên y tế bịa.
         var generated = chunks.isEmpty() ? java.util.Optional.<String>empty() : provider.complete(prompt);
         String answer;
         String providerName;
@@ -169,16 +145,6 @@ public class AiChatService {
         return repository.syncPublishedCareTips();
     }
 
-    /**
-     * Đường khẩn cấp (mục 2): trả ĐÚNG NGUYÊN VĂN khối đã duyệt, KHÔNG gọi {@link AiProviderPort}
-     * — có bằng chứng CÓ SẴN câu trả lời đúng, không cần LLM diễn giải thêm. Vẫn lưu
-     * {@code ai_message} (cả hai vai) và citation rỗng như luồng khác, để lịch sử hội thoại nhất
-     * quán và DSAR/export không có khoảng trống.
-     *
-     * <p>{@code context} là {@code null} khi nhánh này được kích hoạt bởi nội dung câu hỏi mà không
-     * có mèo hợp lệ: khi đó chỉ trả {@code ai.emergency.body}, vì câu dẫn và đường dẫn hồ sơ đều cần
-     * một con mèo cụ thể.</p>
-     */
     private ChatResult emergencyResult(AiKnowledgePort.Conversation conversation, String normalizedMessage,
             CatContextPort.CatContext context) {
         repository.saveMessage(conversation.id(), "USER", AiPromptRedactor.redact(normalizedMessage), "user");
@@ -195,12 +161,6 @@ public class AiChatService {
         return new ChatResult(conversation.id(), messageId, answer, "emergency-template", List.of(), clock.instant());
     }
 
-    /**
-     * {@code [n]} ở {@link #buildPrompt}/{@link #fallbackAnswer} là vị trí {@code i + 1}; citation
-     * lưu và trả về phải mang đúng số đó. {@code rank} của SQL không dùng được: {@code row_number()}
-     * trong {@code AiKnowledgeRepository#search} sắp theo khoá khác ORDER BY ngoài nên lệch khi hoà
-     * {@code ts_rank}/{@code updated_at}.
-     */
     private static List<AiKnowledgePort.RetrievedChunk> numberedByPosition(List<AiKnowledgePort.RetrievedChunk> chunks) {
         List<AiKnowledgePort.RetrievedChunk> numbered = new ArrayList<>(chunks.size());
         for (int i = 0; i < chunks.size(); i++) {
@@ -227,15 +187,6 @@ public class AiChatService {
         return context.toString();
     }
 
-    /**
-     * Trả lời khi KHÔNG có LLM (chưa cấu hình/đang tắt): ghép nguyên văn các đoạn tài liệu tìm
-     * được, không có bước diễn giải nào. {@code catContextBlock} (THÔNG TIN BÉ MÈO) CỐ Ý không
-     * xuất hiện ở đây — nó chỉ dành cho {@link #buildPrompt} (prompt ẩn gửi LLM), nơi có một mô
-     * hình thật đọc và chọn lọc phần liên quan. Không có LLM "diễn giải" thì không ai lọc khối đó
-     * cả — ghép thẳng vào câu trả lời sẽ in nguyên một đống số liệu không liên quan lên đầu mọi
-     * câu trả lời (vd hỏi "vệ sinh khay cát thế nào" vẫn thấy cân nặng/pH/nhắc nhở của mèo trước
-     * khi tới nội dung thật — xác nhận bằng chạy thật qua UI, không phải suy đoán).
-     */
     private String fallbackAnswer(List<AiKnowledgePort.RetrievedChunk> chunks) {
         StringBuilder answer = new StringBuilder();
         if (chunks.isEmpty()) {
@@ -249,12 +200,6 @@ public class AiChatService {
         return answer.append("Đây là thông tin tham khảo, không thay thế chẩn đoán của bác sĩ thú y.").toString();
     }
 
-    /**
-     * I19 (p4 §4.4.9), {@code docs/cat-rag-credit-pipeline.md} A4-(5): tài khoản {@code RESTRICTED}
-     * không được lưu tin nhắn mới hay gửi câu hỏi ra nhà cung cấp LLM. Cùng khuôn
-     * {@code community.application.CommunityService.requireWriteAllowed}; chạy TRƯỚC rate limit như
-     * ở đó (bị chặn thì không tiêu hạn mức).
-     */
     private void requireWriteAllowed(UUID userId) {
         AccountStatus status = userAccountPort.statusOf(userId);
         if (status == null || !status.allowsWrite()) {
@@ -271,12 +216,6 @@ public class AiChatService {
         }
     }
 
-    /**
-     * Hậu kiểm best-effort (mục 6): mọi {@code [n]} trong câu trả lời LLM phải khớp một chunk đã
-     * truy hồi thật ({@code 1 <= n <= availableCitations}). KHÔNG chặn cứng — chưa có provider
-     * thật để kiểm hành vi, đây là lưới an toàn sơ bộ cần tinh chỉnh khi bật LLM thật. KHÔNG log
-     * nội dung câu trả lời (chỉ số đếm) để không log PII/nội dung câu hỏi-đáp.
-     */
     private void warnIfCitationsLookInvalid(String answer, int availableCitations) {
         Matcher matcher = CITATION_MARKER.matcher(answer);
         int invalid = 0;

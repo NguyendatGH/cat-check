@@ -17,13 +17,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Doi email (B8) phai doi ca {@code provider_user_id} cua identity LOCAL, neu khong dia chi cu
- * van bi giu trong {@code uq_identity_provider_subject} va dang ky lai dia chi do se vo 500.
- *
- * <p>Chay tren PostgreSQL local (giong {@code JdbcShopRepositoryCheckoutRaceIntegrationTest});
- * moi thu nam trong MOT transaction bi rollback, khong de lai du lieu. Bo qua neu khong co DB.</p>
- */
 class JdbcUserAccountRepositoryEmailChangeIntegrationTest {
 
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
@@ -35,7 +28,6 @@ class JdbcUserAccountRepositoryEmailChangeIntegrationTest {
     void setUp() {
         DataSource dataSource = new DriverManagerDataSource(JDBC_URL, "catcheck", "catcheck_local_only");
         try (Connection ignored = dataSource.getConnection()) {
-            // reachable
         } catch (Exception ex) {
             Assumptions.abort("PostgreSQL local khong san sang: " + ex.getClass().getSimpleName());
         }

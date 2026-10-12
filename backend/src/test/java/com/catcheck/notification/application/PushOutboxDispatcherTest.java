@@ -17,13 +17,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Xử lý response FCM của {@code RetryFailedNotificationsJob} (p12 §12.3.9, §12.8.1).
- *
- * <p>Ba nhánh phải tách bạch: thành công, lỗi <b>vĩnh viễn</b> (thu hồi ngay, không retry), lỗi
- * <b>tạm</b> (backoff). Cộng với nhánh thứ tư mà p12 không nói tới nhưng vận hành bắt buộc
- * phải có: chưa cấu hình credential.</p>
- */
 class PushOutboxDispatcherTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T10:00:00Z");
@@ -81,7 +74,6 @@ class PushOutboxDispatcherTest {
         assertThat(subscriptions.revoked).containsValue(PushRevokeReason.FCM_INVALID);
     }
 
-    /** Lỗi tạm lần đầu ⇒ chờ 1 phút (mốc đầu của p12 §12.8.1). */
     @Test
     void transientFailureSchedulesTheFirstBackoffStep() {
         UUID subscriptionId = givenPending(0);
@@ -96,7 +88,6 @@ class PushOutboxDispatcherTest {
         assertThat(subscriptions.revoked).isEmpty();
     }
 
-    /** Lần thất bại thứ 4 ⇒ chờ 2 giờ. */
     @Test
     void transientFailureUsesTheFourthBackoffStepAfterThreeFailures() {
         UUID subscriptionId = givenPending(3);
@@ -109,7 +100,6 @@ class PushOutboxDispatcherTest {
         assertThat(outbox.retryAttempts.values()).containsExactly(4);
     }
 
-    /** Lần thứ 5 là hết lượt ⇒ dead letter, KHÔNG xếp lịch nữa. */
     @Test
     void fifthTransientFailureGoesToDeadLetter() {
         UUID subscriptionId = givenPending(4);
@@ -123,7 +113,6 @@ class PushOutboxDispatcherTest {
         assertThat(outbox.failed).containsValue("UNAVAILABLE");
     }
 
-    /** Quá 10 lần lỗi tạm liên tiếp ⇒ coi là chết (research §5.5). */
     @Test
     void elevenConsecutiveTransientFailuresRevokeTheSubscriptionAsStale() {
         UUID subscriptionId = givenPending(0);
@@ -136,7 +125,6 @@ class PushOutboxDispatcherTest {
         assertThat(subscriptions.revoked).containsEntry(subscriptionId, PushRevokeReason.STALE);
     }
 
-    /** Thiếu credential: giữ nguyên PENDING, KHÔNG tiêu attempts. */
     @Test
     void disabledSenderLeavesEverythingPending() {
         givenPending(0);

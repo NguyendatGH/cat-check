@@ -12,12 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Định dạng mã kích hoạt {@code CC-<PKG>-<10 ký tự Crockford Base32>} (p5 §5.9).
- *
- * <p>Kiểm chứng ba thứ: (1) đúng bảng chữ cái Crockford — không I/L/O/U; (2) checksum ở ký tự
- * cuối bắt được một ký tự bị sai; (3) chuẩn hoá ánh xạ I/L→1, O→0 TRƯỚC khi băm.</p>
- */
 class ActivationCodeFormatTest {
 
     private final SecureRandom random = new SecureRandom();
@@ -69,15 +63,11 @@ class ActivationCodeFormatTest {
 
     @Test
     void validationDoesNotCheckPackageExistence() {
-        // "7K3M9QX2RR" có checksum hợp lệ (ký tự cuối R) nhưng gói "XX" không tồn tại —
-        // validateOrNull chỉ kiểm TRA ĐỊNH DẠNG + checksum. Tồn tại gói do tầng nghiệp vụ
-        // tra package_plan (p8 ACTIVATION_CODE_INVALID), không phải ở đây.
         assertEquals("XX-PLUS-7K3M9QX2RR", ActivationCodeFormat.validateOrNull("XX-PLUS-7K3M9QX2RR"));
     }
 
     @Test
     void normalizeMapsConfusableCharactersBeforeHashing() {
-        // Mã gõ nhầm O thành 0 (hoặc I/L thành 1) phải chuẩn hoá về cùng một giá trị băm.
         String code = ActivationCodeFormat.generate("PLUS", random);
         String body = code.substring(code.lastIndexOf('-') + 1);
         if (body.contains("0")) {
@@ -92,7 +82,6 @@ class ActivationCodeFormatTest {
 
     @Test
     void normalizeTrimsAndUppercases() {
-        // CARE_BOX không chứa I/L/O/U nên tiền tố giữ nguyên ký tự (không bị ánh xạ Crockford).
         assertEquals("CC-CARE_BOX-7K3M9QX2RT",
                 ActivationCodeFormat.normalize("  cc-care_box-7k3m9qx2rt  "));
     }
@@ -108,7 +97,6 @@ class ActivationCodeFormatTest {
     @Test
     void codePrefixIsTruncatedToEightCharacters() {
         assertEquals("PLUS-", ActivationCodeFormat.codePrefixOf("PLUS"));
-        // CARE_BOX- dài 9 ký tự nên bị cắt còn 8 (p5 §5.5).
         assertEquals("CARE_BOX", ActivationCodeFormat.codePrefixOf("CARE_BOX"));
     }
 }

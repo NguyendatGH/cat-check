@@ -54,10 +54,6 @@ class PlaceControllerTest {
         Mockito.verifyNoInteractions(service);
     }
 
-    /**
-     * {@code uq_place_booking_slot} so khớp chuỗi {@code time_slot} nguyên văn: "9:00" và "09:00"
-     * là hai khoá khác nhau, nên cùng một khung giờ đặt được hai lần nếu API nhận chuỗi tự do.
-     */
     @Test
     void timeSlotMustBeCanonicalHourMinuteSoTheSlotUniqueKeyCannotBeBypassed() throws Exception {
         String tomorrow = LocalDate.now().plusDays(1).toString();
@@ -73,7 +69,6 @@ class PlaceControllerTest {
         Mockito.verifyNoInteractions(service);
     }
 
-    /** {@code service_code VARCHAR(48)}: chuỗi dài hơn phải là 400, không được rơi xuống DB thành 500. */
     @Test
     void serviceCodeLongerThanTheColumnIsRejectedAsValidationError() throws Exception {
         String tomorrow = LocalDate.now().plusDays(1).toString();
@@ -102,7 +97,6 @@ class PlaceControllerTest {
                 Mockito.eq(tomorrow), Mockito.eq("09:00"), Mockito.isNull());
     }
 
-    // --- GET /places/nearby: kiểm tham số ở biên API và ánh xạ lỗi nguồn OSM thành 503 nghiệp vụ ---
 
     private ResultActions nearby(MockMvc target, String latitude, String longitude, String radiusKm) throws Exception {
         var request = get("/api/v1/places/nearby").param("latitude", latitude).param("longitude", longitude);
@@ -110,7 +104,6 @@ class PlaceControllerTest {
         return target.perform(request);
     }
 
-    /** Bán kính (mét) service nhận ở lần gọi duy nhất; đọc qua {@link Number} để không phụ thuộc int/long. */
     private long radiusMetersPassedToService() {
         var invocations = Mockito.mockingDetails(service).getInvocations();
         assertThat(invocations).hasSize(1);
@@ -149,7 +142,6 @@ class PlaceControllerTest {
         Mockito.verifyNoInteractions(service);
     }
 
-    /** Toạ độ là dữ liệu vị trí: thân lỗi 400 không được phản hồi lại giá trị client gửi. */
     @Test
     void nonNumericValuesAre400AndTheBodyDoesNotEchoThem() throws Exception {
         String body = nearby(mockMvc, "10.77,106.70", "105.8", "mười")

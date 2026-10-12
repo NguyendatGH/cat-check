@@ -42,10 +42,7 @@ export function AdminProductsPage() {
   const update = useUpdateAdminProduct();
   const setStatus = useSetAdminProductStatus();
   const canEdit = useGroup2Can()("products");
-  // null = đóng; "new" = tạo; còn lại = id đang sửa.
   const [editing, setEditing] = useState<string | null>(null);
-  // `If-Match` chốt lúc MỞ form (bản người dùng đang nhìn), không lấy từ danh sách vừa refetch —
-  // nếu không, lần sửa của admin khác chen vào giữa sẽ bị ghi đè mà không báo 412.
   const [editingEtag, setEditingEtag] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormValues>(emptyProductForm);
   const [showErrors, setShowErrors] = useState(false);

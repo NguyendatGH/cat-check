@@ -29,19 +29,6 @@ import {
 import { ProductGlyph, QuantityStepper, ShippingFee } from "./shopUi";
 import { useCartLineActions } from "./useCartActions";
 
-/**
- * `/cart` — Giỏ hàng (design mobile `Giỏ hàng (Shopping Cart)`; một cột ở mobile, hai cột từ `lg`).
- *
- * Dòng hàng, số lượng, tạm tính, phí vận chuyển, tổng đều là phản hồi `GET/PUT/DELETE /cart`.
- * Số lượng tối đa mỗi dòng = tồn kho thật (`product.stockQuantity`, trần 99 của API).
- *
- * Đã gỡ khỏi mockup (không có API / tuyên bố chưa kiểm chứng): địa chỉ với tên và số điện thoại
- * bịa, khối "đồng bộ hồ sơ mèo cưng/hiệu chuẩn dải màu", mã giảm giá và voucher, quà tặng 0đ,
- * "giao hỏa tốc 2H", ba nhãn "100% kiểm định / đổi trả 30 ngày / bác sĩ 24-7", VietQR và thẻ
- * quốc tế (backend chỉ nhận `COD`/`MOMO`/`BANK_TRANSFER`).
- *
- * Padding ngang do `TaskLayout` cấp.
- */
 
 const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon | null> = {
   COD: Banknote,
@@ -169,9 +156,7 @@ export function CartPage() {
         />
       ) : (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-          {/* ---------- Cột trái: nội dung đơn ---------- */}
           <div className="flex min-w-0 flex-1 flex-col gap-4">
-            {/* Địa chỉ nhận hàng chỉ được nhập ở `/checkout` — không có sổ địa chỉ trong API. */}
             <section className="flex gap-3 rounded-2xl bg-surface p-4 shadow-brand-md">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-chip-bg text-primary-dark">
                 <MapPin size={18} aria-hidden="true" />
@@ -303,7 +288,6 @@ export function CartPage() {
             </fieldset>
           </div>
 
-          {/* ---------- Cột phải: tóm tắt thanh toán (dính ở lg) ---------- */}
           <div className="flex w-full flex-col gap-4 lg:sticky lg:top-20 lg:w-[360px] lg:shrink-0">
             <section className="rounded-2xl bg-surface p-4 shadow-brand-md" aria-busy={isUpdating || undefined}>
               <h2 className="text-[15px] font-bold text-text-primary">{t("cartPage.summaryTitle")}</h2>
@@ -356,8 +340,6 @@ export function CartPage() {
         </div>
       )}
 
-      {/* Thanh CTA dính đáy — chỉ mobile (TaskLayout không có bottom nav); ở lg nút nằm trong
-          khối tóm tắt bên phải. */}
       {!isEmpty ? (
         <div className="sticky bottom-0 z-10 -mx-4 -mb-6 flex items-center gap-3 border-t border-border bg-surface px-4 py-3 shadow-brand-lg lg:hidden">
           <span className="min-w-0 flex-1">

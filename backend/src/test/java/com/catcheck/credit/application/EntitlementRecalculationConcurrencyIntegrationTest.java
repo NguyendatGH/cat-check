@@ -31,14 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Hai transaction cùng tính lại entitlement của MỘT user (đổi mã + admin cấp tay cùng lúc).
- *
- * <p>Trước khi có {@code lockRow}: transaction đến sau đọc lô khi lô của bên kia chưa commit, rồi
- * upsert đè lên ⇒ {@code write_access_until} lùi về hạn ngắn hơn dù user còn credit ở lô hạn dài
- * (scan trả {@code WRITE_ACCESS_EXPIRED} khi lô ngắn hết hạn). Postgres local, không Docker, cùng
- * cách {@link ActivationCreditEndToEndIntegrationTest}; tự xoá dữ liệu ở {@link #cleanUp()}.</p>
- */
 class EntitlementRecalculationConcurrencyIntegrationTest {
 
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
@@ -63,7 +55,6 @@ class EntitlementRecalculationConcurrencyIntegrationTest {
         batchPort = new JdbcCreditBatchAdapter(jdbc);
         entitlementPort = new JdbcUserEntitlementAdapter(jdbc, jsonMapper);
         recalculation = new EntitlementRecalculationService(entitlementPort, batchPort, planPort);
-        // Gói có sẵn, không tạo/sửa gói nào.
         plan = planPort.findByCode("MINI").orElseThrow();
 
         userId = jdbc.queryForObject("""
@@ -126,7 +117,6 @@ class EntitlementRecalculationConcurrencyIntegrationTest {
                 UUID.randomUUID(), userId, null, plan.code(), plan.version(), 1, now, expiresAt));
     }
 
-    /** Đợi tới khi transaction thứ hai thật sự xếp hàng chờ khoá của transaction thứ nhất. */
     private void awaitBlockedOnLock(AtomicInteger pid) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (System.nanoTime() < deadline) {

@@ -17,20 +17,6 @@ import org.springframework.web.servlet.view.RedirectView;
 import java.time.Clock;
 import java.util.Map;
 
-/**
- * <b>MOCK</b> luong Google OAuth — chi khi B11 (client ID) chua co.
- *
- * <p>Phuc vu hai endpoint ma Spring Security {@code oauth2Login()} se phuc vu khi co
- * dependency that:</p>
- * <ul>
- *   <li>{@code GET /oauth2/authorization/google} — redirect sang trang consent gia.</li>
- *   <li>{@code GET /login/oauth2/code/google} — callback gia, tao user mock va dang nhap.</li>
- * </ul>
- *
- * <p><b>KHONG dung o prod.</b> Khi B11 chot, them {@code spring-boot-starter-oauth2-client}
- * va {@code GoogleOAuth2Configuration} se thay the class nay. Class nay chi kich hoat
- * khi {@code catcheck.oauth2.mock-enabled=true} (mac dinh {@code true} o local/dev).</p>
- */
 @Controller
 @RequestMapping
 @Profile("!prod")
@@ -58,10 +44,6 @@ public class MockOAuth2Controller {
         this.clock = clock;
     }
 
-    /**
-     * Bat dau luong OAuth gia — redirect sang trang consent gia (HTML tho, khong can
-     * template engine). Trang nay co nut "Dang nhap bang Google (mock)".
-     */
     @GetMapping("/oauth2/authorization/google")
     public String start() {
         return """
@@ -81,10 +63,6 @@ public class MockOAuth2Controller {
                 """;
     }
 
-    /**
-     * Callback gia — tao user mock va dang nhap. Trong luong that, day la noi Spring
-     * Security goi lai sau khi doi code thanh cong.
-     */
     @GetMapping("/login/oauth2/code/google")
     public RedirectView callback(@RequestParam("email") String email,
                                  @RequestParam(value = "name", required = false) String name) {

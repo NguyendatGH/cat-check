@@ -13,7 +13,6 @@ import {
   useScanCaptureStore,
 } from "@/features/scan";
 
-/** Ghi chú riêng tư (mockup `05`): chấm tròn xanh + tiêu đề trên, nội dung dưới. */
 function PrivacyNote({ className }: { className?: string }) {
   const { t } = useTranslation("scan");
   return (
@@ -29,8 +28,6 @@ function PrivacyNote({ className }: { className?: string }) {
   );
 }
 
-/** `/scan/select-cat` (TaskLayout) — bước chọn mèo TRƯỚC khi mở camera (xem `features/scan/store.ts`
- * để biết vì sao thứ tự này khác mockup gốc). */
 export function SelectCatPage() {
   const { t } = useTranslation(["scan", "common"]);
   const navigate = useNavigate();
@@ -40,7 +37,6 @@ export function SelectCatPage() {
   const setSharedUnknown = useScanCaptureStore((s) => s.setSharedUnknown);
 
   const [selection, setSelection] = useState<{ id: string; name: string } | "SHARED" | null>(null);
-  // `GET /cats` không trả `lastScanAt` ⇒ hỏi E2 lượt quét mới nhất của từng bé (≤ vài bé/tài khoản).
   const latestByCat = useLatestScanByCat((cats ?? []).map((cat) => cat.id));
 
   const handleConfirm = () => {
@@ -103,19 +99,12 @@ export function SelectCatPage() {
         : t("selectCat.confirmCtaGeneric");
 
   return (
-    /**
-     * `/scan` redirect thẳng vào đây khi chưa chọn mèo, nên màn này giờ là màn ĐẦU TIÊN của
-     * luồng quét trên desktop. Một cột 944px duy nhất làm nó trông như form mobile bị kéo
-     * giãn, vì vậy từ `lg` trở lên: danh sách lựa chọn ở cột chính, ghi chú riêng tư + mẹo
-     * nhiều mèo + hai nút hành động ở cột phụ dính theo cuộn. Mobile giữ nguyên một cột.
-     */
     <div className="flex flex-col gap-4 pb-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-h2 font-bold text-text-primary">{t("selectCat.heading")}</h1>
         <p className="text-caption text-text-secondary">{t("selectCat.description")}</p>
       </div>
 
-      {/* Mockup `05` đặt ghi chú riêng tư NGAY dưới tiêu đề; desktop chuyển nó sang cột phụ. */}
       <PrivacyNote className="flex lg:hidden" />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">

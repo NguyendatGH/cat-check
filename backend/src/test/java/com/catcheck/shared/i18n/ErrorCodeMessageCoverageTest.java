@@ -13,10 +13,6 @@ import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Mọi hằng {@link ErrorCode} phải có câu dịch vi + en trong các bundle mà {@link LocaleConfig}
- * nạp. Thiếu khoá thì {@code setUseCodeAsDefaultMessage(true)} trả nguyên tên enum cho client.
- */
 class ErrorCodeMessageCoverageTest {
 
     private static final List<Locale> LOCALES = List.of(Locale.forLanguageTag("vi"), Locale.ENGLISH);
@@ -46,11 +42,6 @@ class ErrorCodeMessageCoverageTest {
         assertThat(missing).isEmpty();
     }
 
-    /**
-     * Có tham số thì Spring dùng {@code MessageFormat}, và một dấu nháy đơn đứng lẻ mở một đoạn
-     * "trích nguyên văn": dấu nháy biến mất (tiếng Anh: "code's" ra "codes"). Hai khoá dưới đây
-     * được ném KÈM tham số ({@code ActivateCreditCodeService}, {@code CatNoteService}).
-     */
     @Test
     void messagesThrownWithArgumentsKeepTheirApostrophes() {
         MessageSource messages = new LocaleConfig(

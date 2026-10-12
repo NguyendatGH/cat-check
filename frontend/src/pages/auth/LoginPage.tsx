@@ -11,6 +11,7 @@ import portalBadge from "@/shared/assets/icons/web-auth/portal-badge.svg";
 import cloudShield from "@/shared/assets/icons/web-auth/cloud-shield.svg";
 import { LoginShowcase } from "./LoginShowcase";
 import { AuthCard } from "./AuthCard";
+import { resolveRedirectTarget } from "./loginRedirect";
 import {
   GoogleAuthButton,
   InlineAlert,
@@ -22,29 +23,11 @@ import {
   useLogin,
   useVerifyLoginRecoveryCode,
   useVerifyLoginTotp,
+  apiFetch,
   type LoginFieldValues,
+  type SessionBootstrapResponse,
 } from "@/features/auth";
 
-const DEFAULT_AFTER_LOGIN = "/dashboard";
-
-function resolveRedirectTarget(next: string | null): string {
-  // Chỉ chấp nhận path nội bộ bắt đầu bằng "/" — chặn open-redirect qua query `next`.
-  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
-  return DEFAULT_AFTER_LOGIN;
-}
-
-/**
- * `/auth/login` (p9 §9.4.3 #2, M1 01b · W1 Web-01) — khớp Figma (CatCheck-Demo
- * 26mOVF2zdu4cI1EPz2Syxw). Mobile 1 cột (logo tròn + badge phiên bản lấy `buildVersion` từ
- * `GET /system/status`), web 2 cột: panel thương hiệu `LoginShowcase` + form.
- *
- * Thẻ demo "Bé Luna & Bạn — Khỏe mạnh" của mockup 01b đã BỎ: trước đăng nhập không có dữ
- * liệu mèo thật, và nhãn "Khỏe mạnh" là một kết luận sức khoẻ sản phẩm không được đưa ra.
- *
- * Bước 2 MFA (A10/A11, p11 §11.12): `POST /auth/login` có thể trả `mfaRequired: true`
- * ngay trên trang này (không có route riêng) — chuyển UI in-place sang nhập mã TOTP hoặc
- * mã khôi phục.
- */
 export function LoginPage() {
   const { t } = useTranslation(["auth", "common"]);
   const [searchParams] = useSearchParams();
@@ -63,8 +46,6 @@ export function LoginPage() {
   const [mfaError, setMfaError] = useState<string | null>(null);
   const mfaInputRef = useRef<HTMLInputElement>(null);
 
-  // jsx-a11y/no-autofocus cấm prop `autoFocus` — focus bằng tay khi bước MFA vừa hiện,
-  // hành vi tương đương (M1 01c-2 tự focus ô nhập mã).
   useEffect(() => {
     if (pendingLoginMfaMethods) {
       mfaInputRef.current?.focus();
@@ -87,8 +68,8 @@ export function LoginPage() {
     defaultValues: { email: "", password: "", rememberMe: true },
   });
 
-  const redirectAfterLogin = () => {
-    window.location.assign(resolveRedirectTarget(searchParams.get("next")));
+  const redirectAfterLogin = (roles?: readonly string[]) => {
+    window.location.assign(resolveRedirectTarget(searchParams.get("next"), roles));
   };
 
   const onSubmit = async (values: LoginFieldValues) => {
@@ -99,11 +80,8 @@ export function LoginPage() {
         setPendingLoginMfaMethods(result.mfaMethods);
         return;
       }
-      redirectAfterLogin();
+      redirectAfterLogin(result.roles);
     } catch (error) {
-      // Nhánh mặc định TRƯỚC ĐÂY là `invalidCredentials`, nên mọi lỗi lạ đều hiện "sai mật
-      // khẩu" — kể cả `SESSION_LIMIT_REACHED` (409), khiến người dùng gõ lại đúng mật khẩu
-      // mãi không vào được. Giờ chỉ 401/INVALID_CREDENTIALS mới nói sai thông tin đăng nhập.
       const code = isApiError(error) ? error.code : undefined;
       if (code === "ACCOUNT_LOCKED") {
         setLoginError(t("login.errors.accountLocked"));
@@ -129,7 +107,8 @@ export function LoginPage() {
       } else {
         await verifyTotp.mutateAsync(mfaCode);
       }
-      redirectAfterLogin();
+      const session = await apiFetch<SessionBootstrapResponse>("/auth/session").catch(() => null);
+      redirectAfterLogin(session?.authenticated ? session.roles : undefined);
     } catch (error) {
       if (isApiError(error) && error.code === "TOTP_INVALID") {
         setMfaError(t("mfa.errors.invalidCode"));
@@ -207,10 +186,8 @@ export function LoginPage() {
 
   return (
     <div className="lg:grid lg:min-h-[733.5px] lg:grid-cols-12 lg:overflow-hidden lg:rounded-3xl lg:bg-surface lg:shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]">
-      {/* ══ Cột trái CHỈ CÓ Ở WEB (Figma 16:7573) — panel thương hiệu, dữ liệu pH từ API ══ */}
       <LoginShowcase />
 
-      {/* ══ Cột form — mobile là toàn bộ trang, web là 5 cột bên phải ══ */}
       <div className="flex flex-col gap-6 pb-6 pt-2 lg:col-span-5 lg:justify-between lg:gap-0 lg:bg-surface lg:p-12 lg:pb-12 lg:pt-12">
         <header className="order-1 flex flex-col items-center gap-1 text-center lg:hidden">
           <div className="relative mb-1 flex h-20 w-44 items-center justify-center">
@@ -230,7 +207,6 @@ export function LoginPage() {
           <p className="max-w-[330px] text-caption leading-[21px] text-text-secondary">{t("login.subtitle")}</p>
         </header>
 
-        {/* Header form CHỈ CÓ Ở WEB (Figma 16:7682) */}
         <div className="order-1 hidden lg:flex lg:flex-col lg:gap-2">
           <span className="flex w-fit items-center gap-2 rounded-full bg-chip-bg px-3 py-1">
             <img src={portalBadge} alt="" className="h-[14px] w-[10.667px]" />
@@ -280,7 +256,6 @@ export function LoginPage() {
                 {t("login.fields.password.label")}
                 <span className="hidden text-danger lg:inline">{` ${t("common.requiredMark")}`}</span>
               </label>
-              {/* Web (Figma 16:7712): link nằm ngay hàng label. Mobile: xuống hàng toggle bên dưới. */}
               <Link
                 to="/auth/forgot-password"
                 className="hidden text-caption font-semibold text-primary hover:underline lg:inline"
@@ -297,8 +272,6 @@ export function LoginPage() {
             />
           </div>
 
-          {/* Mobile (Figma 01b): toggle TRÁI + "Quên mật khẩu?" PHẢI trên cùng 1 hàng.
-            Web (Figma 16:7719): checkbox vuông 16px, không phải toggle. */}
           <Controller
             control={control}
             name="rememberMe"
@@ -346,7 +319,6 @@ export function LoginPage() {
           </Button>
         </form>
 
-        {/* Google + divider: dưới form ở mobile, TRÊN form ở web (Figma 16:7693/16:7701) */}
         <div className="order-4 flex flex-col gap-6 lg:order-2 lg:gap-5 lg:pt-6">
           <div className="flex items-center gap-3 lg:hidden" role="separator">
             <span className="h-px flex-1 bg-on-primary-subtle" />
@@ -354,7 +326,6 @@ export function LoginPage() {
             <span className="h-px flex-1 bg-on-primary-subtle" />
           </div>
 
-          {/* Web (Figma 16:7693): nút Google nền #F3F2FF, không viền. Mobile: trắng + viền. */}
           <GoogleAuthButton
             label={t("login.googleCta")}
             className="lg:border-transparent lg:bg-background-alt lg:shadow-none"

@@ -12,11 +12,6 @@ import { cn } from "@/shared/lib/cn";
 import { phTokenStyle } from "./colorToken";
 import type { PhBand } from "./model";
 
-/**
- * UI hiển thị pH dùng chung (p10 §5.2 `PhGaugeBar`/`ResultGauge` rút gọn, p9 §9.2.4
- * `entities/ph-bands/ui`). Mọi ngưỡng/nhãn/màu nhận qua props từ dữ liệu API
- * (`entities/ph-bands` `usePhBands()`), KHÔNG hard-code (p6 §6.7.3/§6.7.4).
- */
 
 const ICON_MAP: Record<string, LucideIcon> = {
   "check-circle": CheckCircle,
@@ -35,10 +30,6 @@ export interface PhBadgeProps {
   className?: string;
 }
 
-/**
- * `StatusPill` áp cho pH — BẮT BUỘC kèm icon + chữ, không chỉ màu (p10 mục 10, a11y không
- * dựa màu đơn thuần). `band.label` luôn tới từ API, component không có nhãn mặc định.
- */
 export function PhBadge({ band, className }: PhBadgeProps) {
   const style = phTokenStyle(band.colorToken);
   const Icon = resolveIcon(band.iconName);
@@ -57,39 +48,23 @@ export function PhBadge({ band, className }: PhBadgeProps) {
   );
 }
 
-/** Phần thang vẽ thêm ngoài cận hữu hạn cho mỗi dải mở (tỉ lệ trên khoảng giữa hai cận). */
 const OPEN_END_PAD_RATIO = 0.3;
 
 export interface PhGaugeBarProps {
-  /** Toàn bộ dải, đã sắp `sortOrder` (kết quả `usePhBands()`). */
   bands: PhBand[];
-  /** Giá trị pH đo được; `null`/`undefined` = chưa có điểm để đánh dấu. */
   value?: number | null;
-  /** Nếu bỏ trống thì tự suy ra từ min/max của `bands` (p6 §6.7.3) — không hard-code 5.5–8.5. */
   domain?: { min: number; max: number };
   className?: string;
 }
 
-/**
- * Thanh gradient hiển thị vị trí pH trên thang các dải — nền cho `ResultGauge` (p10 §5.2).
- * Không tự suy diễn dải hiển thị cứng: domain = [min, max] của chính dữ liệu `bands`.
- */
 export function PhGaugeBar({ bands, value, domain, className }: PhGaugeBarProps) {
-  // Dải mở đầu/cuối KHÔNG có `phMin`/`phMax`, và server bỏ hẳn key đó khỏi JSON thay vì
-  // trả `null` — nên phải lọc bằng `typeof === "number"`. Lọc bằng `!== null` thì
-  // `undefined` lọt qua và `Math.min(..., undefined)` ra `NaN`, hỏng cả hai nhãn đầu thang.
   const isNumber = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
-  // Dải KHÔNG có cận nào (VD `INCONCLUSIVE`) không phải một đoạn trên trục pH. Trước đây nó
-  // vẫn được vẽ với độ rộng 100% ⇒ tổng các đoạn thành 200%, flex co mọi đoạn lại một nửa và
-  // nửa phải của thanh thành một mảng màu "chưa xác định" — thang hiển thị sai hẳn.
   const axisBands = bands
     .filter((b) => isNumber(b.phMin) || isNumber(b.phMax))
     .sort((a, b) => a.sortOrder - b.sortOrder);
   const bounds = [...axisBands.map((b) => b.phMin), ...axisBands.map((b) => b.phMax)].filter(isNumber);
   const innerMin = bounds.length ? Math.min(...bounds) : 0;
   const innerMax = bounds.length ? Math.max(...bounds) : 14;
-  // Dải mở hai đầu (VD `LOW` chỉ có `phMax`) cần một khoảng nhìn thấy được ngoài cận hữu hạn,
-  // nếu không chúng có độ rộng 0 và giá trị pH rơi vào đó bị kẹp sát mép thang.
   const pad = (innerMax - innerMin || 1) * OPEN_END_PAD_RATIO;
   const hasOpenLow = axisBands.some((b) => !isNumber(b.phMin));
   const hasOpenHigh = axisBands.some((b) => !isNumber(b.phMax));
@@ -137,7 +112,6 @@ export interface PhRangeLegendProps {
   className?: string;
 }
 
-/** Chú giải các dải màu — dùng cạnh `PhGaugeBar`/chart xu hướng. */
 export function PhRangeLegend({ bands, className }: PhRangeLegendProps) {
   return (
     <ul className={cn("flex flex-wrap gap-x-4 gap-y-1.5", className)}>
@@ -157,16 +131,6 @@ export function PhRangeLegend({ bands, className }: PhRangeLegendProps) {
   );
 }
 
-/**
- * Ghi chú miễn trừ y tế ngắn (biến thể `D-SHORT`, p15 §15.7.3) đi kèm mọi hiển thị pH.
- *
- * Component `DisclaimerBanner` chuẩn hoá (p10 §5.2) đọc namespace i18n `legal` — namespace đó
- * do A2 sở hữu và tại thời điểm này CHƯA có key `disclaimer.*` (M0). Để không vi phạm ranh giới
- * file (`legal.json` không thuộc A3/A5) và vẫn đáp ứng yêu cầu "mọi bề mặt pH phải có disclaimer"
- * (ORCHESTRATOR §A3/A5), câu chữ D-SHORT (p15 §15.7.3, nguyên văn) được đặt cục bộ trong
- * `scan.json` → `phBands.disclaimer.*` (phần thuộc A5). Khi A2/W3 hoàn thiện `legal.json` +
- * `DisclaimerBanner` dùng chung, thay props/nội dung ở ĐÚNG MỘT chỗ này.
- */
 export function PhDisclaimerNote({ className }: { className?: string }) {
   const { t } = useTranslation("scan");
   return (

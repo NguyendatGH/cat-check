@@ -15,16 +15,6 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Quản trị dải phân loại pH — L36, L37 (p8 §8.4.12).
- *
- * <p>Ràng buộc bắt buộc (p4 D7, I9): các dải {@code active} phải <b>phủ kín trục pH, không chồng
- * lấn</b>. Kiểm ở service khi lưu — không ép được bằng {@code CHECK} đơn dòng.
- *
- * <p>Sửa ngưỡng {@code ph_min}/{@code ph_max} của một dải đang {@code active} là thao tác đổi ngưỡng
- * y học — p14 §14.5 yêu cầu step-up re-auth + reason. Việc đó thuộc tầng web (W3 nối SecurityConfig),
- * ở đây chỉ đảm bảo tính toàn vẹn dữ liệu.
- */
 @Service
 public class PhBandAdminService {
 
@@ -36,21 +26,13 @@ public class PhBandAdminService {
         this.clock = clock;
     }
 
-    // ------------------------------------------------------------------ L36
 
     @Transactional(readOnly = true)
     public List<PhClassificationBand> listBands() {
         return bandRepository.findGlobalActiveOrderBySortOrder();
     }
 
-    // ------------------------------------------------------------------ L37
 
-    /**
-     * Sửa một dải phân loại theo {@code code} (L37).
-     *
-     * <p>Không cho sửa {@code code} — nó là danh tính nghiệp vụ xuất hiện trong
-     * {@code scan_analysis.classification} và trong i18n key. Đổi code = phá vỡ lịch sử.
-     */
     @Transactional
     public PhClassificationBand updateBand(String code, BandUpdate update) {
         PhClassificationBand band = bandRepository.findByCode(code)
@@ -104,12 +86,6 @@ public class PhBandAdminService {
         return bandRepository.save(band);
     }
 
-    /**
-     * Kiểm tra phủ kín + không chồng lấn trên trục pH (I9).
-     *
-     * <p>Chỉ kiểm các dải {@code active} cùng nhóm (toàn cục hoặc cùng {@code chart_id}). Dải
-     * {@code INCONCLUSIVE} không có khoảng nên không tham gia phủ.
-     */
     private void validateCoverage(PhClassificationBand updated) {
         if (!updated.isActive()) {
             return;
@@ -151,10 +127,6 @@ public class PhBandAdminService {
         return !aBeforeB && !bBeforeA;
     }
 
-    /**
-     * Cập nhật một dải (L37). Vắng field = không đổi; {@code null} tường minh trong record này
-     * nghĩa là không đổi (khác merge-patch ở tầng API).
-     */
     public record BandUpdate(
             BigDecimal minPh,
             BigDecimal maxPh,

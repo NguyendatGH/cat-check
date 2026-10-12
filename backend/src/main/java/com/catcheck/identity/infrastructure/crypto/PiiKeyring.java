@@ -4,19 +4,6 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-/**
- * Doc bien moi truong {@code APP_PII_ENCRYPTION_KEYS} va
- * {@code APP_PII_ENCRYPTION_WRITE_VERSION} (p11 §11.10.3).
- *
- * <p>Dinh dang: {@code v1:<base64>,v2:<base64>} — <b>phai co dau {@code v}</b>. Khoa dau
- * tien chi dung de ghi, cac khoa con lai chi dung de doc du lieu cu. Version ghi se
- * dung la <b>version dau tien</b> trong danh sach; bien
- * {@code APP_PII_ENCRYPTION_WRITE_VERSION} cho phep tro khi danh sach duoc sap xep lai.</p>
- *
- * <p>Fail-fast trong constructor: app khong khoi dong duoc neu thieu bien hoac khoa
- * khong dung 32 byte. Day la chu dich — mot app chay nhe ma khong ma hoa PII se ghi
- * du lieu tho vao DB ma khong ai phat hien.</p>
- */
 final class PiiKeyring {
 
     static final int KEY_LENGTH = 32;
@@ -96,12 +83,9 @@ final class PiiKeyring {
         return writeVersion;
     }
 
-    /** Khu vuc cho version, nem neu version khong con trong keyring. */
     byte[] keyFor(int version) {
         byte[] key = keysByVersion.get(version);
         if (key == null) {
-            // KHONG fallback ve version dau tien: du lieu duoc ghi bang khoa da rut
-            // thi phai bao loi, chiu khong phai tra ve rong va ghi de bien mat nham.
             throw new IllegalStateException(
                     "Khong co khoa version " + version + " trong APP_PII_ENCRYPTION_KEYS "
                             + "(dang co " + keysByVersion.keySet() + "). "

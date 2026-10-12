@@ -7,9 +7,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-/**
- * Bộ chuyển đổi từ cổng {@link LitterSubstrateProfileRepository} sang Spring Data (R2).
- */
 @Repository
 class LitterSubstrateProfileRepositoryAdapter implements LitterSubstrateProfileRepository {
 

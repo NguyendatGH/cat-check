@@ -6,22 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
-/**
- * {@link OnboardingProgressPort} ghi thang cot {@code app_user.onboarding_status} bang SQL tho.
- *
- * <p>KHONG import class nao cua {@code com.catcheck.identity.*} nen khong sinh canh phu thuoc
- * Java moi — dung ky thuat {@code scan/package-info.java} da ghi chu cong khai (scan doc bang
- * cua cat bang JDBC read-only) va {@code cat.infrastructure.persistence.JdbcUserAccountPortAdapter}
- * da dung de doc {@code app_user.status}.</p>
- */
 @Repository
 class JdbcOnboardingProgressAdapter implements OnboardingProgressPort {
 
-    /**
-     * Chi tien, khong lui — so sanh vi tri trong mang thu tu ngay trong SQL nen thao tac la
-     * nguyen tu. Mang viet thang trong cau lenh (hang so) thay vi bind {@code String[]}: driver
-     * PostgreSQL khong tu suy duoc kieu SQL cho mang Java.
-     */
     private static final String ADVANCE = """
             UPDATE app_user
                SET onboarding_status = 'COMPLETED'

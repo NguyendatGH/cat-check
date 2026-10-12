@@ -18,20 +18,6 @@ import { useSessionStore } from "@/entities/user";
 import { useCommunityFeed, type CommunityCategory, type CommunityPostApi } from "@/features/community";
 import { AuthorAvatar, AuthorMeta, ContentMenu, PostActions, PostCardSkeleton, RulesCard, TagChips } from "./parts";
 
-/**
- * `/community` — bảng tin Cộng đồng (design `Web - 15` + mobile `11. Bảng tin Cộng đồng`).
- *
- * MỘT cây DOM responsive (không nhân đôi mobile/desktop) để mỗi bài chỉ xuất hiện một lần:
- *  - `< lg`: dải lưu ý, chip chuyên mục cuộn ngang, thẻ bài, FAB "Đăng bài viết".
- *  - `>= lg`: khối tiêu đề + CTA, tab chuyên mục có icon, cột giữa (ô mời soạn bài + thẻ bài),
- *    cột phải 296px chỉ còn quy tắc cộng đồng trung tính.
- *
- * NGUỒN DỮ LIỆU: 100% `GET /api/v1/community/posts` — lọc chuyên mục bằng `?category=` (enum
- * thật QA/TIP/EXPERIENCE), phân trang `page`/`hasMore`. Đã BỎ so với design vì API không có:
- * số thành viên, "bảo trợ chuyên môn", nhãn bệnh lý gợi ý, đính kèm ảnh/kết quả quét, khối ý kiến
- * bác sĩ, "Chủ đề tuần này" (số bài theo hashtag), huy hiệu "đã xác minh", tên bé mèo cạnh tác giả.
- * Ô eyebrow của hero hiển thị `totalElements` thật thay cho số thành viên.
- */
 
 type FeedFilter = CommunityCategory | "ALL";
 
@@ -42,7 +28,6 @@ const FILTERS: { key: FeedFilter; icon: LucideIcon }[] = [
   { key: "EXPERIENCE", icon: PenLine },
 ];
 
-/** Thẻ bài viết — chỉ dựng từ field API thật. */
 function PostCard({ post }: { post: CommunityPostApi }) {
   const { t } = useTranslation("community");
   const href = `/community/posts/${post.id}`;
@@ -75,7 +60,6 @@ function PostCard({ post }: { post: CommunityPostApi }) {
   );
 }
 
-/** Ô mời soạn bài (design: composer đầu cột giữa). Dẫn sang `/community/new` — form thật nằm ở đó. */
 function ComposerPrompt() {
   const { t } = useTranslation("community");
   const displayName = useSessionStore((s) => s.user?.displayName ?? "");
@@ -99,7 +83,6 @@ function ComposerPrompt() {
   );
 }
 
-/** Empty state: nói rõ còn trống, mời đăng bài đầu tiên. Không bù khoảng trống bằng số liệu bịa. */
 function FeedEmptyState({ filtered }: { filtered: boolean }) {
   const { t } = useTranslation("community");
   return (
@@ -127,7 +110,6 @@ function FeedEmptyState({ filtered }: { filtered: boolean }) {
 
 function FeedHero() {
   const { t } = useTranslation("community");
-  // Cùng query với tab "Tất cả" (mặc định) ⇒ không tốn thêm request.
   const all = useCommunityFeed("ALL");
   const total = all.data?.pages[0]?.totalElements ?? 0;
 
@@ -208,8 +190,6 @@ function FeedList({ filter }: { filter: FeedFilter }) {
     );
   }
 
-  // Lỗi ở `fetchNextPage` cũng đưa query về status "error" nhưng VẪN giữ các trang đã tải ⇒
-  // chỉ thay cả danh sách bằng ErrorState khi chưa có trang nào.
   if (feed.data === undefined) {
     return (
       <ErrorState
@@ -228,7 +208,6 @@ function FeedList({ filter }: { filter: FeedFilter }) {
     return (
       <>
         <FeedEmptyState filtered={filter !== "ALL"} />
-        {/* Mobile không có cột phải ⇒ đưa quy tắc xuống dưới empty state cho trang khỏi trống. */}
         <RulesCard className="lg:hidden" showDisclaimer={false} />
       </>
     );

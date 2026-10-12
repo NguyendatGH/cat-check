@@ -24,15 +24,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Xử lý NỀN cho một {@code export_job} — gom dữ liệu, render PDF (openhtmltopdf, p13 §13.7), lưu
- * file, cập nhật trạng thái. Chạy trên {@code exportExecutor} (không phải request thread).
- *
- * <p>Không tự mở {@code @Transactional} ở đây: mỗi lần {@code jobRepository.save(...)} đã tự
- * chạy trong transaction riêng của {@code SimpleJpaRepository} (Spring Data mặc định), và việc
- * gom dữ liệu/render PDF vốn dĩ KHÔNG được nằm trong transaction DB (I/O nặng, cùng nguyên tắc
- * với {@code ScanPersistenceService}).</p>
- */
 @Service
 public class ExportGenerationService {
 
@@ -79,9 +70,6 @@ public class ExportGenerationService {
             String html = PdfDocumentBuilder.build(data);
             PdfRenderer.Result rendered = pdfRenderer.render(html);
 
-            // p13 §13.6.4: PDF đi vào ReportStorage (thư mục reports/ riêng), KHÔNG vào
-            // media.ImageStorage — cổng đó chỉ nhận image/* nên trước đây mọi lần sinh PDF
-            // chết với STORAGE_UNSUPPORTED_TYPE (xem javadoc ReportStorage).
             ReportStorage.Stored stored = reportStorage.put(job.getDocumentCode(), rendered.bytes());
 
             job.markReady(stored.provider(), stored.fileRef(), rendered.bytes().length,
@@ -94,12 +82,6 @@ public class ExportGenerationService {
         }
     }
 
-    /**
-     * Đánh hỏng một job không vào được hàng đợi (bể luồng từ chối) — xem
-     * {@link ExportJobDispatcher}. Không bao giờ để dòng ở lại {@code QUEUED}: p4 G1 I25 chỉ
-     * cho một job {@code QUEUED}/{@code RUNNING} mỗi user, nên một dòng kẹt là user hết đường
-     * xuất PDF.
-     */
     public void markRejected(UUID jobId, Instant now) {
         jobRepository.findById(jobId).ifPresent(job -> {
             job.markFailed("He thong dang ban. Ban thu tao lai sau it phut nhe.", now);
@@ -108,7 +90,6 @@ public class ExportGenerationService {
     }
 
     private String friendlyFailureReason(Exception ex) {
-        // Khong log/tra nguyen exception message ra ngoai - co the chua duong dan he thong.
         return "Co loi khi sinh bao cao. Ban thu tao lai nhe.";
     }
 
@@ -131,7 +112,7 @@ public class ExportGenerationService {
                 .filter(s -> !"IN_RANGE".equals(s.classification()) && !s.nearBoundary()).count();
         long nearBoundary = nonDisputed.stream().filter(ScanHistoryQuery.ExportScanRow::nearBoundary).count();
         boolean anyNonCardCcm = scans.stream().anyMatch(s -> !"CARD_CCM".equals(s.calibrationMethod()));
-        Integer chartVersionSnapshot = null; // chưa có nguồn version chart snapshot tin cậy ở tầng này — xem handover
+        Integer chartVersionSnapshot = null;
 
         List<ExportRenderData.ScanRow> scanRows = scans.stream().map(s -> new ExportRenderData.ScanRow(
                 LocalDateTime.ofInstant(s.capturedAt(), zone).format(DATETIME_LABEL),

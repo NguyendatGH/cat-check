@@ -4,25 +4,7 @@ import { Apple, Check, Download, Info, Monitor, Smartphone } from "lucide-react"
 import { Button } from "@/shared/ui";
 import { isStandalonePwa } from "@/shared/lib/platform";
 
-/**
- * `/install` — thêm CatCheck vào màn hình chính.
- *
- * Trang nằm trong `TaskLayout`: layout đã cấp `px-4 py-6` + hộp 944px ở `lg`, trang KHÔNG
- * tự thêm padding ngang.
- *
- * App là PWA thật (`vite-plugin-pwa`, `strategies: "injectManifest"`, `src/sw.ts` +
- * `manifest` khai trong `vite.config.ts`), nên trang dùng ĐÚNG luồng `beforeinstallprompt`
- * ở nơi có: giữ lại event, hiện nút gọi `prompt()`. Chrome/Edge chỉ bắn event này sau một
- * vài điều kiện engagement, còn Safari trên iOS/iPadOS **không bao giờ** bắn — nên hướng dẫn
- * thủ công luôn hiện, không phải fallback ẩn.
- *
- * KHÔNG khẳng định "đã cài": trình duyệt không cho web biết chắc điều đó.
- * - `display-mode: standalone` chỉ nói **cửa sổ hiện tại** đang chạy toàn màn hình.
- * - `userChoice.outcome === "accepted"` chỉ nói **người dùng bấm đồng ý** ở hộp thoại.
- * Câu chữ bám đúng hai sự thật đó.
- */
 
-/** Không có trong lib.dom — chỉ Chromium định nghĩa (https://wicg.github.io/manifest-incubations). */
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   readonly userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -44,12 +26,10 @@ export function InstallPage() {
   const { t } = useTranslation(["settings", "common"]);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [outcome, setOutcome] = useState<PromptOutcome | null>(null);
-  // Chỉ đọc một lần lúc mount: `display-mode` không đổi trong vòng đời một cửa sổ.
   const [standalone] = useState<boolean>(() => isStandalonePwa());
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
-      // Chặn mini-infobar mặc định để đưa lựa chọn vào đúng trang này.
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
@@ -72,7 +52,6 @@ export function InstallPage() {
       await prompt.prompt();
       const choice = await prompt.userChoice;
       setOutcome(choice.outcome);
-      // Event chỉ dùng được MỘT lần — bỏ đi, trình duyệt sẽ bắn lại nếu còn cài được.
       setDeferredPrompt(null);
     })();
   };
@@ -86,7 +65,6 @@ export function InstallPage() {
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
-          {/* ---------- Luồng cài tự động (chỉ Chromium) ---------- */}
           <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md">
             <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
               <Download size={18} className="text-primary-dark" aria-hidden="true" />
@@ -111,7 +89,6 @@ export function InstallPage() {
             ) : null}
           </section>
 
-          {/* ---------- Hướng dẫn thủ công — luôn hiện (iOS không có nút tự động) ---------- */}
           <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-brand-md">
             <h2 className="text-h3 font-bold text-text-primary">{t("settings:install.manualTitle")}</h2>
 
@@ -154,7 +131,6 @@ export function InstallPage() {
           </section>
         </div>
 
-        {/* ---------- Cột phụ: trạng thái cửa sổ hiện tại + lưu ý ---------- */}
         <aside className="flex w-full flex-col gap-5 xl:w-[360px] xl:shrink-0">
           {standalone ? (
             <section className="flex flex-col gap-2 rounded-2xl bg-success-bg p-5">

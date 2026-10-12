@@ -10,13 +10,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Ảnh gốc của một lần quét — ánh xạ {@code scan_image} (p4 D2).
- *
- * <p>Bất biến I7 (trigger V16, W3): {@code scan.store_image = false} ⇒ không tồn tại dòng nào ở
- * đây. Tầng application của module này PHẢI tôn trọng bất biến đó khi tạo dòng (chỉ tạo khi
- * {@link Scan#isStoreImage()}).</p>
- */
 @Entity
 @Table(name = "scan_image")
 public class ScanImage {
@@ -47,12 +40,6 @@ public class ScanImage {
     @Column(name = "height", nullable = false)
     private int height;
 
-    // VARCHAR(64) khong phai CHAR(64) (xem docs/handovers/A6.md): Hibernate luon suy ra VARCHAR
-    // cho truong String khi validate schema bat ke columnDefinition ghi gi - CHAR(64) o migration
-    // se luon bao "wrong column type" du entity khai the nao (xac nhan bang Testcontainers that,
-    // thu ca @Column(columnDefinition="char(64)") lan khong). SHA-256 hex luon dung 64 ky tu nen
-    // VARCHAR(64) tuong duong CHAR(64) ve mat du lieu (Postgres cung khuyen dung varchar/text hon
-    // char(n) - xem tai lieu kieu ky tu cua Postgres).
     @Column(name = "checksum_sha256", length = 64)
     private String checksumSha256;
 

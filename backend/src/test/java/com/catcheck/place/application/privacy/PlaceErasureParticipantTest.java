@@ -8,11 +8,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Trước đây không có {@code ErasureParticipant} nào cho {@code place}: xoá tài khoản xong,
- * {@code place_booking.note} (văn bản tự do gửi phòng khám, thường có tên/số điện thoại) vẫn còn
- * nguyên. {@code place_review.body} cố ý KHÔNG bị đụng — xem javadoc của participant.
- */
 class PlaceErasureParticipantTest {
 
     private final PlaceRepository repository = Mockito.mock(PlaceRepository.class);

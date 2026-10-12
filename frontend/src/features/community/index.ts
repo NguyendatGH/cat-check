@@ -1,5 +1,3 @@
-// features/community — client cho Community API (/api/v1/community/**).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
 export {
   COMMUNITY_CATEGORIES,
   COMMUNITY_LIMITS,

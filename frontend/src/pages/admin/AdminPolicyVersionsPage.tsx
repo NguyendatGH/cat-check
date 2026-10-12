@@ -91,12 +91,6 @@ function policySortValue(row: AdminPolicyVersion, key: PolicySortKey): string | 
   }
 }
 
-/**
- * `/admin/policy-versions` — L46 (đọc: DPO, ADMIN_SUPER), L47 soạn nháp + L48 xuất bản (chỉ DPO).
- *
- * Danh sách không có toàn văn (`contentMd`): server cố ý không trả trong L46. Xuất bản một bản
- * `requiresReconsent` sẽ chặn mọi người dùng tới khi xác nhận lại, nên hộp xuất bản nói rõ điều đó.
- */
 export function AdminPolicyVersionsPage() {
   const { t } = useTranslation("admin");
   const can = useAdminCan();
@@ -387,7 +381,6 @@ export function AdminPolicyVersionsPage() {
   );
 }
 
-// ------------------------------------------------------------------- soạn nháp
 
 function CreatePolicyDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("admin");
@@ -614,7 +607,6 @@ function CreatePolicyDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ------------------------------------------------------------------- xuất bản
 
 function PublishPolicyDialog({
   version,

@@ -12,17 +12,6 @@ import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Ghi chú của chủ nuôi về một mèo (p4 §4.4.4, bảng {@code cat_note}).
- *
- * <p><b>Ghi chú là quan sát, không phải chẩn đoán.</b> Cột {@code body} là văn bản tự do của người
- * dùng và đi thẳng vào hồ sơ PDF mà bác sĩ đọc, nên tầng application phải chặn chữ "chẩn đoán"
- * và không được tự sinh kết luận y tế nào từ câu chữ này (p4 C4, quyết định #6).</p>
- *
- * <p><b>Không có {@code scan_id} ở Phase 1.</b> p4 §4.9.2 đặt cột đó ở V11, còn V8 chỉ tạo bốn
- * bảng lõi — thêm cột ở đây sẽ khiến {@code ddl-auto=validate} fail với DB đã migrate tới V11
- * theo kế hoạch.</p>
- */
 @Entity
 @Table(name = "cat_note")
 public class CatNote {
@@ -46,7 +35,6 @@ public class CatNote {
     @Column(name = "body", nullable = false, columnDefinition = "text")
     private String body;
 
-    /** Ngày sự việc xảy ra — có thể trong quá khứ, không được ở tương lai. */
     @Column(name = "occurred_on")
     private LocalDate occurredOn;
 
@@ -59,13 +47,9 @@ public class CatNote {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    /** Bắt buộc cho JPA. */
     protected CatNote() {
     }
 
-    /**
-     * D14 — tạo ghi chú. {@code authorUserId} lấy từ phiên đăng nhập, không lấy từ body request.
-     */
     public static CatNote create(UUID id, UUID catId, UUID authorUserId, NoteType noteType,
                                 String body, LocalDate occurredOn, LocalDate today, Instant now) {
         Objects.requireNonNull(id, "cat_note.id phải có giá trị");
@@ -84,18 +68,6 @@ public class CatNote {
         return note;
     }
 
-    /**
-     * D18 (p8 §8.4.4 — {@code PATCH /cat-notes/{id}}) — merge-patch. p8 chốt cả ba trường
-     * {@code noteType?, body?, occurredOn?} là có thể sửa; đây là part sở hữu danh mục endpoint
-     * (spec/04-index.md §2) nên thắng so với bản đầu của A3 (chỉ cho sửa {@code body}) — javadoc
-     * cũ ở đây bị xoá vì lý do "đổi loại ghi chú làm sai nghĩa lọc" không phải bất biến p4 nào cụ
-     * thể, chỉ là suy đoán chưa đối chiếu.
-     *
-     * <p>Theo đúng quy ước merge-patch dùng xuyên domain này (xem {@link com.catcheck.cat.domain.Cat#update}):
-     * tham số {@code null} nghĩa là giữ nguyên, nên không có cách "xoá" {@code occurredOn} bằng
-     * PATCH — nhất quán với việc {@code cat_note.occurred_on} vốn đã có thể để trống ngay từ lúc
-     * tạo (D17) nếu chủ không nhớ ngày.</p>
-     */
     public void update(NoteType noteType, String body, LocalDate occurredOn, LocalDate today, Instant now) {
         if (noteType != null) {
             this.noteType = noteType;
@@ -109,7 +81,6 @@ public class CatNote {
         this.updatedAt = now;
     }
 
-    /** D16 — xoá mềm, giữ lại để hồ sơ PDF đã xuất không đứt liên kết. */
     public void softDelete(Instant now) {
         this.deletedAt = now;
         this.updatedAt = now;

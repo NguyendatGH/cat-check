@@ -5,16 +5,6 @@ import com.catcheck.shared.error.ErrorCode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Đăng ký {@link ExportErrorCode} vào {@code ErrorCodeRegistry} — mỗi hằng một
- * {@code @Bean ErrorCode} riêng. Đã kiểm tra không trùng với scan/insight/identity/privacy/
- * cat/credit/colorchart.
- *
- * <p><b>Một hằng CỐ Ý không đăng ký:</b> {@code FEATURE_NOT_IN_PLAN} —
- * {@code CreditErrorCodeConfiguration.featureNotInPlan()} đã đăng ký (cùng quy ước ở
- * {@code ReminderErrorCodeConfiguration}/{@code CatErrorCodeConfiguration}). Đăng ký lần nữa sẽ
- * làm context sập lúc khởi động.</p>
- */
 @Configuration
 public class ExportErrorCodeConfiguration {
 

@@ -20,17 +20,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * {@code V26__job_run_columns.sql} + {@link JdbcJobRunAdapter} tren PostgreSQL THAT.
- *
- * <p><b>Vi sao phai la PostgreSQL that chu khong phai fake:</b> dieu dang kiem o day la
- * <b>schema</b> — cac cot ma {@code V15__ops.sql} con thieu so voi p4 §K3 (handoff H15.44), rang
- * buoc {@code ck_job_run_status} co nhan {@code SKIPPED_THRESHOLD} khong, va rang buoc
- * {@code ck_job_run_finish} (buoc {@code finished_at} va {@code duration_ms} cung NULL hoac cung
- * co gia tri). Mot fake trong bo nho khong co rang buoc nao nen se xanh ngay ca khi migration
- * sai. Image ghim {@code postgres:18.6-trixie} theo {@code research-integrations.md}, giong
- * {@code SchemaInvariantTests}.</p>
- */
 @Testcontainers
 class JdbcJobRunAdapterSchemaTest {
 
@@ -97,7 +86,6 @@ class JdbcJobRunAdapterSchemaTest {
                 .containsEntry("items_processed", 12)
                 .containsEntry("items_deleted", 3)
                 .containsEntry("items_failed", 1)
-                // Cot cu duoc ghi song song trong giai doan chuyen tiep (H15.180).
                 .containsEntry("row_count", 12)
                 .containsEntry("status", "PARTIAL");
         assertThat((String) row.get("error_summary"))

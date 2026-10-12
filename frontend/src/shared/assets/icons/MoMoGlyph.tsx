@@ -1,10 +1,3 @@
-/**
- * Brand mark ví MoMo — dùng ở danh sách phương thức thanh toán (`/cart`, `/checkout`).
- *
- * Màu `#A50064` là màu thương hiệu chính thức của bên thứ ba, KHÔNG thuộc hệ token màu của
- * CatCheck nên không token hoá được (giống `GoogleGlyph`). File này có ngoại lệ ESLint
- * riêng trong `eslint.config.js` — đừng copy pattern này sang component thường.
- */
 export function MoMoGlyph({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 28 28" fill="none" role="img" aria-label="MoMo" focusable="false">

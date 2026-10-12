@@ -5,7 +5,6 @@ import com.catcheck.cat.domain.CatHealthSurvey;
 import java.time.Instant;
 import java.util.Map;
 
-/** D14/D15 — trả về bản khảo sát. */
 public record CatHealthSurveyResponse(
         String id,
         String catId,

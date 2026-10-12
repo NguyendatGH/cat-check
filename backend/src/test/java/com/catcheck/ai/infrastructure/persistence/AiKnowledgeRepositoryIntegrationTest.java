@@ -15,16 +15,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * SQL của {@link AiKnowledgeRepository} chạy trên Postgres local thật (không Testcontainers/Docker —
- * cùng cách {@code JdbcShopRepositoryCheckoutRaceIntegrationTest}).
- */
 class AiKnowledgeRepositoryIntegrationTest {
 
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
     private static final String DB_USER = "catcheck";
     private static final String DB_PASSWORD = "catcheck_local_only";
-    /** Kho local chỉ có bài 'vi' (seed V7) — tài liệu test dùng 'en' để kết quả search không lẫn bài thật. */
     private static final String TEST_LOCALE = "en";
 
     private final List<UUID> careTipIds = new ArrayList<>();
@@ -44,19 +39,15 @@ class AiKnowledgeRepositoryIntegrationTest {
     @AfterEach
     void cleanUp() {
         for (UUID userId : List.of(subjectId, otherUserId)) {
-            jdbc.update("DELETE FROM ai_conversation WHERE user_id = ?", userId); // ai_message: ON DELETE CASCADE
+            jdbc.update("DELETE FROM ai_conversation WHERE user_id = ?", userId);
             jdbc.update("DELETE FROM app_user WHERE id = ?", userId);
         }
         for (UUID careTipId : careTipIds) {
-            jdbc.update("DELETE FROM ai_document WHERE source_type = 'CARE_TIP' AND source_id = ?", careTipId); // ai_chunk: CASCADE
+            jdbc.update("DELETE FROM ai_document WHERE source_type = 'CARE_TIP' AND source_id = ?", careTipId);
             jdbc.update("DELETE FROM care_tip WHERE id = ?", careTipId);
         }
     }
 
-    /**
-     * ai_document chỉ bị tắt khi ai đó chạy lại {@code syncPublishedCareTips}; giữa hai lần đó bài
-     * đã ARCHIVED vẫn còn chunk {@code active = TRUE} trong chỉ mục. Search phải tự loại bài đó.
-     */
     @Test
     void archivedCareTipIsNotRetrievedEvenWhileItsIndexedDocumentIsStillActive() {
         UUID published = indexCareTip("PUBLISHED", "Khay zqxkhay hằng ngày",
@@ -80,10 +71,6 @@ class AiKnowledgeRepositoryIntegrationTest {
                 .extracting(chunk -> chunk.documentId()).containsExactly(documentIdOf(tip));
     }
 
-    /**
-     * Câu lạc đề chỉ trùng MỘT từ nội dung ngẫu nhiên ("thời") với tài liệu. Nhánh OR trước đây vẫn
-     * trả tài liệu đó ⇒ không bao giờ ra "không đủ dữ liệu".
-     */
     @Test
     void offTopicQuestionSharingOnlyOneIncidentalWordReturnsNoChunk() {
         indexCareTip("PUBLISHED", "Vệ sinh khay cát hằng ngày",
@@ -114,14 +101,6 @@ class AiKnowledgeRepositoryIntegrationTest {
                 .getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * Hai tin của MỘT lượt hỏi-đáp được lưu trong cùng transaction ({@code AiChatService#chat}) nên
-     * có cùng {@code created_at = now()} (DB local: 18 tin chỉ có 9 mốc); {@code id} là UUIDv4 ngẫu
-     * nhiên, bảng không có cột tăng dần nào khác. Trước bản sửa, {@code ORDER BY created_at DESC}
-     * để thứ tự hỏi/đáp trong một lượt phụ thuộc thứ tự vật lý/plan (đổi sau UPDATE, VACUUM FULL,
-     * khôi phục dữ liệu, hoặc khi planner chọn seq scan + sort). Test cố ý ghi ASSISTANT trước USER
-     * về vật lý để chứng minh truy vấn không tự định nghĩa thứ tự.
-     */
     @Test
     void historyKeepsQuestionBeforeAnswerWhenBothShareTheSameTimestamp() {
         UUID conversation = repository.createConversation(subjectId, null).id();

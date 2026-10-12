@@ -1,7 +1,6 @@
 import { Outlet, Link } from "react-router";
 import { useTranslation } from "react-i18next";
 
-/** Layout công khai — trang chủ, trang pháp lý. Header tối giản, không cần session. */
 export function PublicLayout() {
   const { t } = useTranslation("common");
   return (

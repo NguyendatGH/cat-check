@@ -44,7 +44,6 @@ describe("CreditsActivatePage", () => {
       root.render(<CreditsActivatePage />);
     });
 
-    // Check title, balance indicator, input, and guide
     expect(container.textContent).toContain("pages.activate.title");
     expect(container.textContent).toContain("activate.currentBalance");
     expect(container.textContent).toContain("12 balance.unit");

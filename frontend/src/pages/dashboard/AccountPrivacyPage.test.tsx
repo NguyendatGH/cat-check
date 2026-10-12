@@ -4,10 +4,6 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { AccountPrivacyPage } from "./AccountPrivacyPage";
 
-/**
- * `GET /privacy/consents/history`: bản chính sách đã bị gỡ ⇒ `policyVersion` = null ⇒ server bỏ
- * hẳn key. Dòng lịch sử từng so `=== null` nên dựng liên kết `/legal/privacy/v/undefined`.
- */
 const hooks = vi.hoisted((): { data: Record<string, unknown> } => ({ data: {} }));
 
 vi.mock("react-i18next", async (importOriginal) => ({

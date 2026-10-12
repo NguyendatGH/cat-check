@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Hiện thực {@link ScanHistoryQuery} (cổng do {@code scan} công bố cho {@code insight}). */
 @Component
 public class ScanHistoryQueryAdapter implements ScanHistoryQuery {
 

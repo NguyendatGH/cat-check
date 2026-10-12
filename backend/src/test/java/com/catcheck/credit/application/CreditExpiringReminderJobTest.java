@@ -20,13 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Thân {@code CreditExpiringReminderJob} (p12 §12.6.2 nhóm A, mốc T-48h và T-6h).
- *
- * <p>Quan trọng nhất: hai mốc độc lập nhau (một lô đã nhắc T-48h vẫn phải nhận T-6h), và khi
- * chưa có adapter outbox thì job thất bại <b>một lần, có lý do</b> chứ không quét cả bảng rồi
- * lỗi ở từng lô.</p>
- */
 class CreditExpiringReminderJobTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T05:15:00Z");
@@ -52,8 +45,6 @@ class CreditExpiringReminderJobTest {
 
     @Test
     void queuesBothMilestonesAndFlagsTheBatch() {
-        // Lô hết hạn sau 5 giờ: lọt CẢ cửa sổ T-48h lẫn T-6h, nên phải nhận cả hai thông báo
-        // trong cùng một lần chạy — mốc T-48h là mốc duy nhất còn kịp để người dùng làm gì đó.
         InMemoryCreditStore.Batch batch = store.addBatch(userId, NOW.plus(Duration.ofHours(5)), 3, 10);
 
         JobOutcome outcome = job(outbox).queueDueReminders(context(false));
@@ -81,7 +72,6 @@ class CreditExpiringReminderJobTest {
 
     @Test
     void alreadyNotifiedBatchIsNotQueuedAgain() {
-        // Idempotency theo p12 §12.6.2: hai cột cờ chặn gửi lại trong cùng cửa sổ.
         InMemoryCreditStore.Batch batch = store.addBatch(userId, NOW.plus(Duration.ofHours(30)), 3, 10);
         batch.t48hNotifiedAt = Instant.EPOCH;
 
@@ -113,7 +103,6 @@ class CreditExpiringReminderJobTest {
         assertTrue(outcome.errorSummary().startsWith("dry-run:"));
     }
 
-    /** Ghi lại thứ tự mốc đã xếp hàng — đủ để kiểm hợp đồng, không cần mock framework. */
     private static final class RecordingNotificationPort implements CreditExpiryNotificationPort {
 
         final List<ExpiryReminderMilestone> milestones = new ArrayList<>();

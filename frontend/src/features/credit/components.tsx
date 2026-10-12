@@ -7,15 +7,10 @@ import { formatActivationCode } from "./schemas";
 import { usePackageCatalog } from "./hooks";
 import type { CreditBatch, CreditLedgerType, Entitlement, LedgerEntry } from "./types";
 
-/**
- * Component dùng chung cho `features/credit` — gom 1 file root theo khuôn mẫu bắt buộc của
- * `features/onboarding` (xem `docs/handovers/A7.md` mục 6 và `docs/handovers/A4-fe.md`).
- */
 
 const SECONDS_PER_DAY = 86_400;
 const SECONDS_PER_HOUR = 3_600;
 
-/** `remainingSeconds` tới từ server (không tự tính lại từ `expiresAt` — tránh lệch giờ máy). */
 export function formatRemainingSeconds(seconds: number, t: TFunction<"credit">): string {
   if (seconds <= 0) return t("batch.expired");
   const days = Math.floor(seconds / SECONDS_PER_DAY);
@@ -25,7 +20,6 @@ export function formatRemainingSeconds(seconds: number, t: TFunction<"credit">):
   return t("batch.remainingSoon");
 }
 
-/* ---------------- CreditBalanceSummary ---------------- */
 
 export interface CreditBalanceSummaryProps {
   availableBalance: number;
@@ -34,7 +28,6 @@ export interface CreditBalanceSummaryProps {
   className?: string;
 }
 
-/** Widget số dư tổng + lô sắp hết hạn gần nhất (p5 §5.8). */
 export function CreditBalanceSummary({
   availableBalance,
   trialScansRemaining,
@@ -69,7 +62,6 @@ export function CreditBalanceSummary({
   );
 }
 
-/* ---------------- CreditBatchCard ---------------- */
 
 export interface CreditBatchCardProps {
   batch: CreditBatch;
@@ -78,9 +70,6 @@ export interface CreditBatchCardProps {
 
 export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
   const { t } = useTranslation("credit");
-  // Tên gói từ F3 `GET /reference/packages` (query dùng chung, cache 5 phút ⇒ nhiều thẻ lô
-  // credit trên cùng màn chỉ tốn một request). Chưa tải xong thì hiện `packageCode` thô —
-  // không có bảng tên gói cứng nào ở client nữa.
   const { data: plans } = usePackageCatalog();
   const percent = batch.initialAmount > 0 ? Math.round((batch.remainingAmount / batch.initialAmount) * 100) : 0;
   const expired = batch.remainingSeconds <= 0;
@@ -115,7 +104,6 @@ export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
   );
 }
 
-/* ---------------- LedgerEntryRow ---------------- */
 
 const LEDGER_TONE: Record<CreditLedgerType, "positive" | "negative" | "neutral"> = {
   GRANT: "positive",
@@ -129,9 +117,6 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
   const { t } = useTranslation("credit");
   const tone = LEDGER_TONE[entry.type];
   const Icon = entry.amount >= 0 ? ArrowUpCircle : ArrowDownCircle;
-  // G4 (docs/cat-rag-credit-pipeline.md B2): "lô nào vừa bị trừ, còn hạn tới khi nào" — tên gói
-  // lấy từ F3 (nguồn duy nhất, không bảng cứng — xem CreditBatchCard), hạn lấy từ chính dòng
-  // ledger (`expiresAt` mới thêm, join sẵn từ credit_batch ở backend).
   const { data: plans } = usePackageCatalog();
   const batchPlanName = entry.packageCode
     ? (plans?.find((plan) => plan.code === entry.packageCode)?.name ?? entry.packageCode)
@@ -174,7 +159,6 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
   );
 }
 
-/* ---------------- EntitlementFeatureList ---------------- */
 
 export function EntitlementFeatureList({ entitlement, className }: { entitlement: Entitlement; className?: string }) {
   const { t } = useTranslation("credit");
@@ -205,14 +189,12 @@ export function EntitlementFeatureList({ entitlement, className }: { entitlement
   );
 }
 
-/* ---------------- ActivationCodeField ---------------- */
 
 export interface ActivationCodeFieldProps extends Omit<InputProps, "value" | "onChange"> {
   value: string;
   onChange: (value: string) => void;
 }
 
-/** Ô nhập mã kích hoạt — tự viết hoa, tự bỏ dấu cách/gạch ngang (p10 §5.2 `ActivationCodeInput`). */
 export function ActivationCodeField({ value, onChange, ...props }: ActivationCodeFieldProps) {
   return (
     <Input

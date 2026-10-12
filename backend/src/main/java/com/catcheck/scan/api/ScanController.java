@@ -47,12 +47,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Nhóm E — Quét &amp; phân tích (p8 §8.4.5, 12 endpoint) + E12 {@code GET /scan/config}.
- *
- * <p>Controller KHÔNG chứa nghiệp vụ (R4): mọi kiểu domain được ánh xạ sang record ở
- * {@code api.dto} trước khi ra khỏi lớp này.</p>
- */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Scan", description = "Quét ảnh cát, lịch sử, phân tích chi tiết")
@@ -80,7 +74,6 @@ public class ScanController {
         this.scanExecutor = scanExecutor;
     }
 
-    /** E1 — {@code POST /scans}, một bước (TD-02, p7 §7.4.5). */
     @Operation(
             operationId = "submitScan",
             summary = "Phân tích ảnh cát + lưu + trừ credit trong một bước",
@@ -111,7 +104,6 @@ public class ScanController {
         }
     }
 
-    /** E2 — {@code GET /scans}. */
     @Operation(operationId = "listScans", summary = "Lịch sử quét",
             description = "Phân trang con trỏ, sắp `capturedAt,desc` duy nhất (khoá cursor).")
     @GetMapping("/scans")
@@ -132,7 +124,6 @@ public class ScanController {
         return new ScanListResponse(items, page.nextCursor() != null, page.nextCursor());
     }
 
-    /** E3 — {@code GET /scans/summary}. */
     @Operation(operationId = "getScanSummary", summary = "Thống kê quét trong một khoảng thời gian")
     @GetMapping("/scans/summary")
     public ScanSummaryResponse scanSummary(
@@ -143,7 +134,6 @@ public class ScanController {
         return ScanSummaryResponse.from(queryService.summary(user.userId(), catId, from, to));
     }
 
-    /** E4 — {@code GET /scans/{scanId}}. */
     @Operation(operationId = "getScan", summary = "Chi tiết một lần quét (kết quả hiển thị)")
     @GetMapping("/scans/{scanId}")
     public ScanResultResponse getScan(@CurrentUser SecurityPrincipal user, @PathVariable UUID scanId) {
@@ -153,14 +143,12 @@ public class ScanController {
         return ScanRequestSupport.toResultResponse(row, catName, imageUrl);
     }
 
-    /** E5 — {@code GET /scans/{scanId}/analysis}. */
     @Operation(operationId = "getScanAnalysis", summary = "Phân tích chi tiết (Lab, ΔE, hiệu chỉnh, chất lượng)")
     @GetMapping("/scans/{scanId}/analysis")
     public ScanAnalysisResponse getScanAnalysis(@CurrentUser SecurityPrincipal user, @PathVariable UUID scanId) {
         return ScanAnalysisResponse.from(queryService.analysis(user.userId(), scanId));
     }
 
-    /** E6 — {@code GET /scans/by-request/{scanRequestId}}. */
     @Operation(operationId = "getScanByRequest", summary = "Poll kết quả theo scanRequestId sau 409 SCAN_IN_PROGRESS")
     @GetMapping("/scans/by-request/{scanRequestId}")
     public ScanResultResponse getScanByRequest(@CurrentUser SecurityPrincipal user, @PathVariable String scanRequestId) {
@@ -170,7 +158,6 @@ public class ScanController {
         return ScanRequestSupport.toResultResponse(row, catName, imageUrl);
     }
 
-    /** E7 — {@code GET /scans/{scanId}/image}. */
     @Operation(operationId = "getScanImage", summary = "Ảnh gốc của một lần quét")
     @GetMapping("/scans/{scanId}/image")
     public ResponseEntity<InputStreamResource> getScanImage(
@@ -187,7 +174,6 @@ public class ScanController {
                 .body(new InputStreamResource(stream.content()));
     }
 
-    /** E8 — {@code DELETE /scans/{scanId}}. */
     @Operation(operationId = "deleteScan", summary = "Xoá mềm một lần quét + xoá cứng file ảnh")
     @DeleteMapping("/scans/{scanId}")
     public ResponseEntity<Void> deleteScan(@CurrentUser SecurityPrincipal user, @PathVariable UUID scanId) {
@@ -195,7 +181,6 @@ public class ScanController {
         return ResponseEntity.noContent().build();
     }
 
-    /** E9 — {@code POST /scans/{scanId}/reassign-cat}. */
     @Operation(operationId = "reassignScanCat", summary = "Gán lại kết quả cho mèo khác (≤24h, ≤3 lần)")
     @PostMapping("/scans/{scanId}/reassign-cat")
     public ReassignCatResponse reassignScanCat(
@@ -213,7 +198,6 @@ public class ScanController {
                 List.of());
     }
 
-    /** E10 — {@code POST /scans/{scanId}/dispute}. */
     @Operation(operationId = "disputeScan", summary = "Đánh dấu kết quả này không chính xác")
     @PostMapping("/scans/{scanId}/dispute")
     public DisputeResponse disputeScan(
@@ -223,7 +207,6 @@ public class ScanController {
         return new DisputeResponse(scanId.toString(), disputedAt, true);
     }
 
-    /** E11 — {@code DELETE /scans/{scanId}/dispute}. */
     @Operation(operationId = "clearScanDispute", summary = "Gỡ đánh dấu tranh chấp")
     @DeleteMapping("/scans/{scanId}/dispute")
     public ResponseEntity<Void> clearScanDispute(@CurrentUser SecurityPrincipal user, @PathVariable UUID scanId) {
@@ -231,7 +214,6 @@ public class ScanController {
         return ResponseEntity.noContent().build();
     }
 
-    /** E12 — {@code GET /scan/config}. */
     @Operation(operationId = "getScanConfig", summary = "Tham số & ngưỡng chất lượng cho client")
     @GetMapping("/scan/config")
     public ScanConfigResponse getScanConfig() {

@@ -31,8 +31,6 @@ class OpenCvRawImageProcessorTest {
     @Test
     @DisplayName("Nen cat xam-be cua dong STANDARD duoc dung cho SUBSTRATE_WB")
     void grayBeigeSubstrate_isAcceptedForWhiteBalance() throws IOException {
-        // Lab xap xi (77.7, 2.0, 12.0), nam gan profile STANDARD seed
-        // (66.814, 3.154, 10.461) nhung chroma > ngưỡng cũ 6.0.
         RawImagePort.CalibrationResult result = calibrateFlatRgb(205, 190, 170);
 
         assertThat(result.method()).isEqualTo(CalibrationMethod.SUBSTRATE_WB);

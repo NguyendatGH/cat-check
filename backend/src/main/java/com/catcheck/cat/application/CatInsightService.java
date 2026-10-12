@@ -19,36 +19,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * D12 {@code GET /cats/{catId}/summary} + D13 {@code GET /cats/{catId}/trends} (p8 §8.4.4).
- *
- * <p>Thay cho hai stub 501 cu o {@code CatController}. Doc du lieu quet qua
- * {@link ScanInsightPort} — cong SPI rieng cua cat, KHONG phu thuoc module {@code scan}.</p>
- */
 @Service
 public class CatInsightService {
 
-    /** Cua so co dinh cho cac chi so {@code *30d} cua D12 (p8 §8.9 dong 1185). */
     private static final Duration SUMMARY_WINDOW = Duration.ofDays(30);
 
-    /**
-     * Nguong "do tin cay thap" dung cho {@code stats.lowConfidenceCount} — lay dung con so
-     * module {@code scan} dang dung ({@code JdbcScanQueryRepository}: {@code confidence < 0.55})
-     * de hai noi khong bao cao lech nhau. Nen chuyen vao {@code app_setting} de mot nguon duy nhat.
-     */
     private static final BigDecimal LOW_CONFIDENCE = new BigDecimal("0.55");
 
-    /**
-     * So diem ket luan duoc toi thieu de coi la "du du lieu ve xu huong".
-     *
-     * <p>p6 §6.x mo ta thong diep xu huong dua tren <b>3 lan quet gan nhat</b>
-     * ("3 lan quet gan nhat cua {catName} ({ph1} → {ph2} → {ph3})"), nen lay 3 lam nguong.
-     * Spec KHONG dinh nghia tuong minh con so cho {@code hasEnoughDataForTrend} — can owner
-     * xac nhan.
-     */
     private static final int MIN_POINTS_FOR_TREND = 3;
 
-    /** Khoa tinh nang trong {@code user_entitlement.features} (p5 §5.3, {@code PlanFeature.TREND}). */
     private static final String FEATURE_TREND = "trend";
 
     private static final int MAX_CUSTOM_RANGE_DAYS = 365;
@@ -69,7 +48,6 @@ public class CatInsightService {
         this.clock = clock;
     }
 
-    /** D12 — {@code U:own}. */
     @Transactional(readOnly = true)
     public CatSummaryView summary(UUID ownerId, UUID catId) {
         requireOwnedCat(ownerId, catId);
@@ -88,13 +66,10 @@ public class CatInsightService {
                 stats.scanCount(),
                 inRangeRatio,
                 scanInsightPort.unacknowledgedFlagCount(catId),
-                // Nhac lich quet la M5 (reminder) — chua co bang/API nao, ORCHESTRATOR §2 loai
-                // khoi MVP. Tra null dung theo hop dong thay vi bia gia tri.
                 null,
                 stats.conclusiveCount() >= MIN_POINTS_FOR_TREND);
     }
 
-    /** D13 — {@code U:own} + {@code E:trend}. */
     @Transactional(readOnly = true)
     public CatTrendsView trends(UUID ownerId, UUID catId, String range, Instant from, Instant to) {
         requireOwnedCat(ownerId, catId);
@@ -117,14 +92,6 @@ public class CatInsightService {
                 scanInsightPort.chartVersionsIn(catId, resolved.from(), resolved.to()));
     }
 
-    /**
-     * {@code ?range=7D|30D|90D|CUSTOM}. Voi {@code CUSTOM} phai co ca {@code from} lan {@code to}.
-     * Gia tri sai / khoang dao nguoc / qua dai ⇒ {@code 400 VALIDATION_FAILED}.
-     *
-     * <p>p8 liet ke {@code EXPORT_RANGE_INVALID} cho endpoint nay, nhung ma do thuoc so huu cua
-     * module {@code export}; dung lai o {@code cat} se lam lech quyen so huu ma loi, nen dung
-     * {@code VALIDATION_FAILED} kem ten tham so — can owner xac nhan.</p>
-     */
     private TrendRange resolveRange(String range, Instant from, Instant to, Instant now) {
         String normalized = range == null || range.isBlank() ? "30D" : range.trim().toUpperCase(java.util.Locale.ROOT);
         return switch (normalized) {
@@ -142,7 +109,6 @@ public class CatInsightService {
         };
     }
 
-    /** Median tinh trong Java tren tap diem da lay — tap nay von nho (toi da vai tram diem). */
     private TrendStats computeStats(List<ScanInsightPort.TrendPoint> points) {
         List<BigDecimal> values = points.stream()
                 .map(ScanInsightPort.TrendPoint::phValue)
@@ -180,7 +146,6 @@ public class CatInsightService {
     private record TrendRange(String label, Instant from, Instant to) {
     }
 
-    /** @param inRangeRatio30d {@code null} khi chua co lan quet nao ket luan duoc (tranh chia 0) */
     public record CatSummaryView(
             UUID catId,
             ScanInsightPort.LastScan lastScan,
@@ -201,7 +166,6 @@ public class CatInsightService {
             List<Integer> chartVersions) {
     }
 
-    /** @param median {@code null} khi khong co diem nao co {@code phValue} */
     public record TrendStats(
             BigDecimal median,
             BigDecimal min,

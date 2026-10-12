@@ -26,15 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Cấu hình gói — L25, L26 (p8 §8.4.12 mục (b)).
- *
- * <p><b>Vai trò ghi chỉ {@code ADMIN_SUPER}</b>, theo p11 §11.5.4 chứ không theo p8 L26 —
- * p11 sở hữu miền phân quyền và đã cắt {@code ADMIN_CATALOG} khỏi quyền sửa
- * {@code package_plan}. Đọc thì cả {@code ADMIN_CATALOG} và {@code ADMIN_SUPPORT} được
- * (p11 §11.5.4 dòng {@code package_plan}: Catalog <i>"Đọc, KHÔNG sửa"</i>, Support
- * <i>"Đọc"</i>). Xem handoff H15.100.</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/package-plans")
 @Tag(name = "Quản trị cấu hình gói", description = "L25–L26 — đọc và sửa package_plan")
@@ -50,7 +41,6 @@ public class AdminPackagePlanController {
         this.adminService = adminService;
     }
 
-    // ------------------------------------------------------------------ L25
 
     @Operation(
             operationId = "listAdminPackagePlans",
@@ -67,7 +57,6 @@ public class AdminPackagePlanController {
                 .toList();
     }
 
-    // ------------------------------------------------------------------ L26
 
     @Operation(
             operationId = "updateAdminPackagePlan",
@@ -99,7 +88,6 @@ public class AdminPackagePlanController {
         return ResponseEntity.ok().eTag(etag).body(PackagePlanAdminResponse.from(after, etag));
     }
 
-    /** Khoá ETag là {@code code} — khoá chính của {@code package_plan} là khoá tự nhiên (p4 §4.1.1). */
     private static String etagOf(PackagePlanAdminView view) {
         return AdminETag.of(view.updatedAt(), view.code());
     }

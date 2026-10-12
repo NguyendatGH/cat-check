@@ -23,13 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link UserAccountRepository} tren {@code JdbcTemplate}.
- *
- * <p>Khong dung Spring Data hay JPA (R7 cho phep Spring Data o day nhung tai khoan
- * khong can: khong co {@code @Entity}, khong co quan he, va co vai dong CHECK
- * rang buoc nghiem ngat ma ORM se sinh lai sai).</p>
- */
 @Repository
 public class JdbcUserAccountRepository implements UserAccountRepository {
 
@@ -50,12 +43,6 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?)
             """;
 
-    /**
-     * p8 B11 chi dich danh bang {@code user_notification_preference} (p4 F4, tao o V13) la
-     * nguon cua tuy chon thong bao — KHONG phai cot JSONB {@code app_user.notification_prefs}.
-     * Ban truoc doc JSONB vi luc do V13 chua ton tai; nay da co bang that nen doc thang cot,
-     * khong con phai chong do kieu du lieu rac cua JSONB.
-     */
     private static final String SELECT_NOTIFICATION_PREFS = """
             SELECT attention_alert_channel, credit_alerts_enabled, report_ready_enabled,
                    image_retention_warning_enabled, normal_result_enabled,
@@ -64,11 +51,6 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
              WHERE user_id = ?
             """;
 
-    /**
-     * Upsert thay vi UPDATE: p4 F4 noi dong nay duoc tao cung luc voi {@code app_user}, nhung
-     * nhung tai khoan dang ky TRUOC khi V13 chay thi chua co dong nao. Upsert mot cau lenh
-     * nen hai request PUT song song khong de mat update cua nhau.
-     */
     private static final String UPSERT_NOTIFICATION_PREFS = """
             INSERT INTO user_notification_preference (
                 user_id, attention_alert_channel, credit_alerts_enabled, report_ready_enabled,
@@ -136,28 +118,14 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
 
     @Override
     public void markEmailVerified(UUID userId, Instant verifiedAt) {
-        // Bug that da sua: chi doi email_verified_at, KHONG doi status — hai noi goi ham nay
-        // (RegistrationService.completePreverifiedRegistration/activateWithTicket) deu la
-        // luc kich hoat tai khoan MOI dang ky lan dau (chi 2 noi goi trong toan bo codebase,
-        // xac nhan bang grep), nen tai khoan bi ket cung o PENDING_VERIFICATION mai mai — dang
-        // nhap lai sau khi "kich hoat" thanh cong van bi tu choi ACCOUNT_RESTRICTED (LoginService
-        // chi cho status=ACTIVE di qua). Xac nhan that: dang ky -> verify -> kich hoat (tra
-        // authenticated=true) -> logout -> login lai bang dung mat khau -> 403
-        // ACCOUNT_RESTRICTED. Doi status sang ACTIVE cung luc la dung ngu nghia duy nhat ham
-        // nay tung duoc goi.
         jdbc.update("UPDATE app_user SET email_verified_at = ?, status = 'ACTIVE', updated_at = now() WHERE id = ?",
                 utc(verifiedAt), userId);
     }
 
     @Override
     public void updateEmail(UUID userId, String newEmail, Instant changedAt) {
-        // Email la khoa chinh: UNIQUE(email) + citext. Chi goi sau khi OTP
-        // EMAIL_CHANGE da xac minh tren dia chi moi (p8 B8).
         jdbc.update("UPDATE app_user SET email = ?, updated_at = now() WHERE id = ?",
                 newEmail, userId);
-        // Identity LOCAL dung email lam provider_user_id (RegistrationService, OAuthService) nen phai
-        // doi theo, neu khong dia chi cu van giu cho trong uq_identity_provider_subject va dang ky
-        // lai dia chi cu se vo o INSERT identity.
         jdbc.update("""
                 UPDATE user_identity
                    SET provider_user_id = ?, provider_email = ?, updated_at = now()
@@ -168,9 +136,6 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
     @Override
     public void updateLoginState(UUID userId, UserStatus status, int failedLoginCount,
                                  Instant lockedUntil, Instant lastLoginAt) {
-        // KHONG cham vao processing_restricted_at / deletion_scheduled_at / anonymized_at:
-        // p4 §A1 rang buoc CHECK chung cho status, va tang nghiep vu chi doi status
-        // sang LOCKED/ACTIVE nen ghi NULL o day se lam mat rang buoc cua dong do.
         jdbc.update("""
                 UPDATE app_user
                    SET status = ?, failed_login_count = ?, locked_until = ?,
@@ -215,8 +180,6 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
     @Override
     public void updateProfile(UUID userId, String fullName, byte[] phone, Integer phoneKeyVersion,
                               AppLocale locale, String timezone) {
-        // `phone` va `phone_key_version` ghi ca cap: CHECK ck_app_user_phone_pair
-        // khong cho phep doi lai le.
         jdbc.update("""
                 UPDATE app_user
                    SET full_name = ?, phone = ?, phone_key_version = ?,
@@ -257,7 +220,6 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
                 p.quietHoursEnd());
     }
 
-    /** Lay danh sach user theo paging co khoa (dung cho job, khong dung o request luong). */
     public List<UserAccount> findPage(UUID beforeId, Instant beforeCreatedAt, int limit) {
         return jdbc.query("SELECT " + COLUMNS + " FROM app_user"
                         + " WHERE (created_at, id) < (?, ?) ORDER BY created_at DESC, id DESC LIMIT ?",
@@ -315,7 +277,6 @@ public class JdbcUserAccountRepository implements UserAccountRepository {
                 rs.getObject("quiet_hours_end", java.time.LocalTime.class));
     }
 
-    /** Mot bieu thuc {@code SELECT} doc mot co boolean trong {@code notification_prefs}. */
     private static String jsonBool(String jsonPath, String alias) {
         return ("CASE WHEN jsonb_typeof(notification_prefs #> '{%s}') = 'boolean' "
                 + "THEN (notification_prefs #>> '{%s}')::boolean END AS %s")

@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
 
-/** Hiện thực {@link OpenHealthFlagQuery} (cổng do {@code insight} công bố cho {@code ai}). */
 @Component
 public class OpenHealthFlagQueryAdapter implements OpenHealthFlagQuery {
 

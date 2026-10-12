@@ -30,21 +30,6 @@ import {
 } from "@/features/credit";
 import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
 
-/**
- * `/credits/activate` — p5 R1 · C05 (p9 §9.4.6).
- *
- * Màn kích hoạt mã credit độc lập trong tài khoản/settings — KHÔNG phải bước onboarding.
- *
- * MOTION & HIỆU ỨNG NỔI BẬT:
- * - GSAP Staggered Entrance (`usePageReveal` + `data-reveal`): trượt mượt mà theo tầng thứ tự khi vào trang.
- * - Ambient Glow Backdrops: 2 vầng sáng nền mềm mại (`animate-pulse-glow`) tạo chiều sâu thị giác.
- * - Float Badge: Biểu tượng vé (`Ticket`) lơ lửng nhẹ nhàng (`animate-float-slow`) trên nền gradient.
- * - Tactile Focus: Form card nhận diện focus với vòng sáng thương hiệu (`focus-within:ring-4`).
- * - Pop Spring Badge: Huy hiệu kiểm tra định dạng bật nảy tự nhiên (`animate-pop-spring`) khi mã hợp lệ.
- * - Smooth Accordion: Thao tác mở/đóng hướng dẫn mượt mà không giật layout qua CSS grid rows.
- * - Shimmer Sweep: Hiệu ứng tia sáng quét ngang nút CTA chính và thẻ thưởng kết quả (`shimmer-effect`).
- * - Hover & Lift: Tương tác nhấc nhẹ thẻ quyền lợi và xoay góc icon khi hover/chạm.
- */
 export function CreditsActivatePage() {
   const { t } = useTranslation(["credit", "common"]);
   const navigate = useNavigate();
@@ -77,7 +62,6 @@ export function CreditsActivatePage() {
         }, 2000);
       }
     } catch {
-      // Bỏ qua nếu trình duyệt chặn quyền đọc clipboard
     }
   };
 
@@ -129,7 +113,6 @@ export function CreditsActivatePage() {
     return (
       <div ref={pageRef} className="mx-auto flex w-full max-w-md flex-col gap-6 lg:max-w-[560px]">
         <Card data-reveal padding="lg" elevated className="relative flex flex-col items-center gap-5 overflow-hidden text-center">
-          {/* Vầng sáng nền chúc mừng */}
           <div
             className="pointer-events-none absolute -top-12 size-48 rounded-full bg-success/20 blur-3xl animate-pulse-glow"
             aria-hidden="true"
@@ -148,7 +131,6 @@ export function CreditsActivatePage() {
             </p>
           </div>
 
-          {/* Badge nhận credit nổi bật với hiệu ứng quét tia sáng shimmer */}
           <div className="shimmer-effect flex w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-r from-primary to-primary-dark p-5 text-white shadow-brand-md animate-pop-spring">
             <span className="text-overline font-semibold uppercase tracking-wider text-on-primary-subtle">
               {t("activate.success.creditsLabel")}
@@ -158,7 +140,6 @@ export function CreditsActivatePage() {
             </span>
           </div>
 
-          {/* Chi tiết giao dịch dạng vé bảo mật */}
           <div className="w-full rounded-xl border border-dashed border-border-strong bg-background-alt p-4">
             <dl className="flex flex-col gap-3 text-left">
               <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-2.5">
@@ -182,7 +163,6 @@ export function CreditsActivatePage() {
             </dl>
           </div>
 
-          {/* Nút hành động */}
           <div className="flex w-full flex-col gap-3 pt-2">
             <Button
               type="button"
@@ -214,12 +194,10 @@ export function CreditsActivatePage() {
 
   return (
     <div ref={pageRef} className="mx-auto flex w-full max-w-md flex-col gap-5 pb-8 lg:max-w-[560px] lg:gap-6">
-      {/* 1. Header Hero Card với vầng sáng nền và icon trôi nổi */}
       <div
         data-reveal
         className="relative overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/10 via-background-alt to-secondary/15 p-5 shadow-xs"
       >
-        {/* Vầng sáng nền mềm mại */}
         <div
           className="pointer-events-none absolute -right-8 -top-8 size-40 rounded-full bg-secondary/25 blur-2xl animate-pulse-glow"
           aria-hidden="true"
@@ -241,7 +219,6 @@ export function CreditsActivatePage() {
           </div>
         </div>
 
-        {/* Số dư khả dụng hiện tại */}
         {balance ? (
           <div className="relative mt-4 flex items-center justify-between rounded-xl border border-primary/10 bg-surface/90 px-3.5 py-2.5 backdrop-blur-xs transition-shadow hover:shadow-xs">
             <div className="flex items-center gap-2">
@@ -255,7 +232,6 @@ export function CreditsActivatePage() {
         ) : null}
       </div>
 
-      {/* 2. Form nhập mã kích hoạt với micro-interactions */}
       <Card
         data-reveal
         padding="md"
@@ -369,7 +345,6 @@ export function CreditsActivatePage() {
         </div>
       </Card>
 
-      {/* 3. Hướng dẫn lấy mã kích hoạt với chuyển động mượt mà (smooth grid transition) */}
       <div data-reveal className="overflow-hidden rounded-2xl border border-border/70 bg-surface shadow-xs transition-all">
         <button
           type="button"
@@ -426,7 +401,6 @@ export function CreditsActivatePage() {
               </div>
             </div>
 
-            {/* Lối tắt đến Cửa hàng */}
             <div className="mt-3 flex items-center justify-between rounded-xl border border-secondary/40 bg-secondary/10 p-3 transition-colors hover:bg-secondary/15">
               <div>
                 <p className="text-caption font-semibold text-text-primary">{t("activate.shopPrompt")}</p>
@@ -449,7 +423,6 @@ export function CreditsActivatePage() {
         </div>
       </div>
 
-      {/* 4. Quyền lợi tính năng dạng thẻ nổi bật với hover lift và icon pop */}
       <section data-reveal className="flex flex-col gap-3">
         <h2 className="text-overline font-bold uppercase tracking-wider text-text-tertiary">
           {t("activate.perksTitle")}

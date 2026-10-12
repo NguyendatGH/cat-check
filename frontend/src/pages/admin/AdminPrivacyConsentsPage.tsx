@@ -60,12 +60,6 @@ function consentSortValue(row: AdminConsentRecord, key: ConsentSortKey): string 
   }
 }
 
-/**
- * `/admin/privacy/consents` — L55, bằng chứng consent của một người dùng (chỉ DPO).
- *
- * Phân trang cursor theo `(occurredAt, id)`: "Tải thêm" nối trang sau vào cuối. Địa chỉ IP,
- * user-agent và `evidence` chỉ hiện trong dòng mở rộng, không hiện sẵn ở bảng, và không ghi log.
- */
 export function AdminPrivacyConsentsPage() {
   const { t } = useTranslation("admin");
   const can = useAdminCan();

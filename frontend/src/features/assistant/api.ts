@@ -22,11 +22,6 @@ function csrfToken(): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-/**
- * @param catId tuỳ chọn — khi có, câu hỏi được làm giàu bằng ngữ cảnh của một bé mèo cụ thể
- *              (xem backend `ai.api.dto.AiChatRequest.catId`). Mèo không thuộc người dùng hiện
- *              tại được backend xử lý y hệt "không gửi catId", không có lỗi riêng ở đây.
- */
 export async function chatWithAssistant(
   message: string,
   conversationId?: string,
@@ -51,7 +46,6 @@ export async function chatWithAssistant(
     try {
       detail = (await response.json()) as { detail?: string; errorCode?: string };
     } catch {
-      // Keep the HTTP status when the server did not return ProblemDetail JSON.
     }
     throw new ApiError(
       detail?.detail ?? `Request failed with status ${String(response.status)}`,

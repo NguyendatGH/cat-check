@@ -36,31 +36,11 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Nghiệp vụ kích hoạt gói: đổi một mã {@code ISSUED} thành một lô credit +
- * dòng {@code GRANT} trong sổ cái + cập nhật entitlement (p5 R1).
- *
- * <p><b>MỘT transaction, không ngoại lệ.</b> Nếu tạo lô mà chưa ghi ledger thì bất biến I1
- * ({@code initial_amount + SUM(ledger) = remaining_amount}) vi phạm ngay ở lần đọc số dư đầu
- * tiên, và {@code InvariantAuditJob} (p4 §4.5.2) sẽ báo đỏ.</p>
- *
- * <p>Thứ tự thao tác cố ý: tra hash → khoá dòng mã → kiểm tra trạng thái/hạn → đổi trạng thái
- * có điều kiện → tạo lô → ghi ledger → tính lại entitlement. Đổi trạng thái <b>trước</b> khi tạo
- * lô để nếu có lỗi ở giữa thì {@code markRedeemed} trả {@code false} chứ không sinh hai lô cho
- * một mã (bất biến I24).</p>
- */
 @Service
 public class ActivateCreditCodeService {
 
     private static final Logger log = LoggerFactory.getLogger(ActivateCreditCodeService.class);
 
-    /**
-     * Cổng mã kích hoạt. Tên field cố ý là {@code codePort}/{@code codeHasher} chứ không phải
-     * {@code activationCodePort}/{@code activationCodeHasher}: R16 chặn việc đọc một field có
-     * tên khớp regex {@code (?i).*(...|activationCode|...)} trong method có gọi logger. Tên field
-     * là tên phụ thuộc chứ không phải PII, nên đổi tên ở đây giữ đúng ý nghĩa của guard thay vì
-     * phải bỏ log.
-     */
     private final ActivationCodePort codePort;
 
     private final CreditLedgerPort creditLedgerPort;
@@ -100,18 +80,6 @@ public class ActivateCreditCodeService {
         this.metrics = metrics;
     }
 
-    /**
-     * Kích hoạt một mã cho user hiện tại — {@code POST /api/v1/activations} (p8 H1).
-     *
-     * @param userId  chủ tài khoản nhận credit
-     * @param rawCode mã thô do người dùng nhập — chỉ tồn tại trong lời gọi này, KHÔNG ghi log,
-     *                không lưu DB (p5 §5.9: DB chỉ có {@code code_hash})
-     * @param facts   thông tin request (requestId/IP/userAgent) cho audit — p8 H1 cột {@code Aud}
-     * @return kết quả kích hoạt
-     * @throws BusinessRuleException {@link CreditErrorCode#ACTIVATION_CODE_INVALID} khi không
-     *         tra được mã, hoặc {@link CreditErrorCode#ACTIVATION_CODE_EXPIRED} khi quá hạn
-     * @throws ConflictException {@link CreditErrorCode#ACTIVATION_CODE_ALREADY_USED}
-     */
     @Transactional
     public ActivationResult activate(UUID userId, String rawCode, RequestFacts facts) {
         try {
@@ -126,16 +94,9 @@ public class ActivateCreditCodeService {
 
     private ActivationResult doActivate(UUID userId, String rawCode, RequestFacts facts) {
 
-        // Giới hạn tần suất ÁP DỤNG CHO MỌI LẦN GỌI, kể cả mã sai định dạng (G3,
-        // docs/cat-rag-credit-pipeline.md B2): nếu đặt sau bước kiểm định dạng thì một kẻ dò mã
-        // vẫn dò được không giới hạn miễn mỗi lần gửi một chuỗi sai định dạng khác nhau — bước đó
-        // chỉ tránh tốn MỘT LẦN TRA HASH, không phải một lớp chống dò. Theo user TRƯỚC, theo IP
-        // là lớp phụ (p11 §11.7.1 — xem ActivationRateLimitRule).
         requireRateLimit(ActivationRateLimitRule.ACTIVATION_BY_USER, userId.toString());
         requireRateLimit(ActivationRateLimitRule.ACTIVATION_BY_IP, facts.ipAddress());
 
-        // Bắt lỗi định dạng/checksum TRƯỚC khi tra DB: một mã sai định dạng không bao giờ là mã
-        // hợp lệ, nên không tốn một lần tra hash (p8 ACTIVATION_CODE_MALFORMED, p5 §5.9).
         String normalized = ActivationCodeFormat.validateOrNull(rawCode);
         if (normalized == null) {
             throw new BusinessRuleException(
@@ -145,28 +106,19 @@ public class ActivateCreditCodeService {
         ActivationCodeHasher.HashedActivationCode hashed = codeHasher.hash(normalized);
         UUID codeId = codePort.findByCodeHash(hashed.hex())
                 .map(ActivationCode::id)
-                // Cùng mã lỗi với "mã không tồn tại": không rò ra rằng mã này có thật.
                 .orElseThrow(() -> new BusinessRuleException(CreditErrorCode.ACTIVATION_CODE_INVALID));
 
         Instant now = clock.instant();
 
-        // Khoá trước, đọc lại sau. `code` ở trên là ẢNH CHỤP TRƯỚC KHOÁ — khoá chỉ chặn ghi, nó
-        // không làm cho object đã nạp vào bộ nhớ tự nhiên mới theo. Request thứ nhất đã redeem
-        // xong và commit trước khi request thứ hai vào được khoá, nên request thứ hai phải đọc
-        // lại từ DB mới thấy REDEEMED. Dùng lại ảnh chụp cũ sẽ cho qua bước chuyển trạng thái rồi
-        // sinh ra lô thứ hai cho một mã (vi phạm I24).
         ActivationCode code = codePort.lockById(codeId)
                 .orElseThrow(() -> new BusinessRuleException(CreditErrorCode.ACTIVATION_CODE_INVALID));
 
         if (code.status() == ActivationCodeStatus.REDEEMED) {
-            // Cờ "chính tôi đã dùng" cho phép thông điệp riêng, nhưng KHÔNG lộ mã đã dùng bởi
-            // ai nếu không phải chính người dùng đó (p11 §11.7.4 — không tiết lộ trạng thái mã).
             boolean selfRedeem = code.redeemedBy() != null && code.redeemedBy().equals(userId);
             throw new ConflictException(CreditErrorCode.ACTIVATION_CODE_ALREADY_USED,
                     code.redeemedAt(), selfRedeem);
         }
         if (code.status() == ActivationCodeStatus.VOID) {
-            // VOID và "không tồn tại" cùng trả một mã lỗi, để không dò ra mã nào còn hiệu lực.
             throw new BusinessRuleException(CreditErrorCode.ACTIVATION_CODE_INVALID);
         }
         if (code.isIssuanceExpiredAt(now)) {
@@ -177,13 +129,9 @@ public class ActivateCreditCodeService {
                 .orElseThrow(() -> new BusinessRuleException(CreditErrorCode.ACTIVATION_CODE_INVALID));
 
         if (!codePort.markRedeemed(code.id(), userId, now)) {
-            // Lớp chống double-redeem thứ hai, ở tầng DB (`WHERE status = 'ISSUED'`): tới đây
-            // nghĩa là có request khác vừa đổi trạng thái dù khoá đã được tôn trọng.
             throw new ConflictException(CreditErrorCode.ACTIVATION_CODE_ALREADY_USED, now, false);
         }
 
-        // Hạn tính từ LÚC KÍCH HOẠT, không phải lúc phát hành: user mua gói tháng 3 còn 28 ngày
-        // vẫn phải nhận đủ 30 ngày (p5 R1).
         CreditBatchGrant batch = CreditBatchGrant.of(
                 uuidV7.generate(), userId, code.id(), plan, now);
         creditBatchPort.insertNewBatch(batch);
@@ -196,12 +144,9 @@ public class ActivateCreditCodeService {
 
         Entitlement entitlement = refreshEntitlement(userId, now);
 
-        // Ghi log KHÔNG chứa mã thô, mã băm, tên đăng nhập hay email — chỉ id và mã gói.
         log.info("Kích hoạt gói {}: userId={} batchId={} credits={} balanceAfter={}",
                 plan.code(), userId, batch.id(), plan.creditAmount(), balanceAfter);
 
-        // p8 H1 cột Aud: ghi audit_log TRONG CÙNG transaction; metadata TUYỆT ĐỐI không chứa
-        // mã thô/mã băm (danh sách khoá bị che I29: activationCode, codeHash) — chỉ id và số liệu.
         auditLogService.record(AuditEvent.builder()
                 .actor(AuditActor.user(userId, null))
                 .subjectUser(userId)
@@ -224,13 +169,6 @@ public class ActivateCreditCodeService {
                 entitlement.maxCatProfiles());
     }
 
-    /**
-     * Ném {@link RateLimitedException} nếu quy tắc {@code rule} đã vượt hạn mức cho
-     * {@code subject} — cùng khuôn với {@code MfaService.requireRateLimit} của module identity.
-     *
-     * @param subject khoá đếm; {@code null}/rỗng được {@link ActivationRateLimiter} tự bỏ qua
-     *                (vd {@code facts.ipAddress()} có thể null nếu request không qua proxy/test)
-     */
     private void requireRateLimit(ActivationRateLimitRule rule, String subject) {
         ActivationRateLimiter.RetryAfter retryAfter = rateLimiter.rejectIfLimited(rule, subject);
         if (retryAfter != null) {
@@ -239,29 +177,10 @@ public class ActivateCreditCodeService {
         }
     }
 
-    /**
-     * Tính lại {@code user_entitlement} — uỷ quyền cho
-     * {@link EntitlementRecalculationService}.
-     *
-     * <p>Trước W5-A, toàn bộ phép tính này nằm ngay trong lớp này. Đã chuyển ra vì nay có HAI
-     * đường tạo lô credit (đổi mã ở đây, admin cấp tay ở {@code AdminCreditAdjustmentService} —
-     * p8 L10): giữ hai bản sẽ cho hai định nghĩa {@code write_access_until} trôi khỏi nhau, và
-     * bất biến I28 chỉ có một.</p>
-     */
     private Entitlement refreshEntitlement(UUID userId, Instant now) {
         return entitlementRecalculation.recalculate(userId, now);
     }
 
-    /**
-     * Kết quả kích hoạt — {@code POST /api/v1/activations} (p8 H1).
-     *
-     * @param packageCode     gói vừa kích hoạt
-     * @param packageName     tên hiển thị của gói
-     * @param creditsGranted  số credit được cấp
-     * @param expiresAt       hạn credit, tính từ lúc kích hoạt
-     * @param balanceAfter    số dư khả dụng toàn user sau kích hoạt
-     * @param maxCatProfiles  hạn mức hồ sơ mèo theo gói mới, {@code null} = không giới hạn
-     */
     public record ActivationResult(
             String packageCode,
             String packageName,
@@ -272,15 +191,6 @@ public class ActivateCreditCodeService {
     ) {
     }
 
-    /**
-     * Thông tin request cho audit — controller tự từ {@code HttpServletRequest} dựng rồi truyền
-     * xuống (tầng application không được chạm servlet API, R2/R3). Không phải PII theo p17: IP
-     * đã do {@code PiiRedactor} của module audit che khi ghi log.
-     *
-     * @param requestId  giá trị header {@code X-Request-Id}, {@code null} nếu client không gửi
-     * @param ipAddress IP socket (chưa qua lọc proxy tin cậy — việc đó của W3, p11 §11.7.1)
-     * @param userAgent header {@code User-Agent}, {@code null} nếu không có
-     */
     public record RequestFacts(String requestId, String ipAddress, String userAgent) {
 
         public static final RequestFacts UNKNOWN = new RequestFacts(null, null, null);

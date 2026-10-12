@@ -11,13 +11,6 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 
-/**
- * {@code HMAC-SHA256(recovery_pepper, code)} — p11 §11.12.3.
- *
- * <p>Pepper doc tu bien moi truong {@code RECOVERY_CODE_PEPPER} +
- * {@code RECOVERY_CODE_PEPPER_VERSION}, fail-fast trong constructor neu thieu
- * (cung chu dich voi {@link HmacOtpCodeHasher}).</p>
- */
 @Component
 public class HmacRecoveryCodeHasher implements RecoveryCodeHasher {
 

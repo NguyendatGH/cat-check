@@ -13,7 +13,6 @@ const PADDING_CLASS: Record<NonNullable<CardProps["padding"]>, string> = {
   lg: "p-6",
 };
 
-/** Card custom — surfaces có phân cấp, không mặc định nổi bằng shadow. */
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, padding = "md", elevated = false, ...props }, ref) => {
     return (

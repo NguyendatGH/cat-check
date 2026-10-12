@@ -20,26 +20,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Quản lý hồ sơ sự cố lộ/mất dữ liệu (p4 B9, p15 REQ-INC-01 + Đ29.1.c NĐ356: giữ ≥ 5 năm).
- *
- * <p>Phục vụ L59/L60/L61 của p8 §8.4.12 (ô {@code Q27}: {@code DPO} đọc + ghi,
- * {@code ADMIN_SUPER} chỉ đọc) và đồng thời là service nội bộ để job/vận hành ghi hồ sơ.
- * {@code HIGH}/{@code CRITICAL} bắt buộc báo cơ quan quản lý trong 72 giờ kể từ
- * {@code detectedAt} (p15 §15.9.5); {@link #findOverdueAuthorityNotifications()} là nguồn
- * dữ liệu cho {@code IncidentDeadlineMonitorJob} (p12 §12.6.5).</p>
- *
- * <p><b>{@code retain_until} do service tính, không nhận từ client</b>: REQ-INC-01 chốt
- * {@code resolved_at + 5 năm}, và đó là thời hạn pháp lý (Đ29.1.c NĐ356) nên để người gọi
- * đặt tay là mở đường xoá hồ sơ sự cố sớm bằng một request.</p>
- */
 @Service
 public class SecurityIncidentService {
 
-    /** Đ29.1.c NĐ356: hồ sơ sự cố giữ tối thiểu 5 năm kể từ ngày khắc phục xong. */
     public static final int RETAIN_YEARS_AFTER_RESOLVED = 5;
 
-    /** Điều 23.1 Luật BVDLCN: hạn báo cơ quan chuyên trách (A05) kể từ khi phát hiện. */
     public static final long AUTHORITY_NOTIFICATION_HOURS = 72;
 
     private static final int MAX_SUMMARY_LENGTH = 4000;
@@ -57,7 +42,6 @@ public class SecurityIncidentService {
         this.clock = clock;
     }
 
-    /** Mở hồ sơ sự cố mới — {@code public_ref = INC-<năm>-<số>} sinh từ sequence của V6. */
     @Transactional
     public SecurityIncident openIncident(
             IncidentSeverity severity,
@@ -86,15 +70,6 @@ public class SecurityIncidentService {
                 clock.instant()));
     }
 
-    /**
-     * L60 — DPO mở hồ sơ sự cố qua API. {@code detectedAt} nhận từ người gọi vì sự cố thường
-     * được phát hiện trước khi có người ngồi nhập hồ sơ, và chính mốc đó khởi động đồng hồ 72
-     * giờ (p15 §15.9.5) — lấy {@code now()} sẽ làm hạn báo cáo trễ hơn thực tế. Mốc trong
-     * tương lai bị từ chối.
-     *
-     * <p>{@code public_ref} truyền vào chỉ là chỗ giữ: {@code JdbcSecurityIncidentAdapter.save}
-     * tự gọi {@code nextPublicRef()} trong cùng câu INSERT và trả về bản ghi mang mã thật.</p>
-     */
     @Transactional
     public SecurityIncident open(UUID actorId, Command command, RequestEvidence evidence) {
         Instant now = clock.instant();
@@ -114,11 +89,6 @@ public class SecurityIncidentService {
         return saved;
     }
 
-    /**
-     * L61 — cập nhật phân loại, các mốc thông báo và kết luận. Merge-patch: field vắng mặt
-     * nghĩa là không đổi (p8 §8.1.11), nên không có cách nào "xoá" một mốc đã ghi — một mốc
-     * thông báo đã xảy ra thì không thể chưa xảy ra lại.
-     */
     @Transactional
     public SecurityIncident patch(UUID actorId, UUID incidentId, Patch patch, RequestEvidence evidence) {
         SecurityIncident current = incidentPort.findById(incidentId)
@@ -149,7 +119,6 @@ public class SecurityIncidentService {
                 authorityNotifiedAt,
                 subjectsNotifiedAt,
                 resolvedAt,
-                // REQ-INC-01: retain_until = resolved_at + 5 năm, tính lại mỗi lần resolved_at đổi.
                 resolvedAt == null ? current.retainUntil()
                         : resolvedAt.plus(RETAIN_YEARS_AFTER_RESOLVED * 365L, ChronoUnit.DAYS),
                 actorId,
@@ -164,7 +133,6 @@ public class SecurityIncidentService {
         return updated;
     }
 
-    /** L59 — hàng chờ hồ sơ sự cố. */
     public List<SecurityIncident> list(IncidentSeverity severity, Boolean unresolved, int offset, int limit) {
         return incidentPort.findForAdmin(severity, unresolved, offset, limit);
     }
@@ -173,24 +141,20 @@ public class SecurityIncidentService {
         return incidentPort.countForAdmin(severity, unresolved);
     }
 
-    /** L62 — {@code incidentId} bắt buộc phải trỏ tới một hồ sơ thật, nếu không ⇒ 404. */
     public SecurityIncident get(UUID incidentId) {
         return incidentPort.findById(incidentId)
                 .orElseThrow(() -> new BusinessRuleException(PrivacyErrorCode.SECURITY_INCIDENT_NOT_FOUND));
     }
 
-    /** Cập nhật các mốc điều trị (classified/contained/authority/subjects/resolved/retain_until). */
     @Transactional
     public void updateIncident(SecurityIncident incident) {
         incidentPort.update(incident);
     }
 
-    /** HIGH/CRITICAL chưa báo cơ quan quản lý quá 72 giờ — nguồn cho job giám sát (p4 B9). */
     public List<SecurityIncident> findOverdueAuthorityNotifications() {
         return incidentPort.findOverdueAuthorityNotification(clock.instant());
     }
 
-    /** Hạn 72 giờ báo A05 của một hồ sơ (p15 §15.9.5) — để UI đếm ngược. */
     public static Instant authorityDeadline(SecurityIncident incident) {
         return incident.detectedAt().plusSeconds(AUTHORITY_NOTIFICATION_HOURS * 3600);
     }
@@ -201,8 +165,6 @@ public class SecurityIncidentService {
             return current;
         }
         if (requested.isAfter(now) || requested.isBefore(incident.detectedAt())) {
-            // Một mốc nằm trước lúc phát hiện hoặc trong tương lai làm sai mọi phép đo SLA
-            // dựa trên bảng này (kể cả hạn 72 giờ của REQ-INC-02).
             throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, field);
         }
         return requested;
@@ -220,8 +182,6 @@ public class SecurityIncidentService {
                                             String reason, RequestEvidence evidence) {
         AuditEvent.Builder builder = AuditEvent.builder()
                 .actor(AuditActor.dpo(actorId, AdminErasureApprovalService.ROLE_DPO))
-                // Chủ thể là hệ thống, KHÔNG phải một user: hồ sơ sự cố thường liên quan nhiều
-                // chủ thể dữ liệu và `subject_user_id` chỉ chứa được một id.
                 .subject(AuditSubjectType.SYSTEM, null)
                 .action(action)
                 .requestId(evidence.requestId())
@@ -248,11 +208,6 @@ public class SecurityIncidentService {
         return values;
     }
 
-    /**
-     * Lệnh mở hồ sơ (L60).
-     *
-     * @param reason lý do bắt buộc (ký hiệu {@code Rsn} của p8), đã validate ở controller
-     */
     public record Command(
             IncidentSeverity severity,
             IncidentCategory category,
@@ -264,7 +219,6 @@ public class SecurityIncidentService {
             String reason) {
     }
 
-    /** Merge-patch cho L61: field {@code null} = không đổi. */
     public record Patch(
             IncidentSeverity severity,
             IncidentCategory category,

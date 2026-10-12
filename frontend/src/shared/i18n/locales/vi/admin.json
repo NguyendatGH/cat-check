@@ -12,7 +12,7 @@
     "brand": "CatCheck",
     "skipToContent": "Bỏ qua menu, tới nội dung chính",
     "openMenu": "Mở menu quản trị",
-    "backToApp": "Về ứng dụng",
+    "backToApp": "Mở giao diện người dùng",
     "staff": "Nhân sự",
     "scans": "Lượt quét",
     "consents": "Bằng chứng đồng ý",
@@ -120,7 +120,7 @@
       "title": "Quản lý nội dung"
     },
     "dashboard": {
-      "description": "Điểm vào khu vực quản trị và tình trạng kết nối hiện tại.",
+      "description": "Theo dõi vận hành và truy cập nhanh các công cụ quản trị.",
       "noApiNote": "Số liệu vận hành thật (lượt quét, người dùng hoạt động, tỉ lệ lỗi) nằm ở endpoint riêng và chưa có backend. Không dựng biểu đồ bằng số bịa.",
       "title": "Bảng quản trị"
     },
@@ -437,9 +437,9 @@
     "specMeSecurity": "B13–B17 · A14–A16",
     "specPhColorChart": "L27–L32 · L36 · L37",
     "specRetention": "C5 · C1",
-    "statusDescription": "Endpoint này chỉ báo máy chủ còn nói chuyện được với cơ sở dữ liệu. Nó không thay thế trang kiểm tra sức khoẻ hạ tầng.",
+    "statusDescription": "Chỉ phản ánh kết nối cơ sở dữ liệu lúc kiểm tra, không đại diện toàn bộ tình trạng hệ thống.",
     "statusTitle": "Tình trạng kết nối",
-    "wiredDescription": "Những màn đã nối endpoint thật và dùng được ngay.",
+    "wiredDescription": "Đi tới những khu vực bạn có quyền quản lý.",
     "metricsTitle": "Chỉ số vận hành",
     "metricsDescription": "Snapshot chỉ đọc từ PostgreSQL, cập nhật tự động mỗi 30 giây.",
     "metrics": {
@@ -449,7 +449,7 @@
       "failedJobs": "Job lỗi",
       "pendingOutbox": "Outbox chờ gửi"
     },
-    "wiredTitle": "Khu vực đã nối API"
+    "wiredTitle": "Truy cập nhanh"
   },
   "retention": {
     "accountLifetime": "Theo vòng đời tài khoản",

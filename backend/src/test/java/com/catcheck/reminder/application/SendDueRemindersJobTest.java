@@ -37,22 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * {@code SendDueRemindersJob} — p12 §12.6.3 nhóm B.
- *
- * <p>Ba điều bài test này canh, theo đúng thứ tự quan trọng:</p>
- * <ol>
- *   <li><b>Tới hạn thì gửi đúng MỘT lần.</b> Trước W2-B tính năng nhắc nhở có đủ 6 endpoint
- *       I1–I6 nhưng không job nào gửi, nên "gửi được" là yêu cầu số một.</li>
- *   <li><b>{@code next_run_at} nhảy đúng chu kỳ theo múi giờ của lịch</b> (p12 §12.5.2,
- *       §12.5.4) — tính bằng UTC sẽ lệch 7 giờ và người dùng nhận nhắc lúc 1 giờ sáng.</li>
- *   <li><b>Chạy lại không gửi trùng</b> (p12 §12.5.5): đây là thứ duy nhất trong ba thứ mà
- *       một lần test tay không bắt được, vì nó chỉ sai khi job chạy vòng thứ hai.</li>
- * </ol>
- */
 class SendDueRemindersJobTest {
 
-    /** 08:00 giờ Việt Nam — chọn mốc tròn để con số kỳ vọng đọc được bằng mắt. */
     private static final Instant NOW = Instant.parse("2026-10-03T01:00:00Z");
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
     private static final ZoneId ICT = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -83,8 +69,6 @@ class SendDueRemindersJobTest {
         assertEquals(due.id(), request.refId());
         assertEquals("/scan?catId=" + due.catId(), request.payload().get("deepLink"));
 
-        // 03/10 giờ ICT + 3 ngày, tại 08:00 ICT = 06/10 01:00 UTC. Nếu ai đó tính bằng UTC thì
-        // kết quả sẽ là 06/10 08:00Z — lệch 7 tiếng, và test này đỏ.
         assertEquals(
                 java.time.LocalDate.of(2026, 10, 6).atTime(LocalTime.of(8, 0)).atZone(ICT).toInstant(),
                 reminders.byId(due.id()).nextRunAt());
@@ -120,7 +104,6 @@ class SendDueRemindersJobTest {
 
     @Test
     void lateByMoreThanADayWithoutAScanUsesTheOverdueTemplate() {
-        // Tới hạn 30 giờ trước và lần quét thoả lịch gần nhất còn cũ hơn thế ⇒ quá hạn.
         Instant due = NOW.minus(Duration.ofHours(30));
         reminders.add(scanRoutine(due, due.minus(Duration.ofDays(1))));
 
@@ -132,8 +115,6 @@ class SendDueRemindersJobTest {
 
     @Test
     void lateButAlreadyScannedStaysOnTheNormalTemplate() {
-        // p12 §12.5.1: "quá hạn" đo bằng last_satisfied_at, KHÔNG bằng last_run_at. Người dùng
-        // đã quét sau mốc tới hạn thì không phải người quên lịch.
         Instant due = NOW.minus(Duration.ofHours(30));
         reminders.add(scanRoutine(due, due.plus(Duration.ofHours(1))));
 
@@ -144,9 +125,6 @@ class SendDueRemindersJobTest {
 
     @Test
     void creditExpiryAndSurveyRemindersAreLeftToOtherJobs() {
-        // p12 §12.5.1: CREDIT_EXPIRY do CreditExpiringReminderJob lo (mốc tính từ
-        // credit_batch.expires_at). SURVEY_FOLLOWUP chưa có mã template nào trong registry
-        // p12 §12.2 — xem handoff H15.89.
         reminders.add(withType(ReminderType.CREDIT_EXPIRY, NOW.minusSeconds(60)));
         reminders.add(withType(ReminderType.SURVEY_FOLLOWUP, NOW.minusSeconds(60)));
 
@@ -165,7 +143,6 @@ class SendDueRemindersJobTest {
         job.run();
 
         assertTrue(gateway.requests.isEmpty(), "khong nhac quet cho con meo khong con ton tai");
-        // Đẩy lịch đi, nếu không job quay lại đúng dòng này mỗi 5 phút mãi mãi.
         assertTrue(reminders.byId(orphan.id()).nextRunAt().isAfter(NOW));
         assertNull(reminders.byId(orphan.id()).lastRunAt(), "chua gui thi khong dat last_run_at");
     }
@@ -196,7 +173,6 @@ class SendDueRemindersJobTest {
         assertTrue(gateway.requests.isEmpty());
     }
 
-    /* ------------------------------------------------------------------------ dựng dữ liệu */
 
     private Reminder scanRoutine(Instant nextRunAt, Instant lastSatisfiedAt) {
         return new Reminder(
@@ -222,13 +198,7 @@ class SendDueRemindersJobTest {
                 onlyThisJob, onlyThisJob, onlyThisJob, onlyThisJob, onlyThisJob);
     }
 
-    /* ------------------------------------------------------------------------------- fake */
 
-    /**
-     * Bảng {@code reminder} trong bộ nhớ. Hai điều cố ý mô phỏng đúng SQL thật, vì chúng là
-     * hợp đồng chứ không phải chi tiết: {@code findDueIds} lọc {@code type = 'SCAN_ROUTINE'}
-     * và {@code lockDue} từ chối dòng có {@code next_run_at} đã ở tương lai.
-     */
     private static final class FakeReminders implements ReminderRepository {
 
         private final Map<UUID, Reminder> rows = new LinkedHashMap<>();
@@ -310,7 +280,6 @@ class SendDueRemindersJobTest {
         }
     }
 
-    /** Mọi mèo đều tên "Mochi" và đều còn sống, trừ khi test xoá {@link #names}. */
     private static final class FakeCats implements CatOwnershipPort {
 
         final Map<String, String> names = new LinkedHashMap<>(Map.of("any", "Mochi"));
@@ -326,7 +295,6 @@ class SendDueRemindersJobTest {
         }
     }
 
-    /** Cổng thông báo ghi lại mọi yêu cầu; {@link #failFor} ép một lịch ném lỗi. */
     private static final class RecordingGateway implements NotificationGateway {
 
         final List<NotificationRequest> requests = new ArrayList<>();
@@ -351,7 +319,6 @@ class SendDueRemindersJobTest {
         }
     }
 
-    /** {@code job_run} trong bộ nhớ — đủ để kiểm "đúng một dòng mỗi lần chạy". */
     private static final class FakeJobRuns implements JobRunPort {
 
         record Row(UUID runId, String jobName, JobTriggerType triggerType, Instant startedAt,

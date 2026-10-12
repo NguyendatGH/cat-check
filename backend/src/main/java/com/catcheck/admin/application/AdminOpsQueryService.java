@@ -18,14 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Hai bảng vận hành chỉ-đọc cho màn quản trị — L64 ({@code job_run}) và L66 (outbox).
- *
- * <p>p8 cột {@code Aud}: L64 <b>không</b> ghi audit (nó không lộ dữ liệu của ai), L66 <b>có</b>
- * — {@code email_outbox.to_address} là địa chỉ email của người dùng, nên mở màn đó là một lần
- * xem PII dù đã mask khi hiển thị. Đó là lý do hai phương thức dưới đây khác nhau ở chỗ có ghi
- * {@code audit_log} hay không.</p>
- */
 @Service
 public class AdminOpsQueryService {
 
@@ -53,7 +45,6 @@ public class AdminOpsQueryService {
                 auditLogQueryPort.count(action, result, actorType, actorId));
     }
 
-    /** L64. Không ghi audit — p8 cột {@code Aud} của L64 trống. */
     @Transactional(readOnly = true)
     public Page<JobRunRow> jobRuns(String jobName, String status, int page, int size) {
         return new Page<>(
@@ -61,7 +52,6 @@ public class AdminOpsQueryService {
                 opsQueryPort.countJobRuns(jobName, status));
     }
 
-    /** L66. Ghi audit vì bảng {@code email_outbox} chứa địa chỉ email người dùng. */
     @Transactional
     public Page<OutboxRow> outbox(String channel, String status, int page, int size,
                                   UUID adminId, String adminRole, String requestId,
@@ -84,7 +74,6 @@ public class AdminOpsQueryService {
         return new Page<>(items, total);
     }
 
-    /** Một trang kết quả admin — xem javadoc cùng tên ở {@code credit.application}. */
     public record Page<T>(List<T> items, long totalElements) {
 
         public Page {

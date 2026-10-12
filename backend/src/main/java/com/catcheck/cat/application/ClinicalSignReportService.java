@@ -24,20 +24,6 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Báo cáo dấu hiệu lâm sàng do chủ nuôi tự khai — D20 của p8 §8.4.4.
- *
- * <p><b>Không tự sinh {@code health_flag}.</b> {@code ClinicalSignsReportedEvent} là điểm nối cho
- * module {@code insight} (chưa tồn tại — xem {@code cat/api/ClinicalSignsReportedEvent.java}), nên
- * {@code triggeredFlag} trong response D20 LUÔN {@code null} cho tới khi insight lắng nghe sự kiện
- * này và tự ghi lại qua {@link com.catcheck.cat.domain.CatClinicalSignReport#linkHealthFlag}.
- * KHÔNG tự làm việc của insight ở đây.</p>
- *
- * <p><b>{@code blockingShown} luôn {@code true}.</b> FE không gửi cờ này trong request (xem
- * {@code docs/handovers/A3-fe.md} — {@code ClinicalSignEmergencyNotice} "luôn mở, không được rút
- * gọn" là điều kiện tiên quyết để form D20 hiện được nút gửi), nên phía server coi việc gọi được
- * endpoint này đã đồng nghĩa màn cảnh báo đã hiện.</p>
- */
 @Service
 public class ClinicalSignReportService {
 
@@ -63,14 +49,6 @@ public class ClinicalSignReportService {
         this.clock = clock;
     }
 
-    /**
-     * D20 — lưu bản khai.
-     *
-     * @param rawSigns tên hằng số {@link ClinicalSign} dạng chuỗi, có thể chứa giá trị lạ (đến từ
-     *                 client) — validate ở đây để trả {@code 400 CLINICAL_SIGN_INVALID} kèm
-     *                 {@code allowed[]} thay vì để domain ném {@code IllegalArgumentException}
-     * @param rawSource tên hằng số {@link ClinicalSignSource} dạng chuỗi
-     */
     @Transactional
     public CatClinicalSignReport create(UUID ownerId, UUID catId, Set<String> rawSigns, String rawSource) {
         requireWriteAllowed(ownerId);
@@ -107,13 +85,6 @@ public class ClinicalSignReportService {
         return parsed;
     }
 
-    /**
-     * Bug that da sua (thong diep sai mien): truoc day ca hai nhanh nem
-     * {@code CLINICAL_SIGN_INVALID} — ma message cua no la "Vui long chon it nhat mot dau
-     * hieu", noi ve DANH SACH DAU HIEU chu khong phai ve {@code source}. Client gui sai
-     * {@code source} (vd "APP") nhan 400 kem loi chi sai cho, khong biet duong sua. Dung
-     * {@code VALIDATION_FAILED} kem ten truong, giong cach {@code PolicyService} lam.
-     */
     private ClinicalSignSource parseSource(String rawSource) {
         if (rawSource == null || rawSource.isBlank()) {
             throw new BusinessRuleException(CatErrorCode.VALIDATION_FAILED, "source");

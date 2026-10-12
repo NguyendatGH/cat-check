@@ -6,7 +6,6 @@ import com.catcheck.shared.security.PiiMask;
 import java.time.Instant;
 import java.util.UUID;
 
-/** DSAR admin view: contact email luôn mask, không trả resultRef/storage key. */
 public record AdminDsarRequestResponse(
         UUID id,
         String publicRef,

@@ -1,8 +1,6 @@
-/** Hàm thuần cho khu vực người bán: đếm KPI, lọc tồn kho thấp, tìm kiếm, lập kế hoạch thao tác hàng loạt. */
 
 export type SellerProductStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
-/** Tập con trường của AdminProduct mà các hàm này cần (tránh import chéo feature). */
 export interface SellerProductLike {
   id: string;
   sku: string;
@@ -12,7 +10,6 @@ export interface SellerProductLike {
   updatedAt: string;
 }
 
-/** Tồn kho từ mức này trở xuống được coi là sắp hết hàng. */
 export const LOW_STOCK_THRESHOLD = 5;
 
 export interface ProductCounts {
@@ -23,7 +20,6 @@ export interface ProductCounts {
   total: number;
 }
 
-/** Sắp hết hàng chỉ tính sản phẩm đang bán (PUBLISHED) với tồn kho ≤ ngưỡng; sắp xếp tồn kho tăng dần. */
 export function lowStockProducts<T extends SellerProductLike>(
   products: readonly T[],
   threshold: number = LOW_STOCK_THRESHOLD,
@@ -56,7 +52,6 @@ export type StatusFilter = "ALL" | SellerProductStatus;
 export type SortKey = "name" | "sku" | "priceVnd" | "stockQuantity" | "updatedAt";
 export type SortDir = "asc" | "desc";
 
-/** Lọc theo tab trạng thái và từ khoá (tên hoặc SKU, không phân biệt hoa thường). */
 export function filterProducts<T extends SellerProductLike>(
   products: readonly T[],
   status: StatusFilter,
@@ -97,10 +92,6 @@ export interface BulkStep {
   status: SellerProductStatus;
 }
 
-/**
- * Kế hoạch thao tác hàng loạt: giữ thứ tự dòng đang chọn, bỏ qua sản phẩm đã ở trạng thái đích
- * và id không còn trong danh sách.
- */
 export function planBulkStatus(
   products: readonly SellerProductLike[],
   selectedIds: readonly string[],
@@ -121,11 +112,9 @@ export function planBulkStatus(
 export interface BulkResult {
   done: number;
   total: number;
-  /** Bước thất bại đầu tiên (đã dừng tại đây); null nếu chạy hết. */
   failed: { step: BulkStep; error: unknown } | null;
 }
 
-/** Chạy tuần tự, báo tiến độ sau mỗi bước, dừng ngay ở lệnh thất bại đầu tiên. */
 export async function runBulk(
   steps: readonly BulkStep[],
   run: (step: BulkStep) => Promise<unknown>,

@@ -4,10 +4,6 @@ import com.catcheck.privacy.application.PolicyVersionAdminService;
 
 import java.util.List;
 
-/**
- * L46 — danh sách phiên bản chính sách, phân trang kiểu <b>offset</b> (p8 §8.4.12 L46 cột
- * {@code O}): màn quản trị cần nhảy trang và cần tổng số dòng, hai thứ mà cursor không cho.
- */
 public record AdminPolicyVersionListResponse(
         List<AdminPolicyVersionResponse> items,
         Integer page,

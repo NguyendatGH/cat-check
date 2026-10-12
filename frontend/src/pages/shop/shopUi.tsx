@@ -25,20 +25,7 @@ import { useShopCart, type ShopProductApi } from "@/features/shop";
 import { formatPh } from "@/shared/lib/format/formatPh";
 import { discountPercent, formatVnd } from "./shopFormat";
 
-/**
- * Các khối dùng chung của module Cửa hàng.
- *
- * Ảnh sản phẩm: chỉ hiển thị `ProductResponse.imageUrl` khi API trả. Bộ seed hiện tại để trống
- * trường này, nên các thẻ dùng ô biểu tượng trung tính (icon theo họ `sku` thật). KHÔNG mượn
- * ảnh render trong mockup Figma (`shared/assets/images/web-shop/product-*.jpg`): bao bì trong
- * đó in tuyên bố chưa kiểm chứng ("99.9% dust free"…), ảnh gói định kỳ là "SmartSand Pro"
- * (không phải SKU thật) và ảnh CleanBox là một thiết bị điện tử chứ không phải khay cát.
- *
- * Khối pH lấy nhãn/ngưỡng/màu TỪ `entities/ph-bands` (`GET /reference/ph-bands`, endpoint
- * công khai) đúng p6 §6.7.3/4 và quyết định #5b: cửa hàng KHÔNG tự đặt lại nhãn pH.
- */
 
-/** Icon theo họ SKU của catalogue thật (`SMARTSAND-*`, `SUBSCRIPTION-*`, `CLEANBOX-*`). */
 function glyphForSku(sku: string): LucideIcon {
   if (sku.startsWith("SUBSCRIPTION")) return CalendarSync;
   if (sku.startsWith("CLEANBOX")) return Box;
@@ -54,7 +41,6 @@ export function ProductGlyph({
   showSku = false,
 }: {
   sku: string;
-  /** `ProductResponse.imageUrl` — có thì hiển thị ảnh thật, không thì ô biểu tượng. */
   imageUrl?: string | null;
   className?: string;
   iconSize?: number;
@@ -82,7 +68,6 @@ export function ProductGlyph({
   );
 }
 
-/** Chip tồn kho — đọc trực tiếp `stockQuantity` của API, không có nhãn "best seller"/"hot". */
 export function StockChip({ stockQuantity }: { stockQuantity: number }) {
   const { t } = useTranslation("shop");
   const inStock = stockQuantity > 0;
@@ -99,7 +84,6 @@ export function StockChip({ stockQuantity }: { stockQuantity: number }) {
   );
 }
 
-/** Giá bán + giá so sánh + % giảm, tất cả tính từ `priceVnd`/`compareAtPriceVnd` thật. */
 export function PriceRow({ product, className }: { product: ShopProductApi; className?: string }) {
   const { t } = useTranslation("shop");
   const percent = discountPercent(product.priceVnd, product.compareAtPriceVnd);
@@ -118,10 +102,6 @@ export function PriceRow({ product, className }: { product: ShopProductApi; clas
   );
 }
 
-/**
- * Bộ tăng/giảm số lượng dùng chung (giỏ hàng, chi tiết sản phẩm). `max` là
- * `maxOrderQuantity(stockQuantity)`; nút "+" khoá khi chạm trần, "−" khoá ở 1.
- */
 export function QuantityStepper({
   value,
   max,
@@ -133,7 +113,6 @@ export function QuantityStepper({
   value: number;
   max: number;
   onChange: (next: number) => void;
-  /** Đang chờ máy chủ xác nhận số lượng mới — khoá cả hai nút, hiện spinner thay số. */
   pending?: boolean;
   size?: "sm" | "md";
   className?: string;
@@ -188,10 +167,6 @@ export function QuantityStepper({
   );
 }
 
-/**
- * Lối vào `/cart` dưới `lg` (mobile không có cột giỏ hàng). Chỉ hiện khi giỏ thật có hàng;
- * số món và tổng tiền là của `GET /api/v1/cart`.
- */
 export function CartShortcut({ className }: { className?: string }) {
   const { t } = useTranslation("shop");
   const cartQuery = useShopCart();
@@ -224,7 +199,6 @@ export function CartShortcut({ className }: { className?: string }) {
   );
 }
 
-/** Phí vận chuyển đúng con số `shippingFeeVnd` của máy chủ (0 ⇒ "Miễn phí"). */
 export function ShippingFee({ value }: { value: number }) {
   const { t } = useTranslation("shop");
   return value === 0 ? (
@@ -234,7 +208,6 @@ export function ShippingFee({ value }: { value: number }) {
   );
 }
 
-/** Nhãn khoảng của một dải pH — dựng từ `phMin`/`phMax` của API, không hard-code ngưỡng. */
 function useBandRangeLabel() {
   const { t } = useTranslation("shop");
   return (min: number | null | undefined, max: number | null | undefined): string => {
@@ -246,13 +219,6 @@ function useBandRangeLabel() {
   };
 }
 
-/**
- * Thang pH tham chiếu.
- *
- * `compact` (cột phải của hero): thanh gradient + chú giải nhãn.
- * Mặc định: thêm từng dải kèm khoảng và mô tả của API. Mô tả có placeholder `{0}` (dành cho
- * một giá trị pH đo được) bị bỏ qua — ở cửa hàng không có số đo nào để điền.
- */
 export function PhBandScale({ compact = false, className }: { compact?: boolean; className?: string }) {
   const { t } = useTranslation("shop");
   const bandsQuery = usePhBands();
@@ -310,14 +276,11 @@ export function PhBandScale({ compact = false, className }: { compact?: boolean;
           )}
         </>
       )}
-      {/* `text-[11px]` tường minh: `PhDisclaimerNote` ghép `text-small text-text-tertiary` qua `cn()`,
-          và tailwind-merge mặc định coi `text-small` là MÀU chữ nên bỏ mất cỡ chữ (rơi về 16px). */}
       <PhDisclaimerNote className="pt-3 text-[11px] leading-relaxed" />
     </section>
   );
 }
 
-/** Nhắc phạm vi sản phẩm (quan sát pH, không chẩn đoán) + đường dẫn tới trình quét có thật. */
 export function CareNoteCard({ className }: { className?: string }) {
   const { t } = useTranslation("shop");
   return (
@@ -351,11 +314,6 @@ const BUYING_FACTS = [
   { key: "tracking", icon: Package, tone: "bg-success-bg text-success-text" },
 ] as const;
 
-/**
- * Ba điều hệ thống cửa hàng THỰC SỰ làm — ở đúng vị trí khối "cam kết/kiểm định" của mockup
- * (khối đó là tuyên bố chưa kiểm chứng nên đã bỏ). Bố cục theo design: mobile là các hàng
- * icon-trái, web là lưới thẻ icon-trên với tiêu đề căn giữa.
- */
 export function BuyingFacts({ className }: { className?: string }) {
   const { t } = useTranslation("shop");
   return (

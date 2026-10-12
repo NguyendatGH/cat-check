@@ -8,21 +8,10 @@ import iconNeuteredCheck from "@/shared/assets/icons/web-cat/profile-neutered-ch
 import iconMicrochip from "@/shared/assets/icons/web-cat/profile-microchip.svg";
 import pawPattern from "@/shared/assets/icons/web-cat/profile-paw-pattern.svg";
 
-/**
- * Thẻ nhận diện bé mèo ở đầu `/cats/:catId` — dùng CHUNG cho mobile (mockup
- * `06. Hồ sơ Bé Mèo`) và desktop (Figma `Web - 06 & 07`, cột trái `16:4300`):
- * dải nền thương hiệu, ảnh đại diện tràn mép, tên, dòng nhận diện, hai chip
- * (ngày sinh / mã hồ sơ), rồi lưới ô thông tin (chỉ hiện từ `lg`).
- *
- * Toàn bộ nội dung là DỮ LIỆU THẬT từ `GET /cats/{id}` — không có ảnh mặc định giả:
- * bé chưa có ảnh thì `CatAvatar` hiển thị chữ cái đầu như mọi nơi khác.
- */
 
 export interface CatProfileHeroProps {
   cat: Cat;
-  /** Nút "thao tác khác" (kebab) do trang cha dựng — đặt tuyệt đối góc phải trên. */
   menu?: ReactNode;
-  /** Các ô thông tin phụ dưới lưới (nhóm máu / dị ứng ở desktop). */
   extraTiles?: ReactNode;
   className?: string;
 }
@@ -62,7 +51,6 @@ export function CatProfileHero({ cat, menu, extraTiles, className }: CatProfileH
   return (
     <section className={cn("relative overflow-hidden rounded-2xl bg-surface shadow-xs", className)}>
       <div className="relative h-24 bg-primary">
-        {/* Hoạ tiết dấu chân trang trí của Figma — SVG đã mang sẵn opacity 0.1 màu trắng. */}
         <img src={pawPattern} alt="" className="absolute right-4 top-1 h-20" aria-hidden="true" />
         <img src={pawPattern} alt="" className="absolute left-6 top-6 h-12" aria-hidden="true" />
       </div>
@@ -110,7 +98,6 @@ export function CatProfileHero({ cat, menu, extraTiles, className }: CatProfileH
           ) : null}
         </div>
 
-        {/* Lưới ô thông tin — chỉ desktop, mobile đã có dòng nhận diện ở trên */}
         <div className="hidden w-full grid-cols-2 gap-3 pt-5 text-left lg:grid">
           {tiles.map((tile) => (
             <div key={tile.label} className="rounded-xl bg-background-alt p-3">

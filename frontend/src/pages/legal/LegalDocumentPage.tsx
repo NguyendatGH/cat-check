@@ -11,25 +11,10 @@ import type { PolicyCode } from "./types";
 
 interface LegalDocumentPageProps {
   policyCode: PolicyCode;
-  /** Nội dung phụ đặt SAU thân markdown (vd. `CookieTable` ở `/legal/cookies`). */
   extra?: ReactNode;
-  /** Nội dung phụ đặt TRƯỚC thân markdown (vd. `DisclaimerBanner` variant="long"). */
   before?: ReactNode;
 }
 
-/**
- * Khung trang pháp lý dùng chung cho `/legal/terms`, `/legal/privacy`,
- * `/legal/medical-disclaimer`, `/legal/cookies` (p10 §5.2 `LegalPage` + `PolicyVersionBanner`,
- * REQ-LEGAL-01/02). Nội dung lấy từ `GET /policies/{code}` (`policy_version.content_md`),
- * KHÔNG hard-code văn bản pháp lý trong component.
- *
- * ⚠ M1 CHƯA có seed `R__seed_policy_version.sql` (xem `docs/handovers/A2.md` §3 mục 7) —
- * endpoint trả 404 `POLICY_VERSION_NOT_FOUND` cho MỌI mã ở thời điểm này. Trang xử lý
- * đúng chuẩn REQ-LEGAL-04 (trạng thái "bản nháp chưa có nội dung"), không giả lập nội dung.
- *
- * DESKTOP (>= lg, xem `shell.tsx`): cột văn bản 560px + cột phụ 360px chứa thẻ phiên bản và
- * mục lục dính theo cuộn. Dưới `lg` vẫn đúng một cột như bản mobile đã chạy.
- */
 export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPageProps) {
   const { t } = useTranslation(["legal", "common"]);
   const { data, isLoading, isError, error } = usePolicyCurrent(policyCode);
@@ -53,8 +38,6 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
           title={t(`pages.${policyCodeToPageKey(policyCode)}.title`)}
           description={notFound ? t("document.notPublishedYet") : t("document.loadError")}
         />
-        {/* Chưa có bản chính sách đã công bố (404 có chủ đích) vẫn hiện phần dữ kiện kỹ thuật
-            đi kèm — vd. bảng cookie thật đang đặt — thay vì để trang trống. */}
         {notFound ? extra : null}
       </div>
     );
@@ -74,7 +57,6 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
         <article className={cn(LEGAL_COLUMN, "gap-6")}>
           <header className="flex flex-col gap-2">
             <h1 className="text-h1 font-bold text-text-primary">{data.title}</h1>
-            {/* Dải phiên bản inline chỉ dùng ở mobile — từ `lg` nó chuyển sang cột phụ. */}
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background-alt px-3 py-2 text-caption text-text-secondary print:hidden lg:hidden">
               <span>{versionLine}</span>
               <Link to={versionsHref} className="font-semibold text-primary hover:underline">

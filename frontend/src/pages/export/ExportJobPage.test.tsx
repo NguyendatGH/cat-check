@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { ExportJob } from "@/features/export";
 import { ExportJobPage } from "./ExportJobPage";
 
-/** Job READY mà server không gửi `pageCount`/`scanCount` (null ⇒ bỏ key) không được in "undefined trang". */
 const state = vi.hoisted((): { job?: unknown } => ({}));
 
 vi.mock("@/features/export/mocks", () => ({ handlers: [], worker: {} }));

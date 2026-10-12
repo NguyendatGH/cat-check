@@ -86,7 +86,6 @@ function incidentSortValue(incident: AdminSecurityIncident, key: IncidentSortKey
   }
 }
 
-/** Tab "Sự cố" — hàng chờ hồ sơ sự cố, mở mới và cập nhật mốc 72 giờ. */
 export function SecurityIncidentsTab({ canWrite }: { canWrite: boolean }) {
   const { t } = useTranslation("admin");
   const [severity, setSeverity] = useState<IncidentSeverity | "">("");
@@ -98,7 +97,6 @@ export function SecurityIncidentsTab({ canWrite }: { canWrite: boolean }) {
   const [creating, setCreating] = useState(false);
 
   const list = useAdminSecurityIncidents({ severity, unresolved, page, size: PAGE_SIZE });
-  // Hai truy vấn đếm (size = 1) cho hàng KPI: tổng số và số chưa khắc phục, không phụ thuộc bộ lọc.
   const totalCount = useAdminSecurityIncidents({ severity: "", unresolved: false, page: 0, size: 1 });
   const openCount = useAdminSecurityIncidents({ severity: "", unresolved: true, page: 0, size: 1 });
 
@@ -356,7 +354,6 @@ export function SecurityIncidentsTab({ canWrite }: { canWrite: boolean }) {
   );
 }
 
-// ------------------------------------------------------------------- form chung
 
 function useIncidentErrorText() {
   const { t } = useTranslation("admin");
@@ -507,7 +504,6 @@ function IncidentFields({ form, onChange, errors, mode }: IncidentFieldsProps) {
   );
 }
 
-// ------------------------------------------------------------------- chi tiết + sửa
 
 function IncidentDetailDialog({
   incidentId,
@@ -640,7 +636,6 @@ function IncidentEditForm({ incident, onDone }: { incident: AdminSecurityInciden
   );
 }
 
-// ------------------------------------------------------------------- mở hồ sơ
 
 function OpenIncidentDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("admin");

@@ -17,11 +17,6 @@ import {
 } from "@/features/scan";
 import { ScanMetaCard } from "./webPanels";
 
-/**
- * BE lược MỌI field `null` khỏi JSON (`GET /scans/{id}/analysis` của lượt quét seed chỉ có
- * `calibrationMethod`/`chartCode`/…), nên các toạ độ vắng mặt là `undefined` chứ không phải
- * `null` — so sánh `=== null` để lọt và `.toFixed()` làm trắng cả trang. Dùng `Number.isFinite`.
- */
 function isFiniteNumber(v: number | null | undefined): v is number {
   return typeof v === "number" && Number.isFinite(v);
 }
@@ -31,8 +26,6 @@ function formatLabCoordinates(l: number | null, a: number | null, b: number | nu
   return `${l.toFixed(1)} / ${a.toFixed(1)} / ${b.toFixed(1)}`;
 }
 
-/** `/scans/:scanId` (TaskLayout — layout đã cấp `px-4 py-6`) — chi tiết 1 lần quét từ lịch sử:
- * kết quả + phân tích + tranh chấp/xoá (E4/E5/E10/E11/E8). */
 export function ScanDetailPage() {
   const { t } = useTranslation(["scan", "common"]);
   const { scanId } = useParams<{ scanId: string }>();
@@ -88,11 +81,6 @@ export function ScanDetailPage() {
   }
 
   return (
-    /**
-     * Desktop (>= lg) chia hai cột như `/scan/result/:id`: kết quả + lời khuyên ở cột chính,
-     * thông tin kỹ thuật + thao tác (tranh chấp/gán lại/xoá) ở cột phụ 340px. Trước đây cả
-     * trang là một cột 944px với ba nút to bản xếp chồng ở đáy. Mobile giữ một cột.
-     */
     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         {result.disputedAt ? (
@@ -103,7 +91,6 @@ export function ScanDetailPage() {
 
         <ScanResultSummary result={result} bands={bands ?? []} matchLabel={t("result.matchLabel")} />
 
-        {/* Cùng khối "Bạn nên làm gì?" với `/scan/result/:id` để hai màn đọc giống nhau. */}
         <ScanAdviceCard result={result} />
 
         <DisclaimerBanner variant="short" />

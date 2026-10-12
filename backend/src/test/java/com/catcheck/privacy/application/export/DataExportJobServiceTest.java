@@ -109,7 +109,6 @@ class DataExportJobServiceTest {
         }
         assertEquals(List.of("profile.json", "cats.json", "scans.json", "scans.csv", "credits.csv",
                 "consents.json", "notifications.json", "orders.json", "ai_conversations.json", "README.vi.md"), names);
-        // Hội thoại trợ lý AI là dữ liệu do user nhập — phải có trong gói xuất DSAR (quyền truy cập).
         assertEquals("[" + aiMessage + "]", aiEntry);
         verify(requests).update(any(DsarRequest.class));
         verify(notifications).enqueueTransactionalEmail(any());

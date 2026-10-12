@@ -13,20 +13,7 @@ import {
 } from "@/features/community";
 import { RulesCard, TagChips } from "./parts";
 
-/**
- * `/community/new` — soạn bài viết mới.
- *
- * Form gửi thật qua `POST /api/v1/community/posts` với đúng bốn field payload backend nhận:
- * `category` (enum QA/TIP/EXPERIENCE), `title` (≤180), `body` (≤10.000), `tags` (≤8 thẻ, mỗi thẻ
- * ≤48 ký tự) — giới hạn lấy từ `@Size` của `CreateCommunityPostRequest`, kiểm ngay ở form.
- * KHÔNG có nút đính kèm ảnh / kết quả quét / hồ sơ khám như ô soạn bài trong design: chưa có
- * endpoint upload nào cho bài viết. Không có nhãn bệnh lý gợi ý — người dùng tự nhập thẻ.
- *
- * Route này nằm trong `TaskLayout` (hộp nội dung 944px đã có padding ngang ở MỌI breakpoint)
- * nên trang tuyệt đối KHÔNG tự thêm padding ngang.
- */
 
-/** Tách chuỗi thẻ "a, #b, a" ⇒ ["a", "b"] (bỏ #, trùng, rỗng). Chưa cắt số lượng — để form báo lỗi. */
 function parseTags(raw: string): string[] {
   return [...new Set(raw.split(",").map((tag) => tag.trim().replace(/^#+/, "").trim()))].filter(Boolean);
 }

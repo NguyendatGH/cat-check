@@ -43,24 +43,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * {@link AuthenticatedSessionGateway} + {@link AuthenticatedSessionRevoker} tren Spring
- * Security (p11 §11.1.3).
- *
- * <p><b>Phien that su nam o Spring Session JDBC</b> ({@code SPRING_SESSION} /
- * {@code SPRING_SESSION_ATTRIBUTES}); {@code user_device_session} chi la ban sao de
- * man hinh "thiet bi dang dang nhap" hien thi. {@link #establish} ghi ca hai.</p>
- *
- * <p><b>Session fixation (p11 §11.1.3)</b>: goi {@link SessionAuthenticationStrategy}
- * <b>truoc</b> khi gan danh tinh. No doi {@code sessionId} cua phien dang ton tai
- * (hoac tao phien moi neu chua co) nen attacker da len trinh duoc session id truoc do
- * khong con gia tri nao sau khi nguoi dung dang nhap.</p>
- *
- * <p>Lay {@code HttpServletRequest} qua {@link RequestContextHolder} thay vi truyen
- * tu controller: cong {@link AuthenticatedSessionGateway} nam o {@code ..domain..} nen
- * khong duoc mang kieu servlet (R1), con controller thi khong nen phai biet chi tiet
- * phien.</p>
- */
 @Component
 public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway, AuthenticatedSessionRevoker {
 
@@ -89,11 +71,7 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
             AuthPolicy policy,
             AuditLogService auditLogService,
             Clock clock) {
-        // Spring Security tu dang ky SessionAuthenticationStrategy cho chuoi filter
-        // dang chay; lay qua ObjectProvider de bean nay khong phu thuoc thu tu khoi tao.
         this.sessionAuthenticationStrategy = sessionAuthenticationStrategyProvider.getIfAvailable();
-        // Kho phien that (Spring Session JDBC, PRINCIPAL_NAME = userId — xem AuthPrincipal#getName).
-        // null khi khong co Spring Session (test don le): khi do chi con ban sao user_device_session.
         this.httpSessions = httpSessionsProvider.getIfAvailable();
         this.sessionRepository = sessionRepository;
         this.ipResolver = ipResolver;
@@ -112,28 +90,25 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 principal, null, authorities(roles));
 
-        // 1) Doi session id truoc — session fixation defence.
+        HttpSession previousSession = request.getSession(false);
+        String previousSessionId = previousSession == null ? null : previousSession.getId();
         if (sessionAuthenticationStrategy != null) {
             sessionAuthenticationStrategy.onAuthentication(authentication, request, response);
-        } else {
-            // Khong co strategy (vi du test don le) -> van phai co phien de luu context.
-            request.getSession(true);
         }
-        // 2) Luu context vao phien.
+        HttpSession authenticatedSession = request.getSession(true);
+        if (previousSessionId != null && previousSessionId.equals(authenticatedSession.getId())) {
+            request.changeSessionId();
+        }
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
 
-        // 3) Ban sao de hien thi. Session id lay TU phien vua doi, khong phai id cu.
         HttpSession session = request.getSession(false);
         String sessionId = session == null ? null : session.getId();
         java.time.Duration maxInactive = rememberMe
                 ? policy.sessionMaxInactive() : policy.sessionDefaultMaxInactive();
         if (session != null) {
-            // Phai dat han phien that theo AuthPolicy ("nho toi" 30 ngay, mac dinh 12 gio): Spring
-            // Session mac dinh 30 phut cho moi phien, nen neu khong dat thi han ghi o
-            // user_device_session se lech voi han that.
             session.setMaxInactiveInterval(Math.toIntExact(maxInactive.toSeconds()));
         }
         if (sessionId != null) {
@@ -219,13 +194,7 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         return currentPrincipal().map(AuthPrincipal::reauthenticated).orElse(Boolean.FALSE);
     }
 
-    /* ---------- AuthenticatedSessionRevoker ---------- */
 
-    /*
-     * Ba ham duoi xoa phien that qua Spring Session (SPRING_SESSION), khong chi user_device_session
-     * (khong filter nao doc revoked_at tren duong request). Phien cua CHINH request dang chay khong
-     * xoa o day (lam SessionRepositoryFilter ghi vao dong da mat); can thi goi invalidateCurrent().
-     */
 
     @Override
     public int revokeAllByUserId(UUID userId) {
@@ -244,11 +213,6 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         });
     }
 
-    /**
-     * Phien con song THAT: dong user_device_session chua thu hoi/chua qua {@code expires_at} va
-     * phien that chua het han (phien that het han sau thoi gian nhan roi), de A6 khong tra
-     * {@code SESSION_LIMIT_REACHED} vinh vien khi nguoi dung khong con phien nao.
-     */
     @Override
     public Set<String> activeSessionIdsByUserId(UUID userId) {
         Set<String> recorded = sessionRepository.findActiveByUserId(userId, clock.instant()).stream()
@@ -282,7 +246,6 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         return session == null ? null : session.getId();
     }
 
-    /* ---------- Helper ---------- */
 
     private Optional<AuthPrincipal> currentPrincipal() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -306,11 +269,6 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
                 .orElse(null);
     }
 
-    /**
-     * Chua bao gio luu {@code sessionId} tho trong DB (p4 §A6: {@code session_id_hash}
-     * = SHA-256). Session id la thong tin dinh danh phien — bao lo la bang chung
-     * dùng chung voi cookie.
-     */
     static String hashSessionId(String sessionId) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -331,11 +289,6 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
                 : userAgent.contains("Mac OS") ? "macOS"
                 : userAgent.contains("Linux") ? "Linux"
                 : "Khong ro";
-        // Bug that da sua: substring(0, DEVICE_LABEL_MAX) nem StringIndexOutOfBoundsException
-        // vi chuoi "Trinh duyet tren <os>" luon NGAN HON 200 ky tu — DEVICE_LABEL_MAX la TRAN
-        // tren (phong khi sau nay them chi tiet dai hon), khong phai do dai co dinh. Xac nhan
-        // that: crash ngay lan dau establish() thuc su duoc goi (truoc do khong ai goi toi vi
-        // register() thieu buoc nay — xem AuthController.register()).
         String label = "Trinh duyet tren " + os;
         return label.substring(0, Math.min(DEVICE_LABEL_MAX, label.length()));
     }

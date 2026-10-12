@@ -1,10 +1,6 @@
 import { create } from "zustand";
 import { EXPORT_SECTIONS, type ExportRangePreset, type ExportSection, type ExportWizardStep } from "./types";
 
-/**
- * Store zustand cho wizard export 3 bước (chọn mèo → khoảng thời gian → mục nội dung), khớp
- * mockup `10. Xuất Hồ sơ Sức khỏe`. Session-only — không persist (dữ liệu tạm giữa các bước).
- */
 
 interface ExportWizardStore {
   step: ExportWizardStep;

@@ -10,14 +10,6 @@ import java.time.LocalTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * B12 — body của {@code PUT /account/notification-preferences} (shape p8 §8.5).
- *
- * <p>Điểm cần chắc: {@code PUT} thay toàn bộ biểu diễn nên THIẾU field là lỗi, không phải
- * "giữ nguyên giá trị cũ". Kiểu bọc {@code Boolean} tồn tại chính vì điều đó — nếu dùng
- * {@code boolean} nguyên thuỷ thì một field bị quên âm thầm thành {@code false}, tức là một
- * lần tắt thông báo ngoài ý muốn.</p>
- */
 class UpdateNotificationPreferencesRequestTest {
 
     private static UpdateNotificationPreferencesRequest full() {
@@ -63,8 +55,6 @@ class UpdateNotificationPreferencesRequestTest {
 
     @Test
     void kenh_canh_bao_la_gia_tri_la_thi_400_chu_khong_roi_ve_mac_dinh() {
-        // Quan trọng: "OFF" là thứ client dễ tự nghĩ ra. p4 F4 cố ý không có đường tắt hẳn
-        // cảnh báo cần chú ý (quyết định #10) — phải báo lỗi, không được im lặng bỏ qua.
         var off = new UpdateNotificationPreferencesRequest(
                 "OFF", true, true, false, false, true, LocalTime.of(22, 0), LocalTime.of(7, 0));
 

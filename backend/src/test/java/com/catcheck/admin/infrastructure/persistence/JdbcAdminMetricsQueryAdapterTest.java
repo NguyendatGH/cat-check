@@ -9,15 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
-/**
- * {@code Cat.softDelete} chỉ đặt {@code deleted_at}, {@code status} vẫn là {@code ACTIVE} (V8:
- * soft delete bằng {@code deleted_at}). Trước khi sửa, L63 đếm cả mèo đã xoá mềm vào
- * {@code activeCats}.
- *
- * <p>Không có PostgreSQL thật trong test đơn vị (Testcontainers cần Docker), nên JdbcTemplate giả
- * mô phỏng bảng {@code cat} có hai dòng {@code ACTIVE}: một còn sống, một đã xoá mềm — và trả số
- * đếm đúng theo điều kiện mà câu SQL thực sự lọc.</p>
- */
 class JdbcAdminMetricsQueryAdapterTest {
 
     @Test

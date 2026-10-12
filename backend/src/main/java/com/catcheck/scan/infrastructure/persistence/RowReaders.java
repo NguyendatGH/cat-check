@@ -7,15 +7,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Tiện ích đọc cột dùng chung cho các adapter JDBC của module {@code scan}.
- *
- * <p>Cố ý <b>lặp lại</b> {@code credit.infrastructure.persistence.RowReaders} /
- * {@code identity.infrastructure.persistence.RowReaders} thay vì dùng chung — cùng lý do đã ghi
- * ở bản của module credit: các lớp đó package-private, đưa vào {@code shared} vượt phạm vi sở
- * hữu. Mọi cột {@code TIMESTAMPTZ} đọc qua {@code OffsetDateTime} (không {@code getTimestamp()},
- * R13).
- */
 final class RowReaders {
 
     private RowReaders() {

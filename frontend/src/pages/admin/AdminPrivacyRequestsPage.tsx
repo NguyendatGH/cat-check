@@ -57,8 +57,6 @@ function isOverdue(item: AdminDsarRequest, now: number): boolean {
 export function AdminPrivacyRequestsPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  // Tạo DSAR thay người dùng (L54): backend cho ADMIN_SUPER và DPO — trùng bộ ROLES.privacyExport,
-  // roles.ts chưa có khoá riêng. Chuyển trạng thái (L51): ROLES.privacyRequests.
   const canCreate = can("privacyExport");
   const canTransition = can("privacyRequests");
   const [requestType, setRequestType] = useState("");

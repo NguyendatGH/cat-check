@@ -23,10 +23,8 @@ public interface CommunityRepository {
 
     boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active);
 
-    /** @return id tác giả của bài/bình luận đang PUBLISHED; rỗng nếu đối tượng không tồn tại hoặc đã ẩn. */
     Optional<UUID> findReportTargetAuthor(UUID postId, UUID commentId);
 
-    /** @return false nếu người này đã có báo cáo còn mở cho cùng đối tượng. */
     boolean report(UUID userId, UUID postId, UUID commentId, String reason, String details);
 
     List<CommunityReport> findReports(String status, int offset, int limit);

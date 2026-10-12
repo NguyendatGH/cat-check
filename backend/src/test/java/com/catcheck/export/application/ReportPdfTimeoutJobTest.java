@@ -18,13 +18,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * {@code ReportPdfTimeoutJob} — lưới an toàn cho dòng {@code export_job} kẹt
- * {@code QUEUED}/{@code RUNNING} (H15.76 / H15.78).
- *
- * <p>Bài test quan trọng nhất là bài cuối: sau khi job dọn, user <b>xuất lại được</b>. Đó mới là
- * hậu quả thật của bất biến I25, không phải một cột trạng thái đổi giá trị.</p>
- */
 class ReportPdfTimeoutJobTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
@@ -47,7 +40,6 @@ class ReportPdfTimeoutJobTest {
         ExportJob closed = repository.findById(stuck).orElseThrow();
         assertThat(closed.getStatus()).isEqualTo(ExportStatus.FAILED);
         assertThat(closed.getFailureReason()).isEqualTo(ExportTimeoutSweepService.TIMEOUT_REASON);
-        // Chuỗi này hiển thị thẳng cho user (p13 §13.6.2): phải là tiếng Việt có dấu.
         assertThat(closed.getFailureReason())
                 .isEqualTo("Quá thời gian xử lý cho phép. Bạn thử tạo lại bản xuất nhé.");
         assertThat(closed.getCompletedAt()).isEqualTo(NOW);
@@ -98,19 +90,11 @@ class ReportPdfTimeoutJobTest {
         assertThat(repository.findActiveByUser(USER_ID))
                 .as("khong con job QUEUED/RUNNING nao ⇒ POST /exports khong con tra 409")
                 .isEmpty();
-        // Chứng minh bằng chính ràng buộc I25 của fake repository: ghi dòng mới không còn vỡ.
         repository.save(newJob(NOW, ExportStatus.QUEUED));
         assertThat(repository.findActiveByUser(USER_ID)).isPresent();
     }
 
-    // ------------------------------------------------------------------ dàn dựng
 
-    /**
-     * {@link JobRunner} để {@code null} có chủ đích: test gọi thẳng thân job
-     * ({@code failStaleJobs}) nên không chạm tới runner, và dựng runner thật ở đây sẽ buộc test
-     * này phải sửa mỗi lần {@code JobProperties} thêm một job mới. Khuôn mở/đóng dòng
-     * {@code job_run} đã có test riêng ở {@code JobRunnerTest}.
-     */
     private ReportPdfTimeoutJob job() {
         return new ReportPdfTimeoutJob(null, sweepService, ReportPdfTimeoutJob.DEFAULT_STALE_AFTER, false);
     }

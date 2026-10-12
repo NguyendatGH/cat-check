@@ -1,10 +1,3 @@
-// features/onboarding — luồng thiết lập ban đầu 5 bước (p9 §9.4.3 route #17–21, p3 F4–F5).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
-//
-// GHI CHÚ CẤU TRÚC: toàn bộ code nằm ở các file root của feature (không có thư mục con)
-// vì eslint.config.js thiếu policy `feature → feature` nên import giữa các file cùng
-// feature bị rule `boundaries/dependencies` chặn. W3 bổ sung policy trong config thì tách
-// lại thư mục components/ + mocks/ (xem docs/handovers/A7.md).
 export {
   OnboardingShell,
   OnboardingStepper,

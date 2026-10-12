@@ -27,11 +27,6 @@ import {
   type RegisterFieldValues,
 } from "@/features/auth";
 
-/**
- * Thẻ nhấn vàng đầu cột phải (vị trí thẻ voucher của Figma 16:6949). Không có API khuyến
- * mãi nên không dựng voucher; thay bằng danh mục gói thật `GET /reference/packages`
- * (`features/credit`) — mỗi gói kèm số lượt quét và hạn dùng do backend trả.
- */
 function SignupPackagesCard() {
   const { t } = useTranslation("auth");
   const { data: packages, isPending, isError } = usePackageCatalog();
@@ -72,18 +67,6 @@ function SignupPackagesCard() {
   );
 }
 
-/**
- * `/auth/register` (p9 §9.4.3 #3, M1 01c-1 · W1 Web-01c) — chỉ bước "tài khoản chủ nuôi",
- * hiển thị là Bước 1/4 của hành trình đăng ký (`Stepper` dùng chung — xem `LoginPage` không
- * có stepper vì không thuộc luồng đăng ký nhiều bước). Hồ sơ mèo + khảo sát sức khoẻ là 2
- * bước RIÊNG của `features/onboarding` (route `/onboarding/cat`, `/onboarding/health-survey`)
- * — không dựng lại ở đây.
- *
- * Consent (p15 §15.3.3): `SERVICE_CORE` bắt buộc (= checkbox "đồng ý điều khoản"),
- * 4 mục tuỳ chọn lấy nhãn/mô tả thật từ `GET /privacy/purposes` — không bịa câu chữ. Figma
- * không mock UI này (chỉ có 1 checkbox điều khoản) nhưng đây là nghĩa vụ tuân thủ thật
- * (p15) nên GIỮ LẠI, thu gọn sau 1 toggle ẩn/hiện để không phá bố cục gốc.
- */
 export function RegisterPage() {
   const { t } = useTranslation(["auth", "common", "legal"]);
   const navigate = useNavigate();
@@ -150,16 +133,13 @@ export function RegisterPage() {
 
   return (
     <div className="flex flex-col gap-5 pb-6 lg:gap-10">
-      {/* Mobile: stepper 1 dòng. Web: thanh 4 bước (Figma 16:8430). */}
       <div className="lg:hidden">
         <Stepper current={1} total={4} label={t("register.stepLabel")} />
       </div>
       <WebRegisterSteps current={1} withHeader />
 
       <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
-        {/* ══ Cột trái: form (web 7 cột, mobile toàn trang) ══ */}
         <div className="flex flex-col gap-5 lg:col-span-7 lg:rounded-3xl lg:bg-surface lg:p-10 lg:shadow-xs">
-          {/* Hero card — chỉ mobile (Figma 01c-1) */}
           <div className="relative overflow-hidden rounded-2xl bg-surface p-4 shadow-xs lg:hidden">
             <span
               className="pointer-events-none absolute -bottom-10 -right-6 size-28 rounded-full bg-secondary/20"
@@ -183,7 +163,6 @@ export function RegisterPage() {
             </div>
           </div>
 
-          {/* Header form — chỉ web (Figma 16:6836) */}
           <div className="hidden lg:flex lg:flex-col lg:gap-2">
             <span className="flex w-fit items-center gap-2.5">
               <span className="flex size-7 items-center justify-center rounded-lg bg-secondary">
@@ -197,7 +176,6 @@ export function RegisterPage() {
             <p className="text-[14px] leading-5 text-text-secondary">{t("web.signup.formSubtitle")}</p>
           </div>
 
-          {/* Google + divider: web đặt TRƯỚC form (Figma 16:6861) */}
           <div className="hidden lg:flex lg:flex-col lg:gap-5">
             <GoogleAuthButton
               label={t("web.signup.googleCta")}
@@ -240,7 +218,6 @@ export function RegisterPage() {
                   {t("register.fields.email.label")}
                   <span className="text-danger">{` ${t("common.requiredMark")}`}</span>
                 </label>
-                {/* Figma 01c-1: gợi ý bước kế tiếp nằm cuối hàng label — chữ tĩnh, không phải link. */}
                 <span className="shrink-0 text-overline font-semibold text-primary lg:hidden">
                   {t("register.fields.email.verifyHint")}
                 </span>
@@ -358,7 +335,6 @@ export function RegisterPage() {
             </Button>
           </form>
 
-          {/* Google + divider bản mobile (web đã có khối riêng phía trên form) */}
           <div className="flex items-center gap-3 lg:hidden" role="separator">
             <span className="h-px flex-1 bg-chip-bg" />
             <span className="text-overline font-semibold text-nav-inactive">{t("register.divider")}</span>
@@ -389,14 +365,9 @@ export function RegisterPage() {
           </div>
         </div>
 
-        {/* ══ Cột phải CHỈ CÓ Ở WEB (Figma 16:6949) — giữ 3 thẻ của thiết kế, thay nội dung tự
-            đặt (voucher CHAO_SEN -15%, hồ sơ mèo "Luna" mẫu, "cảnh báo sớm sỏi thận") bằng dữ
-            liệu thật: danh mục gói từ `GET /reference/packages`, khung hồ sơ trống của bước 3,
-            và mô tả đúng chức năng sản phẩm. ══ */}
         <aside className="hidden lg:col-span-5 lg:flex lg:flex-col lg:gap-6">
           <SignupPackagesCard />
 
-          {/* Xem trước hồ sơ bé mèo — ở bước này chưa có mèo nên chỉ hiện khung trống */}
           <div className="rounded-3xl bg-surface p-6 shadow-xs">
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">

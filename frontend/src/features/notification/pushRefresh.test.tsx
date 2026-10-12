@@ -4,12 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePushSubscriptionRefresh } from "./pushRefresh";
 
-/**
- * Backend xoá đăng ký push sau 180 ngày không làm mới; `last_seen_at` chỉ đổi ở
- * `PUT /push/subscriptions`. Test khoá 4 điều kiện của việc làm mới lúc mở app: có gọi PUT khi
- * đủ điều kiện, và KHÔNG gọi khi chưa đăng nhập / máy chưa từng bật push / chưa cấp quyền.
- * Dựng bằng `react-dom/client` + `act` (xem `hooks.test.tsx`: `@testing-library/dom` không cài).
- */
 
 const client = vi.hoisted((): { available: boolean; localId: string | null; written: Array<string | null> } => ({
   available: true,

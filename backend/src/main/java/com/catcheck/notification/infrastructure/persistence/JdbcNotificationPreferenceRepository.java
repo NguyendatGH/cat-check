@@ -10,12 +10,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalTime;
 import java.util.UUID;
 
-/**
- * ĐỌC {@code user_notification_preference} (V13, p4 F4).
- *
- * <p>Chỉ đọc: đường GHI thuộc {@code identity} (p8 B11). Hai module cùng ghi một bảng là hai
- * nguồn sự thật.</p>
- */
 @Repository
 class JdbcNotificationPreferenceRepository implements NotificationPreferenceRepository {
 

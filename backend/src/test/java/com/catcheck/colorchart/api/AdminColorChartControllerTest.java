@@ -26,10 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * L33–L35 ở tầng api: vai trò, hình dạng response {@code 202}, và hai mã lỗi mà p8 §8.4.12 nêu
- * đích danh ({@code 409 COLOR_CHART_IN_USE}, {@code 422 COLOR_CHART_INCOMPLETE}).
- */
 class AdminColorChartControllerTest {
 
     private static final UUID CHART_ID = UUID.fromString("00000000-0000-0000-0000-0000000000c1");

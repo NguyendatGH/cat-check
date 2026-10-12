@@ -29,10 +29,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * A1 ({@code docs/cat-rag-credit-pipeline.md} mục A4-(1)) — kiểm {@code CatContextQuery}: điểm
- * kiểm sở hữu duy nhất cho ngữ cảnh trợ lý AI, cộng ánh xạ hồ sơ/khảo sát/dấu hiệu lâm sàng.
- */
 class CatContextQueryAdapterTest {
 
     private static final UUID OWNER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");

@@ -13,12 +13,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * {@link MfaRecoveryCodeRepository} tren {@code JdbcTemplate}.
- *
- * <p>{@code code_hash} la HMAC-SHA256 hex — KHONG phai BCrypt (p11 §11.12.3).
- * {@code UNIQUE (code_hash)} chan hai admin vo tinh nhan trung ma.</p>
- */
 @Repository
 public class JdbcMfaRecoveryCodeRepository implements MfaRecoveryCodeRepository {
 

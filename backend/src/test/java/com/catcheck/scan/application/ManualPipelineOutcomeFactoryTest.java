@@ -23,15 +23,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Đường nhập scan thủ công phải cho ra ĐÚNG cùng mã phân loại như pipeline ảnh với cùng một pH —
- * nếu không, dữ liệu demo sẽ dạy sai cả người xem lẫn mọi rule hạ nguồn đọc
- * {@code scan_analysis.classification}.
- *
- * <p>Bảng band trong test chép đúng seed {@code V9__colorchart.sql} (vốn chép từ p6 §6.7.1),
- * kể cả tính đóng/mở của từng mốc — 6.0 thuộc {@code SLIGHTLY_LOW}, 6.3 và 6.6 thuộc
- * {@code IN_RANGE}, 7.0 thuộc {@code SLIGHTLY_HIGH}.
- */
 class ManualPipelineOutcomeFactoryTest {
 
     private static final UUID CHART_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
@@ -71,7 +62,6 @@ class ManualPipelineOutcomeFactoryTest {
         assertThat(outcome.qualityFlags()).isEmpty();
         assertThat(outcome.confidence()).isEqualByComparingTo(ManualPipelineOutcomeFactory.DEFAULT_CONFIDENCE);
         assertThat(outcome.confidenceBand()).isEqualTo("HIGH");
-        // Không có ảnh ⇒ không được có một số đo màu nào.
         assertThat(outcome.labL()).isNull();
         assertThat(outcome.labA()).isNull();
         assertThat(outcome.labB()).isNull();
@@ -79,8 +69,6 @@ class ManualPipelineOutcomeFactoryTest {
         assertThat(outcome.blobCount()).isNull();
         assertThat(outcome.matchedPointId()).isNull();
         assertThat(outcome.displayHex()).isNull();
-        // ... nhưng bảng màu đang dùng vẫn phải được ghi nhận: R1–R3 tắt khi placeholder
-        // (p6 §6.9.1) nên cờ này không được phép sai.
         assertThat(outcome.chartId()).isEqualTo(CHART_ID);
         assertThat(outcome.chartVersion()).isEqualTo(1);
         assertThat(outcome.chartIsPlaceholder()).isTrue();
@@ -154,7 +142,6 @@ class ManualPipelineOutcomeFactoryTest {
                 .isEqualTo(QualityFlagSeverity.WARN);
     }
 
-    /** Chép đúng seed V9 (placeholder chart + 6 band toàn cục). */
     private static final class FixedChartCatalog implements ChartCatalog {
 
         @Override
@@ -168,7 +155,6 @@ class ManualPipelineOutcomeFactoryTest {
                     "D65", 2, true, points, DeltaE2000Params.CAT_CHECK));
         }
 
-        /** Backfill L33-L35 khong dung o hai test nay — cong van phai hien thuc. */
         @Override
         public Optional<PhChart> findChartById(java.util.UUID chartId) {
             return findActiveChart("STANDARD", null);

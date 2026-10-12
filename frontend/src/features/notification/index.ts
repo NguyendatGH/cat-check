@@ -1,8 +1,3 @@
-// features/notification — hộp thư in-app + thiết bị nhận push (p8 §8.4.7 nhóm G, G4–G11).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
-//
-// GHI CHÚ CẤU TRÚC: code nằm ở các file root của feature (không thư mục con) theo khuôn mẫu
-// bắt buộc của `features/insight` / `features/privacy`.
 export {
   notificationKeys,
   useNotificationInbox,

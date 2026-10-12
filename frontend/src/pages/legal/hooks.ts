@@ -11,12 +11,7 @@ import type {
   PurposeView,
 } from "./types";
 
-/**
- * Hooks react-query cho các trang pháp lý — gọi thẳng `PolicyController`/`PrivacyController`
- * thật (p8 §8.4.3). Không có `features/legal/` (ngoài phạm vi A2-FE) nên đặt cạnh page.
- */
 
-/** C16 — bản hiện hành của một tài liệu pháp lý, công khai. */
 export function usePolicyCurrent(policyCode: PolicyCode, locale: "vi" | "en" = "vi"): UseQueryResult<PolicyView> {
   return useQuery({
     queryKey: ["legal", "policy", policyCode, locale],
@@ -26,11 +21,6 @@ export function usePolicyCurrent(policyCode: PolicyCode, locale: "vi" | "en" = "
   });
 }
 
-/**
- * F9 — `GET /policies/{code}/versions`: TOÀN BỘ phiên bản (kể cả đã hết hiệu lực), mới nhất
- * trước. Đây là nguồn của màn "Lịch sử phiên bản" — KHÔNG được suy từ C16 (`/policies/{code}`
- * chỉ trả bản hiện hành, dùng nó thì lịch sử luôn hiện đúng một dòng và sai sự thật).
- */
 export function usePolicyVersions(
   policyCode: PolicyCode | undefined,
   locale: "vi" | "en" = "vi",
@@ -48,11 +38,6 @@ export function usePolicyVersions(
   });
 }
 
-/**
- * F10 — `GET /policies/{code}/versions/{version}`: permalink một phiên bản cụ thể. URL này
- * phải sống vĩnh viễn (`consent_record.policy_version` trỏ vào đây), nội dung đã publish là
- * bất biến ⇒ cache lâu ở client, không `retry` khi 404 (phiên bản chưa từng tồn tại).
- */
 export function usePolicyVersion(
   policyCode: PolicyCode | undefined,
   version: string | undefined,
@@ -70,7 +55,6 @@ export function usePolicyVersion(
   });
 }
 
-/** C1 — danh mục mục đích xử lý dữ liệu, công khai (dùng cho màn hướng dẫn DSAR). */
 export function useConsentPurposes(): UseQueryResult<PurposeView[]> {
   return useQuery({
     queryKey: ["legal", "consent-purposes"],
@@ -82,7 +66,6 @@ export function useConsentPurposes(): UseQueryResult<PurposeView[]> {
   });
 }
 
-/** C13 — tạo yêu cầu DSAR không tự phục vụ được (RECTIFY/OBJECT/PROTECTION_MEASURE/COMPLAINT). */
 export function useCreateDsarRequest(): UseMutationResult<
   DsarRequestView,
   Error,

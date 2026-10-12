@@ -3,12 +3,6 @@ package com.catcheck.colorchart.api.dto;
 import com.catcheck.colorchart.domain.BandSeverity;
 import com.catcheck.colorchart.domain.PhClassificationBand;
 
-/**
- * Dải phân loại pH trả về client (F1, L36).
- *
- * <p>Field {@code messageKey} là khoá i18n để frontend tra nhãn theo locale — nhãn không nằm
- * trong response vì nó đã seed trong DB và frontend có thể cache theo locale.
- */
 public record PhBandResponse(
         String code,
         Double phMin,

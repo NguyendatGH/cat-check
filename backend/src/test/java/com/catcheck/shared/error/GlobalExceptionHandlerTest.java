@@ -38,14 +38,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Bug thật đã sửa (phát hiện khi làm G3 — rate limit kích hoạt mã credit,
- * {@code docs/cat-rag-credit-pipeline.md} B2): {@link GlobalExceptionHandler} xử lý
- * {@link RateLimitedException} qua handler chung của {@link CatCheckException} và chưa bao giờ
- * đọc {@link RateLimitedException#retryAfterSeconds()} — mọi {@code 429} của ứng dụng (identity
- * login/OTP/MFA/reset mật khẩu, và nay là kích hoạt mã credit) thiếu header {@code Retry-After}
- * dù p8 §8.3.5(d)/p16 NFR-40 yêu cầu header này bắt buộc 100%.
- */
 class GlobalExceptionHandlerTest {
 
     private static final Instant NOW = Instant.parse("2026-10-09T12:00:00Z");

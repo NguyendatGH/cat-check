@@ -5,12 +5,6 @@ import HttpBackend from "i18next-http-backend";
 import { NAMESPACES } from "./namespaces";
 import { DEFAULT_LOCALE } from "@/shared/config/constants";
 
-/**
- * i18next-http-backend nạp file JSON tĩnh từ /locales/{{lng}}/{{ns}}.json (public/locales),
- * được đồng bộ từ src/shared/i18n/locales/** lúc build/dev (xem vite.config.ts, hàm
- * syncLocalesToPublic) — nguồn sự thật duy nhất vẫn là src/shared/i18n/locales/**.
- * Chỉ "vi" có nội dung ở M0 — "en" để thư mục rỗng (chờ dịch), fallbackLng: "vi".
- */
 void i18n
   .use(HttpBackend)
   .use(LanguageDetector)

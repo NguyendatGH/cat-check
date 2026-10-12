@@ -16,16 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link ScanQueryRepository} trên {@code JdbcTemplate} — mọi câu hỏi hiển thị/thống kê luôn
- * JOIN {@code scan} với {@code scan_analysis} hiện hành (một câu, không N+1). Cùng phong cách
- * với {@code credit.infrastructure.persistence.JdbcCreditLedgerQueryAdapter} (keyset đọc dư 1
- * dòng để biết {@code hasMore}, không COUNT(*) riêng).
- *
- * <p>JOIN thêm {@code color_chart.is_placeholder} bằng SQL thuần (không entity/type Java của
- * module {@code colorchart}) — chỉ để hiển thị {@code chartIsPlaceholder} trong response, không
- * vi phạm R6/R7 (những rule đó nói về kiểu Java/JPA association, không nói về SQL JOIN).</p>
- */
 @Repository
 class JdbcScanQueryRepository implements ScanQueryRepository {
 
@@ -59,8 +49,6 @@ class JdbcScanQueryRepository implements ScanQueryRepository {
     public Page findHistory(HistoryFilter filter, String cursor, int limit) {
         int fetchSize = Math.min(Math.max(limit, 1) + 1, HARD_LIMIT + 1);
         StringBuilder sql = new StringBuilder(BASE_SELECT);
-        // INCONCLUSIVE rows are retained for audit/history accounting, but the public history
-        // contract exposes only rows that GET /scans/{id} can render.
         sql.append(" AND sa.classification IS NOT NULL AND sa.classification <> 'INCONCLUSIVE'");
         List<Object> args = new ArrayList<>();
         appendFilter(sql, args, filter);
@@ -173,15 +161,6 @@ class JdbcScanQueryRepository implements ScanQueryRepository {
         return rows.stream().findFirst();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Hai câu riêng ({@code COUNT(*)} rồi trang dữ liệu) là chi phí mà chế độ offset bắt buộc
-     * phải trả — p8 §8.1.4 đã chấp nhận nó cho các bảng admin ("tập dữ liệu admin nhỏ và truy
-     * vấn ít"). Câu đếm cố ý <b>không</b> JOIN {@code scan_analysis}/{@code scan_image}/
-     * {@code color_chart}: nó chỉ đếm dòng {@code scan}, và thêm JOIN vào câu đếm chỉ làm chậm
-     * chứ không đổi con số.</p>
-     */
     @Override
     public OffsetPage findByUserForAdmin(UUID userId, int offset, int limit) {
         int safeLimit = Math.clamp(limit, 1, HARD_LIMIT);
@@ -200,8 +179,6 @@ class JdbcScanQueryRepository implements ScanQueryRepository {
 
     @Override
     public List<Row> findForExport(UUID catId, Instant from, Instant to) {
-        // INCONCLUSIVE bị loại — cùng quy ước "không có bản ghi hiển thị được" của GET /scans/{id}
-        // (p8 §8.5.4); p13 chỉ đếm "ScanResult hợp lệ", INCONCLUSIVE không phải một kết quả.
         String sql = BASE_SELECT
                 + " AND s.cat_id = ? AND s.captured_at >= ? AND s.captured_at <= ?"
                 + " AND sa.classification IS NOT NULL AND sa.classification <> 'INCONCLUSIVE'"
@@ -292,7 +269,6 @@ class JdbcScanQueryRepository implements ScanQueryRepository {
         }
     }
 
-    /** Con trỏ keyset {@code (captured_at, id)} — cùng khuôn với {@code LedgerCursorCodec} của credit. */
     private record CursorKey(Instant capturedAt, UUID id) {
 
         String encode() {

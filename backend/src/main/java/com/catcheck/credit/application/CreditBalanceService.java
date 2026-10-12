@@ -12,13 +12,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Số dư credit — {@code GET /api/v1/credits/balance} (p8 H2, p5 R4).
- *
- * <p>Read-only, không khoá dòng nào. Số dư có thể lệch vài mili giây so với một lần trừ đang
- * chạy — chấp nhận được, vì lần xác nhận tiêu credit luôn là lần ghi ledger trong transaction
- * của scan, không phải lần đọc màn hình này.</p>
- */
 @Service
 public class CreditBalanceService {
 
@@ -61,11 +54,6 @@ public class CreditBalanceService {
                 batches);
     }
 
-    /**
-     * Thời gian còn lại tới hạn, dạng {@link Duration} để client tự quyết định hiển thị "còn 5 ngày"
-     * hay "còn 3 giờ" — server không chọn hộ thang đo thời gian cho client (p5 R4 chỉ yêu cầu
-     * hiện được mốc thời gian của từng lô).
-     */
     private Duration remainingUntil(Instant expiresAt, Instant now) {
         Duration remaining = Duration.between(now, expiresAt);
         return remaining.isNegative() ? Duration.ZERO : remaining;

@@ -7,10 +7,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * p15 REQ-RBAC-01 — hai ví dụ trong đặc tả là hợp đồng, không phải minh hoạ:
- * {@code ngu***@gmail.com} và {@code 090****567}.
- */
 class PiiMaskTest {
 
     @Test

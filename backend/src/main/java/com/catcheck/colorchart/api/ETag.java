@@ -11,33 +11,19 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 
-/**
- * ETag &amp; If-Match theo p8 §8.1.11.
- *
- * <p>Định dạng: {@code W/"<updatedAt epoch ms>-<id 8 ký tự>"}. Bắt buộc {@code If-Match} với mọi
- * endpoint ghi cấu hình admin ảnh hưởng toàn hệ thống — thiếu ⇒ {@code 428 PRECONDITION_REQUIRED},
- * không khớp ⇒ {@code 412 RESOURCE_MODIFIED}.
- *
- * <p>Dùng {@code W/} (weak validator) vì {@code updatedAt} có độ chính xác millisecond — hai lần
- * ghi trong cùng một millisecond cho cùng một giá trị ETag, điều mà strong validator sẽ coi là
- * khác nhau oan.
- */
 final class ETag {
 
     private ETag() {
     }
 
-    /** ETag cho một bảng màu. */
     static String of(ColorChart chart) {
         return weak(chart.getUpdatedAt(), chart.getId().toString());
     }
 
-    /** ETag cho một dải phân loại. */
     static String of(PhClassificationBand band) {
         return weak(band.getUpdatedAt(), band.getId().toString());
     }
 
-    /** ETag cho danh sách dải — băm tổng hợp để thay đổi bất kỳ dải nào cũng đổi ETag. */
     static String ofBands(List<PhClassificationBand> bands) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -51,11 +37,6 @@ final class ETag {
         }
     }
 
-    /**
-     * Kiểm tra {@code If-Match} của request với ETag hiện tại.
-     *
-     * @throws BusinessRuleException {@code 428} nếu thiếu header, {@code 412} nếu không khớp
-     */
     static void requireMatch(String ifMatch, Object current) {
         String expected = switch (current) {
             case ColorChart chart -> of(chart);

@@ -62,16 +62,7 @@ describe("findBandForPh", () => {
   });
 });
 
-/**
- * Fixture dựng ĐÚNG CÁCH SERVER SERIALIZE: `default-property-inclusion: non_null` nên dải mở
- * KHÔNG có key `phMin`/`phMax` — khác hẳn fixture ở trên vốn ghi `phMin: null` tường minh.
- *
- * Chính sự khác biệt đó đã để lọt một bug thật: `findBandForPh` so `=== null`, nên với dữ liệu
- * thật thì `LOW`/`HIGH` không bao giờ khớp và màn xu hướng in ra enum thô `SLIGHTLY_HIGH` thay
- * cho nhãn đã dịch. Bộ test cũ vẫn xanh vì fixture của nó "lịch sự" hơn server.
- */
 const wireBands = [
-  // LOW: chỉ có phMax (vắng phMin)
   {
     code: "LOW",
     phMax: 6.3,
@@ -99,7 +90,6 @@ const wireBands = [
     sortOrder: 2,
     triggersAlert: false,
   },
-  // HIGH: chỉ có phMin (vắng phMax)
   {
     code: "HIGH",
     phMin: 6.6,
@@ -113,7 +103,6 @@ const wireBands = [
     sortOrder: 3,
     triggersAlert: true,
   },
-  // INCONCLUSIVE: KHÔNG có cả hai — là một trạng thái, không phải một khoảng.
   {
     code: "INCONCLUSIVE",
     minInclusive: false,

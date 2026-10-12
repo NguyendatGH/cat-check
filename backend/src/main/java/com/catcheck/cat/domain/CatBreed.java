@@ -8,19 +8,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Một giống mèo trong danh mục {@code cat_breed} (p4 C2).
- *
- * <p>Khoá tự nhiên là {@link #code} dạng {@code VARCHAR(48)} — p4 §4.1.1 xếp {@code cat_breed} vào
- * nhóm bảng cấu hình có khoá tự nhiên, nên KHÔNG dùng UUID khoá chính.</p>
- *
- * <p>Tên hiển thị lưu song ngữ ở hai cột {@code name_vi}/{@code name_en} (p4 §4.1.7): mèo ở Việt
- * Nam thấy nhãn tiếng Việt, và nhãn không đổi theo {@code Accept-Language} của client — còn các
- * câu chữ trong bài viết thì đổi theo locale, nên hai loại nhãn này phải tách.</p>
- *
- * <p>Entity này chỉ phục vụ đọc danh mục; {@code code} là hằng số trong mã nguồn sau khi seed ở V7
- * nên không có API ghi trong Phase 1 (p14 §14.4 chỉ mở API quản trị cho bảng màu, không phải giống).</p>
- */
 @Entity
 @Table(name = "cat_breed")
 public class CatBreed {
@@ -35,7 +22,6 @@ public class CatBreed {
     @Column(name = "name_en", nullable = false, columnDefinition = "text")
     private String nameEn;
 
-    /** Hiện ở chip "gợi ý nhanh" trên màn hồ sơ mèo (p4 C2, p9 M1 01c-3). */
     @Column(name = "popular", nullable = false)
     private boolean popular;
 
@@ -51,7 +37,6 @@ public class CatBreed {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    /** Bắt buộc cho JPA. */
     protected CatBreed() {
     }
 

@@ -2,61 +2,22 @@ package com.catcheck.scan.domain.color;
 
 import java.util.List;
 
-/**
- * Ước lượng <b>CCM — Color Correction Matrix</b> 3×3 bằng bình phương nhỏ nhất có trọng số
- * (weighted least squares), giải trên phép tăng dần tuyến tính có chọn trục (partial pivoting).
- *
- * <h2>CCM dùng để làm gì</h2>
- * <p>Cùng một màu thật, mỗi camera cho ra một màu khác nhau — vừa vì bộ lọc Bayer, vừa vì
- * ống kính, vừa vì đường cong gamma của ISP. Đó là sai lệch <em>có hệ thống</em>, và chỉ sửa được
- * bằng một ma trận tuyến tính 3×3. Không sửa nó thì mọi giá trị pH đo được đều mang hệ thống lệch
- * riêng cho từng đời máy, tức mọi mốc phân loại đều sai theo cách không thể dự đoán trước.
- *
- * <h2>Vì sao phải có trọng số</h2>
- * <p>Trong không gian <b>linear</b>, nhiễu quang học có phương sai <em>tăng theo cường độ</em>
- * (nhiễu photon: ở vùng tối, sai số tuyệt đối lại lớn). Nếu tất cả các mẫu được coi ngang nhau,
- * các mẫu tối sẽ chi phối phép khớp và CCM sẽ bị kéo lệch. Vì vậy mỗi mẫu mang một trọng số
- * {@code w = 1/σ²} cùng một {@link ColorSamples.Sample#sigma() sigma}, cho phép phép khớp coi
- * trọng mẫu sáng đáng tin hơn mẫu tối, hoặc loại mẫu rác bằng trọng số 0.
- *
- * <h2>Vì sao giải bằng phương pháp bình phương nhỏ nhất chứ không "3 điểm là đủ"</h2>
- * <p>Trong nghiên cứu, 3 patch nền tảng đôi khi cho đủ 9 phương trình. Nhưng phương pháp đó
- * <em>cực kỳ nhạy với nhiễu</em> và vỡ tan khi ba patch gần như trùng màu — tức đúng trường hợp
- * thẻ tham chiếu CatCheck chỉ có vài ô màu. Ước lượng bằng tất cả patch sẵn có + kiểm tra hậu kiểm
- * là lựa chọn bền vững hơn nhiều.
- */
 public final class CcmSolver {
 
-    /** Ngưỡng xác định thứ hạng: hệ số nhân bị chuẩn hoá, dưới ngưỡng này coi như hệ bậc ba kém. */
     private static final double RANKING_TOLERANCE = 1e-9;
 
-    /**
-     * Ngưỡng phần tịch còn sót lại sau khi tâm trừ. 0.02 trong linear ≈ 5/255 — tức nhỏ hơn nhiều
-     * so với ΔE00 phân biệt được (~2), nhưng đủ lớn để bắt trường hợp quên khử trắng.
-     */
     private static final double WHITE_BALANCE_TOLERANCE = 0.02;
 
     private CcmSolver() {
         throw new AssertionError("CcmSolver la lop tien ich, khong instantiate");
     }
 
-    /**
-     * Ước lượng CCM từ các cặp (mẫu đo, giá trị tham chiếu) bằng WLS.
-     *
-     * @param samples cặp mẫu; mỗi mẫu là linear RGB đo được và linear RGB tham chiếu
-     * @return ma trận M sao cho {@code M · measured ≈ reference}
-     * @throws IllegalArgumentException nếu thiếu mẫu cho hệ 9 ẩn số, hệ suy thoái, hoặc mẫu vô
-     *                                  nghĩa (NaN, trọng số âm)
-     */
     public static Matrix3 solve(List<ColorSamples.Sample> samples) {
         if (samples == null || samples.size() < 3) {
             throw new IllegalArgumentException("Can it nhat 3 mau de uoc luong CCM 3x3, nhan duoc "
                     + (samples == null ? 0 : samples.size()));
         }
 
-        // Hệ bình phương nhỏ nhất: AᵀWA với A = vec(measured) (3×N) nên AᵀWA là 3×3, giống nhau
-        // cho cả ba kênh đầu ra. Vế phải khác nhau theo từng kênh: b_j = Σ w·measured·reference_j.
-        // Vì vậy dùng một ma trận hệ số 3×3 và ba vế phải — tức 3 hệ cùng hệ số, giải chung một lần.
         double[][] normal = new double[3][6];
         int used = 0;
 
@@ -83,7 +44,6 @@ public final class CcmSolver {
             throw new IllegalArgumentException("So mau co trong so > 0 phai >= 3, nhan duoc " + used);
         }
 
-        // Giải chung: phân rã theo hàng một lần, khử lùi cho cả ba vế phải.
         eliminate(normal);
         double[] red = backSubstitute(normal, 3);
         double[] green = backSubstitute(normal, 4);
@@ -95,17 +55,6 @@ public final class CcmSolver {
                 blue[0], blue[1], blue[2]);
     }
 
-    /**
-     * Ước lượng CCM trên dữ liệu đã <b>tâm trừ trung bình</b> (centered) — bản dùng cho pipeline thật.
-     *
-     * <p>Lý do: hệ 9 ẩn số ở {@link #solve} <b>không xác định duy nhất</b>. Với bất kỳ vector phẳng
-     * {@code d}, ma trận {@code M} và {@code M + d·eᵀ} cho ra cùng dự đoán trên mọi ảnh <em>không</em>
-     * bão hoà (vì {@code d·(1,1,1) = 0}). Chừng nào còn ánh sáng trung tính chưa được khử, sai số
-     * của phép tâm trừ sẽ bị hấp thụ vào CCM và khiến giá trị Lab thu được lệch theo cường độ.
-     * Phần tịch còn lại {@code refMean − M·measuredMean} là một vector, <b>không</b> phải phần của
-     * CCM 3×3: nó chính là việc khử trắng, và do {@link WhiteBalanceSolver} đảm nhiệm trước bước này.
-     * Ở đây chỉ trả về phần tuyến tính thuần.
-     */
     public static Matrix3 solveCentered(List<ColorSamples.Sample> samples) {
         RgbLinear measuredMean = mean(samples, true);
         RgbLinear referenceMean = mean(samples, false);
@@ -124,8 +73,6 @@ public final class CcmSolver {
         }
 
         Matrix3 linear = solve(shifted);
-        // Kiểm tra phần tịch phải nhỏ; nếu lớn thì white balance chưa làm việc của nó và CCM sẽ
-        // phải bù bằng thành phần ngoài gamut — dấu hiệu sớm của việc hiệu chuẩn sai.
         double[] residual = linear.apply(new double[] {measuredMean.r(), measuredMean.g(), measuredMean.b()});
         double offsetMagnitude = Math.hypot(
                 Math.hypot(residual[0] - referenceMean.r(),
@@ -157,13 +104,6 @@ public final class CcmSolver {
         return new RgbLinear(sr / n, sg / n, sb / n);
     }
 
-    /**
-     * Khử tam giác trên hệ 3×3 với ba vế phải, bằng Gauss có chọn trục cột.
-     *
-     * <p>Chọn trục là bắt buộc ở đây: các cột của {@code AᵀWA} là bình phương giá trị linear, nên
-     * chúng lệch vài bậc độ lớn giữa mẫu sáng và mẫu tối. Không chọn trục, phép khử chuẩn hoá có thể
-     * làm mất chính xác ở đúng những ma trận tương phốn.
-     */
     private static void eliminate(double[][] augmented) {
         for (int pivot = 0; pivot < 3; pivot++) {
             int best = pivot;
@@ -190,7 +130,6 @@ public final class CcmSolver {
         }
     }
 
-    /** Khử lùi cho một vế phải đã khử tam giác trên. */
     private static double[] backSubstitute(double[][] augmented, int rhsColumn) {
         double[] x = new double[3];
         for (int row = 2; row >= 0; row--) {

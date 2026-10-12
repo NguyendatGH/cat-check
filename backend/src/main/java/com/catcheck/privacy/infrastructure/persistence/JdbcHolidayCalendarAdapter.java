@@ -9,10 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Set;
 
-/**
- * {@link HolidayCalendarPort} trên {@code JdbcTemplate} — trả tất cả ngày lễ; chỉ
- * {@code OFFICIAL} được dùng tính SLA, {@code COMPANY} không kéo dài SLA luật định (p4 B8).
- */
 @Repository
 public class JdbcHolidayCalendarAdapter implements HolidayCalendarPort {
 

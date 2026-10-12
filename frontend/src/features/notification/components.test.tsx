@@ -5,23 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NotificationUnreadBadge, PushDevicesCard } from "./components";
 import { pushAvailability } from "./pushClient";
 
-/**
- * Hai thứ dễ sai nhất ở phần giao diện của nhóm G, và cả hai đều là lỗi "im lặng":
- *
- *  1. **Badge chuông.** Trước gói này header hiện một chấm đỏ CỐ ĐỊNH — luôn sáng kể cả khi
- *     hộp thư trống. Test ép: 0 ⇒ không render gì; n > 0 ⇒ hiện đúng số; > 99 ⇒ "99+".
- *  2. **Nhánh `isPushEnabled = false`.** Thiếu `VITE_FIREBASE_VAPID_KEY` (mặc định của repo,
- *     và cũng là môi trường test) thì KHÔNG được có công tắc bật push — gạt nó sẽ không bao
- *     giờ có token nên là nút chết. Phải thay bằng lời giải thích, và không gọi
- *     `GET /push/subscriptions` (danh sách chắc chắn rỗng).
- *
- * i18n được thay bằng hàm trả thẳng khoá: test này kiểm *cấu trúc hiển thị*, không kiểm câu
- * chữ (câu chữ đã có `claims.test.ts` quét). Dựng bằng `react-dom/client` + `act` vì
- * `@testing-library/dom` không được cài (xem `hooks.test.tsx`).
- */
 vi.mock("react-i18next", async (importOriginal) => ({
-  // Mock TỪNG PHẦN: `shared/api/middleware/locale.ts` kéo theo `shared/i18n/i18n.ts`, file đó
-  // cần `initReactI18next` thật lúc nạp module. Mock trọn gói làm cả suite không khởi động được.
   ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({ t: (key: string) => key }),
 }));
@@ -56,7 +40,6 @@ async function render(node: ReactNode, client: QueryClient): Promise<Mounted> {
   };
 }
 
-/** Chờ `predicate` thành true, mỗi vòng bọc trong `act` để React xả hết cập nhật. */
 async function waitUntil(predicate: () => boolean, label: string): Promise<void> {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     if (predicate()) return;
@@ -146,7 +129,6 @@ describe("PushDevicesCard — nhánh isPushEnabled = false", () => {
     expect(view.container.querySelector('[role="switch"]')).toBeNull();
     expect(view.container.textContent).toContain("push.blocked.MISSING_VAPID_KEY.title");
     expect(view.container.textContent).toContain("push.blocked.MISSING_VAPID_KEY.body");
-    // Danh sách thiết bị cũng không được gọi: chưa cấu hình ở mức sản phẩm thì chắc chắn rỗng.
     expect(fetchMock).not.toHaveBeenCalled();
     expect(view.container.textContent).not.toContain("push.devices.legend");
     view.unmount();

@@ -1,7 +1,6 @@
 import { formatDate } from "@/shared/lib/format/formatDate";
 import { formatNumber } from "@/shared/lib/format/formatNumber";
 
-/** Định dạng hiển thị dùng chung cho các bảng admin. Rỗng hiện "—". */
 
 export const EMPTY_CELL = "—";
 
@@ -17,7 +16,6 @@ export function formatAdminNumber(value: number | null | undefined, options?: In
   return value === null || value === undefined || Number.isNaN(value) ? EMPTY_CELL : formatNumber(value, options);
 }
 
-/** Rút gọn UUID/hash để vừa ô bảng; giá trị đầy đủ đặt ở `title`. */
 export function shortId(value: string | null | undefined, chars = 8): string {
   if (value === null || value === undefined || value === "") {
     return EMPTY_CELL;

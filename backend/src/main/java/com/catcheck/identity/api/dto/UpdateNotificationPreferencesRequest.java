@@ -8,15 +8,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalTime;
 
-/**
- * B12 — body của {@code PUT /account/notification-preferences} (p8 §8.5).
- *
- * <p>{@code PUT} = thay TOÀN BỘ biểu diễn (p8 §8.1.11), nên cả tám field đều bắt buộc.</p>
- *
- * <p>Kiểu bọc ({@code Boolean}, không phải {@code boolean}) để phân biệt "client gửi
- * {@code false}" với "client không gửi field" — {@code boolean} nguyên thuỷ sẽ âm thầm thành
- * {@code false} và một field bị quên trở thành một lần tắt thông báo ngoài ý muốn.</p>
- */
 public record UpdateNotificationPreferencesRequest(
         String attentionAlertChannel,
         Boolean creditAlertsEnabled,
@@ -39,10 +30,6 @@ public record UpdateNotificationPreferencesRequest(
                 requiredTime(r.quietHoursEnd(), "quietHoursEnd"));
     }
 
-    /**
-     * Giá trị lạ — kể cả một giá trị "OFF" mà client tự nghĩ ra — trả 400 chứ không âm thầm
-     * rơi về mặc định: p4 F4 cố ý không có đường tắt hẳn cảnh báo cần chú ý (quyết định #10).
-     */
     private static AttentionAlertChannel parseChannel(String raw) {
         if (raw == null || raw.isBlank()) {
             throw new BusinessRuleException(IdentityErrorCode.VALIDATION_FAILED, "attentionAlertChannel");

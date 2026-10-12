@@ -1,12 +1,6 @@
 import { create } from "zustand";
 import type { SessionStatus, SessionUser } from "./model";
 
-/**
- * Store phiên đăng nhập tối thiểu cho M0.
- * TODO: nối với shared/api thật (bootstrap qua cookie session + CSRF) ở milestone kế.
- * Guard SessionProvider (app/providers/SessionProvider.tsx) chặn render router tới khi
- * status khác "idle"/"loading".
- */
 interface SessionStore {
   status: SessionStatus;
   user: SessionUser | null;

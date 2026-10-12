@@ -5,7 +5,6 @@ import com.catcheck.privacy.domain.RetentionPolicy;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Response quản trị cho một cấu hình retention; không trả nội dung dữ liệu của user. */
 public record RetentionPolicyResponse(
         String code,
         String dataInventoryCode,

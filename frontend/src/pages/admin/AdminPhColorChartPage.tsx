@@ -36,28 +36,6 @@ import {
 } from "@/features/admin";
 import { useGroup2Can } from "./group2Access";
 
-/**
- * `/admin/ph-color-chart` — quản trị bảng màu pH và dải phân loại.
- *
- * NỐI API THẬT, toàn bộ `colorchart/api/AdminColorChartController`:
- * L27 `GET /admin/color-charts` · L28 `POST /admin/color-charts` ·
- * L29 `GET /admin/color-charts/{chartId}` · L30 `PATCH …` ·
- * L31 `PUT …/points` · L32 `POST …/publish` ·
- * L36 `GET /admin/ph-classification-bands` · L37 `PATCH …/{code}`.
- *
- * Hai điều phải giữ đúng ở màn này:
- *
- * 1. **`If-Match`** — L30/L31/L37 bắt buộc; giá trị lấy nguyên văn từ header `ETag` của
- *    lần GET gần nhất (`useAdminColorChart`/`useAdminPhBands` trả cả body lẫn ETag).
- *    Sửa khi ETag cũ ⇒ server trả 412, đúng ý đồ chống ghi đè.
- * 2. **KHÔNG hard-code giá trị pH** — mọi `phValue`, `phMin`, `phMax` hiển thị đều lấy
- *    từ response. Màu swatch cũng vậy: `displayHex` là dữ liệu, không phải literal trong
- *    mã (ESLint chặn literal hex trong `.tsx`).
- *
- * Ngưỡng `minPh`/`maxPh` của dải phân loại CHỈ ĐỌC ở đây: p8 L37 ghi "đổi ngưỡng ⇒
- * step-up", mà lớp step-up (`S1:TOTP`) chưa được nối — javadoc controller nói rõ. Mở ô
- * nhập ngưỡng lúc này là mở đúng thứ spec bắt phải khoá.
- */
 
 const CHART_STATUS_CLASS: Record<ChartStatus, string> = {
   DRAFT: "bg-background-alt text-text-secondary",
@@ -65,7 +43,6 @@ const CHART_STATUS_CLASS: Record<ChartStatus, string> = {
   ARCHIVED: "bg-chip-bg text-text-tertiary",
 };
 
-/** Ô màu lấy thẳng từ dữ liệu server — không có literal màu nào trong file này. */
 function Swatch({ hex }: { hex: string }) {
   const { t } = useTranslation("admin");
   if (!isHexColor(hex)) {
@@ -85,7 +62,6 @@ function Swatch({ hex }: { hex: string }) {
   );
 }
 
-// ------------------------------------------------------------- tạo bản DRAFT
 
 function CreateChartForm({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation("admin");
@@ -172,7 +148,6 @@ function CreateChartForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ------------------------------------------------------------- soạn các điểm
 
 interface PointDraft {
   key: string;
@@ -244,7 +219,6 @@ function isDraftComplete(draft: PointDraft): boolean {
 const DRAFT_NUMBER_FIELDS = ["phValue", "labL", "labA", "labB", "toleranceDeltaE"] as const;
 const DRAFT_TEXT_FIELDS = ["hexSrgb", "displayHex", "displayNameVi", "displayNameEn"] as const;
 
-/** Khoá i18n cho nhãn cột — dùng lại làm `aria-label` của ô nhập trong cùng cột. */
 const DRAFT_FIELD_LABEL_KEY: Record<(typeof DRAFT_NUMBER_FIELDS)[number] | (typeof DRAFT_TEXT_FIELDS)[number], string> =
   {
     phValue: "chart.colPh",
@@ -416,7 +390,6 @@ function PointsEditor({
   );
 }
 
-// ------------------------------------------------------------- chi tiết bảng
 
 function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () => void }) {
   const { t } = useTranslation("admin");
@@ -454,7 +427,6 @@ function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () =
 
   const chart = detail.data.data;
   const etag = detail.data.etag;
-  /** L30 — sửa bản ACTIVE ⇒ 409 COLOR_CHART_IN_USE, nên chỉ DRAFT mới mở ô nhập. */
   const editable = chart.status === "DRAFT" && canEdit;
 
   return (
@@ -585,16 +557,10 @@ function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () =
   );
 }
 
-// ------------------------------------------------------------- dải phân loại
 
 function BandEditor({ band, etag, onClose }: { band: PhBand; etag: string | null; onClose: () => void }) {
   const { t, i18n } = useTranslation("admin");
   const update = useUpdatePhBand();
-  /**
-   * L36 trả `label`/`description` ĐÃ resolve theo `Accept-Language`, không trả riêng
-   * cặp vi/en. Nên chỉ ghi lại đúng cặp của ngôn ngữ đang dùng — ghi nhãn tiếng Anh vào
-   * cột tiếng Việt là làm hỏng dữ liệu của locale kia.
-   */
   const isEnglish = i18n.language.startsWith("en");
 
   const [label, setLabel] = useState(band.label);
@@ -807,7 +773,6 @@ function BandsSection() {
   );
 }
 
-// -------------------------------------------------------------------- trang
 
 export function AdminPhColorChartPage() {
   const { t } = useTranslation("admin");

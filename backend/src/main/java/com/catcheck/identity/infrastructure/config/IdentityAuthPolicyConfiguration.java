@@ -4,10 +4,6 @@ import com.catcheck.identity.domain.AuthPolicy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Gom {@link IdentityAuthProperties} (Spring) thanh {@link AuthPolicy} (domain) de tang
- * {@code application} doc duoc cau hinh ma khong phu thuoc infrastructure (R2).
- */
 @Configuration(proxyBeanMethods = false)
 public class IdentityAuthPolicyConfiguration {
 

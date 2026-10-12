@@ -13,10 +13,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-/**
- * Decorator tương thích ngược: ghi mới luôn vào {@code primary} (Cloudinary); đọc/exists/URL/xoá
- * ưu tiên tệp đã nằm ở đĩa local (khoá cũ), ngược lại dùng {@code primary}.
- */
 public class RoutingImageStorage implements ImageStorage {
 
     private final ImageStorage primary;

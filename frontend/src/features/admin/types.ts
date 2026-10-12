@@ -1,19 +1,5 @@
-/**
- * Hợp đồng JSON của khu vực quản trị — CHÉP THEO DTO BACKEND ĐANG CHẠY, không tự bịa.
- *
- * Nguồn (đã đọc trực tiếp mã nguồn, không suy đoán):
- * - `colorchart/api/AdminColorChartController.java` + `colorchart/api/dto/*`  → L27–L32, L36, L37
- * - `content/api/AdminContentController.java` + `content/api/dto/*`          → L40–L45
- * - `admin/api/SystemStatusController.java`                                  → `/admin/system-status`
- * - `privacy/api/PrivacyController.java` + `privacy/api/dto/*`               → C1, C5
- * - `community/api/CommunityModerationController.java` + `community/api/dto/*` → F18
- *
- * Mã endpoint (L27…) là số hiệu của p8 §8.4.12 — dùng để tra ngược khi backend đổi.
- */
 
-// ---------------------------------------------------------------- phân trang
 
-/** `colorchart/api/dto/OffsetPageResponse`, `content/...` và `community/...`. */
 export interface AdminOffsetPage<T> {
   items: T[];
   number: number;
@@ -23,7 +9,6 @@ export interface AdminOffsetPage<T> {
   hasMore: boolean;
 }
 
-/** `privacy/api/dto/PageView` — cursor pagination của nhóm C. */
 export interface PrivacyPage<T> {
   items: T[];
   limit: number;
@@ -31,7 +16,6 @@ export interface PrivacyPage<T> {
   hasMore: boolean;
 }
 
-// ------------------------------------------------------------- bảng màu pH
 
 export type ChartStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type ProductLine = "MINI" | "STANDARD" | "PLUS";
@@ -39,7 +23,6 @@ export type ProductLine = "MINI" | "STANDARD" | "PLUS";
 export const CHART_STATUSES: readonly ChartStatus[] = ["DRAFT", "ACTIVE", "ARCHIVED"];
 export const PRODUCT_LINES: readonly ProductLine[] = ["MINI", "STANDARD", "PLUS"];
 
-/** `ColorChartSummaryResponse`. */
 export interface ColorChartSummary {
   id: string;
   code: string;
@@ -52,7 +35,6 @@ export interface ColorChartSummary {
   source: string;
 }
 
-/** `ColorChartPointResponse`. `phValue` LUÔN đến từ server — không hằng số ở FE. */
 export interface ColorChartPoint {
   id: string;
   phValue: number;
@@ -67,12 +49,10 @@ export interface ColorChartPoint {
   displayNameEn: string | null;
 }
 
-/** `ColorChartDetailResponse`. */
 export interface ColorChartDetail extends ColorChartSummary {
   points: ColorChartPoint[];
 }
 
-/** `CreateColorChartRequest` — `productLine` là `@NotNull`. */
 export interface CreateColorChartPayload {
   code: string;
   name: string;
@@ -80,14 +60,12 @@ export interface CreateColorChartPayload {
   productionBatch?: string;
 }
 
-/** `UpdateColorChartRequest` (+ `reason`, xem ghi chú ở `api.ts`). */
 export interface UpdateColorChartPayload {
   name?: string;
   productLine?: ProductLine;
   productionBatch?: string;
 }
 
-/** `PointInput` — server nhận `BigDecimal`, gửi number là hợp lệ. */
 export interface ColorChartPointInput {
   phValue: number;
   labL: number;
@@ -100,7 +78,6 @@ export interface ColorChartPointInput {
   displayNameEn?: string | null;
 }
 
-/** `UpdatePhBandRequest` — mọi trường optional, vắng mặt nghĩa là giữ nguyên. */
 export interface UpdatePhBandPayload {
   labelVi?: string;
   labelEn?: string;
@@ -113,7 +90,6 @@ export interface UpdatePhBandPayload {
   active?: boolean;
 }
 
-// ------------------------------------------------------------- nội dung CMS
 
 export type CareTipStatus = "DRAFT" | "IN_REVIEW" | "PUBLISHED" | "ARCHIVED";
 export type CareTipKind = "TIP" | "ARTICLE" | "FAQ";
@@ -132,7 +108,6 @@ export const CLAIM_TYPES: readonly ClaimType[] = [
   "SERVICE_COMMITMENT",
 ];
 
-/** `CareTipDetailResponse`. Chỉ hiển thị trường nào thật sự cần — không phơi `authorId`. */
 export interface CareTipDetail {
   id: string;
   slug: string;
@@ -155,7 +130,6 @@ export interface CareTipDetail {
   updatedAt: string;
 }
 
-/** `CreateCareTipRequest` — `slug` phải kebab-case, `locale` chỉ `vi`/`en`. */
 export interface CreateCareTipPayload {
   slug: string;
   locale: string;
@@ -165,7 +139,6 @@ export interface CreateCareTipPayload {
   claimType: ClaimType;
 }
 
-/** `UpdateCareTipRequest` — trường vắng mặt nghĩa là giữ nguyên. */
 export interface UpdateCareTipPayload {
   title?: string;
   summary?: string;
@@ -175,17 +148,13 @@ export interface UpdateCareTipPayload {
   sortWeight?: number;
 }
 
-// -------------------------------------------------------------- hệ thống
 
-/** `admin/api/dto/SystemStatusResponse`. */
 export interface AdminSystemStatus {
   databaseReachable: boolean;
   checkedAt: string;
 }
 
-// -------------------------------------------------------------- quyền riêng tư
 
-/** `privacy/api/dto/DataInventoryView` (C5) — danh mục toàn cục, KHÔNG phải dữ liệu của user. */
 export interface DataInventoryItem {
   code: string;
   category: string;
@@ -199,7 +168,6 @@ export interface DataInventoryItem {
   recipient: string | null;
 }
 
-/** `privacy/api/dto/PurposeView` (C1) — danh mục `consent_purpose`, công khai. */
 export interface ConsentPurposeItem {
   code: string;
   label: string;
@@ -252,7 +220,6 @@ export interface CommunityReport {
   createdAt: string;
 }
 
-// ---------------------------------------------------------- mã kích hoạt
 
 export type ActivationCodeStatus = "ISSUED" | "REDEEMED" | "VOID";
 
@@ -309,7 +276,6 @@ export interface IssuedActivationBatch {
   csvPath: string;
 }
 
-// ---------------------------------------------------------- cấu hình gói
 
 export interface AdminPlanFeatures {
   history: "NONE" | "BASIC" | "ADVANCED";
@@ -343,7 +309,6 @@ export interface UpdateAdminPackagePlanPayload {
   reason: string;
 }
 
-// ---------------------------------------------------------- vận hành
 
 export interface AdminJobRun {
   id: string;
@@ -480,7 +445,6 @@ export interface AdminMaintenance {
   updatedAt: string;
 }
 
-// ---------------------------------------------------------- sản phẩm cửa hàng
 
 export const SHOP_PRODUCT_STATUSES = ["DRAFT", "PUBLISHED", "ARCHIVED"] as const;
 export type AdminProductStatus = (typeof SHOP_PRODUCT_STATUSES)[number];

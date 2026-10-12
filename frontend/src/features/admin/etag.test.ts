@@ -3,7 +3,6 @@ import { isApiError } from "@/shared/api/errors";
 import { adminRequest } from "./api";
 import { classifyAdminError } from "./adminAccess";
 
-// `currentAcceptLanguage` kéo theo i18next (nạp locale qua HTTP) — không cần cho test này.
 vi.mock("@/shared/api/acceptLanguage", () => ({ currentAcceptLanguage: () => "vi" }));
 
 const ETAG = 'W/"1727740800000-REPEATED_OUT_OF_RANGE"';

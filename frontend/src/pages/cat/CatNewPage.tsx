@@ -16,7 +16,6 @@ import {
   type CatMutationPayload,
 } from "@/features/cat";
 
-/** `/cats/new` — W1 9 + M2 06 (p9 route #28). Tạo hồ sơ mèo (D2, p8 §8.4.4). */
 export function CatNewPage() {
   const { t } = useTranslation(["cat", "common"]);
   const navigate = useNavigate();
@@ -85,7 +84,6 @@ export function CatNewPage() {
         try {
           await uploadAvatar.mutateAsync({ catId: cat.id, file: avatarFile });
         } catch {
-          // Hồ sơ đã tạo thành công — lỗi upload ảnh không nên chặn điều hướng, chỉ báo toast.
           toast.error(t("errors.generic"));
         }
       }
@@ -101,7 +99,6 @@ export function CatNewPage() {
   };
 
   return (
-    // Desktop: form nằm trong một thẻ trắng (như các màn TaskLayout khác) thay vì trôi trên nền.
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:rounded-3xl lg:bg-surface lg:p-8 lg:shadow-xs">
       <h1 className="text-h2 font-bold text-text-primary">{t("pages.new.title")}</h1>
 

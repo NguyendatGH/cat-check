@@ -19,29 +19,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Hiện thực {@link CatContextPort} — MỘT adapter duy nhất gọi thẳng 5 named interface
- * (cat/scan/insight/reminder/credit), theo phương án đơn giản hơn trong hai phương án gợi ý ở
- * {@code docs/cat-rag-credit-pipeline.md} mục A4-(1): mỗi lệnh gọi ở đây map gần như 1-1 sang
- * một trường của {@link CatContextPort.CatContext}, nên tách thêm SPI con cho từng module không
- * mua được gì ở quy mô này (ponytail: tối thiểu, không gián tiếp thừa).
- *
- * <p><b>Thứ tự gọi là bất biến bảo mật:</b> {@link #loadContext} luôn gọi
- * {@code catContextQuery.findSnapshot} TRƯỚC — nếu rỗng, trả rỗng ngay và KHÔNG gọi bất kỳ cổng
- * nào khác. Bốn cổng còn lại chỉ nhận đúng {@code catId} đã được xác nhận thuộc {@code userId}.</p>
- */
 @Component
 public class CatContextAdapter implements CatContextPort {
 
-    /** Cửa sổ "tóm tắt gần đây" của A4-(1). */
     private static final Duration TREND_WINDOW = Duration.ofDays(30);
 
-    /** Đủ dư cho mọi mèo quét hằng ngày suốt 30 ngày mà không mất dữ liệu đầu cửa sổ. */
     private static final int TREND_FETCH_LIMIT = 90;
 
     private static final int OPEN_FLAG_LIMIT = 20;
 
-    /** Dưới ngưỡng này thì chưa đủ để gọi là "xu hướng" — {@link CatContextPort.TrendSummary} trả {@code null}. */
     private static final int MIN_POINTS_FOR_TREND = 2;
 
     private static final String IN_RANGE_CLASSIFICATION = "IN_RANGE";
@@ -80,8 +66,6 @@ public class CatContextAdapter implements CatContextPort {
         CatContextQuery.CatProfileSnapshot snapshot = profile.get();
         Instant now = clock.instant();
 
-        // Lần quét gần nhất KHÔNG giới hạn trong cửa sổ 30 ngày (mèo lâu không quét vẫn nên thấy
-        // lần quét cuối cùng), còn thống kê xu hướng thì giới hạn đúng cửa sổ.
         List<ScanHistoryQuery.RecentScan> latestWindow =
                 scanHistoryQuery.recentValidScans(catId, Instant.EPOCH, 1);
         List<ScanHistoryQuery.RecentScan> trendWindow =

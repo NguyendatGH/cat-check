@@ -33,18 +33,15 @@ function motionKind(element: HTMLElement): MotionKind {
   const attr = element.getAttribute("data-motion");
   if (attr === "card" || attr === "row" || attr === "control") return attr;
   if (element.classList.contains("motion-card")) return "card";
-  // ponytail: đo width một lần lúc pointer — hàng full-width scale trông như giật layout
   return element.offsetWidth >= 240 ? "row" : "control";
 }
 
 function skipMotion(element: HTMLElement) {
   if (element.closest("[data-motion='none']")) return true;
-  // GSAP ghi đè cả transform CSS: bỏ qua nút đang dùng translate để canh giữa (FAB quét, dialog).
   return /(?:^|\s)-translate-(?:x|y)-1\/2(?:\s|$)/.test(element.className);
 }
 
 function hoverVars(element: HTMLElement) {
-  // ponytail: hover-scale trông đồ chơi; chỉ nhấc card, nút đứng im đến lúc press
   return motionKind(element) === "card" ? { y: -3, scale: 1 } : { y: 0, scale: 1 };
 }
 
@@ -59,16 +56,11 @@ function pressVars(element: HTMLElement) {
   return { y: 0, scale: 0.97 };
 }
 
-/**
- * A restrained entrance for page-level content. It animates transforms/opacity only,
- * scopes selectors to the page root, and exits cleanly for reduced-motion users.
- */
 export function usePageReveal(scope: RefObject<HTMLElement | null>) {
   useGSAP(
     () => {
       const page = scope.current;
       if (!page) return;
-      // Trang tự dựng timeline (welcome) — đừng chồng slide generic.
       if (page.hasAttribute("data-motion-scene") || page.querySelector("[data-motion-scene]")) return;
 
       const marked = gsap.utils.toArray<HTMLElement>("[data-reveal]", page);
@@ -108,10 +100,6 @@ export function usePageReveal(scope: RefObject<HTMLElement | null>) {
   );
 }
 
-/**
- * Welcome / Splash screen entrance timeline (Figma M1).
- * Softly animates glowing backdrops, status copy, badges, and hero elements.
- */
 export function useWelcomeScene(scope: RefObject<HTMLElement | null>) {
   useGSAP(
     () => {
@@ -164,7 +152,6 @@ export function useWelcomeScene(scope: RefObject<HTMLElement | null>) {
   );
 }
 
-/** Overlay / dialog / sheet entrance. Same reduced-motion gate as page reveal. */
 export function useSurfaceEnter(scope: RefObject<HTMLElement | null>, kind: SurfaceKind) {
   useGSAP(
     () => {
@@ -179,6 +166,23 @@ export function useSurfaceEnter(scope: RefObject<HTMLElement | null>, kind: Surf
         return;
       }
       if (kind === "sheet") {
+        const side = element.getAttribute("data-side");
+        if (side === "left") {
+          gsap.fromTo(
+            element,
+            { autoAlpha: 0, x: -36 },
+            { autoAlpha: 1, x: 0, duration: 0.28, ease: "power2.out", clearProps: "transform" },
+          );
+          return;
+        }
+        if (side === "right") {
+          gsap.fromTo(
+            element,
+            { autoAlpha: 0, x: 36 },
+            { autoAlpha: 1, x: 0, duration: 0.28, ease: "power2.out", clearProps: "transform" },
+          );
+          return;
+        }
         gsap.fromTo(
           element,
           { autoAlpha: 0, y: 20 },
@@ -186,7 +190,6 @@ export function useSurfaceEnter(scope: RefObject<HTMLElement | null>, kind: Surf
         );
         return;
       }
-      // Dialog đã canh giữa bằng CSS translate; GSAP giữ xPercent/yPercent để không lệch khung.
       gsap.fromTo(
         element,
         { autoAlpha: 0, xPercent: -50, yPercent: -50 },
@@ -203,7 +206,6 @@ export function useSurfaceEnter(scope: RefObject<HTMLElement | null>, kind: Surf
   );
 }
 
-/** Consistent press/hover/focus feedback for interactive controls across the whole app. */
 export function useMicroInteractions(scope: RefObject<HTMLElement | null>) {
   useGSAP(
     (_context, contextSafe) => {

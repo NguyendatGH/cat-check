@@ -18,10 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * {@link JobRunRecorder} với cổng trong bộ nhớ — kiểm chứng hợp đồng "đúng một dòng
- * {@code job_run} mỗi lần chạy" (p12 §12.6.1 quy tắc 4) mà không cần DB.
- */
 class JobRunRecorderTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T05:05:00Z");
@@ -47,8 +43,6 @@ class JobRunRecorderTest {
 
     @Test
     void dryRunStillWritesARow() {
-        // p4 §K3: "Lần chạy dry_run VẪN ghi một dòng — nếu không, người vận hành không biết
-        // mình đã thử gì".
         recorder.start("ScanImageRetentionJob", JobTriggerType.MANUAL, true);
 
         FakeJobRunPort.Row row = port.only();
@@ -73,8 +67,6 @@ class JobRunRecorderTest {
 
     @Test
     void finishOnUnknownRunIdFailsLoudly() {
-        // Đóng một dòng không tồn tại nghĩa là có chỗ gọi finish mà chưa gọi start — im lặng
-        // ở đây sẽ sinh ra job chạy mà không có nhật ký.
         assertThrows(IllegalStateException.class,
                 () -> recorder.finish(java.util.UUID.randomUUID(), JobOutcome.success(0)));
     }
@@ -91,7 +83,6 @@ class JobRunRecorderTest {
 
     @Test
     void outcomeRejectsRunningAndNegativeCounts() {
-        // JobOutcome là nơi duy nhất chặn giá trị vô nghĩa trước khi chạm ck_job_run_count.
         assertThrows(IllegalArgumentException.class,
                 () -> new JobOutcome(JobRunStatus.RUNNING, 0, 0, 0, null));
         assertThrows(IllegalArgumentException.class,
@@ -100,7 +91,6 @@ class JobRunRecorderTest {
 
     @Test
     void outcomeTruncatesErrorSummary() {
-        // p4 §K3: error_summary phải "rút gọn, không stack trace".
         String overlyLong = "x".repeat(JobOutcome.MAX_ERROR_SUMMARY_LENGTH + 100);
         JobOutcome outcome = JobOutcome.failed(overlyLong);
         assertEquals(JobOutcome.MAX_ERROR_SUMMARY_LENGTH, outcome.errorSummary().length());

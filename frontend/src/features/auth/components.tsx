@@ -15,14 +15,7 @@ import { cn } from "@/shared/lib/cn";
 import { estimatePasswordStrength, type PasswordStrength } from "./schemas";
 import type { ConsentPurposeOption, SessionItem } from "./types";
 
-/**
- * Component dùng chung cho luồng auth — gom trong 1 file root theo đúng khuôn
- * `features/onboarding/components.tsx` (xem docs/handovers/A7.md §6 — giữ nguyên quy ước
- * dù thực đo lại cho thấy import feature->feature sibling không còn bị chặn, để nhất quán
- * kiến trúc toàn repo như ORCHESTRATOR yêu cầu).
- */
 
-/* ---------------- OtpCodeInput ---------------- */
 
 const OTP_LENGTH = 6;
 
@@ -34,14 +27,11 @@ interface OtpCodeInputProps {
   focusOnMount?: boolean;
 }
 
-/** 6 ô nhập OTP tách rời, tự chuyển ô, dán được cả chuỗi 6 số (M1 01c-2 / Web-01c-2). */
 export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }: OtpCodeInputProps) {
   const { t } = useTranslation("auth");
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const digits = value.padEnd(OTP_LENGTH, " ").split("").slice(0, OTP_LENGTH);
 
-  // jsx-a11y/no-autofocus cấm prop `autoFocus` trên JSX — focus bằng tay ở effect thay vì
-  // thuộc tính, hành vi tương đương (focus ô đầu tiên khi màn OTP vừa mở).
   useEffect(() => {
     if (focusOnMount) {
       inputsRef.current[0]?.focus();
@@ -61,7 +51,6 @@ export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }:
       return;
     }
     if (clean.length > 1) {
-      // Dán cả chuỗi vào 1 ô — rải ra các ô tiếp theo.
       const chars = clean.slice(0, OTP_LENGTH - index).split("");
       const next = digits.slice();
       chars.forEach((char, offset) => {
@@ -111,8 +100,6 @@ export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }:
               handleKeyDown(index, event);
             }}
             className={cn(
-              // Web: ô nằm trên thẻ trắng (Figma Web-01c-2: ô nền tím nhạt) — nền `surface` sẽ chìm
-              // mất, chỉ ô đang focus còn thấy viền.
               "h-14 w-full min-w-0 rounded-xl bg-surface text-center text-h3 font-bold text-text-primary shadow-xs lg:rounded-lg lg:bg-background-alt lg:text-primary-dark lg:shadow-none",
               "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
               error && "outline outline-2 outline-danger",
@@ -129,7 +116,6 @@ export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }:
   );
 }
 
-/* ---------------- PasswordField ---------------- */
 
 interface PasswordFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -137,12 +123,6 @@ interface PasswordFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   helperText?: string;
 }
 
-/**
- * Input mật khẩu có icon ổ khoá trái + nút hiện/ẩn phải (icon con mắt, M1 01b/01c-1). Không
- * tái dùng `shared/ui` `Input` trực tiếp — cần bọc thêm nút hiện/ẩn nên tự vẽ lại đúng style
- * của `Input` (rounded-xl/shadow-xs/h-12, khớp Figma 26mOVF2zdu4cI1EPz2Syxw) thay vì định vị
- * tuyệt đối chồng lên (dễ lệch khi có/không `label`/`error`).
- */
 export function PasswordField({ className, label, error, helperText, id, ...props }: PasswordFieldProps) {
   const { t } = useTranslation("auth");
   const [visible, setVisible] = useState(false);
@@ -201,7 +181,6 @@ export function PasswordField({ className, label, error, helperText, id, ...prop
   );
 }
 
-/* ---------------- PasswordStrengthMeter ---------------- */
 
 const STRENGTH_LEVEL: Record<PasswordStrength, number> = { empty: 0, weak: 1, medium: 2, strong: 3 };
 const STRENGTH_COLOR: Record<PasswordStrength, string> = {
@@ -236,7 +215,6 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
   );
 }
 
-/* ---------------- ResendCountdown ---------------- */
 
 interface ResendCountdownProps {
   seconds: number;
@@ -245,7 +223,6 @@ interface ResendCountdownProps {
   disabled?: boolean;
 }
 
-/** Đếm ngược "Gửi lại mã sau {n}s" dùng chung cho verify-otp/forgot-password (M1 01c-2). */
 export function ResendCountdown({ seconds, onExpire, onResend, disabled }: ResendCountdownProps) {
   const { t } = useTranslation("auth");
   const [remaining, setRemaining] = useState(seconds);
@@ -293,7 +270,6 @@ export function ResendCountdown({ seconds, onExpire, onResend, disabled }: Resen
   );
 }
 
-/* ---------------- ConsentCheckboxList ---------------- */
 
 interface ConsentCheckboxListProps {
   purposes: ConsentPurposeOption[];
@@ -301,11 +277,6 @@ interface ConsentCheckboxListProps {
   onChange: (code: string, granted: boolean) => void;
 }
 
-/**
- * Danh sách checkbox consent riêng từng mục đích (p15 §15.3.1 C2 — cấm gộp). Nội dung
- * nhãn/mô tả lấy nguyên văn từ API `GET /privacy/purposes` (module privacy sở hữu câu
- * chữ), component chỉ vẽ UI + badge "Dữ liệu nhạy cảm" khi `sensitive`.
- */
 export function ConsentCheckboxList({ purposes, values, onChange }: ConsentCheckboxListProps) {
   const { t } = useTranslation("auth");
   return (
@@ -357,14 +328,7 @@ export function ConsentCheckboxList({ purposes, values, onChange }: ConsentCheck
   );
 }
 
-/* ---------------- GoogleAuthButton ---------------- */
 
-/**
- * Nút Google OAuth — điều hướng TOÀN TRANG (`window.location.assign`), KHÔNG `fetch`
- * (p9 §9.6.3, p11 §11.1.4): fetch vướng CORS của Google và không đặt được cookie phiên.
- * Chữ tối màu (không phải `text-primary` như tertiary mặc định) — khớp nút Google trắng viền
- * nhạt của Figma (M1 01b), không phải nút dạng link.
- */
 export function GoogleAuthButton({ label, className }: { label: string; className?: string }) {
   return (
     <Button
@@ -382,7 +346,6 @@ export function GoogleAuthButton({ label, className }: { label: string; classNam
   );
 }
 
-/* ---------------- SessionRow ---------------- */
 
 interface SessionRowProps {
   session: SessionItem;
@@ -390,7 +353,6 @@ interface SessionRowProps {
   revoking?: boolean;
 }
 
-/** Một dòng phiên đăng nhập (danh sách thiết bị, A13/A14) — sẵn cho `/settings/security`. */
 export function SessionRow({ session, onRevoke, revoking }: SessionRowProps) {
   const { t } = useTranslation("auth");
   return (
@@ -426,9 +388,7 @@ export function SessionRow({ session, onRevoke, revoking }: SessionRowProps) {
   );
 }
 
-/* ---------------- RecoveryCodeGrid ---------------- */
 
-/** Lưới 10 mã khôi phục TOTP hiện đúng một lần (B16/B17) — sẵn cho `/admin/setup-2fa`. */
 export function RecoveryCodeGrid({ codes }: { codes: string[] }) {
   const { t } = useTranslation("auth");
   const [copied, setCopied] = useState(false);
@@ -464,7 +424,6 @@ export function RecoveryCodeGrid({ codes }: { codes: string[] }) {
   );
 }
 
-/* ---------------- InlineAlert ---------------- */
 
 export function InlineAlert({ children, tone = "danger" }: { children: ReactNode; tone?: "danger" | "info" }) {
   return (

@@ -14,15 +14,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Ghi log hành vi sản phẩm — {@code user_activity_log} (p4 B11).
- *
- * <p><b>Đây là bảng rủi ro pháp lý cao nhất trong nhóm B</b> (p15 §15.2.4): "lịch sử dùng
- * app" có thể bị coi là dữ liệu cá nhân nhạy cảm. Hệ quả bắt buộc (p15 REQ-PRIV-02):
- * chỉ ghi khi user đồng ý {@code PRODUCT_ANALYTICS} (mặc định TẮT), không ghi khi tài
- * khoản RESTRICTED, xoá cứng khi xoá tài khoản. {@code props} không chứa PII, không
- * chứa giá trị pH (I29).</p>
- */
 @Service
 public class ActivityLogService {
 
@@ -48,12 +39,6 @@ public class ActivityLogService {
         this.clock = clock;
     }
 
-    /**
-     * Ghi một sự kiện hành vi. Cổng consent (p15 REQ-PRIV-02): chỉ ghi khi user đã
-     * đồng ý {@code PRODUCT_ANALYTICS}; tài khoản RESTRICTED thì im lặng bỏ qua (không
-     * lỗi — đây là nghĩa vụ pháp lý, không phải lỗi của caller). Trả về {@code false}
-     * khi BỎ QUA vì chưa consent.
-     */
     @Transactional
     public boolean record(UUID userId, String eventCode, Map<String, Object> props) {
         UserAccountSnapshot snapshot = userAccountPort.snapshot(userId);
@@ -71,7 +56,6 @@ public class ActivityLogService {
         return true;
     }
 
-    /** Xoá cứng toàn bộ log hành vi của user — bắt buộc khi xoá tài khoản (p4 B11, p15 §15.4.6). */
     @Transactional
     public int eraseByUser(UUID userId) {
         return logPort.deleteByUser(userId);

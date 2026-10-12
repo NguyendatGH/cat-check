@@ -1,39 +1,15 @@
 package com.catcheck.scan.infrastructure.vision;
 
-/**
- * Tính ma trận homography 3×3 từ 4 cặp điểm tương ứng — thuật toán DLT (Direct Linear
- * Transform).
- *
- * <p>JavaCPP 4.14 không bind {@code cv::getPerspectiveTransform} (chỉ có bản Cũ
- * {@code cvGetPerspectiveTransform} trả {@code CvMat} đã deprecated). Thay vì dùng API cũ, tính
- * homography bằng phương trình tuyến tính — đúng tinh thần "toán thuần Java" của dự án và
- * kiểm thử được mà không cần native.
- *
- * <p>Hệ phương trình: với mỗi cặp (x,y) → (x',y'), hai phương trình:
- * <pre>
- *   h11·x + h12·y + h13 − h31·x·x' − h32·y·x' − h33·x' = 0
- *   h21·x + h22·y + h23 − h31·x·y' − h32·y·y' − h33·y' = 0
- * </pre>
- * 4 cặp → 8 phương trình, 9 ẩn số. Đặt h33 = 1 (homography có 8 bậc tự do) → hệ 8×8.
- */
 final class HomographySolver {
 
     private HomographySolver() {
     }
 
-    /**
-     * Tính homography từ 4 điểm nguồn tới 4 điểm đích.
-     *
-     * @param src 4 điểm nguồn, mỗi điểm {@code [x, y]}
-     * @param dst 4 điểm đích, mỗi điểm {@code [x, y]}
-     * @return ma trận 3×3, hàng-chính
-     */
     static double[][] solve(double[][] src, double[][] dst) {
         if (src.length != 4 || dst.length != 4) {
             throw new IllegalArgumentException("Homography can dung 4 diem");
         }
 
-        // Hệ 8×8: mỗi cặp điểm cho 2 phương trình
         double[][] a = new double[8][8];
         double[] b = new double[8];
 
@@ -43,7 +19,6 @@ final class HomographySolver {
             double xp = dst[i][0];
             double yp = dst[i][1];
 
-            // Phương trình cho x'
             a[i * 2][0] = x;
             a[i * 2][1] = y;
             a[i * 2][2] = 1;
@@ -54,7 +29,6 @@ final class HomographySolver {
             a[i * 2][7] = -y * xp;
             b[i * 2] = xp;
 
-            // Phương trình cho y'
             a[i * 2 + 1][0] = 0;
             a[i * 2 + 1][1] = 0;
             a[i * 2 + 1][2] = 0;
@@ -75,9 +49,6 @@ final class HomographySolver {
         };
     }
 
-    /**
-     * Giải hệ tuyến tính Ax = b bằng Gauss có chọn trục cột.
-     */
     private static double[] solveLinear(double[][] a, double[] b) {
         int n = b.length;
         double[][] augmented = new double[n][n + 1];

@@ -16,11 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Tra cứu phòng khám thú y thật quanh một toạ độ từ OpenStreetMap (Overpass API, `amenity=veterinary`).
- * Toạ độ người dùng được làm tròn 0,01° (~1 km) trước khi gọi ra ngoài và dùng làm khoá cache; không ghi log toạ độ.
- * Lỗi mạng ⇒ trả danh sách rỗng (UI vẫn có dữ liệu CatCheck).
- */
 @Component
 public class OsmVeterinaryClient implements NearbyPlaceSource {
     public static final String ID_PREFIX = "osm:";
@@ -83,7 +78,6 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
                 last = failure;
             }
         }
-        // Retry the primary endpoint once for transient 429/5xx responses.
         try {
             Thread.sleep(1500);
         } catch (InterruptedException ie) {
@@ -100,7 +94,6 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
     }
 
     private List<ExternalPlace> fetch(String endpoint, double lat, double lon, int radius) {
-        // Chỉ lọc theo thẻ key=value (có chỉ mục): lọc theo tên bằng regex làm Overpass quá tải/timeout.
         String around = String.format(Locale.ROOT, "(around:%d,%.4f,%.4f)", radius, lat, lon);
         String ql = "[out:json][timeout:20];("
                 + "nwr[\"amenity\"=\"veterinary\"]" + around + ";"

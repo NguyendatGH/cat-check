@@ -31,16 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Ho so ca nhan (p8 B1, B2, B3-B5, B9, B10, B11, B12).
- *
- * <p>{@code phone} ma hoa AES-256-GCM khoa con {@code pii.phone}, AAD
- * {@code app_user|phone|<userId>} (p11 §11.10.3). KHONG bao gio tra ban ro.</p>
- *
- * <p>Avatar: M1 luu local (StorageProvider.LOCAL). Module media (A3) se thay
- * bang Cloudinary o Phase 2 — URL sinh o tang ung dung co TTL, KHONG luu URL
- * vao DB (p4 §A1, p11 S7).</p>
- */
 @Service
 public class ProfileService {
 
@@ -76,20 +66,15 @@ public class ProfileService {
         this.imageStorage = imageStorage;
     }
 
-    /** B1 — ho so day du cua chinh minh. */
     @Transactional(readOnly = true)
     public ProfileView profile(UUID userId) {
         UserAccount account = accountRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(IdentityErrorCode.UNAUTHENTICATED));
         byte[] phone = decryptPhone(account);
-        // Doc identity that tu identityRepository (nhu B9 identities(UUID)): hasPassword/identities
-        // cua /auth/session (SessionUser) va /users/me (ProfileResponse) phai dung ke ca tai khoan
-        // chi dang nhap bang Google (khong co mat khau).
         List<UserIdentity> linkedIdentities = identityRepository.findByUserId(userId);
         return ProfileView.of(account, phone, linkedIdentities);
     }
 
-    /** B2 — merge-patch {@code fullName}, {@code phone}, {@code locale}, {@code timezone}. */
     @Transactional
     public ProfileView updateProfile(UUID userId, String fullName, String phone,
                                      String locale, String timezone) {
@@ -125,7 +110,6 @@ public class ProfileService {
         return profile(userId);
     }
 
-    /** B9 — cac phuong thuc dang nhap da lien ket. */
     @Transactional(readOnly = true)
     public List<IdentityView> identities(UUID userId) {
         return identityRepository.findByUserId(userId).stream()
@@ -137,7 +121,6 @@ public class ProfileService {
                 .toList();
     }
 
-    /** B10 — go lien ket Google. Go identity cuoi cung => {@code 409 IDENTITY_LAST_REMAINING}. */
     @Transactional
     public void unlinkIdentity(UUID userId, String rawProvider) {
         IdentityProvider provider;
@@ -166,22 +149,6 @@ public class ProfileService {
                 .build());
     }
 
-    /**
-     * B11 — đọc tuỳ chọn thông báo.
-     *
-     * <p>Nguồn là bảng {@code user_notification_preference} đúng như p8 B11 chỉ định (tạo ở
-     * {@code V13__notification.sql}). Bản trước đọc cột JSONB {@code app_user.notification_prefs}
-     * vì lúc đó V13 chưa tồn tại — nay đã có bảng thật.</p>
-     *
-     * <p>p4 F4 nói dòng tuỳ chọn được tạo cùng lúc với {@code app_user}, nhưng tài khoản đăng
-     * ký TRƯỚC khi V13 chạy thì chưa có dòng nào. Thiếu dòng ⇒ trả {@link
-     * NotificationPreferences#defaults()} (đúng DEFAULT của cột), KHÔNG ném lỗi: nếu ném thì
-     * chính màn cài đặt không mở nổi để user tạo ra dòng đó.</p>
-     *
-     * <p>Trả thẳng record miền: nó chỉ gồm cờ boolean + giờ, không có PII hay trạng thái nội
-     * bộ nào để che như {@link ProfileView}. R4 chỉ cấm controller <b>phơi</b> kiểu miền ở chữ
-     * ký — controller vẫn map sang DTO.</p>
-     */
     @Transactional(readOnly = true)
     public NotificationPreferences notificationPreferences(UUID userId) {
         accountRepository.findById(userId)
@@ -190,22 +157,9 @@ public class ProfileService {
                 .orElseGet(NotificationPreferences::defaults);
     }
 
-    /**
-     * B12 — ghi đè toàn bộ tám field (PUT không nhận partial, p8 §8.1.11).
-     *
-     * <p><b>Không còn kiểm "tắt kênh bắt buộc" ở đây.</b> p12 §12.9.1 yêu cầu cảnh báo "kết
-     * quả cần chú ý" không tắt hoàn toàn được; với shape p8 thì ràng buộc đó là ràng buộc
-     * KIỂU — {@link com.catcheck.identity.domain.AttentionAlertChannel} chỉ có
-     * {@code PUSH_AND_INAPP} và {@code INAPP_ONLY}, không có giá trị tắt. Giá trị lạ bị chặn
-     * ngay lúc parse body ({@code 400 VALIDATION_FAILED}), và CHECK
-     * {@code ck_unp_attention_channel} của V13 là lớp chặn cuối ở DB. Bản trước phải kiểm tay
-     * vì shape JSONB cũ cho phép biểu diễn trạng thái "tắt hẳn".</p>
-     */
     @Transactional
     public NotificationPreferences updateNotificationPreferences(
             UUID userId, NotificationPreferences preferences) {
-        // Phải tồn tại dòng app_user mới ghi — upsert không có FK check lúc thiếu user sẽ
-        // nổ bằng lỗi ràng buộc khó hiểu thay vì 404.
         accountRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(IdentityErrorCode.UNAUTHENTICATED));
 
@@ -219,7 +173,6 @@ public class ProfileService {
         return notificationPreferences(userId);
     }
 
-    /** B4 — tai anh dai dien. Tra ve storage key (KHONG phai URL). */
     @Transactional
     public String uploadAvatar(UUID userId, byte[] content, String contentType) {
         if (contentType == null || !AVATAR_ALLOWED_TYPES.contains(contentType)) {
@@ -242,7 +195,6 @@ public class ProfileService {
         return storageKey;
     }
 
-    /** B3 — doc anh dai dien. */
     @Transactional(readOnly = true)
     public AvatarData readAvatar(UUID userId) {
         UserAccount account = accountRepository.findById(userId)
@@ -267,7 +219,6 @@ public class ProfileService {
         }
     }
 
-    /** B5 — go anh dai dien. */
     @Transactional
     public void deleteAvatar(UUID userId) {
         UserAccount account = accountRepository.findById(userId)
@@ -280,7 +231,6 @@ public class ProfileService {
 
     private static final String AVATAR_NAMESPACE = "user-avatar";
 
-    /** Khoa moi (qua ImageStorage) bat dau bang namespace; khoa cu {userId}/{uuid} nam o thu muc local rieng. */
     private static boolean isManagedKey(String key) {
         return key.startsWith(AVATAR_NAMESPACE + "/");
     }
@@ -328,7 +278,6 @@ public class ProfileService {
         return "application/octet-stream";
     }
 
-    /** Mot dong cua {@code GET /users/me} (p8 B1). */
     public record ProfileView(
             UUID id,
             String email,
@@ -366,7 +315,6 @@ public class ProfileService {
         }
     }
 
-    /** Mot dong cua {@code GET /account/identities} (p8 B9). */
     public record IdentityView(
             String provider,
             String providerEmail,
@@ -374,7 +322,6 @@ public class ProfileService {
             Instant lastUsedAt) {
     }
 
-    /** Anh dai dien da doc — dung cho {@code GET /users/me/avatar}. */
     public record AvatarData(byte[] content, String contentType) {
     }
 }

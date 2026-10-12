@@ -31,15 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * {@code PUT /admin/shop/products/{id}} ghi đè cả {@code stock_quantity}: thiếu {@code If-Match}
- * ⇒ 428, {@code If-Match} cũ (kho đã đổi sau khi mở form) ⇒ 412, ETag mà frontend tự dựng từ
- * {@code updatedAt} + {@code id} của GET ⇒ 200.
- */
 class AdminShopControllerTest {
 
     private static final UUID ID = UUID.fromString("01999999-0000-7000-8000-000000000001");
-    /** Có phần dưới mili-giây như cột TIMESTAMPTZ thật — ETag phải cắt về ms ở cả hai phía. */
     private static final Instant LOADED_AT = Instant.parse("2026-10-01T03:04:05.678901Z");
     private static final String BODY = """
             {"name":"Khay cat CleanBox","description":"Khay thanh cao","priceVnd":480000,
@@ -76,7 +70,7 @@ class AdminShopControllerTest {
     @DisplayName("Checkout trừ kho sau khi mở form ⇒ If-Match cũ bị 412, tồn kho không bị ghi đè")
     void staleIfMatchAfterCheckoutIsRejected() throws Exception {
         String etagWhenFormOpened = frontendEtag(LOADED_AT, ID);
-        repository.product = product(7, LOADED_AT.plusMillis(1500)); // checkout trừ 3, trigger đổi updated_at
+        repository.product = product(7, LOADED_AT.plusMillis(1500));
 
         mvc.perform(put("/api/v1/admin/shop/products/{id}", ID).contentType(MediaType.APPLICATION_JSON).content(BODY)
                         .header("If-Match", etagWhenFormOpened))
@@ -95,8 +89,6 @@ class AdminShopControllerTest {
                 .andReturn().getResponse().getContentAsString();
         String updatedAt = JsonPath.read(json, "$[0].updatedAt");
         String id = JsonPath.read(json, "$[0].id");
-        // adminProductEtag() của frontend: `W/"${Date.parse(updatedAt)}-${id}"`; Date.parse cắt
-        // phần dưới mili-giây giống Instant.toEpochMilli().
         String etag = "W/\"" + Instant.parse(updatedAt).toEpochMilli() + "-" + id + "\"";
         assertThat(etag).isEqualTo("W/\"" + LOADED_AT.toEpochMilli() + "-" + ID + "\"");
         assertThat((String) JsonPath.read(json, "$[0].etag")).isEqualTo(etag);
@@ -119,7 +111,6 @@ class AdminShopControllerTest {
                 480000, null, stock, "PUBLISHED", updatedAt);
     }
 
-    /** Chỉ phần admin của cổng; {@code adminUpdate} giả lập trigger {@code set_updated_at}. */
     private static final class FakeRepository implements ShopRepository {
         AdminProduct product;
         int updates;

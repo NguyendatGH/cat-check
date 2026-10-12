@@ -13,35 +13,8 @@ import iconAttachment from "@/shared/assets/icons/web-cat/profile-attachment.svg
 import iconDoctor from "@/shared/assets/icons/web-cat/hub-doctor.svg";
 import { useNextReminder, useReminderStatText } from "./CatOverviewPanels";
 
-/**
- * Các panel DESKTOP của màn `/cats/:catId` — Figma `26mOVF2zdu4cI1EPz2Syxw` node `16:4290`
- * "Web - 06 & 07. Hồ sơ Bé Mèo & Sổ khám Y tế": thanh chọn hồ sơ đầu trang, cột phải
- * (`16:4470`) và dòng thời gian (`16:4555`).
- *
- * **Dữ liệu THẬT**:
- *  - thanh chọn hồ sơ: `GET /cats?status=ACTIVE`;
- *  - ô chỉ số: D12 `GET /cats/{id}/summary` (tỉ lệ trong ngưỡng 30 ngày, độ tin cậy lần quét gần
- *    nhất) + I1 `GET /reminders?catId=…` (lần nhắc kế tiếp);
- *  - thang pH: `GET /reference/ph-bands` + pH lần quét gần nhất;
- *  - dòng thời gian: E2 `GET /scans` + D16 `GET /cats/{id}/notes`.
- *
- * ĐÃ BỎ HẲN vì backend không có trường nào tương ứng (nguyên tắc: bỏ khỏi UI, không bịa):
- * thể tích/tần suất bãi tiểu, hydrat hoá, khẩu phần; nhóm máu, dị ứng; vaccine, tẩy giun;
- * "Quyền giám sát lâm sàng"; "Bác sĩ phụ trách"; ô "Sỏi & cặn bàng quang" và nhãn "Nguy cơ
- * Canxi Oxalat/Struvite" (chẩn đoán — trái quyết định #6/#8); badge "Hồ sơ đã xác thực ISFM
- * Gold Standard" (claim chứng nhận không có bằng chứng — p15 REQ-CLAIM-02).
- *
- * ĐÃ BỎ (W6): ảnh stock khay cát gắn cho MỌI lần quét trong dòng thời gian. `GET /scans` trả
- * `imageAvailable:false` và không trả URL ảnh — ô ảnh nay là màu đo được (`thumbnailHex`)
- * hoặc biểu tượng tô theo màu dải pH của chính lần quét đó.
- */
 
-/* ================================================================== Thanh chọn hồ sơ */
 
-/**
- * "HỒ SƠ THÚ CƯNG" + một tab cho mỗi bé + "Thêm hồ sơ bé mèo mới" + "Xuất hồ sơ PDF" (đầu
- * frame `16:4290`). Tab là liên kết thật sang hồ sơ từng bé.
- */
 export function CatProfileBar({
   cats,
   currentCat,
@@ -54,7 +27,6 @@ export function CatProfileBar({
   className?: string;
 }) {
   const { t } = useTranslation("cat");
-  // Bé đang xem có thể đã lưu trữ (không nằm trong danh sách ACTIVE) — vẫn phải có tab của bé.
   const tabs = cats.some((c) => c.id === currentCat.id) ? cats : [...cats, currentCat];
 
   return (
@@ -108,25 +80,20 @@ export function CatProfileBar({
   );
 }
 
-/* ================================================================== Cột phải */
 
 export interface CatClinicalColumnProps {
   cat: Cat;
   summary?: CatSummaryResponse;
-  /** Dải pH từ `GET /reference/ph-bands` — nhãn/màu của timeline tra từ đây. */
   bands: PhBand[];
-  /** Tổng số lần quét THẬT (`GET /scans/summary`) cho nhãn "Xem toàn bộ lịch sử (N bản ghi)". */
   scanCount?: number | null;
   onViewAllHistory: () => void;
   onOpenScan: (scanId: string) => void;
   onAddNote: () => void;
   onEditNote: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
-  /** Các thẻ hành động (khảo sát, báo dấu hiệu) do trang cha dựng — đặt cuối cột. */
   footer?: ReactNode;
 }
 
-/** Cột phải desktop: chỉ số theo dõi, thang pH, dòng thời gian, thẻ hành động. */
 export function CatClinicalColumn({
   cat,
   summary,
@@ -162,8 +129,6 @@ export function CatClinicalColumn({
 
 function StatRow({ catId, summary }: { catId: string; summary?: CatSummaryResponse }) {
   const { t } = useTranslation("cat");
-  // CHỈ các trường D12 thật trả: số lần quét 30 ngày, tỉ lệ trong ngưỡng, độ tin cậy lần
-  // quét gần nhất. Mèo chưa quét lần nào → 0/— , đúng trạng thái hợp lệ của tài khoản mới.
   const scanCount = summary?.scanCount30d ?? 0;
   const inRangePercent =
     summary?.inRangeRatio30d != null ? `${String(Math.round(summary.inRangeRatio30d * 100))}%` : "—";
@@ -223,8 +188,6 @@ function StatRow({ catId, summary }: { catId: string; summary?: CatSummaryRespon
 
 function SpectrumCard({ cat, summary, bands }: { cat: Cat; summary?: CatSummaryResponse; bands: PhBand[] }) {
   const { t, i18n } = useTranslation("cat");
-  // THẬT: pH + thời điểm của lần quét gần nhất. Chưa có lần quét kết luận được thì KHÔNG đặt
-  // kim chỉ (không có giá trị mẫu nào) và nhãn bên dưới nói rõ là chưa có dữ liệu.
   const lastScan = summary?.lastScan ?? null;
   const phValue = lastScan?.phValue ?? null;
   const lastScanLabel = lastScan
@@ -237,8 +200,6 @@ function SpectrumCard({ cat, summary, bands }: { cat: Cat; summary?: CatSummaryR
       <h3 className="text-h3 font-bold text-text-primary">{t("web.profile.spectrumTitle")}</h3>
       <p className="pt-1 text-caption text-text-secondary">{t("web.profile.spectrumSub")}</p>
 
-      {/* Dải màu + nhãn ngưỡng lấy TỪ API (`GET /reference/ph-bands`) — không hard-code
-          ngưỡng pH và không vẽ nhãn "nguy cơ sỏi" (chẩn đoán, trái quyết định #6/#8). */}
       <PhGaugeBar bands={bands} value={phValue} className="mt-6" />
 
       <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-info px-3 py-2">
@@ -254,7 +215,6 @@ function SpectrumCard({ cat, summary, bands }: { cat: Cat; summary?: CatSummaryR
   );
 }
 
-/* ================================================================== Dòng thời gian */
 
 const TIMELINE_LIMIT = 5;
 
@@ -271,13 +231,6 @@ type TimelineEntry =
     }
   | { kind: "note"; key: string; at: string; noteId: string; title: string; body: string };
 
-/**
- * Dòng thời gian — DỮ LIỆU THẬT, trộn hai nguồn có endpoint:
- *  - `GET /scans` (E2): mỗi lần quét chỉ thị màu cát, nhãn/màu dải tra từ `/reference/ph-bands`;
- *  - `GET /cats/{id}/notes` (D16): ghi chú chủ nuôi (gồm "Đi khám thú y", "Đổi loại cát" — đúng
- *    hai loại sự kiện Figma vẽ bên cạnh lần quét). Ghi chú sửa/xoá được ngay tại đây (D17/D18),
- *    thay cho tab "Ghi chú" của bản mobile.
- */
 function MedicalTimeline({
   catId,
   bands,
@@ -462,10 +415,6 @@ function MedicalTimeline({
   );
 }
 
-/**
- * Ô 48px đầu mỗi lần quét: màu hạt đo được (`thumbnailHex`) nếu API có; không có thì biểu
- * tượng giọt tô theo màu dải pH của CHÍNH lần quét — không bao giờ là ảnh minh hoạ.
- */
 function ScanThumb({ swatch, band }: { swatch: string | null; band: PhBand | undefined }) {
   if (swatch) {
     return (
@@ -484,13 +433,7 @@ function ScanThumb({ swatch, band }: { swatch: string | null; band: PhBand | und
   );
 }
 
-/* ================================================================== Cột trái */
 
-/**
- * Thẻ "Cơ sở thú y" — Figma vẽ "Bác sĩ phụ trách"/"Phòng bệnh & ký sinh"/"Quyền giám sát lâm
- * sàng", cả ba không có bảng/endpoint nào đứng sau nên đã bỏ. Thay bằng lối vào `/map` — tính
- * năng CÓ THẬT, cùng mục đích (tìm chỗ khám cho bé) và không hứa gì.
- */
 export function CatIdentityExtras() {
   const { t } = useTranslation("cat");
   return (

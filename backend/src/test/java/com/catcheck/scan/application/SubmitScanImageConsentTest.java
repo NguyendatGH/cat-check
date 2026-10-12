@@ -35,13 +35,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Gói có {@code storeImage} nhưng người dùng chưa/không đồng ý {@code SCAN_IMAGE_RETAIN}
- * ⇒ KHÔNG ghi ảnh ra storage, {@code store_image = false}, lý do {@code CONSENT_OFF}.
- *
- * <p>Lỗi cũ: chỉ xét gói + trial + inconclusive; consent tuỳ chọn (dữ liệu nhạy cảm, mặc định tắt)
- * bị bỏ qua hoàn toàn, {@code StoreImageReason.CONSENT_OFF} không bao giờ được dùng.</p>
- */
 class SubmitScanImageConsentTest {
 
     private static final Instant NOW = Instant.parse("2026-10-11T03:00:00Z");
@@ -87,7 +80,6 @@ class SubmitScanImageConsentTest {
 
         ChartCatalog noChart = mock(ChartCatalog.class);
         when(noChart.findActiveChart(any(), any())).thenReturn(Optional.empty());
-        // Kết quả nhập tay không mang MIME; pipeline thật sniff ra image/jpeg.
         PipelineOutcome analyzed = spy(new ManualPipelineOutcomeFactory(noChart)
                 .fromManualPh(null, ScanClassification.IN_RANGE, null, null));
         doReturn("image/jpeg").when(analyzed).imageContentType();

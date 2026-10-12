@@ -17,7 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
-/** Lỗi SMTP thường chép nguyên địa chỉ nhận vào message — không được đi vào log. */
 class SmtpEmailSenderTest {
 
     @Test

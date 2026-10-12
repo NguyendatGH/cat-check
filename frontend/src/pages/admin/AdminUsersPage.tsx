@@ -49,7 +49,6 @@ export function AdminUsersPage() {
   const users = useAdminUsers({ status, email, packageCode, page, size: 20 });
   const lock = useLockAdminUser();
   const unlock = useUnlockAdminUser();
-  // Khoá/mở khoá: backend chỉ cho ADMIN_SUPER (ROLES.userLock).
   const canLock = can("userLock");
   const canWrite = canLock && isReasonValid(reason);
   const items = users.data?.items ?? [];

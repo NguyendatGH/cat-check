@@ -18,13 +18,6 @@ import {
   formatScanTime,
 } from "./webPanels";
 
-/**
- * `/scan/result/:scanId` — kết quả ngay sau khi phân tích xong (p8 §8.5.4 E4).
- *
- * Desktop (>= lg) dựng theo `Web - 03 & 04`: cột trái 5/12 (bé mèo, ảnh, thông tin lần quét,
- * hành động), cột phải 7/12 (đánh giá tổng quát, thang pH, "Bạn nên làm gì?"), dải các lần
- * quét gần đây ở đáy. Mobile dựng theo frame `04. Kết quả Quét`.
- */
 export function ScanResultPage() {
   const { t } = useTranslation(["scan", "common"]);
   const { scanId } = useParams<{ scanId: string }>();
@@ -80,14 +73,12 @@ export function ScanResultPage() {
     void navigate(scanId ? `/scan/${scanId}/reassign-cat` : "/scan/select-cat");
   };
   const goNewScan = () => {
-    // Giữ nguyên bé/khay đang chọn, chỉ mở một lượt chụp mới (scanRequestId mới).
     startNewAttempt();
     void navigate("/scan");
   };
 
   return (
     <div className="contents">
-      {/* Desktop (>= lg) — `Web - 03 & 04` */}
       <div data-reveal className="hidden w-full flex-col gap-4 lg:flex">
         <WebScanHeader
           title={t("web.resultTitle")}
@@ -165,7 +156,6 @@ export function ScanResultPage() {
         ) : null}
       </div>
 
-      {/* Mobile (< lg) — frame `04. Kết quả Quét` */}
       <div data-reveal className="flex flex-col gap-4 p-4 lg:hidden">
         <ScanResultSummary result={result} bands={bands ?? []} matchLabel={t("result.matchLabel")} />
 
@@ -174,7 +164,6 @@ export function ScanResultPage() {
         <DisclaimerBanner variant="short" />
         {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" hasWarningFlags /> : null}
 
-        {/* Mockup `04`: CTA chính (xem phân tích) + CTA phụ nền trắng. */}
         <div className="flex flex-col gap-2">
           <Button
             variant="primary"

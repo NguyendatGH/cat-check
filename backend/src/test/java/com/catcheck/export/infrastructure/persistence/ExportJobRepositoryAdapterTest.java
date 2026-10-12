@@ -15,18 +15,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Lưới I25 của {@code ExportRequestService.request()} chỉ bắt được vi phạm unique nếu
- * {@code save} đẩy {@code INSERT} xuống DB NGAY, không hoãn tới COMMIT.
- */
 class ExportJobRepositoryAdapterTest {
 
     @Test
     @DisplayName("save flush ngay nên vi phạm unique I25 nổ bên trong try của request()")
     void saveSurfacesUniqueViolationImmediately() {
         ExportJobJpaRepository jpa = mock(ExportJobJpaRepository.class);
-        // Mô phỏng hành vi thật của Hibernate với id gán sẵn: save() chỉ xếp INSERT vào hàng chờ
-        // (không ném), còn flush mới chạm ràng buộc ở DB.
         when(jpa.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jpa.saveAndFlush(any())).thenThrow(
                 new DataIntegrityViolationException("uq_export_job_one_active_per_user"));

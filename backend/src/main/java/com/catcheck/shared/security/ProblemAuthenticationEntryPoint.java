@@ -15,17 +15,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Clock;
 
-/**
- * Chưa đăng nhập (hoặc phiên không còn hợp lệ) gọi endpoint cần phiên ⇒ {@code 401 UNAUTHENTICATED}
- * dạng {@code application/problem+json}, thay cho {@code 403} mặc định của Spring Security khi
- * không có form/basic login. Đã đăng nhập mà thiếu quyền vẫn đi qua {@code AccessDeniedHandler}
- * ⇒ {@code 403}.
- *
- * <p>Mã và {@code type} trùng nguyên văn {@code IdentityErrorCode.UNAUTHENTICATED} (p8 §8.2.4):
- * {@code shared} không được import {@code identity}, nên chỉ chép chuỗi, không đăng ký thêm mã.
- * Body cùng hình dạng với {@code GlobalExceptionHandler}/{@code AdminMfaGateFilter}: entry point
- * chạy ngoài {@code DispatcherServlet} nên phải tự ghi.</p>
- */
 public class ProblemAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final String ERROR_CODE = "UNAUTHENTICATED";

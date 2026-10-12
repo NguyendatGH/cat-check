@@ -34,16 +34,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Bốn endpoint nghiệp vụ của module credit (p8 §8.4.3 — bảng H1..H4).
- *
- * <p>Tên path và {@code operationId} chép từ p8, không tự đặt lại: client sinh từ OpenAPI và
- * test hợp đồng của các module khác đều neo vào các tên này.</p>
- *
- * <p>Không có endpoint trừ credit ở đây — việc trừ nằm trong transaction của module scan
- * ({@link CreditConsumption}), không phải một HTTP call riêng. Xem javadoc của
- * {@link CreditConsumption}.</p>
- */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Credit", description = "Số dư, lịch sử giao dịch, kích hoạt gói và quyền tính năng")
@@ -69,10 +59,6 @@ public class CreditController {
         this.packageCatalogService = packageCatalogService;
     }
 
-    /**
-     * F3 — danh mục gói đang bán. CÔNG KHAI (p8 §8.4.6 cột Auth = {@code —}): trang giới thiệu
-     * và màn cửa hàng hiển thị bảng giá trước khi người dùng đăng nhập.
-     */
     @Operation(
             operationId = "listPackages",
             summary = "F3 — Danh mục gói đang bán",
@@ -88,7 +74,6 @@ public class CreditController {
                 .body(new PackagePlanListResponse(items));
     }
 
-    /** H1 — kích hoạt gói bằng mã in trên bao bì. */
     @Operation(
             operationId = "activateCreditCode",
             summary = "Kích hoạt gói bằng mã kích hoạt",
@@ -109,8 +94,6 @@ public class CreditController {
                         httpRequest.getRemoteAddr(),
                         httpRequest.getHeader("User-Agent")));
 
-        // 200 chứ không phải 201: p8 §8.1.12 liệt kê "activations trả số dư" vào nhóm POST
-        // không tạo tài nguyên mới (không có header Location).
         return ResponseEntity.ok(new ActivationResponse(
                 result.packageCode(),
                 result.packageName(),
@@ -119,12 +102,6 @@ public class CreditController {
                 result.balanceAfter()));
     }
 
-    /**
-     * H2 — số dư credit.
-     *
-     * <p>Không có tham số {@code userId}: endpoint đọc ID từ phiên đăng nhập. Cho phép client tự
-     * truyền {@code userId} là lỗi IDOR kinh điển (bất biến I14).</p>
-     */
     @Operation(
             operationId = "getCreditBalance",
             summary = "Số dư credit và số lượt trial còn lại",
@@ -136,12 +113,6 @@ public class CreditController {
         return BalanceResponse.from(creditBalanceService.balanceOf(user.userId()));
     }
 
-    /**
-     * H3 — lịch sử giao dịch.
-     *
-     * <p>Phân trang bằng con trỏ mờ: client lấy {@code nextCursor} của trang trước rồi truyền lại,
-     * không tự dựng — con trỏ dựng sai chỉ bị bỏ qua chứ không gây 500.</p>
-     */
     @Operation(
             operationId = "getCreditLedger",
             summary = "Lịch sử giao dịch credit, mới nhất trước",
@@ -159,12 +130,6 @@ public class CreditController {
         return LedgerPageResponse.from(page, LedgerCursorCodec.encode(page.nextCursor()));
     }
 
-    /**
-     * H4 — quyền hiện tại.
-     *
-     * <p>Không cache ở client: sau khi kích hoạt gói, quyền phải có hiệu lực ngay ở lần gọi kế
-     * tiếp (p8 H4, p11 §11.5.5).</p>
-     */
     @Operation(
             operationId = "getMyEntitlements",
             summary = "Quyền tính năng hiện tại của tôi",

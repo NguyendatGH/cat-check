@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-/**
- * Zod schema cho wizard export. Message là KEY i18n (namespace `export`) — dịch lúc render,
- * cùng quy ước `features/onboarding/schemas.ts`. Ràng buộc khớp `ExportRequestService`
- * (BE): `from <= to`, `to <= hôm nay`, ít nhất 1 mục nội dung.
- */
 
 function isValidDateString(value: string): boolean {
   return !Number.isNaN(new Date(`${value}T00:00:00`).getTime());

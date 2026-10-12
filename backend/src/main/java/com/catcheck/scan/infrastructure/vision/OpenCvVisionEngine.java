@@ -24,31 +24,11 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Hiện thực {@link VisionEngine} bằng OpenCV — S3 (phát hiện thẻ) và S6 (tách hạt chỉ thị).
- *
- * <h2>Thứ tự thử S3 (p6 §6.5.1 S3)</h2>
- * <ol>
- *   <li><b>ArUco DICT_4X4_50</b> — độ chính xác hình học tốt nhất cho homography.</li>
- *   <li><b>cv::QRCodeDetector</b> — 3–4 điểm dồn về một góc.</li>
- *   <li><b>contour + approxPolyDP</b> — fallback khi in mờ / ArUco bị che.</li>
- * </ol>
- *
- * <h2>R9: OpenCV chỉ ở đây</h2>
- * <p>Toàn bộ {@code org.bytedeco..} nằm trong {@code scan.infrastructure.vision}. Package
- * {@code scan.domain.color} không import bất kỳ thứ gì từ OpenCV — kiểm thử được mà không cần
- * native (xem {@code OpenCvNativeLoader} cho đường suy giảm khi native lỗi).
- *
- * <h2>Bộ nhớ</h2>
- * <p>Mọi {@link Mat} trong {@code try-with-resources} — quên {@code close()} làm rò native memory,
- * không thấy trong heap dump (p6 §6.5.5).
- */
 @Component
 public class OpenCvVisionEngine implements VisionEngine {
 
     private static final Logger log = LoggerFactory.getLogger(OpenCvVisionEngine.class);
 
-    /** Kích thước chuẩn hoá thẻ (p6 S3). */
     private static final int CARD_WIDTH = 600;
     private static final int CARD_HEIGHT = 380;
 
@@ -58,7 +38,6 @@ public class OpenCvVisionEngine implements VisionEngine {
         this.nativeLoader = nativeLoader;
     }
 
-    // ------------------------------------------------------------------ S3
 
     @Override
     public CardDetectionResult detectCard(FrameHandle image, QuadHint hint) {
@@ -71,15 +50,8 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
 
         {
-            // `handle` sở hữu Mat: KHÔNG đóng ở đây (try-with-resources làm Mat bị giải phóng sau lần dùng đầu,
-        // các bước sau của pipeline gặp con trỏ NULL).
             Mat mat = handle.mat();
-            // Mỗi tầng dò có thể thấy một ứng viên thoái hoá (tứ giác diện tích 0, điểm trùng nhau…) —
-            // warpToCanonical ném IllegalArgumentException. Đó chỉ là "tầng này không tìm được thẻ":
-            // rơi xuống tầng sau, cuối cùng NONE (⇒ cờ CARD_NOT_FOUND mức WARN), KHÔNG được làm hỏng
-            // cả lần quét.
 
-            // Tier 1: ArUco DICT_4X4_50
             var arucoResult = detectAruco(mat);
             if (arucoResult != null) {
                 var warped = tryWarp(mat, arucoResult, CardDetectionResult.Method.ARUCO);
@@ -88,7 +60,6 @@ public class OpenCvVisionEngine implements VisionEngine {
                 }
             }
 
-            // Tier 2: QRCodeDetector
             var qrResult = detectQr(mat);
             if (qrResult != null) {
                 var warped = tryWarp(mat, qrResult, CardDetectionResult.Method.QR);
@@ -97,7 +68,6 @@ public class OpenCvVisionEngine implements VisionEngine {
                 }
             }
 
-            // Tier 3: contour + approxPolyDP
             var contourResult = detectContour(mat);
             if (contourResult != null) {
                 var warped = tryWarp(mat, contourResult, CardDetectionResult.Method.CONTOUR);
@@ -110,13 +80,6 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    /**
-     * Tier 1 — ArUco DICT_4X4_50.
-     *
-     * <p>JavaCPP 4.14 không bind hằng {@code DICT_4X4_50} nên tạo Dictionary từ byte list.
-     * Nếu tạo không được (thiếu native, sai format) thì trả {@code null} để rơi xuống tier 2 —
-     * đúng triết lý suy giảm của p6 §6.5.5.
-     */
     private double[][] detectAruco(Mat image) {
         try {
             Dictionary dictionary = createArucoDictionary();
@@ -132,7 +95,6 @@ public class OpenCvVisionEngine implements VisionEngine {
                     return null;
                 }
 
-                // Tìm 4 marker có id 0..3 (góc thẻ)
                 List<double[]> points = new ArrayList<>(4);
                 for (int id = 0; id < 4; id++) {
                     int found = -1;
@@ -145,7 +107,6 @@ public class OpenCvVisionEngine implements VisionEngine {
                     if (found < 0) {
                         return null;
                     }
-                    // Trung tâm marker = trung bình 4 góc
                     Mat cornerMat = corners.get(found);
                     double cx = 0;
                     double cy = 0;
@@ -164,20 +125,12 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    /**
-     * Tạo Dictionary DICT_4X4_50 từ byte list.
-     *
-     * <p>JavaCPP 4.14 không bind {@code getPredefinedDictionary} nên phải cung cấp byte list.
-     * Byte list được nạp từ resource {@code aruco/dict_4x4_50.bin} — nếu thiếu thì trả
-     * {@code null} (rơi xuống tier 2).
-     */
     private Dictionary createArucoDictionary() {
         try {
             byte[] bytes = loadArucoDictionaryBytes();
             if (bytes == null) {
                 return null;
             }
-            // Dictionary(Mat bytesList, int markerSize): mỗi marker 4×4 bit, 4 hàng × 1 byte
             try (Mat byteList = new Mat(bytes.length, 1, opencv_core.CV_8UC1)) {
                 byteList.data().put(bytes);
                 return new Dictionary(byteList, 4);
@@ -199,7 +152,6 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    /** Tier 2 — cv::QRCodeDetector. */
     private double[][] detectQr(Mat image) {
         try (QRCodeDetector qr = new QRCodeDetector();
              Mat points = new Mat();
@@ -220,7 +172,6 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    /** Tier 3 — contour + approxPolyDP (fallback khi in mờ / ArUco bị che). */
     private double[][] detectContour(Mat image) {
         try (Mat gray = new Mat();
              Mat binary = new Mat();
@@ -268,7 +219,6 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    /** {@link #warpToCanonical} nhưng ứng viên thoái hoá ⇒ {@code null} (tầng dò này coi như không thấy thẻ). */
     private CardDetectionResult tryWarp(Mat image, double[][] quad, CardDetectionResult.Method method) {
         try {
             return warpToCanonical(image, quad, method);
@@ -278,7 +228,6 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    /** Nắn phẳng thẻ về khung chuẩn 600×380 (p6 S3). */
     private CardDetectionResult warpToCanonical(Mat image, double[][] quad,
                                                  CardDetectionResult.Method method) {
         double[][] ordered = CardQuadOrderingHolder.ordered(quad);
@@ -306,18 +255,7 @@ public class OpenCvVisionEngine implements VisionEngine {
         }
     }
 
-    // ------------------------------------------------------------------ S6
 
-    /**
-     * Tách hạt chỉ thị khỏi nền cát (p6 §6.5.1 S6).
-     *
-     * <p>Thứ tự gate: loại pixel hỏng → ước lượng nền → candidate → kmeans k=3 → chọn cụm chroma
-     * cao nhất → morphology → connected components.
-     *
-     * <p><b>Lưu ý:</b> chọn cụm theo chroma cao nhất thay vì theo bảng màu vì cổng
-     * {@link VisionEngine#selectIndicatorGrains} không nhận bảng màu. Việc dùng bảng màu làm
-     * prior (research S6 bước 4) là tối ưu thêm mà A6 có thể thêm ở tầng orchestration.
-     */
     @Override
     public List<Blob> selectIndicatorGrains(XyzFrame xyzImage, Lab substrateLab, GrainThresholds thresholds) {
         if (!(xyzImage instanceof OpenCvXyzFrame frame)) {
@@ -328,12 +266,8 @@ public class OpenCvVisionEngine implements VisionEngine {
         int height = frame.size().height();
         int totalPixels = width * height;
 
-        // Đọc cả ảnh XYZ một lần (thay cho một lần gọi JNI mỗi pixel).
         double[] xyzAll = frame.toDoubleArray();
 
-        // Gate 1: loại pixel hỏng (specular/shadow) + tính candidate.
-        // Nhãn kmeans đánh chỉ số theo danh sách candidate, KHÔNG theo toàn bộ pixel — nên giữ chỉ số
-        // pixel (y*width+x) của từng candidate để dựng mask.
         double[] candidates = new double[3 * 1024];
         int[] positions = new int[1024];
         int n = 0;
@@ -361,18 +295,14 @@ public class OpenCvVisionEngine implements VisionEngine {
             n++;
         }
 
-        // Ít candidate hơn một hạt tối thiểu thì không thể có blob nào; kmeans cũng đòi N >= K.
         if (n == 0 || n < Math.max(thresholds.minBlobPx(), 3)) {
             return List.of();
         }
 
-        // kmeans k=3
         int[] labels = kmeans(candidates, n, 3);
 
-        // Chọn cụm có chroma trung bình cao nhất
         int bestCluster = selectBestCluster(candidates, labels, n, 3);
 
-        // Tạo mask + morphology + connected components
         try (Mat mask = new Mat(height, width, opencv_core.CV_8UC1);
              Mat kernel = opencv_imgproc.getStructuringElement(
                      opencv_imgproc.MORPH_RECT, new Size(3, 3))) {
@@ -392,7 +322,6 @@ public class OpenCvVisionEngine implements VisionEngine {
                 int count = opencv_imgproc.connectedComponentsWithStats(
                         mask, labelMat, stats, centroids);
 
-                // Một lượt qua labelMat cho MỌI blob (thay cho một lượt toàn ảnh mỗi blob).
                 int[] pixelLabels = new int[totalPixels];
                 new IntPointer(labelMat.data()).get(pixelLabels);
                 double[] sumL = new double[count];
@@ -413,7 +342,6 @@ public class OpenCvVisionEngine implements VisionEngine {
 
                 List<Blob> blobs = new ArrayList<>();
                 for (int i = 1; i < count; i++) {
-                    // `BytePointer.getInt(offset)` đọc theo BYTE: cột CC_STAT_AREA nằm ở 4 * chỉ số cột.
                     int area = stats.ptr(i).getInt(4L * opencv_imgproc.CC_STAT_AREA);
                     if (area < thresholds.minBlobPx()) {
                         continue;
@@ -429,7 +357,6 @@ public class OpenCvVisionEngine implements VisionEngine {
     }
 
     private int[] kmeans(double[] samples, int n, int k) {
-        // `cv::kmeans` đòi dữ liệu CV_32F (assert `type == CV_32F`), không nhận CV_64F.
         float[] flat = new float[3 * n];
         for (int i = 0; i < flat.length; i++) {
             flat[i] = (float) samples[i];
@@ -471,10 +398,6 @@ public class OpenCvVisionEngine implements VisionEngine {
         return best;
     }
 
-    /**
-     * Sắp xếp quad về thứ tự TL, TR, BR, BL — delegate sang {@code CardQuadOrdering} của domain
-     * (thuần Java, kiểm thử được).
-     */
     private static final class CardQuadOrderingHolder {
         static double[][] ordered(double[][] points) {
             var hint = com.catcheck.scan.domain.color.CardQuadOrdering.canonicalize(

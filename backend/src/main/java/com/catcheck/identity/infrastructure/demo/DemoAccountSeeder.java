@@ -11,22 +11,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Tài khoản demo cho máy dev. Chỉ bật ở profile {@code local}: staging và prod không có bean này.
- *
- * <p>Ba tài khoản, cùng một mật khẩu {@value #DEMO_PASSWORD}:
- * khách thường ({@code USER}), seller ({@code ADMIN_CATALOG}: quản lý sản phẩm và giá),
- * admin hệ thống ({@code ADMIN_SUPER}: cấp credit, quản lý người dùng, vận hành).</p>
- *
- * <p>Chạy mỗi lần khởi động và idempotent: tạo tài khoản nếu chưa có, băm lại mật khẩu bằng
- * {@link PasswordHasher} (BCrypt) nếu hash hiện có không khớp, và đặt đúng bộ vai trò.
- * Không đụng tới tài khoản ngoài danh sách.</p>
- */
 @Component
 @Profile("local")
 public class DemoAccountSeeder implements ApplicationRunner {
 
-    /** Chỉ dùng cho máy dev. Không dùng ở bất kỳ môi trường nào có dữ liệu thật. */
     static final String DEMO_PASSWORD = "Admin@123";
 
     record DemoAccount(String email, String fullName, Set<String> roles) { }

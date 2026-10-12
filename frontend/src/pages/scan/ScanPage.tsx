@@ -30,7 +30,6 @@ import {
   type HeaderPill,
 } from "./webPanels";
 
-/** Mã lỗi E1 → câu chữ cho người dùng. 402 (hết credit) KHÔNG đi qua đây — nó đổi cả khối sang Sys-06. */
 function captureErrorOf(error: unknown, t: TFunction<["scan", "common"]>): CaptureErrorMessage {
   if (!isApiError(error)) return { tone: "danger", text: t("capture.uploadError") };
   switch (error.code) {
@@ -57,14 +56,6 @@ function captureErrorOf(error: unknown, t: TFunction<["scan", "common"]>): Captu
   return { tone: "danger", text: t("capture.uploadError") };
 }
 
-/**
- * `/scan` — chụp/chọn ảnh + gửi phân tích một bước (E1, TD-02). Yêu cầu đã có mèo/khay chung được
- * chọn từ bước chọn mèo (`useScanCaptureStore`) — nếu chưa, hiển thị/điều hướng sang bước đó.
- *
- * Các trạng thái theo design: chụp (`Web - 03 & 04` cột trái + cột phải "chờ kết quả"), đang
- * phân tích (`03a`), chưa đủ dữ liệu (`03b`), hết credit (`Sys - 06`), lỗi gửi ảnh / hệ thống
- * bận (`03a`, banner). Pipeline ảnh được phép lỗi — mọi lỗi E1 đều thành một trạng thái rõ ràng.
- */
 export function ScanPage() {
   const { t } = useTranslation(["scan", "common"]);
   const navigate = useNavigate();
@@ -75,7 +66,6 @@ export function ScanPage() {
   const balanceQuery = useCreditBalance();
   const entitlementQuery = useEntitlement();
   const [captureSource, setCaptureSource] = useState<CaptureSource>("CAMERA");
-  // Hồ sơ mèo THẬT đang được chọn. Khay dùng chung (`SHARED_UNKNOWN`) không có `selectedCatId`.
   const catId = assignment === "ASSIGNED" ? (selectedCatId ?? undefined) : undefined;
   const { data: selectedCat } = useCat(catId);
   const { data: latestScans } = useRecentCatScans(catId, 1);
@@ -88,11 +78,6 @@ export function ScanPage() {
     }
   }, [resultScanId, navigate]);
 
-  /**
-   * Chưa chọn mèo thì ĐƯA THẲNG vào bước chọn mèo, không dựng màn trống. Desktop render bước
-   * chọn mèo TẠI CHỖ để giữ khung ứng dụng (sidebar + header); mobile sang route riêng vì `/scan`
-   * chạy trong `FullscreenLayout` (không có nút back).
-   */
   if (!assignment) {
     return isDesktop ? <SelectCatPage /> : <Navigate to="/scan/select-cat" replace />;
   }
@@ -247,13 +232,10 @@ export function ScanPage() {
     );
   }
 
-  // ---------- Mobile (< lg) ----------
   if (analyzing) {
     return <AnalyzingState text={t("analyzing.text")} note={t("analyzing.note")} previewUrl={previewUrl} />;
   }
 
-  // `/scan` mobile chạy trong `FullscreenLayout` (không header, không thanh tab) — frame `03` có
-  // thanh trên với nút quay lại + tiêu đề, thiếu nó thì màn chụp là ngõ cụt.
   const mobileTopBar = (
     <div className="flex items-center gap-2">
       <button

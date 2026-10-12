@@ -9,17 +9,10 @@ import { useCatList } from "@/features/cat";
 export function AssistantPage() {
   const { t } = useTranslation("assistant");
   const catSelectId = useId();
-  // `GET /cats` (ACTIVE) — tái dùng hook có sẵn của features/cat (cùng hook CatSwitcherCard
-  // dùng ở sidebar) thay vì viết lại bộ gọi API riêng cho assistant.
   const { data: catListData } = useCatList("ACTIVE");
-  // `catListData?.items` giữ nguyên tham chiếu giữa các lần render khi react-query chưa refetch;
-  // `cats` (dùng để render) mới tạo mảng rỗng mới mỗi lần — tách riêng để effect dưới không chạy
-  // lại vô ích mỗi render (react-hooks/exhaustive-deps).
   const catItems = catListData?.items;
   const cats = catItems ?? [];
   const [selectedCatId, setSelectedCatId] = useState("");
-  // Chỉ tự chọn mèo chính MỘT LẦN khi danh sách tải xong xuôi — người dùng đổi về "hỏi chung"
-  // sau đó không bị ép chọn lại mỗi khi danh sách refetch (vd sau khi đổi mèo chính ở nơi khác).
   const [autoSelected, setAutoSelected] = useState(false);
   useEffect(() => {
     if (autoSelected || !catItems || catItems.length === 0) return;
@@ -49,9 +42,6 @@ export function AssistantPage() {
       setConversationId(response.conversationId);
       setTurns((current) => [...current, { role: "assistant", text: response.answer, response }]);
     } catch (cause) {
-      // Không hiện thẳng `cause.message`: khi server không trả ProblemDetail, message là chuỗi
-      // kỹ thuật tiếng Anh ("Request failed with status 502"). Chỉ dùng `detail` của server cho
-      // lỗi 4xx (câu đã được bản địa hoá theo `Accept-Language`); 5xx/lỗi mạng → câu chung.
       setError(isApiError(cause) && cause.status < 500 && cause.code ? cause.message : t("error"));
       setTurns((current) => current.slice(0, -1));
       setMessage(value);
@@ -61,8 +51,6 @@ export function AssistantPage() {
   }
 
   return (
-    // `AppLayout` không cấp padding ở mobile ⇒ trang tự chừa lề `px-4` + khoảng đầu trang; trước
-    // đây icon tiêu đề dính sát mép trái màn 390px và thẻ chat tràn hết bề ngang.
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-6 pt-5 lg:p-0">
       <header>
         <div className="flex items-start gap-3">
@@ -84,13 +72,9 @@ export function AssistantPage() {
             id={catSelectId}
             className="h-11 w-full max-w-xs rounded-xl border border-border bg-surface px-3 text-body text-text-primary"
             value={selectedCatId}
-            // Đang chờ trả lời thì khoá: phản hồi muộn của bé cũ sẽ ghi đè `conversationId` sau khi
-            // đã đổi bé.
             disabled={pending}
             onChange={(event) => {
               setSelectedCatId(event.target.value);
-              // Mỗi bé một hội thoại: backend nạp lịch sử của `conversationId` vào prompt, nên giữ
-              // hội thoại cũ thì câu hỏi về bé B được trả lời kèm lịch sử/ngữ cảnh của bé A.
               setConversationId(undefined);
             }}
           >

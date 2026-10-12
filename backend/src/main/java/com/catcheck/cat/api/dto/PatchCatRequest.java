@@ -7,10 +7,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * D4 — body sửa hồ sơ mèo (merge-patch, p8 §8.5.3). Mọi trường {@code null} nghĩa là giữ nguyên
- * (xem {@code Cat#update}) — KHÔNG dùng để đặt {@code isPrimary}, D8 là endpoint riêng.
- */
 public record PatchCatRequest(
         @Size(max = 60, message = "Tên bé mèo tối đa 60 ký tự")
         String name,

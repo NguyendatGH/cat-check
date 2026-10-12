@@ -39,56 +39,22 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 
-/**
- * Backfill bảng màu — L33, L34, L35 (p8 §8.4.12 mục (c); phép tính ở p6 §6.5.4, §6.6.5).
- *
- * <h2>Chỉ chạy lại S8→S10, từ Lab đã lưu</h2>
- * <p>Không cần ảnh gốc: {@code scan_analysis.lab_l/a/b} là màu đã hiệu chuẩn (sau S1–S7), nên
- * đổi bảng màu chỉ ảnh hưởng bước khớp (S8) và bước phân loại (S10). Nhờ vậy backfill chạy
- * được cả với scan trial (không lưu ảnh) và cả sau khi ảnh đã bị xoá theo retention 14 ngày —
- * đúng câu chốt của p6 §6.5.4.
- *
- * <h2>Confidence (S9) KHÔNG được tính lại — xuống thang có ý thức</h2>
- * <p>p6 §6.5.4 viết "S8 → S9 → S10", nhưng {@code ConfidenceCalculator.Inputs} cần
- * {@code blurVariance}, {@code clipHigh/Low}, {@code lumaGradient} — những đại lượng của ảnh,
- * chỉ còn tồn tại dưới dạng khoá tự do trong {@code quality_metrics JSONB} và <b>không có schema
- * nào bảo đảm khoá đó tồn tại</b>. Tính lại từ khoá đoán được sẽ cho ra confidence sai một cách
- * im lặng, tệ hơn hẳn việc giữ nguyên. Vì vậy: giữ confidence gốc, và chỉ áp <b>trần 0.60</b> khi
- * bảng màu mới còn {@code is_placeholder} (p6 §6.6.6). Khoảng tin cậy giữ nguyên ĐỘ RỘNG rồi
- * tịnh tiến theo pH mới — nhờ đó cờ {@code near_boundary} (p6 §6.7.2) vẫn có nghĩa. Ghi handoff
- * H15.161.</p>
- *
- * <h2>Vì sao phải là job nền</h2>
- * <p>Cửa sổ mặc định P90D là hàng chục nghìn dòng. Chạy đồng bộ trong request nghĩa là giữ một
- * Tomcat thread vài phút và client nhận timeout của proxy chứ không nhận kết quả — nên L33/L35
- * trả {@code 202} và công việc đi qua {@link JobRunner} để có đúng một dòng {@code job_run} mỗi
- * lần chạy (p12 §12.6.1 quy tắc 4).</p>
- */
 @Service
 public class ChartBackfillService implements ChartBackfill {
 
     private static final Logger log = LoggerFactory.getLogger(ChartBackfillService.class);
 
-    /** Tên job — khớp {@code job_run.job_name VARCHAR(64)}, không viết tắt (p12 §12.6). */
     public static final String PREVIEW_JOB = "chart-backfill-preview";
 
     public static final String APPLY_JOB = "chart-backfill-apply";
 
-    /**
-     * "Cùng major" của p6 §6.5.4. {@code PipelineOutcome.ENGINE_VERSION} là {@code "1.0.0"};
-     * hàng nhập tay dùng {@code "manual-1.0.0"} nên bị loại bởi chính tiền tố này — đúng ý, vì
-     * pH nhập tay không sinh ra từ Lab và không tính lại được.
-     */
     private static final String ENGINE_MAJOR_PREFIX =
             PipelineOutcome.ENGINE_VERSION.substring(0, PipelineOutcome.ENGINE_VERSION.indexOf('.') + 1);
 
-    /** Trần confidence khi bảng màu chưa hiệu chuẩn (p6 §6.6.6). */
     private static final BigDecimal PLACEHOLDER_CONFIDENCE_CAP = new BigDecimal("0.600");
 
-    /** Nửa độ rộng khoảng tin cậy mặc định khi dòng gốc không lưu {@code ph_low}/{@code ph_high}. */
     private static final BigDecimal DEFAULT_CI_HALF_WIDTH = new BigDecimal("0.2");
 
-    /** Số dòng ví dụ trả về ở L34 — đủ để admin nhìn thấy hình dạng thay đổi, không phải để duyệt tay. */
     private static final int SAMPLE_LIMIT = 10;
 
     private final ScanAnalysisRepository analysisRepository;
@@ -121,14 +87,12 @@ public class ChartBackfillService implements ChartBackfill {
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    // ------------------------------------------------------------------ L33
 
     @Override
     public void startPreview(UUID chartId, Period window) {
         launch(PREVIEW_JOB, context -> runPreview(context, chartId, window));
     }
 
-    // ------------------------------------------------------------------ L34
 
     @Override
     @Transactional(readOnly = true)
@@ -148,27 +112,18 @@ public class ChartBackfillService implements ChartBackfill {
                 impact.jobId(), samples);
     }
 
-    // ------------------------------------------------------------------ L35
 
     @Override
     public void startApply(UUID chartId) {
         launch(APPLY_JOB, context -> runApply(context, chartId));
     }
 
-    // ------------------------------------------------------------- thân job
 
-    /**
-     * Thân L33, tách ra {@code public} để test gọi trực tiếp không cần executor — nếu chỉ gọi
-     * được qua {@link #startPreview} thì test phải chờ một luồng khác xong, đúng khuôn làm nên
-     * test chập chờn (p17 §17.6.7).
-     */
     public JobOutcome runPreview(JobContext context, UUID chartId, Period window) {
         PhChart chart = requireChart(chartId);
         List<PhBandClassifier.Band> bands = chartCatalog.findGlobalBands();
         Instant from = windowStart(window);
 
-        // Bảng này là NHÁP (p4 D4): xoá lượt trước rồi mới ghi, không thì hai lần bấm "xem
-        // trước" cộng dồn và con số "bị lật phân loại" của L34 đếm gấp đôi.
         int removed = recomputeRepository.deleteByChartId(chartId);
         long total = analysisRepository.countBackfillCandidates(chartId, from, ENGINE_MAJOR_PREFIX);
         log.info("Backfill preview chart={} window={} ungVien={} xoaNhapCu={}",
@@ -208,7 +163,6 @@ public class ChartBackfillService implements ChartBackfill {
         return JobOutcome.of(processed, 0, failed, null);
     }
 
-    /** Thân L35 — xem {@link #runPreview} về lý do {@code public}. */
     public JobOutcome runApply(JobContext context, UUID chartId) {
         PhChart chart = requireChart(chartId);
         List<ScanAnalysisRecompute> drafts = recomputeRepository.findByChartId(chartId);
@@ -218,29 +172,16 @@ public class ChartBackfillService implements ChartBackfill {
         for (ScanAnalysisRecompute draft : drafts) {
             ScanAnalysis original = analysisRepository.findById(draft.getScanAnalysisId()).orElse(null);
             if (original == null || !original.isCurrent()) {
-                // Dòng gốc đã bị thay bởi một lượt apply khác (hoặc đã xoá cùng scan). Bỏ qua
-                // thay vì ghi thêm một bản "hiện hành" thứ hai — index partial unique trên
-                // (scan_id) WHERE is_current sẽ nổ, và nổ ở giữa lô thì lô mất sạch.
                 failed++;
                 continue;
             }
             ScanAnalysis replacement = copyForRecompute(original, draft, chart, now);
 
-            // Thu tu ba buoc nay la BAT BUOC, khong phai so thich:
-            //  (1) tat is_current cua ban goc, (2) DAY xuong DB ngay, (3) moi INSERT ban moi.
-            // Hibernate luon phat moi INSERT TRUOC moi UPDATE trong cung mot lan flush, nen neu
-            // de ca hai cho den luc commit thi INSERT di truoc va partial unique index
-            // uq_scan_analysis_current (scan_id) WHERE is_current no ngay. Quan sat that:
-            // "duplicate key value violates unique constraint uq_scan_analysis_current" lam ca
-            // lo apply that bai (job_run = FAILED, 0 dong doi).
             original.setCurrent(false, now);
             analysisRepository.save(original);
             scanRepository.flushPendingWrites();
             analysisRepository.save(replacement);
 
-            // Moi cau truy van hien thi JOIN theo scan.current_analysis_id, khong theo
-            // scan_analysis.is_current — thieu buoc nay thi "ap dung" chay xong ma nguoi dung
-            // van thay con so cu.
             Scan scan = scanRepository.findById(original.getScanId()).orElse(null);
             if (scan != null) {
                 scan.pointAtRecomputedAnalysis(replacement.getId(), now);
@@ -253,18 +194,7 @@ public class ChartBackfillService implements ChartBackfill {
         return JobOutcome.of(processed, 0, failed, null);
     }
 
-    // ------------------------------------------------------------- nội bộ
 
-    /**
-     * Đẩy một lượt backfill sang luồng nền.
-     *
-     * <p><b>Transaction phải mở TƯỜNG MINH bằng {@link TransactionTemplate}, không bằng
-     * {@code @Transactional} trên thân job.</b> {@code body.apply(context)} là một lời gọi
-     * <i>self-invocation</i> (lambda nắm {@code this}, không nắm proxy), nên annotation sẽ bị
-     * bỏ qua lặng lẽ và mỗi lần {@code save} tự mở transaction riêng — mất tính nguyên tử của
-     * cả lô, và L35 có thể để lại hai dòng {@code is_current} nửa chừng. Đây là lỗi không hiện
-     * ra ở test đơn (test gọi thẳng {@code runPreview}) nên phải chặn bằng thiết kế.</p>
-     */
     private void launch(String jobName, Function<JobContext, JobOutcome> body) {
         executor.execute(() -> jobRunner.run(jobName, JobTriggerType.MANUAL, false,
                 context -> transactionTemplate.execute(status -> body.apply(context))));
@@ -280,7 +210,6 @@ public class ChartBackfillService implements ChartBackfill {
         return clock.instant().atOffset(ZoneOffset.UTC).minus(effective).toInstant();
     }
 
-    /** Kết quả tính lại một dòng; {@code null} khi dòng không đủ dữ liệu. */
     private record Recomputed(BigDecimal phValue, ScanClassification classification,
                               BigDecimal confidence, BigDecimal deltaPh, boolean flipped) {
     }
@@ -294,8 +223,6 @@ public class ChartBackfillService implements ChartBackfill {
                 analysis.getLabB().doubleValue());
         ChartMatcher.Match match;
         try {
-            // onCardPatches = null: không còn ảnh nên không có ô tham chiếu đo được trong ảnh,
-            // phải dùng Lab trong DB (nhánh dự phòng mà p6 §6.5.1 S8 đã mô tả).
             match = ChartMatcher.match(sample, chart, null);
         } catch (IllegalArgumentException ex) {
             log.warn("Khong khop duoc dong {} voi bang mau {}: {}",
@@ -333,15 +260,6 @@ public class ChartBackfillService implements ChartBackfill {
                 .divide(BigDecimal.TWO, 2, RoundingMode.HALF_UP).abs();
     }
 
-    /**
-     * Dòng {@code scan_analysis} mới của L35.
-     *
-     * <p>Chép NGUYÊN các đại lượng đo được của ảnh (Lab, chất lượng, hiệu chuẩn) vì chúng không
-     * phụ thuộc bảng màu; chỉ thay phần kết luận. {@code recompute_of} trỏ về bản gốc để lịch sử
-     * truy ngược được (p4 D4 ghi chú nghiệp vụ), và {@code band_id} để {@code null} — giống
-     * đường ghi production hiện tại, {@code PhBandClassifier.Band} không mang id dòng
-     * {@code ph_classification_band}.</p>
-     */
     private ScanAnalysis copyForRecompute(ScanAnalysis original, ScanAnalysisRecompute draft,
                                           PhChart chart, Instant now) {
         ScanAnalysis copy = new ScanAnalysis(uuidV7.generate(), original.getScanId(), now);

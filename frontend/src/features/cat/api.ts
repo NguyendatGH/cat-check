@@ -2,14 +2,6 @@ import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 
-/**
- * Fetch wrapper tối thiểu cho `features/cat` — cùng quy ước với
- * `features/onboarding/api.ts` (base `/api/v1`, CSRF, Idempotency-Key, ProblemDetail →
- * `ApiError`). Lặp lại cục bộ vì `shared/api/client.ts` (openapi-fetch) cần `schema.d.ts`
- * sinh thật (hiện là placeholder rỗng) và vì import chéo feature→feature bị boundaries
- * chặn. W3 nối API thật: thay `apiFetch` bằng `apiClient` khi `npm run api:gen` xong,
- * giữ nguyên chữ ký hàm exported từ `hooks.ts`.
- */
 const BASE_URL = "/api/v1";
 
 interface ProblemDetail {
@@ -20,7 +12,6 @@ interface ProblemDetail {
   instance: string;
   code?: string;
   params?: Record<string, unknown>;
-  /** Backend set đúng field này (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
   errorCode?: string;
 }
 
@@ -55,7 +46,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // body không phải JSON — bỏ qua, dùng message mặc định
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -68,7 +58,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return (await response.json()) as T;
 }
 
-/** D10 — tải ảnh mèo (`multipart`). */
 export async function apiUploadAvatar(path: string, file: File): Promise<{ avatarUrl: string }> {
   const formData = new FormData();
   formData.append("file", file);
@@ -92,7 +81,6 @@ export async function apiUploadAvatar(path: string, file: File): Promise<{ avata
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // bỏ qua
     }
     throw new ApiError(
       problem?.detail ?? `Upload failed with status ${String(response.status)}`,

@@ -18,10 +18,6 @@ import java.util.Optional;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
-/**
- * R4, R14, R18 — quy tắc tầng web/api. Quét chỉ main sources (bỏ qua test) vì đây là quy tắc
- * cho code sản xuất.
- */
 @AnalyzeClasses(packages = "com.catcheck", importOptions = ImportOption.DoNotIncludeTests.class)
 class WebLayerRuleTests {
 

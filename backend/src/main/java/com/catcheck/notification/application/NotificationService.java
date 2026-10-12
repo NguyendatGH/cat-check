@@ -38,40 +38,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Trung tâm thông báo: phát thông báo (p12 §12.1–12.2) và phục vụ hộp thư in-app (p8 nhóm G,
- * G4–G8).
- *
- * <p><b>Ba quy tắc của {@link #enqueue} lấy thẳng từ p12, theo đúng thứ tự áp dụng:</b></p>
- * <ol>
- *   <li><b>In-app luôn được ghi</b> cho mọi template không-marketing (§12.1): "mọi thông báo
- *       quan trọng phải LUÔN có bản ghi in-app, bất kể user có bật push/email hay không — đây
- *       là nguồn sự thật". Khi user đã tắt loại thông báo đó thì dòng vẫn được ghi nhưng ở
- *       trạng thái {@code SUPPRESSED}, để về sau giải thích được "vì sao tôi không nhận được"
- *       (p4 F2).</li>
- *   <li><b>Preference rồi mới tới consent.</b> Hai lớp khác bản chất: preference
- *       ({@code user_notification_preference}) là tuỳ chọn trải nghiệm và ĐƯỢC mặc định bật;
- *       consent ({@code consent_record}) là căn cứ pháp lý và TUYỆT ĐỐI không được mặc định bật
- *       (p12 §12.9.2, p15 §15.10-C). Template "bắt buộc" (§12.2.6) bỏ qua được preference nhưng
- *       <b>không</b> bỏ qua consent.</li>
- *   <li><b>Giờ im lặng hoãn, không huỷ</b> (§12.5.3): push/email của template có áp dụng quiet
- *       hours được đặt {@code scheduled_at}/{@code next_attempt_at} = {@code quiet_hours_end},
- *       in-app thì không bị ảnh hưởng (in-app không phát ra tiếng).
- *       <br><b>Chỗ p4 và p12 đọc khác nhau:</b> p4 F2 liệt kê giờ im lặng là một trong hai
- *       nguyên nhân của {@code SUPPRESSED}, còn p12 §12.5.3 nói rõ "không gửi ngay, dời sang
- *       {@code quiet_hours_end}". Đã chọn cách của p12 vì 02-team-decisions §0 giao miền "job
- *       nền, scheduler, thông báo" cho p12 (p4 sở hữu tên bảng/tên cột); huỷ hẳn một cảnh báo
- *       credit chỉ vì nó rơi vào 23:00 là mất thông tin, không phải tiết chế.</li>
- * </ol>
- *
- * <p>Toàn bộ phương thức chỉ {@code INSERT}; không gọi SMTP/FCM (p12 §12.4, §12.8).</p>
- */
 @Service
 public class NotificationService implements NotificationGateway {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
-    /** Giá trị ghi vào {@code payload.suppressedReason}. */
     static final String REASON_PREFERENCE_OFF = "PREFERENCE_OFF";
     static final String REASON_CONSENT_MISSING = "CONSENT_MISSING";
     static final String REASON_NO_ACTIVE_DEVICE = "NO_ACTIVE_DEVICE";
@@ -115,8 +86,6 @@ public class NotificationService implements NotificationGateway {
 
         Optional<NotificationRecipient> found = recipients.findById(request.userId());
         if (found.isEmpty()) {
-            // Tài khoản đã bị xoá/ẩn danh giữa lúc sự kiện nghiệp vụ xảy ra và lúc phát thông
-            // báo. Không ném: không được làm rollback transaction nghiệp vụ vì chuyện này.
             log.warn("Bỏ qua thông báo {}: không còn tài khoản tương ứng.", template.code());
             return;
         }
@@ -148,15 +117,6 @@ public class NotificationService implements NotificationGateway {
                 OutboxStatus.PENDING, 0, clock.instant(), null, request.dedupeKey(), null, null));
     }
 
-    /**
-     * Rút consent {@code HEALTH_REMINDER_PUSH} ⇒ thu hồi mọi thiết bị (p12 §12.3.9, H15.74a).
-     *
-     * <p>Hiện thực nằm ở đây chứ không uỷ quyền sang {@code PushSubscriptionService}: cổng
-     * {@code NotificationGateway} là bề mặt duy nhất module khác được chạm, và việc thu hồi
-     * chỉ là một {@code UPDATE} theo user — kéo thêm một service vào chỉ để gọi đúng một
-     * phương thức repository sẽ tạo thêm một cạnh phụ thuộc trong module mà không đổi hành
-     * vi.</p>
-     */
     @Override
     @Transactional
     public int revokePushOnConsentWithdrawal(UUID userId) {
@@ -165,13 +125,11 @@ public class NotificationService implements NotificationGateway {
         active.forEach(subscription ->
                 subscriptions.revokeById(subscription.id(), PushRevokeReason.CONSENT_WITHDRAWN, now));
         if (!active.isEmpty()) {
-            // KHÔNG log fid/legacy_token (p11 §11.10.3: token là PII) — chỉ số lượng.
             log.info("Rut consent HEALTH_REMINDER_PUSH: da thu hoi {} dang ky push.", active.size());
         }
         return active.size();
     }
 
-    /* ------------------------------------------------------------------ kênh in-app */
 
     private void writeInApp(NotificationRequest request, NotificationTemplate template,
                             boolean typeEnabled, Instant now) {
@@ -183,14 +141,11 @@ public class NotificationService implements NotificationGateway {
                 null, typeEnabled ? now : null, now));
     }
 
-    /* -------------------------------------------------------------------- kênh push */
 
     private void enqueuePush(NotificationRequest request, NotificationTemplate template,
                              UserNotificationPreference preference, NotificationRecipient recipient,
                              boolean typeEnabled, Instant now) {
         PreferenceGate gate = template.preferenceGate();
-        // Cảnh báo "cần chú ý" không tắt được, chỉ hạ kênh về in-app — p12 §12.9.1. Vì vậy
-        // template bắt buộc vẫn phải tôn trọng attention_alert_channel.
         boolean pushAllowedByPreference = gate == PreferenceGate.ATTENTION_CHANNEL
                 ? preference.allowsPushFor(gate)
                 : typeEnabled;
@@ -217,7 +172,6 @@ public class NotificationService implements NotificationGateway {
                 row(request, template, NotificationChannel.PUSH, NotificationStatus.QUEUED,
                         request.payload(), deliverAt.equals(now) ? null : deliverAt, null, now));
         if (created.isEmpty()) {
-            // Va dedupe_key: thông báo này đã được phát trước đó, không fan-out lần hai.
             return;
         }
         UUID notificationId = created.get().id();
@@ -226,7 +180,6 @@ public class NotificationService implements NotificationGateway {
         }
     }
 
-    /* ------------------------------------------------------------------- kênh email */
 
     private void enqueueEmail(NotificationRequest request, NotificationTemplate template,
                               UserNotificationPreference preference, NotificationRecipient recipient,
@@ -253,19 +206,15 @@ public class NotificationService implements NotificationGateway {
                 channelDedupeKey(request.dedupeKey(), NotificationChannel.EMAIL), null, null));
     }
 
-    /* ----------------------------------------------------------- hộp thư in-app (G4–G8) */
 
-    /** G4 — {@code GET /notifications}. */
     @Transactional(readOnly = true)
     public NotificationRepository.Page listInbox(UUID userId, String cursor, int limit) {
         if (limit < 1 || limit > 100) {
-            // p8 §8.1.4: vượt trần ⇒ 400, KHÔNG âm thầm kẹp xuống (kẹp làm client tưởng đã lấy hết).
             throw new BusinessRuleException(NotificationErrorCode.VALIDATION_FAILED, "limit");
         }
         return notifications.listInbox(userId, parseCursor(cursor), limit);
     }
 
-    /** Cursor hỏng ⇒ {@code 400 PAGINATION_CURSOR_INVALID} tại đây; repository chỉ nhận cursor hợp lệ. */
     private static NotificationRepository.InboxCursor parseCursor(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return null;
@@ -277,26 +226,22 @@ public class NotificationService implements NotificationGateway {
         }
     }
 
-    /** G5 — {@code GET /notifications/unread-count}. */
     @Transactional(readOnly = true)
     public long countUnread(UUID userId) {
         return notifications.countUnread(userId);
     }
 
-    /** G6 — {@code POST /notifications/{id}/read}. Idempotent: đọc lại vẫn {@code 204}. */
     @Transactional
     public void markRead(UUID userId, UUID notificationId) {
         requireOwned(userId, notificationId);
         notifications.markRead(notificationId, userId);
     }
 
-    /** G7 — {@code POST /notifications/read-all}. */
     @Transactional
     public int markAllRead(UUID userId) {
         return notifications.markAllRead(userId);
     }
 
-    /** G8 — {@code DELETE /notifications/{id}}: ẩn khỏi hộp thư (soft). */
     @Transactional
     public void hide(UUID userId, UUID notificationId) {
         requireOwned(userId, notificationId);
@@ -308,12 +253,7 @@ public class NotificationService implements NotificationGateway {
                 .orElseThrow(() -> new NotFoundException(NotificationErrorCode.NOTIFICATION_NOT_FOUND));
     }
 
-    /* ----------------------------------------------------------------------- helper */
 
-    /**
-     * Giờ im lặng tính theo {@code app_user.timezone} (p12 §12.5.2), trả về mốc UTC sớm nhất
-     * được phép đẩy.
-     */
     private Instant deliveryTime(NotificationTemplate template, UserNotificationPreference preference,
                                  NotificationRecipient recipient, Instant now) {
         if (!template.quietHoursApply()) {
@@ -351,11 +291,6 @@ public class NotificationService implements NotificationGateway {
                 now);
     }
 
-    /**
-     * {@code uq_notification_dedupe} là UNIQUE trên TOÀN bảng, nhưng một thông báo nghiệp vụ
-     * sinh tới ba dòng (in-app + push + email). Nên khoá phải mang hậu tố kênh, nếu không dòng
-     * thứ hai bị chính dòng thứ nhất chặn và push/email không bao giờ được xếp hàng.
-     */
     private String channelDedupeKey(String base, NotificationChannel channel) {
         return base == null ? null : base + ':' + channel.name();
     }

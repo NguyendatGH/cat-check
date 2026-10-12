@@ -1,19 +1,8 @@
 import type { ReactNode } from "react";
 
-/**
- * Renderer Markdown -> JSX tối giản, TỰ VIẾT (không có thư viện markdown nào trong 91
- * version đã pin ở `research-integrations.md` — không tự thêm dependency mới). Đủ cho
- * cấu trúc `policy_version.content_md` thực tế (tiêu đề, đoạn văn, danh sách, in đậm,
- * trích dẫn) mà KHÔNG dùng `dangerouslySetInnerHTML` — dựng thẳng React element nên
- * không có rủi ro XSS dù nội dung tới từ DB.
- *
- * Cố ý không hỗ trợ bảng/link Markdown/ảnh — nội dung pháp lý (p15 §15.8) không cần tới,
- * và mở rộng thêm cú pháp thì rủi ro parse sai tăng nhanh hơn giá trị mang lại.
- */
 
 const HEADING_PATTERN = /^(#{1,3})\s+(.*)$/;
 
-/** Id neo của heading thứ `index` (tính theo thứ tự xuất hiện trong `content_md`). */
 function headingId(index: number): string {
   return `legal-section-${String(index)}`;
 }
@@ -24,10 +13,6 @@ export interface MarkdownHeading {
   level: number;
 }
 
-/**
- * Rút danh sách heading để dựng mục lục cột phải ở desktop. Quét ĐÚNG cùng một biểu thức
- * với `renderMarkdown` và đánh số theo cùng thứ tự, nên `id` hai bên luôn khớp nhau.
- */
 export function extractMarkdownHeadings(source: string): MarkdownHeading[] {
   const headings: MarkdownHeading[] = [];
   for (const line of source.replace(/\r\n/g, "\n").split("\n")) {
@@ -42,10 +27,6 @@ export function extractMarkdownHeadings(source: string): MarkdownHeading[] {
   return headings;
 }
 
-/**
- * Bỏ dòng `# Tiêu đề` ĐẦU TIÊN của `content_md` khi nó trùng `title` của API — trang đã in
- * `title` thành `h1`, để nguyên thì tiêu đề lặp hai lần liền nhau (vd "Tuyên bố miễn trừ y tế").
- */
 export function stripLeadingTitle(source: string, title: string): string {
   const lines = source.replace(/\r\n/g, "\n").split("\n");
   const first = lines.findIndex((line) => line.trim() !== "");
@@ -85,8 +66,6 @@ export function renderMarkdown(source: string): ReactNode {
       const level = headingMatch[1].length;
       const text = headingMatch[2];
       const key = `h-${String(blockKey++)}`;
-      // `id` + `scroll-mt-24`: đích neo của mục lục desktop (`DocumentToc`), chừa chỗ cho
-      // header dính. Không ảnh hưởng gì tới bản mobile.
       const anchorId = headingId(headingIndex++);
       if (level === 1) {
         blocks.push(

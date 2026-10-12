@@ -4,21 +4,11 @@ import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Dựng {@link MonitoringRule} cho test.
- *
- * <p>{@code MonitoringRule} là entity JPA chỉ-đọc (hàng cấu hình do Flyway seed, p4 D11): không
- * có constructor công khai và không có setter — đúng như nó phải thế. Lớp fixture này nằm cùng
- * package nên gọi được constructor {@code protected}, rồi gán field bằng reflection. Đổi ngược
- * lại (thêm setter vào entity chỉ để test ghi được) sẽ mở một đường ghi mà production không
- * được phép dùng.</p>
- */
 public final class MonitoringRuleFixtures {
 
     private MonitoringRuleFixtures() {
     }
 
-    /** p6 §6.9.5 R4 — mặc định {@code streak = 2}, {@code maxConfidence = 0.50}, cooldown 24h. */
     public static MonitoringRule lowQualityStreak(int streak, double maxConfidence, Instant now) {
         return rule(MonitoringRuleCode.LOW_QUALITY_STREAK.name(),
                 Map.of("streak", streak, "maxConfidence", maxConfidence),

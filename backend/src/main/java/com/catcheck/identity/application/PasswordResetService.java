@@ -27,19 +27,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Quen mat khau (p3 F3, p8 A8 + A9, p11 §11.3.2).
- *
- * <p><b>Khong bao gio tra loi khi email khong ton tai.</b> A8 luon 200
- * ({@link IdentityErrorCode#PASSWORD_RESET_REQUESTED}) — neu tra 404 cho email la,
- * A8 tro thanh API kiem tra email ton tai. Client khong phan biet hai nhanh, va thoi
- * gian phan hoi phai nhat nhau de khong do duoc may so sanh (p11 §11.1.5).</p>
- *
- * <p>A9 khong nhan mat khau cua client. Nhan {@code otp_ticket} — bang chung OTP da
- * duoc xac minh — roi dat mat khau moi. Cach nay loai duoc ca p11 §11.3.2 yeu cau
- * "token phai la chuoi ngau nhien rieng" ma van giu duoc tien do cua OTP (da verify
- * email trong 5 phut chu khong phai vong xac minh thu hai).</p>
- */
 @Service
 public class PasswordResetService {
 
@@ -79,11 +66,6 @@ public class PasswordResetService {
         this.clock = clock;
     }
 
-    /**
-     * A8 — <b>luon</b> 200. Trong ca hai nhanh deu ghi audit, nhung chi nhanh co tai
-     * khoan moi gui OTP; nhanh khong co tai khoan ghi {@code denied} de doi chieu duoc
-     * nguoi dung report "toi khong nhan duoc email".
-     */
     @Transactional
     public void request(String rawEmail, AuthRequestContext context) {
         String subject = rawEmail == null ? "" : rawEmail.trim().toLowerCase(java.util.Locale.ROOT);
@@ -107,8 +89,6 @@ public class PasswordResetService {
 
         UserAccount user = account.get();
         otpService.requestOtp(user.email().value(), OtpPurpose.PASSWORD_RESET, user.id(), context);
-        // password_reset chi ghi khi co ticket that, khong ghi "co yeu cau" — bang nay
-        // la bang chung, khong phai log trang thai.
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(user.id())
                 .action("AUTH_PASSWORD_RESET_REQUEST")
@@ -117,12 +97,8 @@ public class PasswordResetService {
                 .build());
     }
 
-    /** A9 — dat mat khau moi bang {@code otp_ticket}. Tra ve {@code userId} moi xac nhan. */
     @Transactional
     public UUID confirm(String rawOtpTicket, String newPassword, AuthRequestContext context) {
-        // Chi khoa theo IP (requireIpRateLimit): email that cua chu ticket chua biet vi otp_ticket
-        // chua giai ma, con subject co dinh se gom moi request confirm cua moi nguoi dung vao
-        // chung mot thung PASSWORD_RESET_BY_EMAIL (3/gio) va gay 429 oan.
         requireIpRateLimit(context);
 
         var challenge = otpService.consumeTicket(rawOtpTicket, OtpPurpose.PASSWORD_RESET);
@@ -138,18 +114,12 @@ public class PasswordResetService {
         accountRepository.updatePasswordHash(userId, passwordHasher.hash(newPassword));
         accountRepository.updatePasswordTimestamps(userId, now, null);
 
-        // Dong hoan thanh bang chung, khong phai token sinh rieng: ticket da bi tie o
-        // OtpService, dong nay chi luu hash de audit/doi chieu va chan ghi lai.
         String ticketHash = OtpTicket.hashOf(rawOtpTicket);
         passwordResetRepository.insert(userId, ticketHash, challenge.ticketExpiresAt(),
                 context.ipAddress());
 
-        // p11 §11.3.2: doi mat khau phai thu hoi moi phien khac. Neu khong, mat khau cu
-        // da bi lo ra khoe truc tiep van dung duoc den khi nguoi dung doi lai lan nua.
         int revoked = sessionRevoker.revokeAllByUserId(userId);
 
-        // Reset so lan sai + go khoa: dang reset mat khau la bang chung chu so huu,
-        // khong vi pham nua n nen khong phai khoa tai khoan o day.
         if (account.status() == UserStatus.LOCKED) {
             accountRepository.updateLoginState(userId, UserStatus.ACTIVE, 0, null, now);
         } else {
@@ -190,8 +160,6 @@ public class PasswordResetService {
     }
 
     private void requireIpRateLimit(AuthRequestContext context) {
-        // Subject phai la IP that: RateLimiter bo qua quy tac khi subject null (xem javadoc
-        // RateLimiter#tryConsume), nen PASSWORD_RESET_BY_IP (10/gio, p11 §11.7.2) chi chan khi co IP.
         RateLimiter.RetryAfter byIp =
                 rateLimiter.rejectIfLimited(RateLimitRule.PASSWORD_RESET_BY_IP, context.ipAddress());
         if (byIp != null) {
@@ -200,12 +168,10 @@ public class PasswordResetService {
         }
     }
 
-    /** Ly do thu hoi phien khi doi mat khau — dung chung cho A9 va B6. */
     public static SessionRevokeReason passwordChangedReason() {
         return SessionRevokeReason.PASSWORD_CHANGED;
     }
 
-    /** Han dung cua OTP mat khau = han cua ticket, de A9 khong phai tra OTP rieng. */
     public java.time.Duration resetTicketTtl() {
         return policy.otpTicketTtl();
     }

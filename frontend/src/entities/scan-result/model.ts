@@ -1,22 +1,8 @@
-/**
- * Model cho kết quả quét — khớp `ScanResultResponse` / `ScanListItemResponse` /
- * `ScanSummaryResponse` / `ScanAnalysisResponse`
- * (`backend/src/main/java/com/catcheck/scan/api/dto/*.java`, p8 §8.5.4).
- *
- * Tên thư mục entity là `scan-result` (khái niệm domain phía FE — "kết quả 1 lần scan"),
- * KHÔNG PHẢI tên bảng: bảng thật là `scan` + `scan_analysis` (p4 D1/D3, KHÔNG có bảng
- * `scan_result`).
- *
- * Nhãn hiển thị (label/màu/icon) của `classification` KHÔNG đặt ở đây — tra qua
- * `entities/ph-bands` (`usePhBands()`/`findBandForPh()`), theo đúng "một nguồn sự thật".
- * File này chỉ giữ hình dạng dữ liệu thô từ API.
- */
 
 export type ScanClassification = "IN_RANGE" | "SLIGHTLY_LOW" | "SLIGHTLY_HIGH" | "LOW" | "HIGH" | "INCONCLUSIVE";
 
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
 
-/** `UNASSIGNED` là trạng thái nội bộ BE, API không bao giờ trả về giá trị này (p8 §8.5.4). */
 export type ScanAssignment = "ASSIGNED" | "SHARED_UNKNOWN";
 
 export type CaptureSource = "CAMERA" | "GALLERY";
@@ -38,7 +24,6 @@ export interface TriggeredFlag {
   messageKey: string;
 }
 
-/** `POST /scans` và `GET /scans/{id}` (p8 §8.5.4) — `scanId` là `null` khi và chỉ khi INCONCLUSIVE. */
 export interface ScanResult {
   scanId: string | null;
   scanRequestId: string;
@@ -89,7 +74,6 @@ export interface ScanResult {
   disputedNote: string | null;
 }
 
-/** Một dòng `GET /scans` (p8 §8.5.4 E2). */
 export interface ScanListItem {
   scanId: string;
   catId: string | null;
@@ -113,7 +97,6 @@ export interface ScanListPage {
   nextCursor: string | null;
 }
 
-/** `GET /scans/summary` (p8 §8.5.4 E3). */
 export interface ScanSummary {
   count: number;
   byClassification: Record<string, number>;
@@ -126,7 +109,6 @@ export interface ScanSummary {
   lastAt: string | null;
 }
 
-/** `GET /scans/{id}/analysis` (p8 §8.5.4 E5). */
 export interface ScanAnalysisDetail {
   labL: number | null;
   labA: number | null;
@@ -150,7 +132,6 @@ export interface ScanAnalysisDetail {
   recomputeOf: string | null;
 }
 
-/** `GET /scan/config` (p8 §8.5.4 E12). */
 export interface ScanConfig {
   maxEdgePx: number;
   minEdgePx: number;
@@ -170,17 +151,6 @@ export interface ScanConfig {
   activeChart: { code: string | null; version: number; isPlaceholder: boolean };
 }
 
-/**
- * Số lượt quét **hiển thị được** của một `ScanSummary`.
- *
- * Vì sao cần hàm này: `GET /scans/summary` (E3) đếm MỌI bản ghi `scan`, kể cả
- * `INCONCLUSIVE` — bản ghi giữ lại để audit nhưng `GET /scans` (E2) loại hẳn ra
- * (`JdbcScanQueryRepository.findHistory`: `sa.classification <> 'INCONCLUSIVE'`), và
- * `GET /scans/{id}` cũng trả 404 cho chúng. Hệ quả: màn nào lấy `summary.count` làm "tổng
- * bản ghi" sẽ luôn lớn hơn số dòng người dùng thật sự nhìn thấy và bấm được.
- *
- * Mọi chỗ nói "tổng lượt quét" PHẢI dùng hàm này để một bộ dữ liệu chỉ có một con số.
- */
 export function displayableScanCount(summary: Pick<ScanSummary, "count" | "inconclusiveCount">): number {
   return Math.max(0, summary.count - summary.inconclusiveCount);
 }

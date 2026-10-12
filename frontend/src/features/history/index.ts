@@ -1,5 +1,3 @@
-// features/history — timeline lịch sử quét theo mèo (p9 §9.4.3, p8 §8.5.4 E2/E3). Mọi import
-// từ bên ngoài PHẢI qua file này (boundaries/entry-point).
 export {
   CatSwitcherBar,
   ExportCtaCard,

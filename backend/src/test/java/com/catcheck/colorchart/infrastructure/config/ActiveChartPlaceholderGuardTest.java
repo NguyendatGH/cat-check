@@ -20,12 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * GĐ7 (docs/scan-production-plan.md) — kiểm tra khởi động KHÔNG cho prod chạy với bảng màu
- * placeholder đang ACTIVE. Không dựng Spring context/DB thật (R: không Testcontainers ở đây) —
- * chỉ stub {@link ColorChartRepository} và gọi {@link ActiveChartPlaceholderGuard#run} trực tiếp,
- * đúng như lúc {@code ApplicationRunner} chạy sau khi context khởi tạo xong.
- */
 class ActiveChartPlaceholderGuardTest {
 
     private static final Instant NOW = Instant.parse("2026-10-09T00:00:00Z");
@@ -67,13 +61,12 @@ class ActiveChartPlaceholderGuardTest {
         for (int i = 0; i < 150; i++) {
             repo.add(ChartStatus.ACTIVE, false);
         }
-        repo.add(ChartStatus.ACTIVE, true); // nằm ở trang thứ hai (PAGE_SIZE = 100)
+        repo.add(ChartStatus.ACTIVE, true);
         ActiveChartPlaceholderGuard guard = new ActiveChartPlaceholderGuard(repo);
 
         assertThrows(IllegalStateException.class, () -> guard.run(new DefaultApplicationArguments()));
     }
 
-    /** Fake tối giản — chỉ hiện thực {@code findAllByStatus}, phần còn lại không dùng tới. */
     private static final class FakeChartRepository implements ColorChartRepository {
 
         private final List<ColorChart> store = new ArrayList<>();

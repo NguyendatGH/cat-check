@@ -7,11 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * D12 {@code GET /cats/{catId}/summary} — hop dong o p8 §8.9 dong 1185:
- * {@code {catId, lastScan: {...}|null, scanCount30d, inRangeRatio30d, unacknowledgedFlagCount,
- * nextReminderAt, hasEnoughDataForTrend}}.
- */
 public record CatSummaryResponse(
         UUID catId,
         LastScan lastScan,

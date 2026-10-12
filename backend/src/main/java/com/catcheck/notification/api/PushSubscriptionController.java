@@ -24,13 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Nhóm G — thiết bị nhận web push (p8 §8.4.7, G9–G11).
- *
- * <p><b>Không có {@code POST /devices/register}.</b> p3 F10 và bản cũ của p4 dùng tên đó với
- * bảng {@code device_token}; tên chuẩn là {@code push_subscription} +
- * {@code PUT /push/subscriptions} (p8 §8.4.7 ghi chú, H9.2).</p>
- */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Push subscription", description = "Thiết bị đang nhận thông báo đẩy (FCM web push)")
@@ -42,7 +35,6 @@ public class PushSubscriptionController {
         this.service = service;
     }
 
-    /** G9 — {@code GET /push/subscriptions}. */
     @Operation(operationId = "listPushSubscriptions", summary = "Thiết bị đang nhận push của tôi",
             description = "Không phân trang (trần cứng 10 thiết bị) nhưng vẫn dùng envelope chung của p8 §8.1.4.")
     @GetMapping("/push/subscriptions")
@@ -53,7 +45,6 @@ public class PushSubscriptionController {
         return new PushSubscriptionListResponse(items, CursorPage.unpaged(items.size()));
     }
 
-    /** G10 — {@code PUT /push/subscriptions}. */
     @Operation(operationId = "upsertPushSubscription", summary = "Đăng ký / cập nhật thiết bị nhận push",
             description = "Upsert theo `fid` (hoặc `legacyToken`). Cần consent `HEALTH_REMINDER_PUSH` "
                     + "(thiếu ⇒ 403 CONSENT_REQUIRED); thiếu cả hai định danh ⇒ 400 PUSH_SUBSCRIPTION_INVALID; "
@@ -71,7 +62,6 @@ public class PushSubscriptionController {
                 httpRequest.getHeader("User-Agent"))));
     }
 
-    /** G11 — {@code DELETE /push/subscriptions/{subscriptionId}}. */
     @Operation(operationId = "revokePushSubscription", summary = "Gỡ đăng ký một thiết bị",
             description = "`revoke_reason = USER_DISABLED`. Bản ghi được giữ lại 30 ngày để "
                     + "`CleanupDeadPushTokensJob` dọn (p12 §12.3.9).")

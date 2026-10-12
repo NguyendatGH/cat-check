@@ -3,10 +3,6 @@ import type { ComponentProps } from "react";
 
 export type ToastProps = ComponentProps<typeof SonnerToaster>;
 
-/**
- * Bọc `sonner`. Render 1 lần duy nhất trong app/providers/ToastProvider.tsx.
- * Dùng hàm `toast(...)` re-export bên dưới ở bất kỳ đâu để bắn toast.
- */
 export function Toast(props: ToastProps) {
   return (
     <SonnerToaster

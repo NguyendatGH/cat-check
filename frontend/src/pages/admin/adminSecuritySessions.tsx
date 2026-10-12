@@ -20,12 +20,6 @@ import {
 
 const MANUAL = "__manual__";
 
-/**
- * Tab "Phiên" — L62 thu hồi TOÀN BỘ phiên của mọi người dùng (runbook R1).
- *
- * Thao tác phá huỷ nên đi hai bước: (1) chọn hồ sơ sự cố + lý do, (2) hộp xác nhận bắt gõ
- * đúng cụm xác nhận. Server bắt buộc `incidentId` (không có hồ sơ sự cố thì không có căn cứ).
- */
 export function SecuritySessionsTab({ canReadIncidents }: { canReadIncidents: boolean }) {
   const { t } = useTranslation("admin");
   const purge = usePurgeAllSessions();

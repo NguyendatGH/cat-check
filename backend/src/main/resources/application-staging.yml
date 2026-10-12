@@ -1,6 +1,3 @@
-# Profile "staging": mọi giá trị nhạy cảm và theo môi trường đều qua biến môi trường (không
-# giá trị mặc định nhạy cảm nào được hardcode ở đây). Không có "::" default cho
-# username/password/DB - thiếu biến là phải fail-fast, không âm thầm dùng giá trị rỗng.
 
 spring:
   datasource:

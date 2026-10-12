@@ -2,15 +2,6 @@ import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 
-/**
- * Fetch wrapper tối thiểu cho onboarding — dùng thay `apiClient` (openapi-fetch) vì
- * `shared/api/schema.d.ts` đang là placeholder rỗng (chưa chạy `api:gen`), nên
- * `apiClient.GET("/cats")` sẽ lỗi type. W3 nối API thật: thay toàn bộ `apiFetch`
- * bằng `apiClient` + type sinh từ OpenAPI, giữ nguyên chữ ký hàm.
- *
- * Quy ước giống shared/api/upload.ts: base `/api/v1`, credentials include, CSRF
- * header, Idempotency-Key với mọi method khác GET, lỗi RFC 9457 → `ApiError`.
- */
 
 const BASE_URL = "/api/v1";
 
@@ -23,7 +14,6 @@ interface ProblemDetail {
   code?: string;
   params?: Record<string, unknown>;
   retryAfterSeconds?: number;
-  /** Backend set đúng field này (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
   errorCode?: string;
 }
 
@@ -58,7 +48,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // body không phải JSON — bỏ qua, dùng message mặc định
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -71,7 +60,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return (await response.json()) as T;
 }
 
-/** Upload multipart (ảnh đại diện mèo) — `PUT /cats/{catId}/avatar` (p8 D10). */
 export async function apiUploadAvatar(path: string, file: File): Promise<{ avatarUrl: string }> {
   const formData = new FormData();
   formData.append("file", file);
@@ -95,7 +83,6 @@ export async function apiUploadAvatar(path: string, file: File): Promise<{ avata
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // bỏ qua
     }
     throw new ApiError(
       problem?.detail ?? `Upload failed with status ${String(response.status)}`,

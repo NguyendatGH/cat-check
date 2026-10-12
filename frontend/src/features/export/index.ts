@@ -1,5 +1,3 @@
-// features/export — xuất hồ sơ PDF cho bác sĩ thú y (p9 §9.4.3, p8 §8.4.10 nhóm J). Mọi import
-// từ bên ngoài PHẢI qua file này (boundaries/entry-point).
 export {
   ExportSectionHeading,
   CatPickerStep,

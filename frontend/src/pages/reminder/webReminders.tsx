@@ -19,20 +19,6 @@ import {
   useScheduleLabel,
 } from "./reminderUi";
 
-/**
- * Bố cục DESKTOP (>= lg) của `/reminders` — dựng từ bản export gốc
- * `Web - 09. Trung tâm Nhắc nhở & Lịch Y tế (Monitoring Reminders)` (khung 1280px).
- *
- * KHÔNG tự thêm padding ngang ở `lg` — `TaskLayout` đã cấp hộp nội dung 944px có sẵn padding.
- *
- * ĐÃ BỎ so với mockup, vì KHÔNG có endpoint và dựng lên sẽ là dữ liệu bịa:
- *  - cột thiết bị IoT "CleanBox Smart-01" / "Bio-Kit C10 Pro" (CatCheck Phase 1 quét bằng ảnh,
- *    không có phần cứng);
- *  - các thẻ "đặt mua cát giao 2H", "kho dự trữ tại nhà", "tái khám tại phòng khám X",
- *    "nhắc nhỏ gáy/tẩy giun" (không thuộc miền `reminder`, và phần lớn vi phạm luật câu chữ);
- *  - khối "AI Auto-Tuning" (không có backend).
- * Mọi con số hiển thị ở đây đều suy từ danh sách `reminders` thật của I1.
- */
 
 const WEEKDAY_KEYS = [
   "web.weekday1",
@@ -58,19 +44,16 @@ export function matchesTab(reminder: Reminder, tab: ReminderTab): boolean {
   return tab === "SCAN" ? reminder.type === "SCAN_ROUTINE" : reminder.type !== "SCAN_ROUTINE";
 }
 
-/** Ô ngày của lịch tháng — `day === null` là ô đệm đầu tuần. */
 interface CalendarCell {
   day: number | null;
   marked: boolean;
   isToday: boolean;
 }
 
-/** Lịch tháng hiện tại, tuần bắt đầu thứ Hai. Chấm = ngày có `nextRunAt` của một lịch đang bật. */
 function buildMonthCells(reminders: Reminder[], now: Date): CalendarCell[] {
   const year = now.getFullYear();
   const month = now.getMonth();
   const first = new Date(year, month, 1);
-  // getDay(): 0 = CN. Chuyển sang tuần bắt đầu thứ Hai (0 = T2 … 6 = CN).
   const leading = (first.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -106,7 +89,6 @@ export interface WebRemindersScreenProps {
   reminders: Reminder[];
   catNameById: Map<string, string>;
   isPending: boolean;
-  /** 403 `FEATURE_NOT_IN_PLAN`. */
   locked: boolean;
   isError: boolean;
   tab: ReminderTab;
@@ -239,7 +221,6 @@ export function WebRemindersScreen({
       </div>
 
       <div className="grid grid-cols-12 gap-4">
-        {/* ── Cột chính ───────────────────────────────────────────────────────────────── */}
         <div className="col-span-12 flex flex-col gap-4 xl:col-span-8">
           <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -330,10 +311,6 @@ export function WebRemindersScreen({
               upcoming.map((reminder) => {
                 const due = dueState(reminder.nextRunAt, now.getTime());
                 return (
-                  /* Web-09 "Lịch nhắc tuần này": icon · (hàng chip → tiêu đề → mô tả) · nút bên
-                     phải. Trước đây chip "Còn N ngày" + 2 nút cùng chen vào hàng ngang với cột
-                     chữ, ép cột chữ còn ~140px nên mọi dòng xuống 2–3 hàng. Nay chip trạng thái
-                     lên hàng chip, hai nút xếp dọc trong cột cố định 172px. */
                   <article key={reminder.id} className="flex items-start gap-4 rounded-2xl bg-surface p-4 shadow-xs">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark">
                       <CalendarClock size={18} aria-hidden="true" />
@@ -406,7 +383,6 @@ export function WebRemindersScreen({
           ) : null}
         </div>
 
-        {/* ── Cột phải ────────────────────────────────────────────────────────────────── */}
         <div className="col-span-12 flex flex-col gap-4 xl:col-span-4">
           <section className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-xs">
             <p className="text-body font-bold capitalize text-primary-dark">{monthLabel}</p>
@@ -440,10 +416,6 @@ export function WebRemindersScreen({
           <EducationCard withPhoto />
         </div>
 
-        {/* Panel "Cấu hình Tần suất" của `Web - 09` — khối sửa nhanh dùng chung với bản
-            mobile. Trước đây nó nằm trong cột trái 8/12: form cao ~1300px kéo cột trái dài
-            gấp đôi cột phải và để lại hơn 1100px trống dưới lịch tháng. Nay nó chiếm trọn
-            bề ngang ở dưới (`wide`) nên ba khối chọn xếp ngang và hai cột trên cân nhau. */}
         <div className="col-span-12">
           <ReminderQuickPlan reminders={reminders} catNameById={catNameById} wide />
         </div>

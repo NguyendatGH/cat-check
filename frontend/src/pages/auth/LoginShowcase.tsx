@@ -12,11 +12,6 @@ function formatPhBound(value: number): string {
   return formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
-/**
- * Khoảng pH của MỘT dải, dựng từ `phMin`/`phMax` của `GET /reference/ph-bands`. Dải mở hai
- * đầu (server bỏ hẳn key) hiện dạng `< x` / `> x`; dải không có biên nào (INCONCLUSIVE) là
- * một trạng thái chứ không phải khoảng nên trả `null`.
- */
 function formatBandRange(band: PhBand): string | null {
   const min = typeof band.phMin === "number" ? band.phMin : null;
   const max = typeof band.phMax === "number" ? band.phMax : null;
@@ -26,7 +21,6 @@ function formatBandRange(band: PhBand): string | null {
   return null;
 }
 
-/** Dải có ít nhất một biên — loại INCONCLUSIVE (không phải khoảng pH) khỏi thanh màu. */
 function boundedBands(bands: PhBand[]): PhBand[] {
   return bands
     .filter((b) => typeof b.phMin === "number" || typeof b.phMax === "number")
@@ -34,11 +28,6 @@ function boundedBands(bands: PhBand[]): PhBand[] {
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-/**
- * Thẻ "Dải pH tham chiếu" của panel giới thiệu — thay thẻ mèo mẫu + thang pH cứng của Figma
- * (16:7573). Toàn bộ ngưỡng, nhãn và màu đến từ `GET /reference/ph-bands` (công khai), nên
- * trang trước đăng nhập không còn khoảng "6.5–7.5 (Lý tưởng)" tự đặt.
- */
 function PhReferenceCard() {
   const { t } = useTranslation("auth");
   const { data, isPending, isError } = usePhBands();
@@ -119,13 +108,6 @@ function FeatureTile({ icon, title, body }: { icon: ReactNode; title: string; bo
   );
 }
 
-/**
- * Panel thương hiệu cột trái bản web của `/auth/login` (Figma 16:7573) — giữ bố cục, nền
- * gradient, phân cấp chữ và vị trí các thẻ của thiết kế, nhưng BỎ mọi nội dung tự đặt của
- * mockup (chứng nhận ISFM/WVA, "15.000+ Sen", "4.9/5 từ 85+ phòng khám", lời chứng thực về
- * sỏi bàng quang, thẻ mèo mẫu, thang pH cứng). Thay bằng: dải pH tham chiếu từ API, hai thẻ
- * mô tả đúng chức năng sản phẩm, và câu miễn trừ y tế của `legal.json`.
- */
 export function LoginShowcase() {
   const { t } = useTranslation(["auth", "legal"]);
 

@@ -90,14 +90,6 @@ public class CommunityService {
         }
     }
 
-    /**
-     * I19 (p4 §4.4.9) của p8 §8.3.2: tài khoản {@code RESTRICTED} bị chặn mọi thao tác ghi.
-     *
-     * <p>Trước bản sửa này, {@code CommunityService} không kiểm trạng thái tài khoản ở BẤT KỲ
-     * luồng ghi nào (đăng bài, bình luận, reaction, report) — một tài khoản đã bật "hạn chế xử
-     * lý" (p15 §15.4.7) vẫn đăng bài/bình luận/report bình thường, vi phạm I19. Cùng khuôn với
-     * {@code cat.application.CatNoteService.requireWriteAllowed}.</p>
-     */
     private void requireWriteAllowed(UUID userId) {
         AccountStatus status = userAccountPort.statusOf(userId);
         if (status == null || !status.allowsWrite()) {
@@ -105,7 +97,6 @@ public class CommunityService {
         }
     }
 
-    /** Cùng khuôn với {@code credit.application.ActivateCreditCodeService.requireRateLimit}. */
     private void requireRateLimit(CommunityRateLimitRule rule, CommunityErrorCode errorCode, UUID userId) {
         CommunityRateLimiter.RetryAfter retryAfter = rateLimiter.rejectIfLimited(rule, userId == null ? null : userId.toString());
         if (retryAfter != null) {

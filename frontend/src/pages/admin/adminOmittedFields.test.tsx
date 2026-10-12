@@ -15,11 +15,6 @@ import { AdminProductsPage } from "./AdminProductsPage";
 import { AdminUserDetailPage } from "./AdminUserDetailPage";
 import { AdminUsersPage } from "./AdminUsersPage";
 
-/**
- * Backend chạy `default-property-inclusion: non_null` ⇒ field null KHÔNG có trong JSON. Mọi
- * fixture dưới đây là JSON "như server gửi": field null bị BỎ HẲN (không phải `null`), nên chạy
- * qua `unknown` thay vì khai `null` như type viết tay.
- */
 
 const hooks = vi.hoisted((): { data: Record<string, unknown>; mutate: ReturnType<typeof vi.fn> } => ({
   data: {},
@@ -37,7 +32,6 @@ vi.mock("react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router")>()),
   useParams: () => ({ userId: "u1" }),
 }));
-// Mọi hook `use*` của feature admin mặc định là query/mutation rỗng; từng test ghi đè hook nó cần.
 vi.mock("@/features/admin", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/features/admin")>();
   const idle = {
@@ -52,7 +46,6 @@ vi.mock("@/features/admin", async (importOriginal) => {
   };
   const patched: Record<string, unknown> = { ...actual };
   for (const [name, value] of Object.entries(actual)) {
-    // `useAdminCan` không mock: trang đọc quyền từ AdminAccessProvider thật (xem renderPage).
     if (/^use[A-Z]/.test(name) && typeof value === "function" && name !== "useAdminCan") {
       patched[name] = () => (name in hooks.data ? { ...idle, data: hooks.data[name] } : idle);
     }
@@ -64,7 +57,6 @@ let mounted: { root: Root; container: HTMLElement } | undefined;
 
 function renderPage(page: React.ReactElement): string {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  // Đăng nhập với mọi vai trò để các trang kiểm quyền bằng session (nhóm vận hành) đều hiện nội dung.
   useSessionStore.getState().setSession({
     id: "u1",
     email: "admin@example.com",

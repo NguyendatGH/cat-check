@@ -26,19 +26,6 @@ import { isShopId, useShopOrder } from "@/features/shop";
 import { SHOP_ORDER_STAGES, formatVnd, isShopPaymentMethodId, type ShopPaymentMethodId } from "./shopFormat";
 import { ProductGlyph, ShippingFee } from "./shopUi";
 
-/**
- * `/orders/:orderId` — Đặt hàng thành công & theo dõi đơn (design `Web - Đặt hàng thành công &
- * Theo dõi đơn hàng` / mobile cùng tên).
- *
- * Mọi dữ liệu là `GET /api/v1/orders/{id}`: mã đơn, thời điểm đặt, phương thức, trạng thái
- * (enum `ck_shop_order_status`), dòng hàng, tạm tính/giảm giá/phí vận chuyển/tổng, người nhận.
- * Trang tự làm mới 30 giây/lần.
- *
- * Đã gỡ khỏi mockup (không có API / tuyên bố chưa kiểm chứng): "giao hỏa tốc 2H", giờ dự kiến
- * giao, bản đồ GPS + tài xế + phương tiện, giờ của từng bước, tải hoá đơn VAT, quà tặng, mã
- * giảm giá CHAO_SEN, ghi chú tài xế, "chuẩn bị trước khi nhận cát", C-Points, "gói bảo hiểm
- * sinh học", "lịch chăm sóc", nút "theo dõi thời gian thực".
- */
 
 const STAGE_ICONS: Record<(typeof SHOP_ORDER_STAGES)[number], LucideIcon> = {
   PENDING_PAYMENT: ClipboardList,
@@ -127,7 +114,6 @@ export function OrderTrackingPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ---------- Đầu trang: kết quả đặt hàng + thông tin chính ---------- */}
       <section className="rounded-2xl bg-surface p-5 shadow-brand-md md:p-6">
         <div className="flex flex-col items-center gap-4 text-center md:flex-row md:items-start md:text-left">
           <span
@@ -198,7 +184,6 @@ export function OrderTrackingPage() {
         </dl>
       </section>
 
-      {/* ---------- Tiến trình xử lý: các bước = enum trạng thái của API ---------- */}
       <section className="rounded-2xl bg-surface p-5 shadow-brand-md md:p-6" aria-live="polite">
         <div className="flex items-start gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark">
@@ -232,7 +217,6 @@ export function OrderTrackingPage() {
                   className="relative flex gap-3 pb-6 last:pb-0 md:flex-1 md:flex-col md:items-center md:gap-2 md:pb-0 md:text-center"
                   aria-current={index === stageIndex ? "step" : undefined}
                 >
-                  {/* Đường nối tới bước sau: dọc ở mobile, ngang từ `md`. */}
                   {!isLast ? (
                     <span
                       aria-hidden="true"
@@ -281,7 +265,6 @@ export function OrderTrackingPage() {
       </section>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-        {/* ---------- Kiện hàng chi tiết + tổng tiền ---------- */}
         <section className="rounded-2xl bg-surface p-5 shadow-brand-md md:p-6">
           <h2 className="text-[16px] font-bold text-text-primary">
             {t("order.itemsTitle", { count: order.lines.length })}
@@ -331,8 +314,6 @@ export function OrderTrackingPage() {
               <dd className="text-[24px] font-bold leading-none text-primary-dark">{formatVnd(order.totalVnd)}</dd>
             </div>
           </dl>
-          {/* Hộp phương thức thanh toán như design mobile — chỉ phương thức + ghi chú, KHÔNG suy ra
-              "đã thanh toán" (API không có trạng thái thanh toán riêng). */}
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-background-alt/60 p-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary-dark">
               {PaymentIcon ? <PaymentIcon size={18} aria-hidden="true" /> : <MoMoGlyph size={28} />}
@@ -350,7 +331,6 @@ export function OrderTrackingPage() {
           </div>
         </section>
 
-        {/* ---------- Thông tin nhận hàng ---------- */}
         <section className="rounded-2xl bg-surface p-5 shadow-brand-md">
           <h2 className="text-[16px] font-bold text-text-primary">{t("order.recipientTitle")}</h2>
           <dl className="mt-4 flex flex-col gap-3 text-[13px]">
@@ -372,7 +352,6 @@ export function OrderTrackingPage() {
         </section>
       </div>
 
-      {/* Mobile: hai lối ra như design (bỏ "theo dõi thời gian thực" — không có dữ liệu). */}
       <div className="flex flex-col gap-2.5 md:hidden">
         <Link
           to="/shop"

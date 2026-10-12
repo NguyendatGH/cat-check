@@ -2,23 +2,11 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/cn";
 import stepCheck from "@/shared/assets/icons/web-auth/step-check.svg";
 
-/**
- * Thanh tiến trình 4 bước của luồng đăng ký — CHỈ dùng ở bản web (Figma 16:8430).
- * Bản mobile dùng `Stepper` (shared/ui) dạng 1 dòng + progress bar, khác hẳn bố cục.
- *
- * Đặt ở `pages/auth/` vì cả RegisterPage lẫn VerifyOtpPage đều cần, nhưng đây là bố cục
- * riêng của luồng đăng ký web nên chưa đủ phổ quát để nâng lên `shared/ui`.
- */
 export function WebRegisterSteps({
   current,
   withHeader = false,
 }: {
   current: 1 | 2 | 3 | 4;
-  /**
-   * Bước 1 (Figma Web-01c, thẻ 1184x228) có thêm hàng tiêu đề và thanh % phía dưới; các bước
-   * sau (Web-01c-2, thẻ 1184x104) chỉ có dải 4 bước. Chip "ISO/IEC 27001" của mockup đã bỏ —
-   * không có chứng nhận nào như vậy.
-   */
   withHeader?: boolean;
 }) {
   const { t } = useTranslation("auth");

@@ -5,19 +5,6 @@ import { PushDevicesCard } from "@/features/notification";
 import { NotificationPreferencesForm } from "./NotificationPreferencesForm";
 import { useScanReminderSummary } from "./settingsSummaries";
 
-/**
- * `/settings/notifications` — kênh + loại thông báo.
- *
- * Phần bật/tắt là `NotificationPreferencesForm` dùng chung với khối tương ứng ở `/settings`
- * desktop (khối "Thông báo và cảnh báo") — một nguồn sự thật, lưu thật qua
- * `PUT /account/notification-preferences` (B12).
- *
- * Cột phải: thiết bị nhận push (G9–G11), lối sang hướng dẫn cài app và lịch nhắc (số lịch đang
- * bật đọc từ `GET /reminders`). Khối "Ngưỡng cảnh báo" cũ (ba ô tick đặt cứng) đã bỏ: không
- * endpoint nào lưu ngưỡng — dải tham chiếu thuộc `GET /reference/ph-bands`, không chỉnh được.
- *
- * Trang nằm trong `TaskLayout`: layout cấp `px-4 py-6` + hộp 944px, trang không tự thêm.
- */
 export function SettingsNotificationsPage() {
   const { t } = useTranslation("settings");
   const reminders = useScanReminderSummary();
@@ -45,10 +32,6 @@ export function SettingsNotificationsPage() {
         </section>
 
         <div className="flex w-full flex-col gap-4 xl:w-[360px] xl:shrink-0">
-          {/*
-            Thiết bị nhận push (G9/G10/G11). Đặt ở ĐÂY chứ không ở `/notifications` theo
-            p12 §12.3.4: CTA bật push phải nằm trong cài đặt, không nhét vào hộp thư.
-          */}
           <section className="rounded-2xl bg-surface p-5 shadow-brand-md">
             <PushDevicesCard />
           </section>

@@ -8,16 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * {@link AppSettingReader} trên {@code JdbcTemplate}.
- *
- * <p><b>Luôn lọc {@code secret = false}.</b> Cổng này phục vụ endpoint CÔNG KHAI K2, nên một
- * khoá bị đánh dấu nhạy cảm không bao giờ được rò ra ngoài kể cả khi gọi đúng tên khoá.</p>
- *
- * <p>{@code value} là JSONB: {@code value #>> '{}'} trả về text thô của giá trị vô hướng
- * (bỏ dấu nháy kép của JSON string) — cùng cách {@code cat.infrastructure.persistence
- * .JdbcAppSettingAdapter} đang đọc.</p>
- */
 @Repository
 class JdbcAppSettingReader implements AppSettingReader {
 

@@ -11,13 +11,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Layout thẻ màu tham chiếu — ánh xạ 1-1 với bảng {@code reference_card_layout} (p4 D8).
- *
- * <p>{@code layout} là JSONB: kích thước vật lý, canonical px, marker (ArUco/QR), danh sách patch
- * với {@code rect}/{@code ref_srgb}/{@code ref_lab}. JSONB đúng chỗ — cấu trúc lồng sâu, chỉ đọc
- * nguyên khối khi khởi tạo detector, không bao giờ lọc theo trường con.
- */
 @Entity
 @Table(name = "reference_card_layout")
 public class ReferenceCardLayout {

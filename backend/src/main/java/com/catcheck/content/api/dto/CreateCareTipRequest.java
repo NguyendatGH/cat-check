@@ -10,15 +10,6 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-/**
- * Body của L41 — tạo bản nháp.
- *
- * <p>Không có trường nào cho phép đặt {@code status} thành {@code PUBLISHED}: trạng thái chỉ đổi
- * qua L43 rồi L44, để không có đường nào publish mà bỏ qua bước duyệt.</p>
- *
- * @param slug  khoá định tuyến, duy nhất theo cặp (slug, locale)
- * @param locale {@code vi} hoặc {@code en}
- */
 public record CreateCareTipRequest(
         @NotBlank
         @Size(max = 120)

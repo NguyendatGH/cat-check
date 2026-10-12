@@ -35,20 +35,6 @@ import {
 } from "@/features/admin";
 import { useGroup2Can } from "./group2Access";
 
-/**
- * `/admin/content` — quản trị nội dung (`care_tip`).
- *
- * NỐI API THẬT, toàn bộ `content/api/AdminContentController`:
- * L40 `GET /admin/care-tips` · L41 `POST /admin/care-tips` ·
- * L42 `PATCH /admin/care-tips/{tipId}` · L43 `POST …/submit-review` ·
- * L44 `POST …/publish` · L45 `POST …/archive`.
- *
- * `reason` chỉ xuất hiện ở L44 vì đó là endpoint DUY NHẤT trong nhóm được p8 §8.4.12 (c)
- * đánh cờ `Rsn`, và cũng là nơi DTO backend (`PublishCareTipRequest`) thật sự có trường
- * `reason` với `@Size(min = 10)` — khớp p17 §17.3.8 AD11.
- *
- * `RequireRole` ở router đã chặn vai trò; trang không lặp lại logic đó.
- */
 
 const STATUS_CLASS: Record<CareTipStatus, string> = {
   DRAFT: "bg-background-alt text-text-secondary",
@@ -65,7 +51,6 @@ function StatusChip({ status, label }: { status: CareTipStatus; label: string })
   );
 }
 
-// ------------------------------------------------------------------ tạo nháp
 
 function CreateCareTipForm({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation("admin");
@@ -177,7 +162,6 @@ function CreateCareTipForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ------------------------------------------------------------------ sửa nháp
 
 function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => void }) {
   const { t } = useTranslation("admin");
@@ -198,7 +182,6 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const [reasonTouched, setReasonTouched] = useState(false);
 
   const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
-  /** AD20 — `claimType` khác NONE mà thiếu nguồn thì server trả 422 lúc publish. */
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
 
   return (
@@ -360,7 +343,6 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   );
 }
 
-// -------------------------------------------------------------------- trang
 
 export function AdminContentPage() {
   const { t } = useTranslation("admin");

@@ -3,20 +3,13 @@ package com.catcheck.media.infrastructure;
 import com.catcheck.media.api.MediaErrorCode;
 import com.catcheck.shared.error.BusinessRuleException;
 
-/**
- * Kiểm MIME bằng magic bytes trước khi ghi — {@code Content-Type} do client khai (avatar mèo,
- * avatar người dùng) không đủ tin: khai {@code image/png} rồi gửi HTML/tệp tuỳ ý vẫn phải bị chặn.
- * Cùng quy tắc nhận diện với {@code scan.infrastructure.vision.OpenCvRawImageProcessor}.
- */
 final class ImageSignatures {
 
-    /** Số byte đầu cần đọc để nhận diện cả ba định dạng (WebP cần tới byte 11). */
     static final int HEAD_BYTES = 12;
 
     private ImageSignatures() {
     }
 
-    /** Ném {@link MediaErrorCode#STORAGE_UNSUPPORTED_TYPE} nếu nội dung không đúng định dạng đã khai. */
     static void requireMatches(String declaredContentType, byte[] head) {
         String actual = sniff(head);
         if (actual == null || !actual.equals(declaredContentType)) {

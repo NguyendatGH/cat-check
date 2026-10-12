@@ -3,11 +3,6 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssistantPage } from "./AssistantPage";
 
-/**
- * Backend nạp lịch sử của `conversationId` vào prompt cho MỌI câu hỏi, còn `catId` chỉ làm giàu
- * câu hỏi hiện tại. Đổi bé mà giữ `conversationId` thì câu hỏi về bé B được trả lời kèm lịch sử
- * (và dữ kiện sức khoẻ) đã nói về bé A.
- */
 const chat = vi.hoisted(() => ({ chatWithAssistant: vi.fn() }));
 
 vi.mock("@/features/assistant", () => ({ chatWithAssistant: chat.chatWithAssistant }));
@@ -78,7 +73,6 @@ describe("AssistantPage — đổi bé trong lúc trò chuyện", () => {
     await send();
     expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(1, "Mèo của tôi uống ít nước?", undefined, "cat-a");
 
-    // Cùng bé: hội thoại được nối tiếp.
     type("Còn thức ăn?");
     await send();
     expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(2, "Còn thức ăn?", "conv-1", "cat-a");

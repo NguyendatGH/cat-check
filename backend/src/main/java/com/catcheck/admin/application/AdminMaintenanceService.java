@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
-/** L71 — điều khiển banner bảo trì công khai qua app_setting. */
 @Service
 public class AdminMaintenanceService {
 

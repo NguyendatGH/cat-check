@@ -9,10 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-/**
- * {@link DataInventoryItemPort} trên {@code JdbcTemplate} — khối "Dữ liệu CatCheck đang giữ
- * về bạn" render động từ bảng này (p15 §15.4.3).
- */
 @Repository
 public class JdbcDataInventoryItemAdapter implements DataInventoryItemPort {
 

@@ -9,12 +9,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Một mức pH trên bảng màu — ánh xạ 1-1 với bảng {@code color_chart_point} (p4 D6).
- *
- * <p>{@code labL/labA/labB} là <b>nguồn sự thật cho phép khớp</b> (p6 S8) — không phải
- * {@code hexSrgb}. {@code displayHex} có thể khác {@code hexSrgb} vì UI cần màu dễ nhìn.
- */
 @Entity
 @Table(name = "color_chart_point")
 public class ColorChartPoint {

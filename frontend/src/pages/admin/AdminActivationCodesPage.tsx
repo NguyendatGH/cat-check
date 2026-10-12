@@ -38,7 +38,6 @@ const CODE_STATUSES: ActivationCodeStatus[] = ["ISSUED", "REDEEMED", "VOID"];
 export function AdminActivationCodesPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  // Sinh lô, tải CSV và vô hiệu mã/lô: backend chỉ cho ADMIN_SUPER (ROLES.activationCodesWrite).
   const canManage = can("activationCodesWrite");
   const [prefix, setPrefix] = useState("");
   const [packageCode, setPackageCode] = useState("");

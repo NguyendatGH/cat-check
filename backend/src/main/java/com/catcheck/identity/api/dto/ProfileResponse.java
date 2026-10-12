@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** B1 — hồ sơ tài khoản đầy đủ (p8 §8.4.4 nhóm B). */
 public record ProfileResponse(
         UUID id,
         String email,

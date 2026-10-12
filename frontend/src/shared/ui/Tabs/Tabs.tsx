@@ -2,7 +2,6 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "re
 import * as RadixTabs from "@radix-ui/react-tabs";
 import { cn } from "../cn";
 
-/** Tabs — bọc @radix-ui/react-tabs. */
 export const Tabs = RadixTabs.Root;
 
 export const TabsList = forwardRef<
@@ -11,7 +10,10 @@ export const TabsList = forwardRef<
 >(({ className, ...props }, ref) => (
   <RadixTabs.List
     ref={ref}
-    className={cn("inline-flex items-center gap-1 rounded-lg bg-background-alt p-1", className)}
+    className={cn(
+      "inline-flex items-center gap-1 rounded-2xl border border-border/40 bg-background-alt/80 p-1 shadow-xs backdrop-blur-xs",
+      className,
+    )}
     {...props}
   />
 ));
@@ -24,8 +26,9 @@ export const TabsTrigger = forwardRef<
   <RadixTabs.Trigger
     ref={ref}
     className={cn(
-      "min-h-[var(--touch-target-min)] rounded-md px-3 py-1.5 text-caption font-semibold text-text-secondary",
-      "data-[state=active]:bg-surface data-[state=active]:text-primary data-[state=active]:shadow-xs",
+      "tab-pill-animated cursor-pointer min-h-[var(--touch-target-min)] rounded-xl px-3.5 py-1.5 text-caption font-semibold text-text-secondary transition-all duration-200 active:scale-[0.97]",
+      "data-[state=active]:bg-surface data-[state=active]:text-primary-dark data-[state=active]:font-bold data-[state=active]:shadow-[0_2px_8px_rgba(13,54,154,0.12),inset_0_1px_0_rgba(255,255,255,0.8)]",
+      "hover:text-text-primary hover:bg-surface/50",
       "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
       className,
     )}
@@ -38,12 +41,10 @@ export const TabsContent = forwardRef<
   ComponentRef<typeof RadixTabs.Content>,
   ComponentPropsWithoutRef<typeof RadixTabs.Content>
 >(({ className, ...props }, ref) => (
-  // Radix gán `tabIndex=0` cho Content nên nó nằm trong luồng Tab: `outline-none` ở đây
-  // (ghi đè fallback focus ring toàn cục) = mất dấu focus khi điều hướng bàn phím (p10 §10.3).
   <RadixTabs.Content
     ref={ref}
     className={cn(
-      "pt-4 focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
+      "tab-content-enter pt-4 focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
       className,
     )}
     {...props}

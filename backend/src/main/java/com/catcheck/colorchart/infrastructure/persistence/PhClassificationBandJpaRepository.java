@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Spring Data repository cho {@code ph_classification_band} (R7).
- */
 interface PhClassificationBandJpaRepository extends JpaRepository<PhClassificationBand, UUID> {
 
     List<PhClassificationBand> findByChartIdIsNullAndActiveTrueOrderBySortOrder();

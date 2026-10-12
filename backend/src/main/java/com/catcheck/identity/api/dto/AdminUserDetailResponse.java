@@ -10,17 +10,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * L2 {@code GET /admin/users/{userId}} — tab "Tổng quan" của p14 §14.3.2 mục 2.
- *
- * <p>{@code phoneMasked} là {@code null} khi tài khoản không có số điện thoại — khác với
- * {@code "***"} (có số nhưng đang che). Phân biệt được hai thứ đó là điều tổng đài cần: "chưa
- * có số để gọi" và "có số, bấm unmask" dẫn tới hai hành động khác nhau.</p>
- *
- * <p>KHÔNG có trường nào của hồ sơ sức khoẻ mèo hay {@code ph_value} của từng lần quét: p14
- * §14.3.2 mục 2 chặn mặc định, và đường xem có lý do là L4/L5 — hai endpoint riêng, chưa làm
- * trong gói này.</p>
- */
 public record AdminUserDetailResponse(
         UUID userId,
         String emailMasked,

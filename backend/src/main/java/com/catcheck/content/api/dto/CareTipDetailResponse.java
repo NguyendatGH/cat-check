@@ -8,13 +8,6 @@ import com.catcheck.content.domain.ClaimType;
 
 import java.util.List;
 
-/**
- * Bài viết ở dạng đầy đủ cho F8 và cho màn quản trị.
- *
- * <p>Có thêm {@code status} và {@code reviewedAt} so với bản công khai. Ở endpoint công khai các
- * trường này luôn là {@code PUBLISHED} và có giá trị, nên trả kèm không làm lộ thêm thông tin gì —
- * nhưng tài liệu OpenAPI chỉ cần khai một shape.</p>
- */
 public record CareTipDetailResponse(
         String id,
         String slug,

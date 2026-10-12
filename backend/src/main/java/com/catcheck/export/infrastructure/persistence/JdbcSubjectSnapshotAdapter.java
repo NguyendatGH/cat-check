@@ -8,11 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Hiện thực {@link SubjectSnapshotPort} bằng JDBC thuần đọc {@code cat}/{@code app_user} — xem
- * javadoc cổng và {@code docs/handovers/A6.md} (judgment call, giống {@code scan}'s
- * {@code CatOwnershipPort}).
- */
 @Repository
 class JdbcSubjectSnapshotAdapter implements SubjectSnapshotPort {
 
@@ -31,8 +26,6 @@ class JdbcSubjectSnapshotAdapter implements SubjectSnapshotPort {
                  WHERE id = ?
                    AND deleted_at IS NULL
                 """;
-        // deleted_at IS NULL: ho so meo da xoa mem (V8) khong duoc xuat PDF — request() tra
-        // CAT_NOT_FOUND, con job dang cho thi generate() danh FAILED thay vi in ho so da xoa.
         List<CatProfile> rows = jdbc.query(sql, (rs, n) -> {
             String breed = rs.getString("breed_other");
             if (breed == null || breed.isBlank()) {

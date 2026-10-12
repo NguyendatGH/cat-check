@@ -16,26 +16,6 @@ import {
   parseMonthGroupKey,
 } from "@/features/history";
 
-/**
- * `/shared-tray-log` — "Nhật ký khay chung".
- *
- * ĐÃ CÓ API, KHÔNG PHẢI MÀN RỖNG. p8 §8.5.4 ghi rõ màn này **không có endpoint riêng** —
- * nó là `GET /scans?assignment=SHARED_UNKNOWN` (E2). Backend đã hiện thực bộ lọc đó
- * (`ScanController#listScans` nhận `assignment`, `JdbcScanQueryRepository` ghép
- * `AND s.assignment = ?`), nên trang gọi thẳng E2 qua `historyApiFetch` thay vì dựng dữ
- * liệu mẫu. `useScanHistory` của `features/history` chưa nhận tham số `assignment` nên
- * không dùng lại được — query dựng tại chỗ, cùng page size và cùng cách phân trang con trỏ.
- *
- * NGHIỆP VỤ (p6 §6.10.4): khi người dùng chọn "Chưa rõ / Dùng chung khay" lúc quét thì
- * `scan.cat_id = NULL`, `assignment_mode = 'SHARED_UNKNOWN'`; kết quả vẫn lưu và vẫn trừ
- * credit, nhưng KHÔNG vào lịch sử của bé nào, KHÔNG tính baseline, KHÔNG kích hoạt rule.
- * Vẫn gán lại được cho một bé cụ thể trong cửa sổ thời gian của §6.10.3 — nút "Gán cho một
- * bé" đưa sang `/scan/:scanId/reassign-cat`, nơi đã có sẵn kiểm tra hạn và số lần.
- * Con số giờ của cửa sổ đó thuộc p6 nên không chép lại ở đây (quy tắc cứng CLAUDE.md).
- *
- * Trang nằm trong `AppLayout`. Layout cấp hộp 944px + padding ở `lg`, nhưng KHÔNG cấp
- * padding ngang ở mobile — theo đúng idiom `SettingsPage`/`ShopPage`: `px-4 py-5 lg:px-0`.
- */
 
 const PAGE_SIZE = 20;
 
@@ -96,8 +76,6 @@ export function SharedTrayLogPage() {
       />
     );
   } else if (items.length === 0) {
-    // p9 §9.4.6: empty state của màn này KHÔNG có CTA — chọn "dùng chung khay" là lựa chọn
-    // trong luồng quét, không phải việc cần thúc người dùng làm.
     list = (
       <EmptyState
         icon={<Users size={22} aria-hidden="true" />}
@@ -113,9 +91,6 @@ export function SharedTrayLogPage() {
             <MonthGroupHeader label={monthLabel(key)} count={t("sharedTray.countLabel", { count: scans.length })} />
             <ul className="flex flex-col gap-3">
               {scans.map((scan) => (
-                // Thiết kế M-07b/Web-07b: nút "Gán cho một bé" nằm TRONG thẻ, ở hàng chân —
-                // không trôi lơ lửng dưới thẻ. `ScanTimelineItem` là một <button> nên hàng chân
-                // phải là anh em của nó (không lồng button), cùng chung một khung viền.
                 <li
                   key={scan.scanId}
                   className="overflow-hidden rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs"
@@ -166,7 +141,6 @@ export function SharedTrayLogPage() {
           </Button>
         ) : null}
 
-        {/* p15 P5 / p9 §9.4.8: D-SHORT ở cuối danh sách. */}
         <DisclaimerBanner variant="short" />
       </div>
     );

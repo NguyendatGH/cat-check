@@ -48,14 +48,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * L5 ({@code GET /admin/users/{userId}/scans}), L6 ({@code GET /admin/scans/{scanId}/image}) và
- * L18 ({@code POST /admin/scans/{scanId}/reassign-cat}) — p8 §8.4.12 mục (a).
- *
- * <p>Tính chất quan trọng nhất ở đây là <b>điều kiện DSAR</b>: nó là thứ duy nhất đứng giữa một
- * tài khoản DPO và ảnh vệ sinh của mèo người khác (p14 ô Q5), nên nó được neo ở cả hai hướng —
- * có DSAR thì mở được, không có thì 403 <i>và</i> có một dòng {@code audit_log} {@code DENIED}.</p>
- */
 class AdminScanServiceTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -66,7 +58,6 @@ class AdminScanServiceTest {
     private static final UUID CAT_B = UUID.fromString("00000000-0000-7000-8000-0000000000c2");
     private static final Instant NOW = Instant.parse("2026-10-06T09:00:00Z");
 
-    /** Quét từ 10 ngày trước ⇒ cửa sổ 24 giờ của người dùng đã đóng từ lâu (p6 §6.10.3). */
     private static final Instant CAPTURED = NOW.minusSeconds(10L * 86_400);
 
     private FakeScanRepository scanRepository;
@@ -100,7 +91,6 @@ class AdminScanServiceTest {
                 catOwnershipPort, openDsarPort, auditLog, eventPublisher, new UuidV7(clock), clock);
     }
 
-    /* ------------------------------------------------------------------ L5 */
 
     @Test
     @DisplayName("L5: ADMIN_SUPPORT ⇒ fullData = false (dữ liệu che) và vẫn ghi audit dù chỉ đọc")
@@ -150,7 +140,6 @@ class AdminScanServiceTest {
         assertThat(page.page()).isZero();
     }
 
-    /* ------------------------------------------------------------------ L6 */
 
     @Test
     @DisplayName("L6: không có dsar_request mở ⇒ 403 SCAN_IMAGE_DSAR_REQUIRED + audit DENIED")
@@ -167,8 +156,6 @@ class AdminScanServiceTest {
         assertThat(auditLog.events.getFirst().outcome()).isEqualTo(AuditOutcome.DENIED);
         assertThat(auditLog.events.getFirst().metadata())
                 .containsEntry("denyReason", "NO_OPEN_DSAR")
-                // UUID dạng ĐỐI TƯỢNG, không phải chuỗi — `PiiRedactor` xoá mọi chuỗi ≥ 32 ký tự
-                // [A-Za-z0-9+/=_-] (một UUID khớp đúng lớp đó) khỏi metadata. Hồi quy cho H15.156.
                 .containsEntry("scanId", SCAN_ID);
     }
 
@@ -224,7 +211,6 @@ class AdminScanServiceTest {
                 .isEqualTo(ScanErrorCode.SCAN_IMAGE_NOT_STORED);
     }
 
-    /* ----------------------------------------------------------------- L18 */
 
     @Test
     @DisplayName("L18: đổi mèo SAU cửa sổ 24 giờ vẫn được — ghi scan_reassignment với vai trò admin + reason")
@@ -243,12 +229,10 @@ class AdminScanServiceTest {
         ScanReassignment logged = reassignmentRepository.rows.getFirst();
         assertThat(logged.getChangedBy()).isEqualTo(ADMIN_ID);
         assertThat(logged.getChangedByRole()).isEqualTo("ADMIN_SUPER");
-        // ck_scan_reassignment: reason BẮT BUỘC NOT NULL khi người đổi không phải USER (p4 D13).
         assertThat(logged.getReason()).isNotBlank();
 
         assertThat(eventPublisher.events).hasSize(1);
         assertThat(auditLog.actions()).containsExactly("ADMIN_SCAN_REASSIGNED");
-        // before/after mang UUID dạng ĐỐI TƯỢNG để `PiiRedactor` không xoá id (H15.156).
         assertThat(auditLog.events.getFirst().before()).containsEntry("catId", CAT_A);
         assertThat(auditLog.events.getFirst().after()).containsEntry("catId", CAT_B);
     }
@@ -275,9 +259,6 @@ class AdminScanServiceTest {
         scanRepository.save(analyzedScan(true));
         catOwnershipPort.cats.put(CAT_B, new CatOwnershipPort.CatSnapshot(CAT_B, OTHER_USER, "Bé lạ", false, false));
 
-        // 404 chứ không 403: p8 §8.2.5 mục 1. `ScanErrorCode.CAT_NOT_OWNED` mang status 403 ngay
-        // trên ErrorCode (ngoại lệ dành riêng cho POST /scans), nên dùng nó ở đây sẽ trả 403 —
-        // đo thật bằng curl trước khi đổi sang CatErrorCode.CAT_NOT_FOUND.
         assertThatThrownBy(() -> service.reassign(SCAN_ID, CAT_B, false, context(Set.of("ADMIN_SUPER"))))
                 .isInstanceOf(NotFoundException.class)
                 .extracting(ex -> ((CatCheckException) ex).errorCode())
@@ -311,7 +292,6 @@ class AdminScanServiceTest {
                 .isEqualTo(ScanErrorCode.SCAN_NOT_REASSIGNABLE);
     }
 
-    /* --------------------------------------------------------------- helper */
 
     private static AdminActionContext context(Set<String> roles) {
         return new AdminActionContext(ADMIN_ID, "ADMIN_SUPER", roles,
@@ -343,7 +323,6 @@ class AdminScanServiceTest {
                 null, "ghi chú tranh chấp", (short) 0, 120, "req-0");
     }
 
-    /* ----------------------------------------------------------------- fake */
 
     private static final class FakeScanRepository implements ScanRepository {
 
@@ -367,7 +346,6 @@ class AdminScanServiceTest {
 
         @Override
         public void flushPendingWrites() {
-            // Fake trong bộ nhớ: không có gì chờ xuống DB.
         }
 
         Scan byId(UUID id) {

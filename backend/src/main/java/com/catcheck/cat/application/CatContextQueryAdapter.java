@@ -18,14 +18,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Hiện thực {@link CatContextQuery} (cổng do {@code cat} công bố cho {@code ai}). */
 @Component
 public class CatContextQueryAdapter implements CatContextQuery {
 
-    /** Cửa sổ "dấu hiệu lâm sàng gần đây" của A4-(1), p4 §4.4.4. */
     private static final Duration CLINICAL_SIGN_WINDOW = Duration.ofDays(14);
 
-    /** Đủ dư để sau khi lọc theo {@link #CLINICAL_SIGN_WINDOW} vẫn không bỏ sót bản khai nào. */
     private static final int CLINICAL_SIGN_FETCH_LIMIT = 20;
 
     private final CatRepository catRepository;
@@ -47,7 +44,6 @@ public class CatContextQueryAdapter implements CatContextQuery {
     @Override
     @Transactional(readOnly = true)
     public Optional<CatProfileSnapshot> findSnapshot(UUID ownerId, UUID catId) {
-        // Hồ sơ đã xoá mềm không được đưa vào ngữ cảnh trợ lý AI.
         Optional<Cat> cat = catRepository.findByIdAndOwnerId(catId, ownerId).filter(c -> !c.isDeleted());
         if (cat.isEmpty()) {
             return Optional.empty();

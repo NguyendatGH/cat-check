@@ -29,13 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * FEFO với cổng trong bộ nhớ — kiểm chứng thuật toán mà không cần Testcontainers.
- *
- * <p>Ba kịch bản then chốt: (1) trừ từ lô sắp hết hạn TRƯỚC kể cả khi lô đó nằm sau thứ tự
- * chèn; (2) thiếu credit ném {@code CREDIT_INSUFFICIENT} kèm số khả dụng; (3) cùng
- * {@code idempotencyKey} gọi hai lần chỉ trừ một lần (p5 R8).</p>
- */
 class FefoCreditConsumptionServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-09-27T10:00:00Z");
@@ -53,7 +46,6 @@ class FefoCreditConsumptionServiceTest {
         return new CreditBatchSnapshot(id, expiresAt, remaining, initial);
     }
 
-    /** Entitlement có quyền ghi — bắt buộc nếu không consume bị chặn ở bước requireWriteAccess. */
     private Entitlement writeAccess(UUID userId) {
         return new Entitlement(userId, "PLUS", 1, com.catcheck.credit.domain.PlanFeatures.none(),
                 NOW.plusSeconds(86_400), 0, NOW);
@@ -64,7 +56,6 @@ class FefoCreditConsumptionServiceTest {
         UUID userId = UUID.randomUUID();
         UUID later = UUID.randomUUID();
         UUID sooner = UUID.randomUUID();
-        // Lô "sau" hết hạn được khai báo TRƯỚC — FEFO phải chọn lô "sớm" hết hạn trước.
         ledger.batches.add(batch(later, NOW.plusSeconds(86_400), 5, 5));
         ledger.batches.add(batch(sooner, NOW.plusSeconds(3_600), 5, 5));
         entitlements.row.put(userId, writeAccess(userId));
@@ -91,7 +82,6 @@ class FefoCreditConsumptionServiceTest {
         CreditConsumption.CreditCharge charge = service().consume(
                 userId, new CreditConsumeCommand(4, "key-2", ReferenceType.SCAN, UUID.randomUUID(), null));
 
-        // Một dòng ledger cho MỖI lô bị trừ (p5 R2).
         assertEquals(2, charge.ledgerEntries().size());
         assertEquals(sooner, charge.ledgerEntries().get(0).batchId());
         assertEquals(2, charge.ledgerEntries().get(0).amount());
@@ -112,7 +102,6 @@ class FefoCreditConsumptionServiceTest {
         BusinessRuleException ex = assertThrows(BusinessRuleException.class,
                 () -> service().consume(userId, command));
         assertEquals("CREDIT_INSUFFICIENT", ex.errorCode().code());
-        // Không ghi dòng ledger nào khi thiếu credit.
         assertTrue(ledger.entries.isEmpty());
     }
 
@@ -131,7 +120,6 @@ class FefoCreditConsumptionServiceTest {
 
         assertEquals(first.chargedCredits(), second.chargedCredits());
         assertEquals(first.balanceAfter(), second.balanceAfter());
-        // Chỉ có đúng hai dòng ledger của lần trừ ĐẦU (một lô, một dòng).
         assertEquals(1, ledger.entries.size());
         assertEquals(8, ledger.remaining.get(batchId));
     }
@@ -154,7 +142,6 @@ class FefoCreditConsumptionServiceTest {
         assertEquals(batchId, refund.batchId());
         assertEquals(2, refund.refunded());
         assertEquals(5, ledger.remaining.get(batchId));
-        // Hoàn bằng dòng REFUND mới, không UPDATE dòng cũ (append-only).
         assertEquals(2, ledger.entries.size());
         assertEquals(CreditLedgerType.REFUND, ledger.entries.getLast().type());
     }
@@ -171,7 +158,6 @@ class FefoCreditConsumptionServiceTest {
         assertTrue(service().hasTrialScanRemaining(userId));
     }
 
-    /** Cổng ledger trong bộ nhớ — đủ các phương thức mà FEFO dùng. */
     private static final class FakeLedgerPort implements CreditLedgerPort {
 
         final List<CreditBatchSnapshot> batches = new ArrayList<>();
@@ -212,8 +198,6 @@ class FefoCreditConsumptionServiceTest {
         public void markExpired(UUID batchId) {
         }
 
-        // Hai cổng của job nền (p12 §12.6.2). Test này chỉ kiểm đường FEFO nên trả rỗng: không
-        // lô nào "đủ điều kiện hết hạn" trong các kịch bản ở đây.
         @Override
         public Optional<com.catcheck.credit.domain.ExpiringCreditBatch> lockBatchForExpiry(
                 UUID batchId, Instant now) {
@@ -276,14 +260,12 @@ class FefoCreditConsumptionServiceTest {
                     && consumedLedgerEntryId.equals(e.refId()));
         }
 
-        /** Không dùng ở đường tiêu credit của người dùng — chỉ L10 (admin) đọc. */
         @Override
         public int sumAdminAdjustedAbsSince(UUID adminId, Instant since) {
             return 0;
         }
     }
 
-    /** Cổng entitlement trong bộ nhớ. */
     private static final class FakeEntitlementPort implements UserEntitlementPort {
 
         final Map<UUID, Entitlement> row = new HashMap<>();

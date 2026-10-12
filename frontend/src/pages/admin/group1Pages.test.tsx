@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminAccessProvider, computeCapabilities, type AdminCapabilities } from "@/features/admin";
-// Test đối chiếu với nguồn vai trò thật (giống cách AdminLayout tính); chỉ test được chạm `app`.
 import { ROLES, hasAnyRole } from "@/shared/auth/roles";
 import { GROUP1_CAPABILITIES } from "./group1Access";
 import { AdminActivationCodesPage } from "./AdminActivationCodesPage";
@@ -14,11 +13,6 @@ import { AdminPrivacyRetentionPage } from "./AdminPrivacyRetentionPage";
 import { AdminUserDetailPage } from "./AdminUserDetailPage";
 import { AdminUsersPage } from "./AdminUsersPage";
 
-/**
- * Nhóm trang người dùng, gói, mã kích hoạt, quyền riêng tư: nút ghi ẩn/hiện đúng theo vai
- * trò. Bảng khả năng dựng y như AdminLayout (`computeCapabilities(ROLES, …)`), nên test này
- * cũng bắt lỗi nếu khoá trong `group1Access` lệch khỏi `ROLES`.
- */
 
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -31,7 +25,6 @@ vi.mock("@/shared/api/acceptLanguage", () => ({ currentAcceptLanguage: () => "vi
 
 type Role = "ADMIN_SUPER" | "ADMIN_SUPPORT" | "ADMIN_CATALOG" | "DPO";
 
-/** Bảng khả năng của một người chỉ có một vai trò — cùng công thức với AdminLayout. */
 function capsFor(role: Role): AdminCapabilities {
   return computeCapabilities(ROLES, (allowed) => hasAnyRole([role], allowed));
 }

@@ -8,11 +8,6 @@ import com.catcheck.scan.domain.port.RawImagePort;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Lệnh {@code POST /api/v1/scans} đã được controller giải mã từ multipart (p8 §8.5.4) — tầng
- * {@code api} chuyển đổi request HTTP sang record này TRƯỚC khi gọi xuống {@code application}
- * (application không được biết kiểu HTTP/multipart, R2/R3).
- */
 public record SubmitScanCommand(
         UUID userId,
         UUID catId,

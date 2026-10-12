@@ -45,7 +45,6 @@ function toDraft(plan: AdminPackagePlan): PlanDraft {
 export function AdminPackagesPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  // Sửa gói: backend chỉ cho ADMIN_SUPER (ROLES.packagesWrite); xem: ROLES.packagesRead.
   const canEdit = can("packagesWrite");
   const plans = useAdminPackagePlans(true);
   const update = useUpdateAdminPackagePlan();

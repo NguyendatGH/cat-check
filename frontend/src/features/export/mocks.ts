@@ -1,14 +1,3 @@
-/**
- * MSW handlers + worker cho `features/export` — chế độ degraded khi backend chưa có (cùng quy
- * ước `features/onboarding/mocks.ts`). Mô phỏng job nền: `QUEUED` → (poll 2 lần) → `READY`.
- *
- * Endpoint mock (khớp p8 §8.4.10 nhóm J + D1 rút gọn):
- *  - GET  /api/v1/cats?status=ACTIVE        (D1, chọn mèo bước 1 wizard)
- *  - POST /api/v1/exports                   (J1)
- *  - GET  /api/v1/exports                   (J2)
- *  - GET  /api/v1/exports/:jobId            (J3, poll)
- *  - GET  /api/v1/exports/:jobId/download   (J4, trả PDF giả tối thiểu hợp lệ)
- */
 
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";
@@ -110,9 +99,6 @@ function problem(status: number, code: string, detail: string) {
       status,
       detail,
       instance: "/mock",
-      // Tên field là `errorCode`, KHÔNG phải `code`: `GlobalExceptionHandler` của backend gọi
-      // `problemDetail.setProperty("errorCode", ...)`. Mock từng phát `code` nên khớp với
-      // wrapper client cũng đang đọc sai — hai cái sai che nhau, chỉ lộ ra khi chạy server thật.
       errorCode: code,
     },
     { status },

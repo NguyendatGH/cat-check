@@ -9,19 +9,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Hiện thực dùng khi <b>chưa cấu hình credential Firebase</b>
- * ({@code FIREBASE_SERVICE_ACCOUNT_PATH} rỗng — đúng tình trạng của máy dev và của CI).
- *
- * <p>Mục tiêu là "vô hiệu hoá CÓ KIỂM SOÁT": app vẫn khởi động, endpoint G9–G11 vẫn chạy,
- * {@code notification_outbox} vẫn được ghi; chỉ bước đẩy đi là không xảy ra và các dòng giữ
- * nguyên {@code PENDING}. Trả {@link Status#SKIPPED} chứ KHÔNG trả thất bại, vì thất bại sẽ
- * tiêu {@code attempts} và sau 5 vòng job toàn bộ push rơi vào dead letter chỉ vì môi trường
- * thiếu khoá.</p>
- *
- * <p>Cảnh báo chỉ log MỘT lần cho mỗi lần khởi động: job chạy mỗi 15 phút, log mỗi vòng sẽ
- * thành nhiễu.</p>
- */
 class DisabledPushMessageSender implements PushMessageSender {
 
     private static final Logger log = LoggerFactory.getLogger(DisabledPushMessageSender.class);

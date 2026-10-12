@@ -1,9 +1,3 @@
-/**
- * Glyph "G" 4 màu chính thức của Google — dùng hex cố định vì đây là brand mark bên thứ ba,
- * KHÔNG phải màu trong hệ design token của CatCheck (không đi qua `@theme`, không được phép
- * đổi theo theme sáng/tối). ESLint bỏ qua rule `no-restricted-syntax` cấm hex cho riêng file
- * này (xem `eslint.config.js`) vì lý do tương tự.
- */
 export function GoogleGlyph({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">

@@ -16,13 +16,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.ArrayList;
 
-/**
- * {@link DsarRequestPort} trên {@code JdbcTemplate}.
- *
- * <p>{@code public_ref} sinh bằng sequence {@code dsar_request_public_ref_seq} của V6:
- * {@code 'DSAR-' || to_char(now(),'YYYY') || '-' || lpad(nextval(...)::text, 6, '0')}.
- * Gọi nextval TRONG transaction của save để không hụt số khi rollback.</p>
- */
 @Repository
 public class JdbcDsarRequestAdapter implements DsarRequestPort {
 

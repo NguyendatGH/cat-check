@@ -29,13 +29,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * L20–L24 (p8 §8.4.12 mục (b)).
- *
- * <p>Bốn tính chất mà gói việc W2-C phải chứng minh: <b>số lượng đúng</b>, <b>mã không trùng</b>,
- * <b>void rồi không kích hoạt được</b>, <b>CSV chỉ tải được một lần</b>. Ba cái đầu là điều kiện
- * để phát hành credit mà không mất tiền; cái cuối là hợp đồng {@code 410} của p8 L22.</p>
- */
 class ActivationCodeAdminServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T08:00:00Z");
@@ -102,7 +95,6 @@ class ActivationCodeAdminServiceTest {
                 .map(line -> line.split(",", 2)[0])
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
         assertThat(rawCodes).hasSize(200);
-        // Mã thô phải khớp định dạng p5 §5.9 CC-<PKG>-<10 ký tự Crockford, có checksum đúng.
         assertThat(rawCodes).allSatisfy(raw ->
                 assertThat(com.catcheck.credit.domain.ActivationCodeFormat.validateOrNull(raw))
                         .as("mã %s phải hợp lệ cả định dạng lẫn checksum", raw)
@@ -170,9 +162,6 @@ class ActivationCodeAdminServiceTest {
 
         InMemoryCreditStore creditStore = new InMemoryCreditStore();
         FakeEntitlementPort entitlementPort = new FakeEntitlementPort();
-        // `UserEntitlementPort` không còn là phụ thuộc của ActivateCreditCodeService: phép tính
-        // entitlement đã chuyển sang EntitlementRecalculationService (W5-A) để đường admin cấp
-        // credit tay (L10) dùng chung đúng một định nghĩa `write_access_until` (bất biến I28).
         EntitlementRecalculationService entitlementRecalculation =
                 new EntitlementRecalculationService(entitlementPort, creditStore, packagePlanPort);
         ActivateCreditCodeService activateService = new ActivateCreditCodeService(
@@ -240,12 +229,7 @@ class ActivationCodeAdminServiceTest {
         assertThat(inBatchJ.items()).allMatch(code -> code.status() == ActivationCodeStatus.VOID);
     }
 
-    /* ---------------------------------------------------------------- helper */
 
-    /**
-     * Lấy một mã thô của lô bằng cách rút CSV. Đây là đường DUY NHẤT đọc được mã thô, kể cả
-     * trong test — nếu test có đường khác thì nó không còn kiểm đúng cái mà p5 §5.9 đảm bảo.
-     */
     private String firstRawCodeOf(String batchId) {
         String csv = adminService.downloadCsv(batchId, context());
         return csv.lines().skip(1).findFirst().orElseThrow().split(",", 2)[0];

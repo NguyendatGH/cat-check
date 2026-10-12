@@ -26,17 +26,14 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Cửa sổ, cooldown và điều kiện "lần quét kích hoạt" của R2-R4 (p6 §6.9). */
 class RuleEvaluationServiceTest {
 
     private static final UUID CAT_ID = UUID.randomUUID();
-    /** Một phút trước nửa đêm UTC — ranh giới bucket của cooldown 24h. */
     private static final Instant T0 = Instant.parse("2026-10-09T23:59:00Z");
 
     private final FakeScans scans = new FakeScans();
     private final FakeFlags flags = new FakeFlags();
 
-    // ------------------------------------------------------------------ cooldown
 
     @Test
     void cooldownHoldsAcrossTheDedupeBucketBoundary() {
@@ -46,7 +43,6 @@ class RuleEvaluationServiceTest {
         service(r4, T0).onScanSaved(event(second));
         assertThat(flags.saved).hasSize(1);
 
-        // Hai phút sau, sang ngày UTC mới: bucket = epoch/86400 đổi nên dedupe_key khác.
         Instant later = T0.plusSeconds(120);
         ScanHistoryQuery.RecentScan third = scans.add(later, "NORMAL", "6.4", "0.40", "CARD_CCM");
         service(r4, later).onScanSaved(event(third));
@@ -54,12 +50,10 @@ class RuleEvaluationServiceTest {
         assertThat(flags.saved).as("cooldown 24h vẫn còn hiệu lực").hasSize(1);
     }
 
-    // ------------------------------------------------------------------ cửa sổ
 
     @Test
     void windowToStaysAfterWindowFromWhenClientClockRunsAhead() {
         MonitoringRule r4 = MonitoringRuleFixtures.lowQualityStreak(2, 0.50, T0);
-        // Đồng hồ máy khách nhanh 5 phút, hai lần chụp lại cách nhau 2 phút.
         scans.add(T0.plusSeconds(300), "NORMAL", "6.4", "0.40", "CARD_CCM");
         ScanHistoryQuery.RecentScan second = scans.add(T0.plusSeconds(420), "NORMAL", "6.4", "0.40", "CARD_CCM");
 
@@ -69,7 +63,6 @@ class RuleEvaluationServiceTest {
         assertThat(flag.getWindowTo()).as("ck_health_flag_window").isAfter(flag.getWindowFrom());
     }
 
-    // ------------------------------------------------------------------ R2
 
     @Test
     void baselineDeviationIgnoresALowConfidenceTriggerScan() {
@@ -92,12 +85,10 @@ class RuleEvaluationServiceTest {
                 .containsExactly(MonitoringRuleCode.BASELINE_DEVIATION.name());
     }
 
-    // ------------------------------------------------------------------ R3
 
     @Test
     void monotonicTrendIsNotReRaisedByAnUnrelatedFilteredScan() {
         seedRisingTrend();
-        // Flag gốc nổ 4 ngày trước — đã ra khỏi cooldown 72h, nhưng vẫn trong maxSpanDays 7.
         flags.saved.add(existingFlag(MonitoringRuleCode.MONOTONIC_TREND, T0.minus(Duration.ofDays(4))));
         ScanHistoryQuery.RecentScan lowConfidence = scans.add(T0, "HIGH", "7.0", "0.30", "CARD_CCM");
 
@@ -117,7 +108,6 @@ class RuleEvaluationServiceTest {
                 .containsExactly(MonitoringRuleCode.MONOTONIC_TREND.name());
     }
 
-    // ------------------------------------------------------------------ fixtures
 
     private void seedBaseline() {
         for (int day = 1; day <= 5; day++) {
@@ -161,7 +151,6 @@ class RuleEvaluationServiceTest {
                 scan.capturedAt(), false);
     }
 
-    /** Lịch sử scan đã flush — gồm cả lần quét kích hoạt (H15.75), mới nhất trước. */
     private static final class FakeScans implements ScanHistoryQuery {
 
         private final List<RecentScan> rows = new ArrayList<>();

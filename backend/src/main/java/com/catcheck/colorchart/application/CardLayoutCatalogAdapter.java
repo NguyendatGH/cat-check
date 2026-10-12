@@ -12,12 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Hiện thực {@link CardLayoutCatalog} (cổng do scan tuyên bố) bằng {@code reference_card_layout}
- * của module {@code colorchart} — cùng điểm nối với {@link ColorChartCatalogAdapter}, chỉ khác
- * dữ liệu nguồn. Map JSON {@code layout} → mô hình nội bộ của scan ({@link CardLayout}) tại đây
- * để A6 không phải biết cấu trúc JSON thật của {@code reference_card_layout}.
- */
 @Component
 public class CardLayoutCatalogAdapter implements CardLayoutCatalog {
 

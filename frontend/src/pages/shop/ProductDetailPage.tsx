@@ -10,19 +10,6 @@ import { discountPercent, formatVnd, maxOrderQuantity } from "./shopFormat";
 import { CareNoteCard, CartShortcut, PhBandScale, PriceRow, ProductGlyph, QuantityStepper, StockChip } from "./shopUi";
 import { useAddToCart } from "./useCartActions";
 
-/**
- * `/shop/products/:productId` — Chi tiết sản phẩm (design `Web - 14b` / mobile `14.a`).
- *
- * CHỈ hiển thị field `GET /api/v1/shop/products/{id}` trả thật: `sku`, `name`, `description`,
- * `imageUrl`, `priceVnd`, `compareAtPriceVnd`, `stockQuantity`.
- *
- * Đã gỡ khỏi mockup (tuyên bố chưa kiểm chứng hoặc không có API): gallery ảnh, điểm/số lượt
- * đánh giá và review, "120+ phòng khám khuyên dùng", chip freeship/giao 2H, lựa chọn combo/
- * size/định kỳ, chip "100% đậu nành/khử mùi 99%/không bụi 99,9%", khối "cơ chế phát hiện bệnh"
- * (thay bằng dải pH tham chiếu của API ở cùng vị trí), "hướng dẫn 4 bước", hộp chat bác sĩ.
- * Bảng "So sánh các gói" giữ vị trí nhưng chỉ so các field thật của catalogue (giá, giá gốc,
- * tồn kho).
- */
 
 function DetailSkeleton() {
   return (
@@ -38,7 +25,6 @@ function DetailSkeleton() {
   );
 }
 
-/** Bảng so sánh các sản phẩm của catalogue — cột là sản phẩm, hàng là field thật của API. */
 function CatalogCompare({ current, products }: { current: ShopProductApi; products: ShopProductApi[] }) {
   const { t } = useTranslation("shop");
   const rows: { key: string; render: (p: ShopProductApi) => string }[] = [
@@ -66,7 +52,6 @@ function CatalogCompare({ current, products }: { current: ShopProductApi; produc
       <h2 className="text-[18px] font-bold text-text-primary md:text-[20px]">{t("compare.title")}</h2>
       <p className="pt-1 text-[12px] text-text-secondary">{t("compare.subtitle")}</p>
 
-      {/* Mobile: danh sách thẻ (bảng nhiều cột không đọc được ở 390px). */}
       <ul className="flex flex-col gap-3 pt-4 md:hidden">
         {products.map((p) => {
           const isCurrent = p.id === current.id;
@@ -100,7 +85,6 @@ function CatalogCompare({ current, products }: { current: ShopProductApi; produc
         })}
       </ul>
 
-      {/* Web: bảng so sánh, cột sản phẩm đang xem được tô như cột "khuyên dùng" của design. */}
       <div className="hidden pt-5 md:block">
         <table className="w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-xl text-[13px]">
           <thead>
@@ -159,7 +143,6 @@ function CatalogCompare({ current, products }: { current: ShopProductApi; produc
 
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
-  // `key` theo sản phẩm: chuyển sang sản phẩm khác (bảng so sánh) thì số lượng chọn về 1.
   return <ProductDetailView key={productId} productId={productId} />;
 }
 
@@ -214,7 +197,6 @@ function ProductDetailView({ productId }: { productId: string | undefined }) {
 
   return (
     <div className="flex flex-col gap-5 px-4 py-5 lg:px-0 lg:py-0">
-      {/* Breadcrumb — hai mức thật: cửa hàng và tên sản phẩm của API. */}
       <nav
         aria-label={t("detail.breadcrumb")}
         className="flex flex-wrap items-center gap-1 text-[12px] text-text-secondary"
@@ -227,7 +209,6 @@ function ProductDetailView({ productId }: { productId: string | undefined }) {
       </nav>
 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-8">
-        {/* Cột trái: ảnh thật của API nếu có, không thì ô biểu tượng theo SKU */}
         <ProductGlyph
           sku={product.sku}
           imageUrl={product.imageUrl}
@@ -236,7 +217,6 @@ function ProductDetailView({ productId }: { productId: string | undefined }) {
           showSku
         />
 
-        {/* Cột phải: thông tin mua hàng */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex rounded-full bg-chip-bg px-2.5 py-1 text-[11px] font-bold text-primary-dark">
@@ -267,9 +247,6 @@ function ProductDetailView({ productId }: { productId: string | undefined }) {
             </p>
           </div>
 
-          {/* Mua: số lượng (trần = tồn kho thật, tối đa 99) + thêm giỏ + mua ngay. Đặt
-              trong luồng trang thay vì thanh dính đáy: bottom nav của AppLayout (có nút "Quét"
-              nhô lên) sẽ che thanh dính ở mobile. */}
           <div className="flex items-center gap-2 pt-4">
             <QuantityStepper
               value={selected}
@@ -316,7 +293,6 @@ function ProductDetailView({ productId }: { productId: string | undefined }) {
         </div>
       </div>
 
-      {/* Vị trí "Cơ chế phát hiện" của design: dải pH tham chiếu từ `GET /reference/ph-bands`. */}
       <PhBandScale />
 
       {catalog.length > 1 ? <CatalogCompare current={product} products={catalog} /> : null}

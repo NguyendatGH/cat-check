@@ -22,7 +22,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Regression coverage for the partial unique index race on active cat reminders. */
 class ReminderServiceTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
@@ -45,8 +44,6 @@ class ReminderServiceTest {
 
     @Test
     void concurrentReactivationIsReportedAsConflict() {
-        // Bật lại lịch đang tắt trong lúc request khác vừa tạo lịch cùng cat+type: cả hai qua được
-        // findActiveIdByCatAndType rồi va uq_reminder_cat_type_active ở UPDATE.
         repository.stored = inactiveReminder();
         repository.failure = new DuplicateKeyException("uq_reminder_cat_type_active");
 
@@ -58,7 +55,6 @@ class ReminderServiceTest {
 
     @Test
     void otherIntegrityViolationsAreNotMislabelledAsLimitReached() {
-        // Ví dụ FK: hồ sơ mèo bị xoá cứng giữa lúc kiểm và lúc INSERT — không phải "đã có lịch".
         repository.failure = new DataIntegrityViolationException("fk_reminder_cat");
 
         assertThatThrownBy(() -> service.create(command()))
@@ -89,7 +85,6 @@ class ReminderServiceTest {
         }
     }
 
-    /** Mọi lần ghi ném {@link #failure} — mô phỏng request đua đã commit trước. */
     private static final class RacingReminderRepository implements ReminderRepository {
         private RuntimeException failure;
         private Reminder stored;

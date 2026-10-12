@@ -16,45 +16,13 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * <b>Lưới an toàn cho {@code ReportPdfJob}</b> — đặt mọi {@code export_job} còn
- * {@code QUEUED}/{@code RUNNING} quá <b>15 phút</b> thành {@code FAILED} kèm lý do đọc được.
- *
- * <p><b>Vì sao bắt buộc phải có.</b> p4 G1 (bất biến I25) có
- * {@code UNIQUE(user_id) WHERE status IN ('QUEUED','RUNNING')}: đúng một dòng kẹt là user đó
- * <b>vĩnh viễn</b> nhận {@code 409 EXPORT_JOB_IN_PROGRESS} cho mọi lần xuất sau. Mà dòng kẹt
- * không chặn hết được bằng code trong tiến trình: app chết giữa lúc render, bể luồng bị bỏ lúc
- * shutdown, hay máy mất điện đều để lại đúng tình trạng đó. {@link ExportJobDispatcher} chỉ sửa
- * nguyên nhân thường gặp nhất (H15.76 — submit executor trước COMMIT); job này dọn phần còn
- * lại.</p>
- *
- * <p><b>Ngưỡng 15 phút</b> lấy từ p13 §13.6.1 bảng so sánh: {@code ReportPdfJob} có
- * "Timeout / retry: 15m mỗi instance". Quá mốc đó thì theo spec job đã hỏng, không phải đang
- * chạy chậm.</p>
- *
- * <p><b>Cảnh báo về tên job và lịch chạy (H15.78).</b> p12 §12.6 là danh mục job DUY NHẤT của
- * dự án và nó <b>không có dòng nào</b> cho việc dọn job xuất PDF kẹt — {@code ReportPdfJob} ở
- * §12.6.3 là bản thân việc sinh PDF (theo sự kiện, không cron). Tên
- * {@code ReportPdfTimeoutJob}, cron mỗi 15 phút và {@code lockAtMostFor = 10m} ở đây là
- * <b>quy ước của repo</b>, đặt cạnh cụm "liên tục · 15m" đã có trong bản đồ giờ chạy §12.6.8
- * ({@code PurgeStagedScanFilesJob}, {@code RetryFailedNotificationsJob},
- * {@code IncidentDeadlineMonitorJob}). Cần p12 chốt lại.</p>
- *
- * <p><b>Cố ý KHÔNG khai trong {@code JobProperties}</b> (H15.79): thêm một thành phần vào record
- * đó buộc phải sửa 4 file test nằm ngoài vùng file của gói việc này. Hệ quả phải biết:
- * {@code JobHeartbeatCheckJob} đọc {@code JobProperties.scheduledJobs()} nên <b>chưa giám sát
- * job này</b> — nó vẫn ghi {@code job_run} đầy đủ qua {@link JobRunner}, chỉ là không có ai báo
- * khi nó chết âm thầm.</p>
- */
 @Component
 @ConditionalOnProperty(prefix = "catcheck.jobs.report-pdf-timeout", name = "enabled",
         havingValue = "true", matchIfMissing = true)
 public class ReportPdfTimeoutJob {
 
-    /** {@code job_run.job_name} — xem cảnh báo về tên ở javadoc lớp. */
     public static final String JOB_NAME = "ReportPdfTimeoutJob";
 
-    /** p13 §13.6.1: {@code ReportPdfJob} timeout 15 phút mỗi instance. */
     static final Duration DEFAULT_STALE_AFTER = Duration.ofMinutes(15);
 
     private static final int BATCH_SIZE = 200;
@@ -88,7 +56,6 @@ public class ReportPdfTimeoutJob {
         jobRunner.runScheduled(JOB_NAME, dryRun, this::failStaleJobs);
     }
 
-    /** Thân job — tách khỏi {@link #run()} để test gọi thẳng, không cần scheduler. */
     JobOutcome failStaleJobs(JobContext context) {
         Instant cutoff = context.startedAt().minus(staleAfter);
 
@@ -126,8 +93,6 @@ public class ReportPdfTimeoutJob {
                 }
             }
             closed += closedInPage;
-            // Trang vẫn đầy nhưng không đóng được dòng nào: vòng sau sẽ lấy đúng trang này (câu
-            // SELECT lọc theo điều kiện, không theo cursor) nên dừng lại thay vì lặp vô hạn.
             if (staleIds.size() < limit || closedInPage == 0) {
                 break;
             }
@@ -137,7 +102,6 @@ public class ReportPdfTimeoutJob {
                 ? null
                 : closed + " job qua han da dat FAILED"
                         + (errors == 0 ? "" : ", " + errors + " loi, loi dau tien: " + firstError);
-        // itemsDeleted = 0: job này không xoá dòng nào, chỉ đổi trạng thái.
         return JobOutcome.of(inspected, 0, errors, summary);
     }
 }

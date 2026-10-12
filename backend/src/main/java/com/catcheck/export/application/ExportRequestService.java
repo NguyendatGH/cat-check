@@ -23,10 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * {@code POST /api/v1/exports} (p8 §8.4.10 J1) — tạo {@code export_job} rồi xử lý NỀN
- * (p13 §13.6.1: sinh PDF tốn CPU nên KHÔNG đồng bộ trong request).
- */
 @Service
 public class ExportRequestService {
 
@@ -63,8 +59,6 @@ public class ExportRequestService {
 
     @Transactional
     public ExportJob request(ExportRequestCommand cmd) {
-        // Kiem entitlement: goi phai co credit.domain.PlanFeature.EXPORT (MINI/DAILY la
-        // "export":false trong seed), cung khuon reminder/cat (xem javadoc ExportFeaturePort).
         if (!featurePort.isExportEnabled(cmd.userId())) {
             throw new PermissionDeniedException(ExportErrorCode.FEATURE_NOT_IN_PLAN, "export");
         }
@@ -100,14 +94,9 @@ public class ExportRequestService {
         try {
             job = jobRepository.save(job);
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            // Lưới an toàn cuối: UNIQUE(user_id) WHERE status IN ('QUEUED','RUNNING') ở DB (p4 G1)
-            // bắt race hiếm giữa hai request đồng thời mà kiểm tra findActiveByUser() ở trên bỏ lỡ.
             throw new ConflictException(ExportErrorCode.EXPORT_JOB_IN_PROGRESS);
         }
 
-        // H15.76: hẹn SAU COMMIT, không submit thẳng. Submit trong transaction thì worker đọc
-        // export_job trước khi INSERT được commit, không thấy dòng nào, bỏ chạy — và dòng kẹt
-        // QUEUED khoá mọi lần export sau bằng 409 (p4 G1 I25).
         dispatcher.dispatchAfterCommit(job.getId());
 
         return job;
