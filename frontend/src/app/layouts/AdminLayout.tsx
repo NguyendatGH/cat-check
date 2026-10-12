@@ -369,14 +369,14 @@ function AdminMobileDrawer({
       <SheetContent
         side="left"
         aria-describedby={undefined}
-        className="!p-0 !max-w-[340px] w-[86vw] bg-[#14213d] text-white border-r border-white/10 flex flex-col h-dvh overflow-hidden shadow-2xl"
+        className="admin-mobile-drawer !p-0 !max-w-[340px] w-[86vw] bg-[#14213d] text-white border-r border-white/10 flex flex-col h-dvh overflow-hidden shadow-lg"
       >
         <SheetTitle className="sr-only">{t("nav.label")}</SheetTitle>
 
         <div className="border-b border-white/10 bg-[#0f1a30] px-4 pt-5 pb-3 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-white shadow-md ring-1 ring-white/20">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-white">
                 <ShieldCheck size={19} aria-hidden="true" />
               </span>
               <div className="min-w-0">
@@ -392,7 +392,7 @@ function AdminMobileDrawer({
               <button
                 type="button"
                 aria-label={t("actions.close", "Đóng")}
-                className="flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+                className="flex size-11 items-center justify-center rounded-md border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X size={17} aria-hidden="true" />
               </button>
@@ -409,8 +409,8 @@ function AdminMobileDrawer({
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-center gap-2.5 rounded-xl bg-white/[0.06] p-2 border border-white/10">
-            <Avatar size={32} className="!rounded-lg !bg-primary" icon={<ShieldCheck size={16} aria-hidden="true" />} />
+          <div className="mt-2.5 flex items-center gap-2.5 rounded-lg bg-white/[0.06] p-2 border border-white/10">
+            <Avatar size={32} className="!rounded-md !bg-primary" icon={<ShieldCheck size={16} aria-hidden="true" />} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-bold text-white">{user?.displayName ?? "Admin"}</p>
               <p className="truncate text-[10px] text-slate-400">Quản trị viên</p>
@@ -419,7 +419,7 @@ function AdminMobileDrawer({
               to={ROUTE_PATTERNS.adminMeSecurity}
               onClick={onNavigate}
               aria-label={t("nav.settings")}
-              className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-slate-200 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+              className="flex size-11 items-center justify-center rounded-md bg-white/10 text-slate-200 hover:text-white hover:bg-white/20 transition-colors cursor-pointer"
             >
               <Settings size={13} aria-hidden="true" />
             </Link>
@@ -434,13 +434,13 @@ function AdminMobileDrawer({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("actions.search", "Tìm tính năng...")}
-              className="h-9 w-full rounded-xl bg-white/5 border border-white/15 pl-8 pr-8 text-[12.5px] text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              className="h-10 w-full rounded-md bg-white/5 border border-white/15 pl-8 pr-8 text-[13px] text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
             />
             {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center text-slate-400 hover:text-white"
                 aria-label="Xoá tìm kiếm"
               >
                 <X size={13} aria-hidden="true" />
@@ -469,7 +469,7 @@ function AdminMobileDrawer({
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.id)}
-                    className="flex w-full items-center justify-between px-2 py-1 text-[11px] font-bold tracking-wider text-slate-400 uppercase hover:text-slate-200 transition-colors cursor-pointer"
+                    className="flex min-h-11 w-full items-center justify-between px-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     <span>{t(group.labelKey)}</span>
                     <span className="flex items-center gap-1.5 text-[10px] text-slate-400 bg-white/5 px-1.5 py-0.5 rounded-md font-mono">
@@ -489,15 +489,15 @@ function AdminMobileDrawer({
                             onClick={onNavigate}
                             aria-current={isActive ? "page" : undefined}
                             className={cn(
-                              "group flex min-h-[44px] items-center gap-3 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all active:scale-[0.98]",
+                              "group flex min-h-12 items-center gap-3 rounded-md px-2.5 py-2 text-[13px] font-semibold transition-colors",
                               isActive
-                                ? "bg-primary text-white shadow-md shadow-primary/20 ring-1 ring-white/20"
+                                ? "bg-primary text-white"
                                 : "text-slate-300 hover:bg-white/8 hover:text-white active:bg-white/10"
                             )}
                           >
                             <span
                               className={cn(
-                                "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                "flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
                                 isActive
                                   ? "bg-white/20 text-white"
                                   : "bg-white/5 text-slate-300 group-hover:bg-white/10 group-hover:text-white"
@@ -557,20 +557,6 @@ export function AdminLayout() {
   const groups = useMemo(() => filterNavGroups(ADMIN_NAV, allows), [allows]);
   const activeItem = findActiveNavItem(groups, location);
   const activeGroup = groups.find((group) => group.items.some((item) => item.id === activeItem?.id));
-  const routeRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(
-    () => {
-      if (!routeRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      gsap.fromTo(
-        routeRef.current,
-        { autoAlpha: 0, y: 8 },
-        { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out", clearProps: "opacity,visibility,transform" },
-      );
-    },
-    { scope: routeRef, dependencies: [activeItem?.id], revertOnUpdate: true },
-  );
-
   if (!allows(ROLES.adminPortal)) {
     return (
       <main className="min-h-dvh bg-background p-6">
@@ -629,7 +615,7 @@ export function AdminLayout() {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="admin-topbar sticky top-0 z-[var(--z-sticky-header)] flex min-h-16 items-center justify-between gap-2.5 border-b border-border/60 bg-surface/90 px-3.5 backdrop-blur-md sm:px-6 lg:px-8">
+          <header className="admin-topbar sticky top-0 z-[var(--z-sticky-header)] flex min-h-16 items-center justify-between gap-2.5 border-b border-border/60 bg-surface px-3.5 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-2.5">
               <div className="lg:hidden">
                 <Button
@@ -638,7 +624,7 @@ export function AdminLayout() {
                   size="sm"
                   aria-label={t("nav.openMenu")}
                   onClick={() => setMenuOpen(true)}
-                  className="!size-11 !rounded-xl !p-0 border border-border/80 bg-background text-text-primary shadow-xs hover:bg-background-alt active:scale-95 transition-all"
+                  className="!size-11 !rounded-md !p-0 border border-border/80 bg-background text-text-primary shadow-xs hover:bg-background-alt"
                 >
                   <Menu size={20} aria-hidden="true" />
                 </Button>
@@ -673,13 +659,13 @@ export function AdminLayout() {
                 to={ROUTE_PATTERNS.dashboard}
                 aria-label={t("nav.backToApp")}
                 title={t("nav.backToApp")}
-                className="flex size-10 items-center justify-center rounded-xl border border-border/80 bg-background text-text-secondary hover:text-text-primary hover:bg-background-alt active:scale-95 transition-all shadow-xs lg:hidden cursor-pointer"
+                className="flex size-11 items-center justify-center rounded-md border border-border/80 bg-background text-text-secondary hover:text-text-primary hover:bg-background-alt shadow-xs lg:hidden cursor-pointer"
               >
                 <ArrowLeft size={17} aria-hidden="true" />
               </Link>
               <Link
                 to={ROUTE_PATTERNS.adminMeSecurity}
-                className="flex items-center gap-2 rounded-xl bg-background-alt border border-border/60 p-1.5 sm:px-3 sm:py-1.5 text-small font-semibold text-primary-dark hover:bg-background active:scale-95 transition-all"
+                className="flex min-h-11 items-center gap-2 rounded-md bg-background-alt border border-border/60 p-1.5 sm:px-3 sm:py-1.5 text-small font-semibold text-primary-dark hover:bg-background"
                 title={user?.displayName ?? "Admin"}
               >
                 <span className="relative flex size-7 items-center justify-center rounded-lg bg-primary text-white font-bold text-[11px]">
@@ -693,9 +679,7 @@ export function AdminLayout() {
 
           <main id="admin-main" tabIndex={-1} className="flex-1 px-3.5 py-4 sm:px-6 lg:px-8 lg:py-7">
             <AdminAccessProvider capabilities={capabilities}>
-              <div ref={routeRef}>
-                <Outlet />
-              </div>
+              <Outlet />
             </AdminAccessProvider>
           </main>
         </div>
