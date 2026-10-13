@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Navigate, useNavigate } from "react-router";
@@ -9,12 +9,14 @@ import {
   CaptureTrigger,
   InconclusiveNotice,
   useRecentCatScans,
+  useScanByRequest,
   useScanCaptureStore,
   useSubmitScan,
 } from "@/features/scan";
 import { useCreditBalance, useEntitlement } from "@/features/credit";
 import { isApiError } from "@/shared/api/errors";
 import { usePhBands } from "@/entities/ph-bands";
+import { CatAvatar } from "@/entities/cat";
 import type { CaptureSource } from "@/entities/scan-result";
 import { useCat } from "@/features/history";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
@@ -29,6 +31,9 @@ import {
   type CaptureErrorMessage,
   type HeaderPill,
 } from "./webPanels";
+
+const SCAN_POLL_MAX_ATTEMPTS = 8;
+const SCAN_POLL_INTERVAL_MS = 2000;
 
 function captureErrorOf(error: unknown, t: TFunction<["scan", "common"]>): CaptureErrorMessage {
   if (!isApiError(error)) return { tone: "danger", text: t("capture.uploadError") };
@@ -59,8 +64,18 @@ function captureErrorOf(error: unknown, t: TFunction<["scan", "common"]>): Captu
 export function ScanPage() {
   const { t } = useTranslation(["scan", "common"]);
   const navigate = useNavigate();
-  const { scanRequestId, assignment, selectedCatId, file, previewUrl, setFile, setSelectedCat, startNewAttempt } =
-    useScanCaptureStore();
+  const navigationRef = useRef(false);
+  const {
+    scanRequestId,
+    assignment,
+    selectedCatId,
+    selectedCatName,
+    file,
+    previewUrl,
+    setFile,
+    setSelectedCat,
+    startNewAttempt,
+  } = useScanCaptureStore();
   const submitScan = useSubmitScan();
   const { data: bands } = usePhBands();
   const balanceQuery = useCreditBalance();
@@ -69,14 +84,32 @@ export function ScanPage() {
   const catId = assignment === "ASSIGNED" ? (selectedCatId ?? undefined) : undefined;
   const { data: selectedCat } = useCat(catId);
   const { data: latestScans } = useRecentCatScans(catId, 1);
-  const isDesktop = useBreakpoint("lg");
+  const isDesktop = useBreakpoint("md");
   const resultScanId = submitScan.isSuccess ? (submitScan.data.scanId ?? null) : null;
+  const inProgress =
+    submitScan.isError &&
+    isApiError(submitScan.error) &&
+    submitScan.error.status === 409 &&
+    submitScan.error.code === "SCAN_IN_PROGRESS";
+  const pollQuery = useScanByRequest(scanRequestId, {
+    enabled: inProgress,
+    refetchInterval: (query) => {
+      if (query.state.data) return false;
+      return query.state.errorUpdateCount >= SCAN_POLL_MAX_ATTEMPTS ? false : SCAN_POLL_INTERVAL_MS;
+    },
+  });
+  const polledScanId = pollQuery.data?.scanId ?? null;
+  const polling = inProgress && !pollQuery.data && pollQuery.errorUpdateCount < SCAN_POLL_MAX_ATTEMPTS;
 
   useEffect(() => {
-    if (resultScanId) {
-      void navigate(`/scan/result/${resultScanId}`, { replace: true });
+    const scanIdToNavigate = resultScanId || polledScanId;
+    if (scanIdToNavigate && !navigationRef.current) {
+      navigationRef.current = true;
+      void navigate(`/scan/result/${scanIdToNavigate}`, { replace: true });
+    } else if (!scanIdToNavigate) {
+      navigationRef.current = false;
     }
-  }, [resultScanId, navigate]);
+  }, [resultScanId, polledScanId, navigate]);
 
   if (!assignment) {
     return isDesktop ? <SelectCatPage /> : <Navigate to="/scan/select-cat" replace />;
@@ -88,8 +121,8 @@ export function ScanPage() {
     (submitScan.isError && isApiError(submitScan.error) && submitScan.error.status === 402);
   const hasPackage = Boolean(entitlementQuery.data?.currentPackage);
   const inconclusive = submitScan.isSuccess && resultScanId === null ? submitScan.data : null;
-  const analyzing = submitScan.isPending || resultScanId !== null;
-  const submitError = submitScan.isError && !outOfCredit ? captureErrorOf(submitScan.error, t) : null;
+  const analyzing = submitScan.isPending || resultScanId !== null || polling;
+  const submitError = submitScan.isError && !outOfCredit && !polling ? captureErrorOf(submitScan.error, t) : null;
   const inconclusiveBand = bands?.find((band) => band.code === "INCONCLUSIVE");
 
   const handleSubmit = () => {
@@ -177,15 +210,19 @@ export function ScanPage() {
 
   if (isDesktop) {
     let rightPanel;
+    let rightPanelKey = "result";
     if (analyzing) {
+      rightPanelKey = "analyzing";
       rightPanel = (
         <div className="rounded-2xl bg-surface shadow-xs">
           <AnalyzingState text={t("analyzing.text")} note={t("analyzing.note")} previewUrl={previewUrl} />
         </div>
       );
     } else if (inconclusiveNotice) {
+      rightPanelKey = "inconclusive";
       rightPanel = <div className="rounded-2xl bg-surface shadow-xs">{inconclusiveNotice}</div>;
     } else if (outOfCredit && outOfCreditPanel) {
+      rightPanelKey = "locked";
       rightPanel = outOfCreditPanel;
     } else {
       rightPanel = <WebResultPanel bands={bands ?? []} />;
@@ -193,7 +230,9 @@ export function ScanPage() {
 
     return (
       <div className="flex w-full flex-col gap-4">
-        <WebScanHeader title={t("web.pageTitle")} subtitle={t("web.pageSubtitle")} pills={pills} />
+        <div data-reveal>
+          <WebScanHeader title={t("web.pageTitle")} subtitle={t("web.pageSubtitle")} pills={pills} />
+        </div>
         <div className="grid grid-cols-12 items-start gap-4">
           <div className="col-span-5">
             <WebCapturePanel
@@ -210,7 +249,7 @@ export function ScanPage() {
                         submitScan.reset();
                         setSelectedCat(null);
                       }}
-                      className="inline-flex min-h-9 shrink-0 items-center rounded-lg px-3 text-caption font-semibold text-primary-dark hover:bg-chip-bg disabled:opacity-50"
+                      className="inline-flex min-h-9 shrink-0 items-center rounded-md px-3 text-caption font-semibold text-primary-dark hover:bg-chip-bg disabled:opacity-50"
                     >
                       {t("selectCat.changeCta")}
                     </button>
@@ -226,7 +265,11 @@ export function ScanPage() {
               error={submitError}
             />
           </div>
-          <div className="col-span-7">{rightPanel}</div>
+          <div data-reveal className="col-span-7">
+            <div key={rightPanelKey} className="fade-swap">
+              {rightPanel}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -255,15 +298,59 @@ export function ScanPage() {
   if (inconclusiveNotice) {
     return (
       <div className="flex flex-col gap-2 p-4">
-        {mobileTopBar}
-        {inconclusiveNotice}
+        <div data-reveal>{mobileTopBar}</div>
+        <div data-reveal>{inconclusiveNotice}</div>
       </div>
     );
   }
 
+  const changeCat = () => {
+    submitScan.reset();
+    setSelectedCat(null);
+  };
+
+  const mobileCatBanner = (
+    <div
+      key={selectedCatId ?? assignment}
+      className="fade-swap flex items-center gap-3 rounded-2xl border border-border bg-surface p-3"
+    >
+      {assignment === "SHARED_UNKNOWN" ? (
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-secondary-light text-h3 font-bold text-secondary-text-on">
+          ?
+        </span>
+      ) : (
+        <CatAvatar
+          src={selectedCat?.avatarUrl}
+          name={selectedCat?.name ?? selectedCatName ?? ""}
+          size="md"
+          className="size-11"
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-body font-semibold text-text-primary">
+          {assignment === "SHARED_UNKNOWN"
+            ? t("web.sharedTrayTitle")
+            : (selectedCat?.name ?? selectedCatName ?? t("selectCat.loading"))}
+        </p>
+        <p className="truncate text-caption text-text-secondary">
+          {assignment === "SHARED_UNKNOWN" ? t("web.sharedTrayHint") : (catMeta ?? t("web.catSectionLabel"))}
+        </p>
+      </div>
+      <button
+        type="button"
+        disabled={submitScan.isPending}
+        onClick={changeCat}
+        className="min-h-11 shrink-0 rounded-md px-3 text-caption font-semibold text-primary-dark hover:bg-chip-bg disabled:opacity-50"
+      >
+        {t("selectCat.changeCta")}
+      </button>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-4 p-4">
-      {mobileTopBar}
+      <div data-reveal>{mobileTopBar}</div>
+      <div data-reveal>{mobileCatBanner}</div>
       <CaptureTrigger
         previewUrl={previewUrl}
         onFileSelected={handlePick}
