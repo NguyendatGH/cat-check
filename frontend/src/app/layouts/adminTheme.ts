@@ -9,12 +9,12 @@ export const adminTheme: ThemeConfig = {
     colorBgContainer: "#ffffff",
     colorBorder: "#d7deeb",
     fontFamily: '"Nunito", "Be Vietnam Pro", system-ui, sans-serif',
-    borderRadius: 12,
+    borderRadius: 6,
   },
   components: {
     Menu: {
       itemHeight: 44,
-      itemBorderRadius: 10,
+      itemBorderRadius: 6,
       itemMarginBlock: 4,
       itemSelectedBg: "#e4e7ff",
       itemSelectedColor: "#0d369a",
@@ -27,7 +27,7 @@ export const adminTheme: ThemeConfig = {
       darkItemSelectedColor: "#ffffff",
     },
     Card: {
-      borderRadiusLG: 16,
+      borderRadiusLG: 6,
     },
   },
 };

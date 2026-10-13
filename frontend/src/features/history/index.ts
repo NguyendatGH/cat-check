@@ -6,6 +6,7 @@ export {
   MonthGroupHeader,
   PhBandLegendRow,
   ScanTimelineItem,
+  SearchFilterBar,
   formatScanTimestamp,
   monthGroupKey,
   parseMonthGroupKey,
@@ -17,7 +18,10 @@ export type {
   HistoryTipCardProps,
   PhBandLegendRowProps,
   ScanTimelineItemProps,
+  SearchFilterBarProps,
 } from "./components";
+export { ActivityChart } from "./ActivityChart";
+export type { ActivityChartProps } from "./ActivityChart";
 export { historyKeys, useScanHistory, useScanSummary, useCat } from "./hooks";
 export { apiFetch as historyApiFetch, fetchScanHistory, fetchScanSummary, fetchCat } from "./api";
 export { handlers, worker } from "./mocks";

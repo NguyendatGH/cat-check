@@ -7,7 +7,6 @@ import {
   MessagesSquare,
   PenLine,
   Plus,
-  ShieldCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -249,16 +248,6 @@ export function CommunityFeedPage() {
     <div className="flex flex-col gap-4 px-4 py-4 lg:gap-5 lg:p-0">
       <h1 className="sr-only lg:hidden">{t("feed.title")}</h1>
       <FeedHero />
-
-      <section className="flex gap-3 rounded-2xl bg-background-alt p-4 lg:hidden">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-deco-backdrop text-primary-dark">
-          <ShieldCheck size={16} aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-[12px] font-bold uppercase tracking-wide text-primary-dark">{t("feed.noticeTitle")}</h2>
-          <p className="pt-1 text-[13px] leading-relaxed text-text-secondary">{t("disclaimer")}</p>
-        </div>
-      </section>
 
       <FilterTabs value={filter} onChange={setFilter} />
 

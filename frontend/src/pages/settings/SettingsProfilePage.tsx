@@ -145,23 +145,23 @@ export function SettingsProfilePage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <header>
         <h1 className="text-h2 font-bold text-text-primary lg:text-h1">{t("pages.profile.title")}</h1>
         <p className="pt-1 text-body text-text-secondary">{t("profile.intro")}</p>
       </header>
 
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:gap-6">
         <form
           onSubmit={(event) => void handleSubmit(onSubmit)(event)}
           className="flex min-w-0 flex-1 flex-col gap-4 rounded-2xl bg-surface p-5 shadow-brand-md"
         >
-          <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-text-primary">
             <UserRound size={18} className="text-primary-dark" aria-hidden="true" />
             {t("profile.sectionBasic")}
           </h2>
 
-          <div className="flex flex-col items-center gap-2 pb-1">
+          <div className="flex flex-col items-center gap-3">
             <AvatarUpload
               previewUrl={sessionUser?.avatarUrl ?? null}
               onChange={onPickAvatar}
@@ -169,8 +169,8 @@ export function SettingsProfilePage() {
               hasExisting={Boolean(sessionUser?.avatarUrl)}
               disabled={uploadAvatar.isPending || removeAvatar.isPending}
             />
-            <p className="text-center text-caption text-text-tertiary">{t("profile.avatarHelp")}</p>
-            <p aria-live="polite" className="min-h-4 text-caption">
+            <p className="text-center text-xs text-text-tertiary">{t("profile.avatarHelp")}</p>
+            <p aria-live="polite" className="min-h-4 text-xs">
               {avatarMessage === "failed" ? (
                 <span className="text-danger">{t("profile.avatarFailed")}</span>
               ) : avatarMessage === "saved" ? (
@@ -181,26 +181,28 @@ export function SettingsProfilePage() {
             </p>
           </div>
 
-          <Input
-            label={t("profile.fullName")}
-            placeholder={t("profile.fullNamePlaceholder")}
-            error={errors.fullName?.message}
-            {...register("fullName")}
-          />
-          <Input
-            label={t("profile.phone")}
-            placeholder={t("profile.phonePlaceholder")}
-            helperText={t("profile.phoneHelp")}
-            inputMode="tel"
-            error={errors.phone?.message}
-            {...register("phone")}
-          />
+          <div className="flex flex-col gap-2.5">
+            <Input
+              label={t("profile.fullName")}
+              placeholder={t("profile.fullNamePlaceholder")}
+              error={errors.fullName?.message}
+              {...register("fullName")}
+            />
+            <Input
+              label={t("profile.phone")}
+              placeholder={t("profile.phonePlaceholder")}
+              helperText={t("profile.phoneHelp")}
+              inputMode="tel"
+              error={errors.phone?.message}
+              {...register("phone")}
+            />
+          </div>
 
-          <div className="flex items-center gap-3">
-            <Button type="submit" size="md" disabled={!isDirty} loading={updateProfile.isPending}>
+          <div className="flex items-center gap-3 pt-1">
+            <Button type="submit" size="sm" disabled={!isDirty} loading={updateProfile.isPending}>
               {t("profile.save")}
             </Button>
-            <p aria-live="polite" className="text-caption">
+            <p aria-live="polite" className="text-xs">
               {updateProfile.isSuccess && !isDirty ? (
                 <span className="flex items-center gap-1.5 text-success-text">
                   <Check size={14} aria-hidden="true" />
@@ -216,23 +218,23 @@ export function SettingsProfilePage() {
           </div>
         </form>
 
-        <div className="flex w-full flex-col gap-5 xl:w-[360px] xl:shrink-0">
-          <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md">
-            <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
+        <div className="flex w-full flex-col gap-4 xl:w-[360px] xl:shrink-0">
+          <section className="flex flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-brand-md">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-text-primary">
               <Mail size={18} className="text-primary-dark" aria-hidden="true" />
               {t("profile.sectionEmail")}
             </h2>
 
             <div className="rounded-xl bg-background-alt/60 p-3.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
                 {t("profile.emailCurrent")}
               </p>
               <p className="break-all pt-1 text-body font-bold text-text-primary">{profile.email}</p>
               <p
                 className={
                   profile.emailVerified
-                    ? "pt-0.5 text-caption text-success-text"
-                    : "pt-0.5 text-caption text-warning-text"
+                    ? "pt-0.5 text-xs text-success-text"
+                    : "pt-0.5 text-xs text-warning-text"
                 }
               >
                 {profile.emailVerified ? t("profile.emailVerified") : t("profile.emailUnverified")}
@@ -244,14 +246,14 @@ export function SettingsProfilePage() {
                 <Button
                   type="button"
                   variant="tertiary"
-                  size="md"
+                  size="sm"
                   onClick={() => {
                     setEmailStep("request");
                   }}
                 >
                   {t("profile.emailChangeCta")}
                 </Button>
-                <p className="text-caption text-text-tertiary">{t("profile.emailChangeHelp")}</p>
+                <p className="text-xs text-text-tertiary">{t("profile.emailChangeHelp")}</p>
               </>
             ) : emailStep === "request" ? (
               <>
@@ -267,7 +269,7 @@ export function SettingsProfilePage() {
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    size="md"
+                    size="sm"
                     loading={requestEmailChange.isPending}
                     onClick={() => {
                       requestEmailChange.mutate(newEmail, {
@@ -282,7 +284,7 @@ export function SettingsProfilePage() {
                   <Button
                     type="button"
                     variant="tertiary"
-                    size="md"
+                    size="sm"
                     onClick={() => {
                       setEmailStep("idle");
                     }}
@@ -293,7 +295,7 @@ export function SettingsProfilePage() {
               </>
             ) : (
               <>
-                <p className="text-caption text-text-secondary">
+                <p className="text-xs text-text-secondary">
                   {t("profile.emailChangeSent", {
                     email: requestEmailChange.data?.maskedNewEmail ?? newEmail,
                   })}
@@ -309,7 +311,7 @@ export function SettingsProfilePage() {
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    size="md"
+                    size="sm"
                     loading={confirmEmailChange.isPending}
                     onClick={() => {
                       confirmEmailChange.mutate(otp, {
@@ -327,7 +329,7 @@ export function SettingsProfilePage() {
                   <Button
                     type="button"
                     variant="tertiary"
-                    size="md"
+                    size="sm"
                     onClick={() => {
                       setEmailStep("idle");
                     }}
@@ -339,16 +341,16 @@ export function SettingsProfilePage() {
             )}
           </section>
 
-          <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md">
-            <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
+          <section className="flex flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-brand-md">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-text-primary">
               <Link2 size={18} className="text-primary-dark" aria-hidden="true" />
               {t("profile.sectionIdentities")}
             </h2>
             {identities && identities.items.length > 0 ? (
               <ul className="flex flex-col gap-2">
                 {identities.items.map((identity) => (
-                  <li key={identity.provider} className="flex items-center gap-3 rounded-xl bg-background-alt/60 p-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface">
+                  <li key={identity.provider} className="flex items-center gap-3 rounded-lg bg-background-alt/60 p-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface">
                       {identity.provider === "GOOGLE" ? (
                         <GoogleGlyph className="size-[17px]" />
                       ) : (
@@ -356,10 +358,10 @@ export function SettingsProfilePage() {
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-body font-semibold text-text-primary">
+                      <span className="block text-sm font-semibold text-text-primary">
                         {identity.provider === "GOOGLE" ? t("profile.identityGoogle") : t("profile.identityLocal")}
                       </span>
-                      <span className="block truncate text-caption text-text-secondary">{identity.providerEmail}</span>
+                      <span className="block truncate text-xs text-text-secondary">{identity.providerEmail}</span>
                     </span>
                     {identity.provider === "GOOGLE" ? (
                       <button
@@ -367,7 +369,7 @@ export function SettingsProfilePage() {
                         onClick={() => {
                           unlinkIdentity.mutate(identity.provider);
                         }}
-                        className="shrink-0 text-caption font-semibold text-danger hover:underline"
+                        className="shrink-0 text-xs font-semibold text-danger hover:underline"
                       >
                         {t("profile.identityUnlink")}
                       </button>
@@ -376,7 +378,7 @@ export function SettingsProfilePage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-caption text-text-tertiary">{t("profile.identityEmpty")}</p>
+              <p className="text-xs text-text-tertiary">{t("profile.identityEmpty")}</p>
             )}
           </section>
         </div>
@@ -385,13 +387,13 @@ export function SettingsProfilePage() {
       <section className="flex items-center justify-between gap-4 rounded-2xl border border-danger/20 bg-danger-bg/35 p-5">
         <div className="min-w-0">
           <h2 className="text-body font-bold text-text-primary">{t("mobile.logout")}</h2>
-          <p className="pt-1 text-caption text-text-secondary">{t("profile.logoutHelp")}</p>
+          <p className="pt-1 text-xs text-text-secondary">{t("profile.logoutHelp")}</p>
         </div>
         <button
           type="button"
           onClick={onLogout}
           disabled={logout.isPending}
-          className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-danger/30 bg-surface px-4 py-2.5 text-caption font-semibold text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex shrink-0 items-center gap-2 rounded-md border border-danger/30 bg-surface px-4 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-50"
         >
           <LogOut size={16} aria-hidden="true" />
           {t("mobile.logout")}

@@ -182,23 +182,23 @@ function PlaceActions({ place, size = "md" }: { place: ViewPlace; size?: "sm" | 
   const { t } = useTranslation("map");
   const directions = directionsUrl(place);
   const base = cn(
-    "flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 font-bold transition-colors",
-    size === "sm" ? "text-[12px]" : "text-[13px]",
+    "flex min-h-9 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2 font-bold transition-colors",
+    size === "sm" ? "text-[11px]" : "text-[13px]",
   );
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1.5">
       {place.source === "catcheck" ? (
         <Link
           to={`/map/clinics/${place.id}#booking`}
           className={cn(base, "bg-primary-dark text-white hover:bg-primary")}
         >
-          <CalendarCheck size={14} aria-hidden="true" />
+          <CalendarCheck size={13} aria-hidden="true" />
           {t("actions.book")}
         </Link>
       ) : null}
       {place.phone ? (
         <a href={telHref(place.phone)} className={cn(base, "bg-danger-bg text-danger-text hover:bg-danger-bg/70")}>
-          <Phone size={14} aria-hidden="true" />
+          <Phone size={13} aria-hidden="true" />
           {t("actions.callShort")}
         </a>
       ) : null}
@@ -209,7 +209,7 @@ function PlaceActions({ place, size = "md" }: { place: ViewPlace; size?: "sm" | 
           rel="noreferrer"
           className={cn(base, "bg-chip-bg text-primary-dark hover:bg-info")}
         >
-          <Navigation size={14} aria-hidden="true" />
+          <Navigation size={13} aria-hidden="true" />
           {t("actions.directions")}
         </a>
       ) : null}
@@ -308,27 +308,44 @@ function MobileSelectedCard({ place, onClose }: { place: ViewPlace; onClose: () 
   );
 }
 
-function MobilePlaceRow({ place, onSelect }: { place: ViewPlace; onSelect: () => void }) {
+function MobilePlaceRow({
+  place,
+  onSelect,
+  isRecommended = false,
+}: {
+  place: ViewPlace;
+  onSelect: () => void;
+  isRecommended?: boolean;
+}) {
   const { t } = useTranslation("map");
   const Icon = KIND_ICON[place.kind];
   const directions = directionsUrl(place);
   return (
-    <li className="flex items-center gap-3 rounded-2xl bg-surface p-3 shadow-xs">
+    <li
+      className={cn(
+        "flex items-center gap-2.5 rounded-xl bg-surface p-3 shadow-xs transition-all",
+        isRecommended && "border border-primary-dark/20 bg-primary-dark/5",
+      )}
+    >
       <button
         type="button"
         onClick={onSelect}
         aria-label={t("actions.showOnMapNamed", { name: place.name })}
-        className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-xl",
-          KIND_CHIP_CLASS[place.kind],
-        )}
+        className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", KIND_CHIP_CLASS[place.kind])}
       >
-        <Icon size={18} aria-hidden="true" />
+        <Icon size={16} aria-hidden="true" />
       </button>
       {place.source === "osm" ? (
         <div className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-bold text-text-primary">{place.name}</span>
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pt-0.5 text-[11px] text-text-secondary">
+          <div className="flex items-center gap-1.5">
+            {isRecommended ? (
+              <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-sm bg-primary-dark px-1.5 py-0.5 text-[10px] font-bold text-white">
+                ⭐ {t("list.recommendedBadge")}
+              </span>
+            ) : null}
+            <span className="block truncate text-[13px] font-bold text-text-primary">{place.name}</span>
+          </div>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pt-1 text-[11px] text-text-secondary">
             <OsmSourceChip />
             <span className="truncate">{place.area || place.address}</span>
             <DistanceLabel km={place.distanceKm} className="text-primary-dark" />
@@ -336,8 +353,15 @@ function MobilePlaceRow({ place, onSelect }: { place: ViewPlace; onSelect: () =>
         </div>
       ) : (
         <Link to={`/map/clinics/${place.id}`} className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-bold text-text-primary">{place.name}</span>
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pt-0.5 text-[11px] text-text-secondary">
+          <div className="flex items-center gap-1.5">
+            {isRecommended ? (
+              <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-sm bg-primary-dark px-1.5 py-0.5 text-[10px] font-bold text-white">
+                ⭐ {t("list.recommendedBadge")}
+              </span>
+            ) : null}
+            <span className="block truncate text-[13px] font-bold text-text-primary">{place.name}</span>
+          </div>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pt-1 text-[11px] text-text-secondary">
             <RatingLine rating={place.rating} reviewCount={place.reviewCount} hideEmpty />
             <span className="truncate">{place.area}</span>
             <DistanceLabel km={place.distanceKm} className="text-primary-dark" />
@@ -350,9 +374,9 @@ function MobilePlaceRow({ place, onSelect }: { place: ViewPlace; onSelect: () =>
           target="_blank"
           rel="noreferrer"
           aria-label={t("actions.directionsNamed", { name: place.name })}
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark hover:bg-chip-bg"
+          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-background-alt text-primary-dark hover:bg-chip-bg"
         >
-          <Navigation size={16} aria-hidden="true" />
+          <Navigation size={15} aria-hidden="true" />
         </a>
       ) : null}
     </li>
@@ -360,7 +384,17 @@ function MobilePlaceRow({ place, onSelect }: { place: ViewPlace; onSelect: () =>
 }
 
 
-function DesktopPlaceCard({ place, active, onSelect }: { place: ViewPlace; active: boolean; onSelect: () => void }) {
+function DesktopPlaceCard({
+  place,
+  active,
+  onSelect,
+  isRecommended = false,
+}: {
+  place: ViewPlace;
+  active: boolean;
+  onSelect: () => void;
+  isRecommended?: boolean;
+}) {
   const { t } = useTranslation("map");
   const distance = place.distanceKm === null ? null : distanceText(place.distanceKm);
   const ref = useRef<HTMLLIElement>(null);
@@ -371,13 +405,19 @@ function DesktopPlaceCard({ place, active, onSelect }: { place: ViewPlace; activ
     <li
       ref={ref}
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-2xl bg-surface p-4 shadow-brand-md transition-shadow",
-        active ? "ring-2 ring-primary-dark" : "hover:shadow-brand-lg",
+        "relative shrink-0 overflow-hidden rounded-xl bg-surface p-3 shadow-xs transition-all",
+        active ? "ring-2 ring-primary-dark" : "hover:shadow-xs",
+        isRecommended && "border border-primary-dark/30 bg-gradient-to-r from-primary-dark/5 to-transparent",
       )}
     >
       {active ? <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary-dark" /> : null}
       <div className="flex items-start gap-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+          {isRecommended ? (
+            <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-sm bg-primary-dark px-1.5 py-0.5 text-[10px] font-bold text-white">
+              ⭐ {t("list.recommendedBadge")}
+            </span>
+          ) : null}
           <KindChip kind={place.kind} />
           {place.source === "osm" ? <OsmSourceChip /> : null}
           <PlaceBadges badges={place.badges} />
@@ -398,19 +438,19 @@ function DesktopPlaceCard({ place, active, onSelect }: { place: ViewPlace; activ
         </button>
       </div>
 
-      <PlaceName place={place} className="pt-2 text-[17px] font-bold leading-snug text-primary-dark hover:underline" />
-      {place.address ? <p className="pt-0.5 text-[12px] text-text-tertiary">{place.address}</p> : null}
+      <PlaceName place={place} className="pt-1.5 text-[16px] font-bold leading-snug text-primary-dark hover:underline" />
+      {place.address ? <p className="pt-0.5 text-[11px] text-text-tertiary">{place.address}</p> : null}
 
       {place.source === "osm" ? (
-        <p className="pt-2 text-[11px] leading-relaxed text-text-tertiary">{t("source.osmNote")}</p>
+        <p className="pt-1.5 text-[10px] leading-relaxed text-text-tertiary">{t("source.osmNote")}</p>
       ) : (
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-2.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2">
           <RatingLine rating={place.rating} reviewCount={place.reviewCount} />
           <SpecialtyChips specialties={place.specialties} className="contents" />
         </div>
       )}
 
-      <div className="pt-3">
+      <div className="pt-2">
         <PlaceActions place={place} size="sm" />
       </div>
     </li>
@@ -643,9 +683,10 @@ export function CatCareMapPage() {
   );
 
   if (!isDesktop) {
-    const others = visible.filter((p) => p.id !== selectedId);
+    const nearestPlace = visible.length > 0 ? visible[0] : null;
+    const others = visible.filter((p) => p.id !== selectedId && p.id !== nearestPlace?.id);
     return (
-      <div className="flex flex-col gap-4 px-4 py-4">
+      <div className="flex flex-col gap-3 px-4 py-4">
         <div>
           <h1 className="text-h3 font-bold text-text-primary">{t("page.title")}</h1>
           <p className="pt-1 text-[12px] leading-relaxed text-text-secondary">{t("page.subtitle")}</p>
@@ -671,12 +712,12 @@ export function CatCareMapPage() {
           onSelect={setActiveId}
           labels="active"
           fitPadding={{ top: 64, bottom: 40, left: 40, right: 56 }}
-          className="aspect-[358/340] w-full shadow-brand-md"
+          className="aspect-[358/340] w-full shadow-brand-md rounded-lg"
         >
           {mapBanner}
         </PlaceMap>
 
-        <div className="flex items-start gap-3 rounded-xl bg-surface p-3 shadow-xs">
+        <div className="flex items-start gap-3 rounded-lg bg-surface p-3 shadow-xs">
           <Crosshair size={15} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
           <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-text-secondary" aria-live="polite">
             {locationMessage}
@@ -702,13 +743,29 @@ export function CatCareMapPage() {
           />
         ) : null}
 
+        {nearestPlace && nearestPlace.id !== selectedId ? (
+          <>
+            <h2 className="text-[14px] font-bold text-text-primary">{t("list.recommendedTitle")}</h2>
+            <ul className="flex flex-col gap-2">
+              <MobilePlaceRow
+                key={nearestPlace.id}
+                place={nearestPlace}
+                isRecommended={true}
+                onSelect={() => {
+                  setActiveId(nearestPlace.id);
+                }}
+              />
+            </ul>
+          </>
+        ) : null}
+
         {others.length > 0 || showSkeleton ? (
-          <h2 className="text-[17px] font-bold text-text-primary">
-            {activePlace ? t("list.otherTitle") : t("list.title")}
+          <h2 className="text-[14px] font-bold text-text-primary pt-1">
+            {nearestPlace && nearestPlace.id !== selectedId ? t("list.otherTitle") : activePlace ? t("list.otherTitle") : t("list.title")}
           </h2>
         ) : null}
 
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-2">
           {showSkeleton ? <ListSkeleton count={2} /> : null}
           {others.map((p) => (
             <MobilePlaceRow
@@ -771,20 +828,38 @@ export function CatCareMapPage() {
       </section>
 
       <div className="flex max-h-[860px] min-h-[600px] items-stretch gap-6">
-        <div className="flex w-[376px] shrink-0 flex-col gap-4">
-          <div className="shrink-0 rounded-2xl bg-surface p-4 shadow-brand-md">
+        <div className="flex w-[360px] shrink-0 flex-col gap-3">
+          <div className="shrink-0 rounded-xl bg-surface p-3 shadow-xs">
             <SearchField value={query} onChange={setQuery} className="bg-background-alt" />
             <FilterChips
               filters={filters}
               active={filter}
               onChange={setFilter}
-              className="-mx-4 overflow-x-auto px-4 pt-3 [scrollbar-width:thin]"
+              className="-mx-3 overflow-x-auto px-3 pt-2.5 [scrollbar-width:thin]"
             />
           </div>
 
-          <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain rounded-2xl bg-background-alt p-3">
+          <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain rounded-xl bg-background-alt p-2.5">
             {showSkeleton ? <ListSkeleton /> : null}
-            {visible.map((p) => (
+            {visible.length > 0 && (
+              <li className="relative">
+                <div className="mb-2 text-[12px] font-bold text-text-secondary px-1">{t("list.recommendedTitle")}</div>
+                <DesktopPlaceCard
+                  place={visible[0]}
+                  active={visible[0].id === selectedId}
+                  isRecommended={true}
+                  onSelect={() => {
+                    setActiveId(visible[0].id === selectedId ? "" : visible[0].id);
+                  }}
+                />
+              </li>
+            )}
+            {visible.length > 1 && (
+              <li className="relative pt-1">
+                <div className="mb-2 text-[12px] font-bold text-text-secondary px-1">{t("list.otherTitle")}</div>
+              </li>
+            )}
+            {visible.slice(1).map((p) => (
               <DesktopPlaceCard
                 key={p.id}
                 place={p}
@@ -806,7 +881,7 @@ export function CatCareMapPage() {
           onLocate={locateFromButton}
           onSelect={setActiveId}
           labels="all"
-          className="min-w-0 flex-1 shadow-brand-md"
+          className="min-w-0 flex-1 shadow-brand-md rounded-lg"
         >
           {mapBanner}
           {activePlace ? (

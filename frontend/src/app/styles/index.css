@@ -323,17 +323,19 @@ body {
   content: "";
 }
 
-@keyframes fadeSwap {
+@keyframes pageSlideUp {
   from {
     opacity: 0;
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .fade-swap {
-  animation: fadeSwap 0.15s ease-out;
+  animation: pageSlideUp 0.2s ease-out;
 }
 
 @keyframes rowFlash {
@@ -387,7 +389,7 @@ body {
 
 .nav-stagger-enter {
   opacity: 0;
-  animation: navItemSlideIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: navItemSlideIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .btm-nav-tab {
@@ -538,7 +540,7 @@ body {
 
 .sidebar-card-enter {
   opacity: 0;
-  animation: sidebarCardEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
+  animation: sidebarCardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
 }
 
 .header-glass {

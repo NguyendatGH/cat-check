@@ -1,0 +1,1 @@
+export { SplashHost } from "./BrandSplash";

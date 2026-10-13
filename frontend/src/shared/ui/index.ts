@@ -28,6 +28,12 @@ export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetTitle, SheetDescrip
 export { SkeletonLoader } from "./SkeletonLoader";
 export type { SkeletonLoaderProps } from "./SkeletonLoader";
 
+export { DelayedFallback } from "./DelayedFallback";
+export type { DelayedFallbackProps } from "./DelayedFallback";
+
+export { PageSkeleton } from "./PageSkeleton";
+export type { PageSkeletonProps } from "./PageSkeleton";
+
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 

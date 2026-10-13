@@ -62,13 +62,13 @@ function DashboardContent() {
         return;
       const reveal = gsap.fromTo(
         cards,
-        { autoAlpha: 0, y: 10 },
+        { autoAlpha: 0, y: 20 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.3,
+          duration: 0.2,
           stagger: 0.045,
-          ease: "power2.out",
+          ease: "ease-out",
           clearProps: "opacity,visibility,transform",
         },
       );
@@ -81,7 +81,7 @@ function DashboardContent() {
     <div ref={dashboardRef} className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <header
         data-reveal
-        className="relative overflow-hidden rounded-3xl border border-border/60 bg-surface px-4 py-5 shadow-sm sm:px-6 sm:py-7 md:px-9 md:py-9"
+        className="relative overflow-hidden rounded-md border border-border/60 bg-surface px-4 py-5 shadow-sm sm:px-6 sm:py-7 md:px-9 md:py-9"
       >
         <span className="absolute inset-y-0 left-0 w-1.5 bg-primary-dark" aria-hidden="true" />
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
@@ -135,7 +135,7 @@ function DashboardContent() {
         >
           <div className="flex items-start gap-3">
             <span
-              className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark"
+              className="flex size-11 shrink-0 items-center justify-center rounded-md bg-background-alt text-primary-dark"
               aria-hidden="true"
             >
               <Database size={21} />
@@ -175,7 +175,7 @@ function DashboardContent() {
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="flex min-h-14 items-center gap-3 rounded-xl border border-border/70 px-3 text-caption font-semibold text-text-primary transition-colors hover:border-primary/40 hover:bg-background-alt focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-[var(--focus-ring-color)] motion-reduce:transition-none"
+                    className="flex min-h-14 items-center gap-3 rounded-md border border-border/70 px-3 text-caption font-semibold text-text-primary transition-colors hover:border-primary/40 hover:bg-background-alt focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-[var(--focus-ring-color)] motion-reduce:transition-none"
                     data-motion="row"
                   >
                     <Icon size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />

@@ -269,13 +269,13 @@ function AdminNavList({ groups, location, touch = false, onNavigate }: AdminNavL
       if (rows.length === 0) return;
       gsap.fromTo(
         rows,
-        { autoAlpha: 0, y: -6 },
+        { autoAlpha: 0, y: -20 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.22,
+          duration: 0.2,
           stagger: 0.025,
-          ease: "power2.out",
+          ease: "ease-out",
           clearProps: "opacity,visibility,transform",
         },
       );

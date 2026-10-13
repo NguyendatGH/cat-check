@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { format, isToday, isYesterday } from "date-fns";
 import {
   AlertTriangle,
@@ -11,6 +12,8 @@ import {
   ListFilter,
   FileDown,
   ShieldCheck,
+  Search,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -344,5 +347,116 @@ export function ExportCtaCard({ title, description, ctaLabel, onExport, classNam
         {ctaLabel}
       </button>
     </Card>
+  );
+}
+
+
+export interface SearchFilterBarProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  statusFilter: HistoryFilterKey;
+  onStatusFilterChange: (value: HistoryFilterKey) => void;
+  onReset?: () => void;
+  resultCount?: number;
+  className?: string;
+}
+
+export function SearchFilterBar({
+  searchValue,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  onReset,
+  resultCount,
+  className,
+}: SearchFilterBarProps) {
+  const { t } = useTranslation("history");
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
+      {/* Search box */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-tertiary" aria-hidden="true" />
+        <input
+          type="text"
+          placeholder={t("search.placeholder")}
+          value={searchValue}
+          onChange={(e) => {
+            onSearchChange(e.target.value);
+          }}
+          className="w-full rounded-xl border border-border bg-surface px-3 py-2 pl-9 text-small outline-none placeholder:text-text-tertiary focus:border-primary focus:ring-1 focus:ring-primary/30"
+        />
+        {searchValue && (
+          <button
+            type="button"
+            onClick={() => {
+              onSearchChange("");
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+            aria-label={t("search.clear")}
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Filter controls */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(!isOpen);
+            }}
+            className="flex min-h-[var(--touch-target-min)] shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-caption font-semibold text-text-secondary hover:border-border-strong"
+          >
+            <ListFilter className="size-4" aria-hidden="true" />
+            {t(`filters.${statusFilter}`)}
+            <ChevronDown className="size-3" aria-hidden="true" />
+          </button>
+
+          {isOpen && (
+            <div className="absolute top-full z-10 mt-1 flex flex-col gap-1 rounded-lg border border-border bg-surface p-1 shadow-sm">
+              {["ALL", "ABNORMAL"].map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => {
+                    onStatusFilterChange(filter as HistoryFilterKey);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-caption text-left font-medium transition-colors",
+                    statusFilter === filter
+                      ? "bg-primary text-white"
+                      : "text-text-secondary hover:bg-background-alt",
+                  )}
+                >
+                  {t(`filters.${filter}`)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {(searchValue || statusFilter !== "ALL") && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-2 text-caption font-semibold text-text-secondary hover:border-border-strong"
+          >
+            <X className="size-4" aria-hidden="true" />
+            {t("search.reset")}
+          </button>
+        )}
+
+        {resultCount !== undefined && (
+          <span className="ml-auto text-caption text-text-tertiary">
+            {t("search.resultCount", { count: resultCount })}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

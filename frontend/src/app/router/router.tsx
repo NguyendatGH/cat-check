@@ -1,6 +1,6 @@
 import { createBrowserRouter, useLocation, type RouteObject } from "react-router";
 import { lazy, Suspense, useRef, type ReactNode } from "react";
-import { SkeletonLoader } from "@/shared/ui";
+import { DelayedFallback, PageSkeleton } from "@/shared/ui";
 import { ComingSoonPage } from "@/pages/system/ComingSoonPage";
 import { featureFlags, type FeatureFlagKey } from "@/shared/config/featureFlags";
 import { PublicLayout } from "../layouts/PublicLayout";
@@ -38,7 +38,13 @@ function PageEntranceMotion({ children }: { children: ReactNode }) {
 
 function PageSuspense({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<SkeletonLoader shape="card" className="m-4" />}>
+    <Suspense
+      fallback={
+        <DelayedFallback fallback={<PageSkeleton />} delay={250}>
+          <div />
+        </DelayedFallback>
+      }
+    >
       <PageEntrance>{children}</PageEntrance>
     </Suspense>
   );
@@ -646,7 +652,13 @@ export const routes: RouteObject[] = [
       },
       {
         element: (
-          <Suspense fallback={<SkeletonLoader shape="card" className="m-4" />}>
+          <Suspense
+            fallback={
+              <DelayedFallback fallback={<PageSkeleton />} delay={400}>
+                <div />
+              </DelayedFallback>
+            }
+          >
             <AdminLayout />
           </Suspense>
         ),

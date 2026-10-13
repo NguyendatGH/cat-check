@@ -63,9 +63,11 @@
     "loading": "Đang tải danh sách cơ sở…",
     "loadError": "Chưa tải được danh sách cơ sở.",
     "empty": "Không có cơ sở nào khớp bộ lọc này.",
-    "emptyQuery": "Không có cơ sở nào khớp “{{query}}”.",
+    "emptyQuery": "Không có cơ sở nào khớp \"{{query}}\".",
     "reset": "Xem tất cả cơ sở",
-    "dataNote": "Tên, địa chỉ, số điện thoại và chuyên khoa do CatCheck tổng hợp, chưa phải thông tin cơ sở tự xác nhận."
+    "dataNote": "Tên, địa chỉ, số điện thoại và chuyên khoa do CatCheck tổng hợp, chưa phải thông tin cơ sở tự xác nhận.",
+    "recommendedTitle": "Được Khuyến Nghị",
+    "recommendedBadge": "Gần nhất"
   },
   "actions": {
     "call": "Gọi cơ sở",

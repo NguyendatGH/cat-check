@@ -76,16 +76,20 @@ export function usePageReveal(scope: RefObject<HTMLElement | null>) {
         gsap.set(items, { autoAlpha: 1, clearProps: "transform,opacity,visibility" });
       });
       media.add("(prefers-reduced-motion: no-preference)", () => {
+        // Reduce stagger on mobile for snappier loads
+        const isMobile = window.matchMedia("(max-width: 767px)").matches;
+        const staggerAmount = isMobile ? 0 : 0.08;
+
         const intro = gsap.timeline({ defaults: { ease: "power2.out" } });
         intro.fromTo(
           items,
-          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 0, y: 20 },
           {
             autoAlpha: 1,
             y: 0,
-            duration: 0.48,
-            ease: "sine.out",
-            stagger: { amount: 0.16, from: "start" },
+            duration: 0.2,
+            ease: "ease-out",
+            stagger: { amount: staggerAmount, from: "start" },
             clearProps: "transform,opacity,visibility",
           },
         );
@@ -289,16 +293,20 @@ export function useListReveal(scope: RefObject<HTMLElement | null>, dependency: 
 
       if (items.length === 0) return;
 
+      // Reduce stagger on mobile for snappier loads
+      const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+      const staggerAmount = isMobile ? 0 : 0.08;
+
       const tl = gsap.timeline();
       tl.fromTo(
         items,
-        { autoAlpha: 0, y: 8 },
+        { autoAlpha: 0, y: 20 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.32,
-          ease: "sine.out",
-          stagger: { amount: 0.12, from: "start" },
+          duration: 0.2,
+          ease: "ease-out",
+          stagger: { amount: staggerAmount, from: "start" },
           clearProps: "transform,opacity,visibility",
         },
       );
