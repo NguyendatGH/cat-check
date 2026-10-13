@@ -269,3 +269,44 @@ export function useMicroInteractions(scope: RefObject<HTMLElement | null>) {
     { scope },
   );
 }
+
+export function useListReveal(scope: RefObject<HTMLElement | null>, dependency: string | number | boolean) {
+  useGSAP(
+    () => {
+      const container = scope.current;
+      if (!container) return;
+
+      if (prefersReducedMotion()) {
+        gsap.set(container.querySelectorAll("[data-reveal-item], > *"), {
+          autoAlpha: 1,
+          clearProps: "transform,opacity,visibility",
+        });
+        return;
+      }
+
+      const marked = gsap.utils.toArray<HTMLElement>("[data-reveal-item]", container);
+      const items = marked.length > 0 ? marked : Array.from(container.children) as HTMLElement[];
+
+      if (items.length === 0) return;
+
+      const tl = gsap.timeline();
+      tl.fromTo(
+        items,
+        { autoAlpha: 0, y: 8 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.32,
+          ease: "sine.out",
+          stagger: { amount: 0.12, from: "start" },
+          clearProps: "transform,opacity,visibility",
+        },
+      );
+
+      return () => {
+        tl.kill();
+      };
+    },
+    { scope, dependencies: [dependency] },
+  );
+}
