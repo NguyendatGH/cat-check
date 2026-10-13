@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowRight, Camera, ChevronRight, ImageOff, Info, Lock, 
 import { cn } from "@/shared/lib/cn";
 import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import type { ScanListItem, ScanResult } from "@/entities/scan-result";
-import { PhScale, QualityFlagList, TriggeredFlagList, useRecentCatScans } from "@/features/scan";
+import { PhGaugeCircular, QualityFlagList, TriggeredFlagList, useRecentCatScans } from "@/features/scan";
 
 import iconBanner from "@/shared/assets/icons/web-scan/imgContainer.svg";
 import iconCatLabel from "@/shared/assets/icons/web-scan/imgContainer3.svg";
@@ -383,7 +383,9 @@ export function WebResultPanel({
             {hasResult ? t("web.spectrumSubtitle") : t("web.spectrumSubtitleAwaiting")}
           </p>
         </div>
-        <PhScale bands={bands} value={value} activeBand={band} showBandLegend />
+        <div className="flex justify-center py-2">
+          <PhGaugeCircular bands={bands} value={value} activeBand={band} showBandLegend size="md" />
+        </div>
       </Panel>
 
       {children}

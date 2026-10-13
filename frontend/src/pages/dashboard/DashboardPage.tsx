@@ -402,7 +402,7 @@ export function DashboardPage() {
 
         {/* 1. Cần xử lý: chỉ hiển thị khi có dữ liệu thật */}
         {!isGuest && overdueReminder ? (
-          <div role="status" className="mt-3 flex items-center gap-2.5 rounded-2xl bg-warning-bg px-3 py-3 sm:gap-3 sm:px-3.5">
+          <div role="status" className="mt-3 flex items-center gap-2.5 rounded-2xl bg-warning-bg px-3 py-3 sm:gap-3 sm:px-4 sm:py-3.5">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on sm:size-11">
               <CalendarClock size={18} className="sm:size-[20px]" aria-hidden="true" />
             </span>
@@ -414,7 +414,7 @@ export function DashboardPage() {
             </div>
             <Link
               to="/reminders"
-              className="flex min-h-10 shrink-0 items-center rounded-md bg-surface px-2.5 text-[12px] font-semibold text-primary-dark shadow-xs sm:min-h-11 sm:px-3 sm:text-[13px]"
+              className="flex min-h-10 shrink-0 items-center rounded-lg bg-chip-bg px-3 text-[12px] font-semibold text-primary-dark shadow-xs hover:bg-chip-bg/80 sm:min-h-11 sm:px-3.5 sm:text-[13px]"
             >
               {t("dashboard.reminderManage", { ns: "common" })}
             </Link>
@@ -722,7 +722,7 @@ export function DashboardPage() {
 
         <div data-reveal>
           {!isGuest && bannerReminder ? (
-            <div className="mt-3 flex items-center gap-2.5 rounded-2xl bg-warning-bg px-3 py-3 sm:mt-4 sm:gap-3 sm:px-3.5">
+            <div className="mt-3 flex items-center gap-2.5 rounded-2xl bg-warning-bg px-3 py-3 sm:mt-4 sm:gap-3 sm:px-4 sm:py-3.5">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on sm:size-11">
                 <CalendarClock size={18} className="sm:size-[20px]" aria-hidden="true" />
               </span>
@@ -734,7 +734,7 @@ export function DashboardPage() {
               </div>
               <Link
                 to="/reminders"
-                className="flex min-h-10 shrink-0 items-center rounded-md bg-surface px-2.5 text-[12px] font-semibold text-primary-dark shadow-xs sm:min-h-11 sm:px-3 sm:text-[13px]"
+                className="flex min-h-10 shrink-0 items-center rounded-lg bg-chip-bg px-3 text-[12px] font-semibold text-primary-dark shadow-xs hover:bg-chip-bg/80 sm:min-h-11 sm:px-3.5 sm:text-[13px]"
               >
                 {t("dashboard.reminderManage", { ns: "common" })}
               </Link>

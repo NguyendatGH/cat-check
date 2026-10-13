@@ -11,6 +11,7 @@ export {
   MultiCatTip,
   PhScale,
 } from "./components";
+export { PhGaugeCircular } from "./PhGaugeCircular";
 export type {
   CaptureTriggerProps,
   QualityFlagListProps,
@@ -21,6 +22,7 @@ export type {
   SharedTrayOptionProps,
   PhScaleProps,
 } from "./components";
+export type { PhGaugeCircularProps } from "./PhGaugeCircular";
 export { useScanCaptureStore } from "./store";
 export { canReassign, isReassignWindowOpen } from "./reassign";
 export type { CaptureAssignment } from "./store";
