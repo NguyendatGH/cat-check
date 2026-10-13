@@ -40,7 +40,9 @@ function PageSuspense({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <DelayedFallback fallback={<PageSkeleton />} delay={250}>
+        // PERF: Only show skeleton after 300ms delay to avoid flash on fast loads
+        // RequestIdleCallback in DelayedFallback prevents blocking main thread
+        <DelayedFallback fallback={<PageSkeleton />} delay={300}>
           <div />
         </DelayedFallback>
       }

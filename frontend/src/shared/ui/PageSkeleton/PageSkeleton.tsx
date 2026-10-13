@@ -36,15 +36,15 @@ export function PageSkeleton({
   lineHeight = "h-16",
 }: PageSkeletonProps) {
   return (
-    <div className="flex flex-col gap-5 px-4 py-5 lg:px-0">
+    <div className="flex flex-col gap-4 px-4 py-4 lg:px-0 lg:py-5">
       {showHeader && (
         <header className="flex flex-col gap-2">
-          <SkeletonLoader shape="text" className="h-8 w-3/4" />
-          <SkeletonLoader shape="text" className="h-4 w-1/2" />
+          <SkeletonLoader shape="text" className="h-7 w-2/3" />
+          <SkeletonLoader shape="text" className="h-4 w-1/2 opacity-60" />
         </header>
       )}
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {Array.from({ length: lines }).map((_, i) => (
           <SkeletonLoader key={i} shape="card" className={`w-full ${lineHeight}`} />
         ))}

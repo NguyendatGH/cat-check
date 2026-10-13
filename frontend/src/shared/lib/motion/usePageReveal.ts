@@ -76,18 +76,23 @@ export function usePageReveal(scope: RefObject<HTMLElement | null>) {
         gsap.set(items, { autoAlpha: 1, clearProps: "transform,opacity,visibility" });
       });
       media.add("(prefers-reduced-motion: no-preference)", () => {
-        // Reduce stagger on mobile for snappier loads
+        // PERF: Dramatically reduce animation duration and stagger to avoid paint blocking
+        // Content should be visible within 100ms on all connections
         const isMobile = window.matchMedia("(max-width: 767px)").matches;
-        const staggerAmount = isMobile ? 0 : 0.08;
+
+        // Desktop: subtle stagger, very fast (50ms total)
+        // Mobile: no stagger, instant (0ms)
+        const duration = isMobile ? 0 : 0.03;
+        const staggerAmount = isMobile ? 0 : 0.015;
 
         const intro = gsap.timeline({ defaults: { ease: "power2.out" } });
         intro.fromTo(
           items,
-          { autoAlpha: 0, y: 20 },
+          { autoAlpha: 0, y: 8 },
           {
             autoAlpha: 1,
             y: 0,
-            duration: 0.2,
+            duration: duration,
             ease: "ease-out",
             stagger: { amount: staggerAmount, from: "start" },
             clearProps: "transform,opacity,visibility",
@@ -293,18 +298,23 @@ export function useListReveal(scope: RefObject<HTMLElement | null>, dependency: 
 
       if (items.length === 0) return;
 
-      // Reduce stagger on mobile for snappier loads
+      // PERF: Minimize animation duration to avoid paint blocking
+      // Content should be visible immediately on fast connections
       const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-      const staggerAmount = isMobile ? 0 : 0.08;
+
+      // Desktop: very fast stagger (30ms total for multiple items)
+      // Mobile: instant reveal (0ms)
+      const duration = isMobile ? 0 : 0.02;
+      const staggerAmount = isMobile ? 0 : 0.01;
 
       const tl = gsap.timeline();
       tl.fromTo(
         items,
-        { autoAlpha: 0, y: 20 },
+        { autoAlpha: 0, y: 6 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.2,
+          duration: duration,
           ease: "ease-out",
           stagger: { amount: staggerAmount, from: "start" },
           clearProps: "transform,opacity,visibility",

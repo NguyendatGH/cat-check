@@ -53,35 +53,39 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
 
     async function bootstrap() {
       try {
         const response = await fetch("/api/v1/auth/session", { credentials: "include" });
         if (!response.ok) {
-          if (!cancelled) setSession(null);
+          if (!cancelled) {
+            setSession(null);
+            setStatus("loaded");
+          }
           return;
         }
         const raw = (await response.json()) as RawSessionResponse;
-        if (!cancelled) setSession(toSessionUser(raw));
+        if (!cancelled) {
+          setSession(toSessionUser(raw));
+          setStatus("loaded");
+        }
       } catch {
-        if (!cancelled) setSession(null);
+        if (!cancelled) {
+          setSession(null);
+          setStatus("loaded");
+        }
       }
     }
 
+    // Don't block render - start loading immediately
+    setStatus("idle");
     void bootstrap();
     return () => {
       cancelled = true;
     };
   }, [setSession, setStatus]);
 
-  if (status === "idle" || status === "loading") {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background">
-        <SkeletonLoader shape="circle" />
-      </div>
-    );
-  }
-
+  // Render children immediately without blocking on session load
+  // This allows page content to render while session loads in background
   return <>{children}</>;
 }

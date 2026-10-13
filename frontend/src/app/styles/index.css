@@ -326,7 +326,7 @@ body {
 @keyframes pageSlideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -334,8 +334,9 @@ body {
   }
 }
 
+/* PERF: Reduced from 0.2s to 0.08s to prevent paint blocking on skeleton reveal */
 .fade-swap {
-  animation: pageSlideUp 0.2s ease-out;
+  animation: pageSlideUp 0.08s ease-out forwards;
 }
 
 @keyframes rowFlash {
