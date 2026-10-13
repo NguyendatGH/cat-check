@@ -6,6 +6,12 @@ export function RequireAuth() {
   const status = useSessionStore((state) => state.status);
   const location = useLocation();
 
+  // Wait for session to load
+  if (status === "loading") {
+    return null;
+  }
+
+  // Only allow authenticated users
   if (status !== "authenticated") {
     const next = encodeURIComponent(`${location.pathname}${location.search}`);
     return <Navigate to={`${ROUTE_PATTERNS.login}?next=${next}`} replace />;

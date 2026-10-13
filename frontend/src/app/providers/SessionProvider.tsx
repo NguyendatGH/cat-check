@@ -1,7 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { useSessionStore, type SessionUser } from "@/entities/user";
 import { usePushSubscriptionRefresh } from "@/features/notification";
-import { SkeletonLoader } from "@/shared/ui";
 
 interface RawSessionUser {
   id: string;
@@ -45,7 +44,6 @@ function toSessionUser(raw: RawSessionResponse): SessionUser | null {
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const status = useSessionStore((state) => state.status);
   const setSession = useSessionStore((state) => state.setSession);
   const setStatus = useSessionStore((state) => state.setStatus);
   const signedIn = useSessionStore((state) => state.user !== null);
@@ -60,25 +58,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (!response.ok) {
           if (!cancelled) {
             setSession(null);
-            setStatus("loaded");
+            setStatus("anonymous");
           }
           return;
         }
         const raw = (await response.json()) as RawSessionResponse;
         if (!cancelled) {
           setSession(toSessionUser(raw));
-          setStatus("loaded");
+          // Session loaded, status will be set by setSession to "authenticated"
         }
       } catch {
         if (!cancelled) {
           setSession(null);
-          setStatus("loaded");
+          setStatus("anonymous");
         }
       }
     }
 
-    // Don't block render - start loading immediately
-    setStatus("idle");
+    // Set loading state and fetch session
+    setStatus("loading");
     void bootstrap();
     return () => {
       cancelled = true;
