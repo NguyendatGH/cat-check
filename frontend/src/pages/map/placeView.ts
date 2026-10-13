@@ -98,9 +98,13 @@ export function toViewPlace(place: PlaceApi, from: LatLng | null = null): ViewPl
   };
 }
 
-export function directionsUrl(place: LatLng): string | null {
+export function directionsUrl(place: LatLng & { name?: string; address?: string }): string | null {
   if (!validCoordinates(place.latitude, place.longitude)) return null;
-  return `https://www.google.com/maps/dir/?api=1&destination=${String(place.latitude)},${String(place.longitude)}`;
+  // Include clinic name and address for better context in Google Maps
+  const destination = place.name && place.address
+    ? encodeURIComponent(`${place.name} ${place.address}`)
+    : `${String(place.latitude)},${String(place.longitude)}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
 }
 
 export function telHref(phone: string): string {
