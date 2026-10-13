@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Progress, Tag } from "antd";
 import {
@@ -57,11 +57,18 @@ export function CaptureTrigger({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
+  const [, startTransition] = useTransition();
 
   const handleChange = (source: CaptureSource) => (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     onFileSelected(file, source);
     e.target.value = "";
+  };
+
+  const handleToggleTips = () => {
+    startTransition(() => {
+      setTipsOpen((v) => !v);
+    });
   };
 
   return (
@@ -78,7 +85,7 @@ export function CaptureTrigger({
           {VIEWFINDER_CORNERS.map((corner) => (
             <span key={corner} className={cn("absolute size-9 border-surface", corner)} />
           ))}
-          <span className="absolute inset-x-3 bottom-4 h-0.5 rounded-full bg-secondary/80" />
+          <span className="absolute inset-x-3 h-0.5 rounded-full bg-gradient-to-r from-transparent via-secondary to-transparent animate-scan-line" />
         </div>
 
         <p className="absolute inset-x-[10%] bottom-[22%] flex items-center justify-center gap-2 rounded-full bg-surface/15 px-3 py-2 text-center text-small font-semibold text-white">
@@ -120,9 +127,7 @@ export function CaptureTrigger({
           <button
             type="button"
             aria-expanded={tipsOpen}
-            onClick={() => {
-              setTipsOpen((v) => !v);
-            }}
+            onClick={handleToggleTips}
             className="flex w-20 flex-col items-center gap-1.5 text-small text-white"
           >
             <span className="flex size-12 items-center justify-center rounded-full bg-surface/20">
@@ -372,17 +377,17 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
   };
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-baseline justify-between gap-2 text-small text-text-secondary">
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <div className="flex items-baseline justify-between gap-2 text-xs text-text-tertiary">
         <span>{t("result.scale.acidSide", { value: geometry.innerMin.toFixed(1) })}</span>
         <span>{t("result.scale.alkalineSide", { value: geometry.innerMax.toFixed(1) })}</span>
       </div>
 
-      <div className="relative h-7">
+      <div className="relative h-6">
         {markerPercent !== null && isFiniteNumber(value) ? (
           <span
             className={cn(
-              "absolute -translate-x-1/2 whitespace-nowrap rounded-lg px-2 py-1 text-small font-bold",
+              "absolute -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-0.5 text-caption font-semibold border border-current/20",
               measuredColor ? measuredMarkerTextClass : [markerStyle.bg, markerStyle.text],
             )}
             style={{ left: `${String(markerPercent)}%`, ...measuredMarkerStyle }}
@@ -392,7 +397,7 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
         ) : null}
       </div>
 
-      <div className="relative h-3 w-full rounded-full bg-background-alt" role="img" aria-hidden="true">
+      <div className="relative h-2.5 w-full rounded-sm bg-background-alt" role="img" aria-hidden="true">
         {geometry.segments.map((segment) => (
           <span
             key={segment.code}
@@ -406,7 +411,7 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
         {markerPercent !== null ? (
           <span
             className={cn(
-              "absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface shadow-sm",
+              "absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface",
               measuredColor ? "" : "bg-text-primary",
             )}
             style={{ left: `${String(markerPercent)}%`, ...(measuredColor ? { backgroundColor: measuredColor } : {}) }}
@@ -414,11 +419,11 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
         ) : null}
       </div>
 
-      <div className="relative h-5">
+      <div className="relative h-4">
         {geometry.ticks.map((tick) => (
           <span
             key={tick}
-            className="absolute -translate-x-1/2 text-small text-text-tertiary"
+            className="absolute -translate-x-1/2 text-xs text-text-tertiary"
             style={{ left: `${String(percentOf(geometry, tick))}%` }}
           >
             {tick.toFixed(1)}
