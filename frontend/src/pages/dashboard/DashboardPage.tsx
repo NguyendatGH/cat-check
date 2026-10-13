@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { isToday } from "date-fns";
 import { Skeleton as AntSkeleton } from "antd";
 import {
@@ -24,6 +24,7 @@ import {
 import { useCatList } from "@/features/cat";
 import { formatScanTimestamp, useScanHistory, useScanSummary } from "@/features/history";
 import { useReminders } from "@/features/reminder";
+import { useScanCaptureStore } from "@/features/scan";
 import { useEntitlement } from "@/features/credit";
 import { HealthFlagDisclosure } from "@/features/insight";
 import { useCareTips } from "./careTipsApi";
@@ -33,7 +34,7 @@ import type { TrendRange } from "@/features/trends";
 import { PhBadge, PhGaugeBar, phTokenStyle, usePhBands } from "@/entities/ph-bands";
 import type { PhBand } from "@/entities/ph-bands";
 import { useSessionStore } from "@/entities/user";
-import { CatAvatar } from "@/entities/cat";
+import { CatAvatar, useCatStore } from "@/entities/cat";
 import type { Cat } from "@/entities/cat";
 import { displayableScanCount } from "@/entities/scan-result";
 import type { ConfidenceBand, ScanListItem } from "@/entities/scan-result";
@@ -42,7 +43,7 @@ import { ErrorState } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { formatDate } from "@/shared/lib/format/formatDate";
 import { formatRelative } from "@/shared/lib/format/formatRelative";
-
+import { useListReveal } from "@/shared/lib/motion/usePageReveal";
 
 const WEB_RANGES: TrendRange[] = ["7D", "30D", "90D"];
 
@@ -91,6 +92,43 @@ function orderReminders(reminders: Reminder[], now: number): ScheduledReminder[]
   return [...upcoming, ...overdue];
 }
 
+function CatSwitcher({
+  cats,
+  selectedId,
+  onSelect,
+  label,
+}: {
+  cats: Cat[];
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
+  label: string;
+}) {
+  if (cats.length <= 1) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 sm:gap-2" role="group" aria-label={label}>
+      {cats.map((cat) => (
+        <button
+          key={cat.id}
+          type="button"
+          aria-pressed={cat.id === selectedId}
+          onClick={() => {
+            onSelect(cat.id);
+          }}
+          className={cn(
+            "flex h-10 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors sm:h-11 sm:gap-2 sm:px-3.5 sm:text-caption",
+            cat.id === selectedId
+              ? "border-primary bg-chip-bg text-primary-dark"
+              : "border-border bg-surface text-text-secondary hover:bg-background-alt",
+          )}
+        >
+          {cat.isPrimary ? <BadgeCheck size={12} className="shrink-0 sm:size-[14px]" aria-hidden="true" /> : null}
+          <span className="max-w-[100px] truncate sm:max-w-[160px]">{cat.name}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function DashboardPage() {
   const { t } = useTranslation(["common", "cat", "reminder"]);
   const user = useSessionStore((s) => s.user);
@@ -106,7 +144,18 @@ export function DashboardPage() {
   const canUseReminder = !isGuest && (entitlement ? entitlement.hasReminder : false);
   const canUseTrend = !isGuest && (entitlement ? entitlement.hasTrend : false);
   const { data: reminderList } = useReminders({ active: true }, canUseReminder);
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = () => {
+      setNow(Date.now());
+    };
+    const timer = window.setInterval(tick, 60_000);
+    window.addEventListener("focus", tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", tick);
+    };
+  }, []);
   const reminders = useMemo(() => orderReminders(reminderList?.items ?? [], now), [reminderList, now]);
 
   const catsLoading = !isGuest && catsQuery.isPending;
@@ -118,13 +167,6 @@ export function DashboardPage() {
   const recentHasColor = recentScans.some((scan) => scan.thumbnailHex != null);
   const latestBand = latestScan ? bands?.find((b) => b.code === latestScan.bandCode) : undefined;
   const scale = buildScale(bands);
-  const primaryCat = cats.find((c) => c.isPrimary) ?? cats.at(0);
-  const nextReminder =
-    reminders.find((r) => r.type === "SCAN_ROUTINE" && Date.parse(r.nextRunAt) >= now) ?? reminders.at(0);
-  const unacknowledgedFlagCount = cats.reduce((sum, cat) => sum + (cat.unacknowledgedFlagCount ?? 0), 0);
-  const { data: careTips } = useCareTips(3);
-  const careTip = careTips?.[0];
-
   const latestByCat = useMemo(() => {
     const map = new Map<string, ScanListItem>();
     for (const scan of scans) {
@@ -132,6 +174,42 @@ export function DashboardPage() {
     }
     return map;
   }, [scans]);
+  const navigate = useNavigate();
+  const setStoreSelectedCat = useScanCaptureStore((s) => s.setSelectedCat);
+  const setActiveCat = useCatStore((s) => s.setActiveCat);
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const selectedCat = useMemo(
+    () => cats.find((c) => c.id === selectedCatId) ?? cats.find((c) => c.isPrimary) ?? cats.at(0),
+    [cats, selectedCatId],
+  );
+  const selectedCatScan = selectedCat ? latestByCat.get(selectedCat.id) : undefined;
+  const selectedCatBand = selectedCatScan ? bands?.find((b) => b.code === selectedCatScan.bandCode) : undefined;
+  const selectCat = (id: string) => {
+    setSelectedCatId(id);
+    setActiveCat(id);
+  };
+  const startScan = () => {
+    if (selectedCat) {
+      setStoreSelectedCat({ id: selectedCat.id, name: selectedCat.name });
+      void navigate("/scan");
+    } else {
+      void navigate("/scan/select-cat");
+    }
+  };
+  const overdueReminder = reminders.find((r) => Date.parse(r.nextRunAt) < now);
+  const overdueScanReminder = reminders.find((r) => r.type === "SCAN_ROUTINE" && Date.parse(r.nextRunAt) < now);
+  const nextScanReminder = reminders.find((r) => r.type === "SCAN_ROUTINE" && Date.parse(r.nextRunAt) >= now);
+  const bannerReminder = overdueScanReminder ?? nextScanReminder ?? overdueReminder ?? reminders.at(0);
+  const bannerOverdue = bannerReminder !== undefined && Date.parse(bannerReminder.nextRunAt) < now;
+  const unacknowledgedFlagCount = cats.reduce((sum, cat) => sum + (cat.unacknowledgedFlagCount ?? 0), 0);
+  const { data: careTips } = useCareTips(3);
+  const careTip = careTips?.[0];
+  const mobileCatsRef = useRef<HTMLDivElement>(null);
+  const desktopCatsRef = useRef<HTMLDivElement>(null);
+  const recentScansRef = useRef<HTMLTableSectionElement>(null);
+  useListReveal(mobileCatsRef, cats.length);
+  useListReveal(desktopCatsRef, cats.length);
+  useListReveal(recentScansRef, recentScans.length);
 
   const displayName = user?.displayName ?? t("dashboard.guestName", { ns: "common" });
   const todayLabel = t("dashboard.today", { ns: "common" });
@@ -139,7 +217,7 @@ export function DashboardPage() {
   const stamp = (iso: string) => formatScanTimestamp(iso, todayLabel, yesterdayLabel);
 
   const [range, setRange] = useState<TrendRange>("30D");
-  const { data: trendData } = useCatTrends(primaryCat?.id, range, canUseTrend);
+  const { data: trendData } = useCatTrends(selectedCat?.id, range, canUseTrend);
   const trendPoints = useMemo(
     () => toTrendPoints(trendData?.points).map((p) => ({ date: p.date, value: p.phValue })),
     [trendData],
@@ -247,272 +325,234 @@ export function DashboardPage() {
   return (
     <div className="contents">
       {isGuest ? (
-        <div className="mx-auto mb-2 flex max-w-[480px] flex-col gap-3 px-4 pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0">
-          <div className="flex flex-col gap-2 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background-alt to-secondary/10 p-4 shadow-xs lg:flex-row lg:items-center lg:justify-between lg:p-5">
+        <div
+          data-reveal
+          className="mx-auto mb-2 flex max-w-[480px] flex-col gap-2.5 px-3 pt-3 sm:gap-3 sm:px-4 sm:pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0"
+        >
+          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-3.5 sm:p-4 lg:flex-row lg:items-center lg:justify-between lg:p-5">
             <div className="flex flex-col gap-1.5">
-              <p className="text-caption font-bold text-text-primary">
+              <p className="text-[14px] font-bold text-text-primary sm:text-caption">
                 {t("dashboard.guestBanner.title", { ns: "common" })}
               </p>
               <p className="text-[12px] leading-relaxed text-text-secondary">
                 {t("dashboard.guestBanner.body", { ns: "common" })}
               </p>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-chip-bg px-2.5 py-1 text-overline font-semibold text-primary-dark">
-                  <Camera size={13} aria-hidden="true" />
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5 sm:gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-chip-bg px-2 py-0.5 text-[11px] font-semibold text-primary-dark sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-overline">
+                  <Camera size={11} className="sm:size-[13px]" aria-hidden="true" />
                   {t("welcome.features.scan", { ns: "common" })}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-chip-bg px-2.5 py-1 text-overline font-semibold text-primary-dark">
-                  <FlaskConical size={13} aria-hidden="true" />
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-chip-bg px-2 py-0.5 text-[11px] font-semibold text-primary-dark sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-overline">
+                  <FlaskConical size={11} className="sm:size-[13px]" aria-hidden="true" />
                   {t("welcome.features.ph", { ns: "common" })}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-chip-bg px-2.5 py-1 text-overline font-semibold text-primary-dark">
-                  <FileText size={13} aria-hidden="true" />
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-chip-bg px-2 py-0.5 text-[11px] font-semibold text-primary-dark sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-overline">
+                  <FileText size={11} className="sm:size-[13px]" aria-hidden="true" />
                   {t("welcome.features.journal", { ns: "common" })}
                 </span>
               </div>
             </div>
-            <div className="flex shrink-0 flex-wrap gap-2 pt-2 lg:pt-0">
+            <div className="flex shrink-0 flex-wrap gap-1.5 pt-2 sm:gap-2 lg:pt-0">
               <Link
                 to="/auth/login"
-                className="flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-caption font-semibold text-white shadow-brand-sm transition-colors hover:bg-primary-dark"
+                className="flex h-10 items-center justify-center rounded-xl bg-primary px-3.5 text-[13px] font-semibold text-white shadow-brand-sm transition-colors hover:bg-primary-dark sm:px-4 sm:text-caption"
               >
                 {t("dashboard.guestBanner.login", { ns: "common" })}
               </Link>
               <Link
                 to="/auth/register"
-                className="flex h-10 items-center justify-center rounded-xl bg-surface px-4 text-caption font-semibold text-primary-dark shadow-xs transition-colors hover:bg-background-alt"
+                className="flex h-10 items-center justify-center rounded-xl bg-surface px-3.5 text-[13px] font-semibold text-primary-dark shadow-xs transition-colors hover:bg-background-alt sm:px-4 sm:text-caption"
               >
                 {t("dashboard.guestBanner.register", { ns: "common" })}
               </Link>
               <Link
                 to="/shop"
-                className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-secondary px-4 text-caption font-semibold text-secondary-text-on shadow-xs transition-colors hover:bg-secondary-light"
+                className="flex h-10 items-center justify-center gap-1 rounded-xl bg-secondary px-3 text-[13px] font-semibold text-secondary-text-on shadow-xs transition-colors hover:bg-secondary-light sm:gap-1.5 sm:px-4 sm:text-caption"
               >
-                <ShoppingBag size={15} aria-hidden="true" />
+                <ShoppingBag size={13} className="sm:size-[15px]" aria-hidden="true" />
                 {t("dashboard.guestBanner.shop", { ns: "common" })}
               </Link>
             </div>
           </div>
         </div>
       ) : (
-        <div className="mx-auto mb-2 max-w-[480px] px-4 pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0">
-          <HomeGuide catName={primaryCat?.name} />
+        <div data-reveal className="mx-auto mb-2 max-w-[480px] px-3 pt-3 sm:px-4 sm:pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0">
+          <HomeGuide catName={selectedCat?.name} completed={user.onboarding.completed} userId={user.id} />
         </div>
       )}
 
-      <div data-reveal className="mx-auto max-w-[480px] px-4 pb-6 lg:hidden">
+      <div className="mx-auto max-w-[480px] px-3 pb-4 sm:px-4 sm:pb-6 lg:hidden">
+        {!isGuest ? (
+          <header data-reveal className="pt-1">
+            <h1 className="text-h2 font-bold tracking-tight text-text-primary sm:text-h1">
+              {t("dashboardWeb.greeting", { ns: "common", name: displayName })}
+            </h1>
+            <div className="pt-2">
+              <CatSwitcher
+                cats={cats}
+                selectedId={selectedCat?.id}
+                onSelect={setSelectedCatId}
+                label={t("dashboardWeb.catSwitcher", { ns: "common" })}
+              />
+            </div>
+          </header>
+        ) : null}
+
         {loadError}
 
-        <div className="relative mt-4 overflow-hidden rounded-2xl bg-primary p-5 text-white shadow-[0px_10px_24px_-6px_rgba(47,79,178,0.28)]">
-          <PawPrint
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-4 -top-3 size-28 rotate-12 text-white/10"
-          />
-          <span className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] tracking-[0.4px] backdrop-blur-sm">
-            <FlaskConical size={13} aria-hidden="true" />
-            {t("dashboard.heroBadge", { ns: "common" })}
-          </span>
-          <h2 className="relative pt-4 text-[20px] font-semibold leading-7">
-            {t("dashboard.heroTitle", { ns: "common" })}
-          </h2>
-          <p className="relative max-w-[280px] pt-1 text-[14px] leading-5 text-on-primary-muted">
-            {t("dashboard.heroBody", { ns: "common" })}
-          </p>
-          <div className="relative flex items-center justify-between gap-2 pt-4">
+        {/* 1. Cần xử lý: chỉ hiển thị khi có dữ liệu thật */}
+        {!isGuest && overdueReminder ? (
+          <div role="status" className="mt-3 flex items-center gap-2.5 rounded-2xl bg-warning-bg px-3 py-3 sm:gap-3 sm:px-3.5">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on sm:size-11">
+              <CalendarClock size={18} className="sm:size-[20px]" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold leading-5 text-text-primary sm:text-[16px] sm:leading-6">
+                {t("dashboard.reminderOverdueTitle", { ns: "common" })}
+              </p>
+              <p className="text-[12px] leading-4 text-text-secondary">{reminderLine(overdueReminder)}</p>
+            </div>
             <Link
-              to="/scan/select-cat"
-              className="flex h-[50px] flex-1 items-center justify-center gap-2 rounded-xl bg-secondary text-[18px] font-semibold text-secondary-text-on shadow-sm"
+              to="/reminders"
+              className="flex min-h-10 shrink-0 items-center rounded-md bg-surface px-2.5 text-[12px] font-semibold text-primary-dark shadow-xs sm:min-h-11 sm:px-3 sm:text-[13px]"
             >
-              <Camera size={18} aria-hidden="true" />
-              {t("dashboard.startScan", { ns: "common" })}
-            </Link>
-            <Link
-              to="/scan"
-              aria-label={t("dashboard.scanHelp", { ns: "common" })}
-              className="flex size-[50px] shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm"
-            >
-              <HelpCircle size={18} aria-hidden="true" />
+              {t("dashboard.reminderManage", { ns: "common" })}
             </Link>
           </div>
-        </div>
+        ) : null}
 
-        {!isGuest ? (
-          <section className="pt-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <h2 className="shrink-0 text-[18px] font-semibold text-text-primary">
-                  {t("dashboard.yourCats", { ns: "common" })}
-                </h2>
-                {!catsLoading ? (
-                  <span className="truncate rounded-full bg-chip-bg px-2 py-0.5 text-[11px] tracking-[0.4px] text-primary-dark">
-                    {t("dashboard.catsCount", { ns: "common", count: cats.length })}
-                  </span>
-                ) : null}
-              </div>
-              <Link to="/cats" className="shrink-0 py-2 text-caption font-semibold text-primary-dark">
-                {t("dashboard.viewAll", { ns: "common" })}
+        <HealthFlagDisclosure count={unacknowledgedFlagCount} enabled={!isGuest} className="mt-3" />
+
+        {/* 2. Hành động chính: quét cho mèo đang chọn (hoặc thêm mèo nếu chưa có) */}
+        {!isGuest && !catsLoading && cats.length === 0 ? (
+          <div
+            data-reveal
+            className="relative mt-4 overflow-hidden rounded-2xl bg-primary p-4 text-white shadow-brand-md sm:p-5"
+          >
+            <PawPrint
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-4 -top-3 size-24 rotate-12 text-white/10 sm:size-28"
+            />
+            <span className="relative inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-medium tracking-[0.4px] backdrop-blur-sm sm:gap-1.5 sm:px-3 sm:text-caption">
+              <FlaskConical size={12} className="sm:size-[13px]" aria-hidden="true" />
+              {t("dashboard.heroBadge", { ns: "common" })}
+            </span>
+            <h2 className="relative pt-3 text-base font-semibold sm:pt-4 sm:text-h3">{t("dashboardWeb.zeroTitle", { ns: "common" })}</h2>
+            <p className="relative max-w-none pt-1 text-[14px] text-on-primary-muted sm:max-w-[280px] sm:text-body">
+              {t("dashboardWeb.zeroBody", { ns: "common" })}
+            </p>
+            <div className="relative pt-3 sm:pt-4">
+              <Link
+                to="/cats/new"
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-secondary text-[16px] font-semibold text-secondary-text-on shadow-sm sm:h-[50px] sm:text-[18px]"
+              >
+                <Plus size={16} className="sm:size-[18px]" aria-hidden="true" />
+                {t("dashboardWeb.ctaAddCat", { ns: "common" })}
               </Link>
             </div>
-            <div className="-mx-4 mt-1 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 pt-1 [scrollbar-width:none]">
-              {catsLoading
-                ? [0, 1].map((i) => (
-                    <div
-                      key={i}
-                      className="h-[136px] w-[220px] shrink-0 rounded-2xl bg-surface p-3"
-                      aria-hidden="true"
-                    >
-                      <AntSkeleton active avatar paragraph={{ rows: 2 }} />
-                    </div>
-                  ))
-                : cats.map((cat) => {
-                    const band = catBand(cat);
-                    const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
-                    const scannedAt = catScannedAt(cat);
-                    return (
-                      <Link
-                        key={cat.id}
-                        to={`/cats/${cat.id}`}
-                        className="flex w-[220px] shrink-0 snap-start flex-col gap-3 rounded-2xl bg-gradient-to-br from-white to-background-alt p-3.5 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.08)]"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative size-14 shrink-0">
-                            <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" className="size-14 shadow-xs" />
-                            {band ? (
-                              <span
-                                aria-hidden="true"
-                                className={cn(
-                                  "absolute bottom-0 right-0 size-4 rounded-full border-2 border-surface",
-                                  style.solid,
-                                )}
-                              />
-                            ) : null}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="flex items-center gap-1 text-[18px] font-semibold leading-6 text-text-primary">
-                              <span className="truncate">{cat.name}</span>
-                              {cat.isPrimary ? (
-                                <BadgeCheck
-                                  size={15}
-                                  className="shrink-0 text-primary-dark"
-                                  aria-label={t("dashboard.primaryCat", { ns: "common" })}
-                                />
-                              ) : null}
-                            </p>
-                            <p className="truncate text-[11px] tracking-[0.4px] text-text-secondary">
-                              {cat.ageMonths != null
-                                ? t("dashboard.catMeta", {
-                                    ns: "common",
-                                    age: Math.floor(cat.ageMonths / 12),
-                                    sex: sexLabel(cat),
-                                  })
-                                : sexLabel(cat)}
-                            </p>
-                          </div>
-                        </div>
-                        <div
-                          className={cn(
-                            "flex flex-col gap-0.5 rounded-lg px-2.5 py-1.5",
-                            band ? style.bg : "bg-background-alt/70",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "flex items-center gap-1.5 text-[11px] font-semibold leading-[14px]",
-                              band ? style.text : "text-text-secondary",
-                            )}
-                          >
-                            <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", style.solid)} />
-                            <span className="truncate">
-                              {band?.label ?? t("dashboard.catNoScan", { ns: "common" })}
-                            </span>
-                          </span>
-                          {scannedAt ? (
-                            <span className="pl-3.5 text-[11px] leading-[14px] text-text-secondary">
-                              {t("dashboard.catScannedAt", { ns: "common", time: stamp(scannedAt) })}
-                            </span>
-                          ) : null}
-                        </div>
-                      </Link>
-                    );
-                  })}
-              {!catsLoading ? (
-                <Link
-                  to="/cats/new"
-                  className="flex w-[130px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl bg-background-alt/70 py-9"
-                >
-                  <span className="flex size-11 items-center justify-center rounded-full bg-info text-primary-dark shadow-xs">
-                    <Plus size={16} aria-hidden="true" />
-                  </span>
-                  <span className="text-[12px] tracking-[0.3px] text-text-secondary">
-                    {t("dashboard.addCat", { ns: "common" })}
-                  </span>
-                </Link>
-              ) : null}
+          </div>
+        ) : !isGuest ? (
+          <div
+            data-reveal
+            className="relative mt-4 overflow-hidden rounded-2xl bg-primary p-4 text-white shadow-brand-md sm:p-5"
+          >
+            <PawPrint
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-4 -top-3 size-24 rotate-12 text-white/10 sm:size-28"
+            />
+            <span className="relative inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-medium tracking-[0.4px] backdrop-blur-sm sm:gap-1.5 sm:px-3 sm:text-caption">
+              <FlaskConical size={12} className="sm:size-[13px]" aria-hidden="true" />
+              {t("dashboard.heroBadge", { ns: "common" })}
+            </span>
+            <h2 className="relative pt-3 text-base font-semibold sm:pt-4 sm:text-h3">
+              {selectedCat
+                ? t("dashboard.scanForCat", { ns: "common", name: selectedCat.name })
+                : t("dashboard.startScan", { ns: "common" })}
+            </h2>
+            <p className="relative max-w-none pt-1 text-[14px] text-on-primary-muted sm:max-w-[280px] sm:text-body">
+              {t("dashboard.heroBody", { ns: "common" })}
+            </p>
+            <div className="relative flex flex-col items-stretch gap-2 pt-3 sm:flex-row sm:items-center sm:justify-between sm:pt-4">
+              <button
+                type="button"
+                onClick={startScan}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-secondary text-[16px] font-semibold text-secondary-text-on shadow-sm sm:h-[50px] sm:flex-1 sm:text-[18px]"
+              >
+                <Camera size={16} className="sm:size-[18px]" aria-hidden="true" />
+                {t("dashboard.startScan", { ns: "common" })}
+              </button>
+              <Link
+                to="/scan"
+                aria-label={t("dashboard.scanHelp", { ns: "common" })}
+                className="flex size-11 shrink-0 items-center justify-center rounded-md bg-white/15 backdrop-blur-sm sm:size-[50px]"
+              >
+                <HelpCircle size={16} className="sm:size-[18px]" aria-hidden="true" />
+              </Link>
             </div>
-          </section>
+          </div>
         ) : null}
 
         {!isGuest ? (
-          <section className="pt-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="shrink-0 text-[18px] font-semibold text-text-primary">
+          <section data-reveal className="pt-4 sm:pt-5">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="shrink-0 text-[16px] font-semibold text-text-primary sm:text-[18px]">
                 {t("dashboard.latestMonitoring", { ns: "common" })}
               </h2>
-              {latestScan?.catName != null && latestScan.catName !== "" ? (
+              {selectedCatScan?.catName != null && selectedCatScan.catName !== "" ? (
                 <p className="min-w-0 truncate text-[11px] tracking-[0.4px] text-text-secondary">
-                  {t("dashboard.sessionOf", { ns: "common", name: latestScan.catName })}
+                  {t("dashboard.sessionOf", { ns: "common", name: selectedCatScan.catName })}
                 </p>
               ) : null}
             </div>
 
             {scansLoading ? (
-              <div aria-hidden="true" className="mt-2 h-[220px] rounded-2xl bg-surface p-4">
+              <div aria-hidden="true" className="mt-1.5 h-[220px] rounded-2xl bg-surface p-3 sm:mt-2 sm:p-4">
                 <AntSkeleton active paragraph={{ rows: 5 }} />
               </div>
-            ) : latestScan ? (
+            ) : selectedCatScan ? (
               <Link
-                to={`/scans/${latestScan.scanId}`}
-                className="mt-2 block rounded-2xl bg-surface p-4 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]"
+                to={`/scans/${selectedCatScan.scanId}`}
+                className="motion-card mt-1.5 block rounded-2xl bg-surface p-3 shadow-brand-md sm:mt-2 sm:p-4"
               >
-                <div className="flex items-start justify-between gap-3">
-                  {latestBand ? (
+                <div className="flex items-start justify-between gap-2">
+                  {selectedCatBand ? (
                     <PhBadge
-                      band={latestBand}
-                      className="min-w-0 whitespace-nowrap px-2.5 py-1 text-[12px] leading-4 [&>svg]:size-3.5"
+                      band={selectedCatBand}
+                      className="min-w-0 whitespace-nowrap px-2 py-0.5 text-[11px] leading-3 [&>svg]:size-3 sm:px-2.5 sm:py-1 sm:text-[12px] sm:leading-4 sm:[&>svg]:size-3.5"
                     />
                   ) : null}
                   <div className="shrink-0 text-right">
-                    <p className="text-[11px] text-text-secondary">{t("dashboard.analyzed", { ns: "common" })}</p>
-                    <p className="whitespace-nowrap text-[12px] font-semibold text-text-primary">
-                      {stamp(latestScan.capturedAt)}
+                    <p className="text-[10px] text-text-secondary sm:text-[11px]">{t("dashboard.analyzed", { ns: "common" })}</p>
+                    <p className="whitespace-nowrap text-[11px] font-semibold text-text-primary sm:text-[12px]">
+                      {stamp(selectedCatScan.capturedAt)}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-xl bg-background-alt/60 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-text-secondary">
-                      <Droplet size={14} className="shrink-0 text-primary" aria-hidden="true" />
+                <div className="mt-2.5 rounded-xl bg-background-alt/60 p-2.5 sm:mt-3 sm:p-3">
+                  <div className="flex items-center justify-between gap-2 sm:gap-3">
+                    <span className="flex min-w-0 items-center gap-1 text-[11px] leading-3 text-text-secondary sm:gap-1.5 sm:text-[12px] sm:leading-4">
+                      <Droplet size={12} className="shrink-0 text-primary sm:size-[14px]" aria-hidden="true" />
                       <span className="truncate">{t("dashboard.phReadoutLabel", { ns: "common" })}</span>
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 whitespace-nowrap rounded-lg bg-surface px-2.5 py-1 text-[15px] font-bold leading-5",
-                        phTokenStyle(latestBand?.colorToken ?? "color-ph-unknown").text,
+                        "shrink-0 whitespace-nowrap rounded-lg bg-surface px-2 py-0.5 text-[13px] font-bold leading-4 sm:px-2.5 sm:py-1 sm:text-[15px] sm:leading-5",
+                        phTokenStyle(selectedCatBand?.colorToken ?? "color-ph-unknown").text,
                       )}
                     >
                       {t("dashboardWeb.phBig", {
                         ns: "common",
-                        value: latestScan.phValue?.toFixed(1) ?? t("dashboardWeb.emptyCell", { ns: "common" }),
+                        value: selectedCatScan.phValue?.toFixed(1) ?? t("dashboardWeb.emptyCell", { ns: "common" }),
                       })}
                     </span>
                   </div>
 
                   {bands ? (
-                    <div className="pt-3">
-                      <PhGaugeBar bands={bands} value={latestScan.phValue} className="[&>div:last-child]:hidden" />
+                    <div className="pt-2.5 sm:pt-3">
+                      <PhGaugeBar bands={bands} value={selectedCatScan.phValue} className="[&>div:last-child]:hidden" />
                       {scale ? (
-                        <div className="flex items-center justify-between gap-2 pt-1.5 text-[10px] text-text-secondary">
+                        <div className="flex items-center justify-between gap-1 pt-1 text-[9px] text-text-secondary sm:gap-2 sm:pt-1.5 sm:text-[10px]">
                           <span className="whitespace-nowrap">
                             {t("dashboard.scaleAcid", { ns: "common", value: scale.min.toFixed(1) })}
                           </span>
@@ -532,31 +572,31 @@ export function DashboardPage() {
                   ) : null}
                 </div>
 
-                {bandSentence(latestBand, latestScan.phValue) !== null ? (
-                  <p className="mt-3 flex gap-2 text-[14px] leading-5 text-text-secondary">
-                    <Activity size={15} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-                    <span>{bandSentence(latestBand, latestScan.phValue)}</span>
+                {bandSentence(selectedCatBand, selectedCatScan.phValue) !== null ? (
+                  <p className="mt-2 flex gap-1.5 text-[13px] leading-4 text-text-secondary sm:mt-3 sm:gap-2 sm:text-[14px] sm:leading-5">
+                    <Activity size={13} className="mt-0.5 shrink-0 text-primary sm:size-[15px]" aria-hidden="true" />
+                    <span>{bandSentence(selectedCatBand, selectedCatScan.phValue)}</span>
                   </p>
                 ) : null}
 
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-0.5 text-[13px] font-semibold text-primary-dark">
+                <div className="mt-2 flex items-center justify-between gap-1.5 sm:mt-3 sm:gap-2">
+                  <span className="flex items-center gap-0.5 text-[12px] font-semibold text-primary-dark sm:text-[13px]">
                     {t("dashboard.viewDetail", { ns: "common" })}
-                    <ChevronRight size={14} aria-hidden="true" />
+                    <ChevronRight size={12} className="sm:size-[14px]" aria-hidden="true" />
                   </span>
-                  {latestScan.confidenceBand != null ? (
-                    <span className="text-[11px] text-text-secondary">
+                  {selectedCatScan.confidenceBand != null ? (
+                    <span className="text-[10px] text-text-secondary sm:text-[11px]">
                       {t("dashboard.confidence", {
                         ns: "common",
-                        value: t(CONFIDENCE_LABEL_KEY[latestScan.confidenceBand], { ns: "common" }),
+                        value: t(CONFIDENCE_LABEL_KEY[selectedCatScan.confidenceBand], { ns: "common" }),
                       })}
                     </span>
                   ) : null}
                 </div>
               </Link>
             ) : (
-              <div className="mt-2 rounded-2xl bg-surface p-4 text-center shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]">
-                <p className="text-caption font-semibold text-text-primary">
+              <div className="mt-1.5 rounded-2xl bg-surface p-3 text-center shadow-brand-md sm:mt-2 sm:p-4">
+                <p className="text-[13px] font-semibold text-text-primary sm:text-caption">
                   {t("dashboard.noScanTitle", { ns: "common" })}
                 </p>
                 <p className="pt-1 text-[11px] text-text-secondary">{t("dashboard.noScanBody", { ns: "common" })}</p>
@@ -564,54 +604,167 @@ export function DashboardPage() {
             )}
           </section>
         ) : null}
-
         {!isGuest ? (
-          <div className="mt-4 flex items-center gap-3 rounded-2xl bg-warning-bg px-3.5 py-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
-              <CalendarClock size={20} aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[16px] font-semibold leading-6 text-text-primary">
-                {t("dashboard.reminderTitle", { ns: "common" })}
-              </p>
-              <p className="text-[12px] leading-4 text-text-secondary">{reminderLine(nextReminder)}</p>
+          <section data-reveal className="pt-5 sm:pt-6">
+            <div className="flex items-center justify-between gap-2 sm:gap-3">
+              <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                <h2 className="shrink-0 text-base font-semibold text-text-primary sm:text-h3">
+                  {t("dashboardWeb.otherCats", { ns: "common" })}
+                </h2>
+                {!catsLoading ? (
+                  <span className="truncate rounded-full bg-chip-bg px-1.5 py-0.5 text-[12px] font-medium text-primary-dark sm:px-2 sm:text-caption">
+                    {t("dashboard.catsCount", { ns: "common", count: cats.length })}
+                  </span>
+                ) : null}
+              </div>
+              <Link to="/cats" className="shrink-0 py-2 text-[12px] font-semibold text-primary-dark sm:text-caption">
+                {t("dashboard.viewAll", { ns: "common" })}
+              </Link>
             </div>
-            <Link
-              to="/reminders"
-              className="flex min-h-11 shrink-0 items-center rounded-lg bg-surface px-3 text-[13px] font-semibold text-primary-dark shadow-xs"
+            <div
+              ref={mobileCatsRef}
+              className="-mx-3 mt-1 flex snap-x snap-mandatory scroll-px-3 gap-2.5 overflow-x-auto px-3 pb-3 pt-1 [scrollbar-width:none] sm:-mx-4 sm:scroll-px-4 sm:gap-3 sm:px-4"
             >
-              {t("dashboard.reminderManage", { ns: "common" })}
-            </Link>
-          </div>
+              {catsLoading
+                ? [0, 1].map((i) => (
+                    <div key={i} className="h-[140px] w-[180px] shrink-0 rounded-2xl bg-surface p-3 sm:h-[136px] sm:w-[220px]" aria-hidden="true">
+                      <AntSkeleton active avatar paragraph={{ rows: 2 }} />
+                    </div>
+                  ))
+                : cats.map((cat) => {
+                    const band = catBand(cat);
+                    const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
+                    const scannedAt = catScannedAt(cat);
+                    return (
+                      <Link
+                        key={cat.id}
+                        to={`/cats/${cat.id}`}
+                        data-reveal-item
+                        className="motion-card flex w-[180px] shrink-0 snap-start flex-col gap-2.5 rounded-2xl bg-surface p-3 shadow-brand-md sm:w-[220px] sm:gap-3 sm:p-3.5"
+                      >
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                          <div className="relative size-12 shrink-0 sm:size-14">
+                            <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" className="size-full shadow-xs" />
+                            {band ? (
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "absolute bottom-0 right-0 size-3 rounded-full border-2 border-surface sm:size-4",
+                                  style.solid,
+                                )}
+                              />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="flex items-center gap-0.5 text-[15px] font-semibold leading-5 text-text-primary sm:gap-1 sm:text-[18px] sm:leading-6">
+                              <span className="truncate">{cat.name}</span>
+                              {cat.isPrimary ? (
+                                <BadgeCheck
+                                  size={12}
+                                  className="shrink-0 text-primary-dark sm:size-[15px]"
+                                  aria-label={t("dashboard.primaryCat", { ns: "common" })}
+                                />
+                              ) : null}
+                            </p>
+                            <p className="truncate text-[10px] leading-3 tracking-[0.2px] text-text-secondary sm:text-[11px] sm:leading-[14px] sm:tracking-[0.4px]">
+                              {cat.ageMonths != null
+                                ? t("dashboard.catMeta", {
+                                    ns: "common",
+                                    age: Math.floor(cat.ageMonths / 12),
+                                    sex: sexLabel(cat),
+                                  })
+                                : sexLabel(cat)}
+                            </p>
+                          </div>
+                        </div>
+                        <div
+                          className={cn(
+                            "flex flex-col gap-0.5 rounded-lg px-2 py-1.5 sm:px-2.5",
+                            band ? style.bg : "bg-background-alt/70",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex items-center gap-1 text-[10px] font-semibold leading-3 sm:gap-1.5 sm:text-[11px] sm:leading-[14px]",
+                              band ? style.text : "text-text-secondary",
+                            )}
+                          >
+                            <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full sm:size-2", style.solid)} />
+                            <span className="truncate">
+                              {band?.label ?? t("dashboard.catNoScan", { ns: "common" })}
+                            </span>
+                          </span>
+                          {scannedAt ? (
+                            <span className="pl-2.5 text-[10px] leading-3 text-text-secondary sm:pl-3.5 sm:text-[11px] sm:leading-[14px]">
+                              {t("dashboard.catScannedAt", { ns: "common", time: stamp(scannedAt) })}
+                            </span>
+                          ) : null}
+                        </div>
+                      </Link>
+                    );
+                  })}
+              {!catsLoading ? (
+                <Link
+                  to="/cats/new"
+                  className="flex w-[140px] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-2xl bg-background-alt/70 py-6 sm:w-[130px] sm:gap-2 sm:py-9"
+                >
+                  <span className="flex size-10 items-center justify-center rounded-full bg-info text-primary-dark shadow-xs sm:size-11">
+                    <Plus size={14} className="sm:size-[16px]" aria-hidden="true" />
+                  </span>
+                  <span className="text-[11px] tracking-[0.2px] text-text-secondary sm:text-[12px] sm:tracking-[0.3px]">
+                    {t("dashboard.addCat", { ns: "common" })}
+                  </span>
+                </Link>
+              ) : null}
+            </div>
+          </section>
         ) : null}
 
-        <HealthFlagDisclosure count={unacknowledgedFlagCount} enabled={!isGuest} className="mt-3" />
+        <div data-reveal>
+          {!isGuest && bannerReminder ? (
+            <div className="mt-3 flex items-center gap-2.5 rounded-2xl bg-warning-bg px-3 py-3 sm:mt-4 sm:gap-3 sm:px-3.5">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-text-on sm:size-11">
+                <CalendarClock size={18} className="sm:size-[20px]" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold leading-5 text-text-primary sm:text-body sm:leading-6">
+                  {t(bannerOverdue ? "dashboard.reminderOverdueTitle" : "dashboard.reminderTitle", { ns: "common" })}
+                </p>
+                <p className="text-[12px] leading-4 text-text-secondary sm:text-caption">{reminderLine(bannerReminder)}</p>
+              </div>
+              <Link
+                to="/reminders"
+                className="flex min-h-10 shrink-0 items-center rounded-md bg-surface px-2.5 text-[12px] font-semibold text-primary-dark shadow-xs sm:min-h-11 sm:px-3 sm:text-[13px]"
+              >
+                {t("dashboard.reminderManage", { ns: "common" })}
+              </Link>
+            </div>
+          ) : null}
 
-        {careTip ? (
-          <div className="mt-3 flex flex-col gap-1 rounded-2xl bg-surface p-3.5 shadow-[0px_4px_16px_-2px_rgba(47,79,178,0.06)]">
-            <p className="flex items-center gap-1 text-[11px] font-semibold text-secondary-text-on">
-              <Lightbulb size={12} className="shrink-0" aria-hidden="true" />
-              {t("dashboard.careTipLabel", { ns: "common" })}
+          {careTip ? (
+            <div className="mt-2.5 flex flex-col gap-1 rounded-2xl bg-surface p-3 shadow-brand-md sm:mt-3 sm:p-3.5">
+              <p className="flex items-center gap-1 text-[11px] font-semibold text-secondary-text-on">
+                <Lightbulb size={11} className="shrink-0 sm:size-3" aria-hidden="true" />
+                {t("dashboard.careTipLabel", { ns: "common" })}
+              </p>
+              <p className="text-[14px] font-semibold leading-4 text-text-primary sm:text-[15px] sm:leading-5">{careTip.title}</p>
+              {careTip.summary ? <p className="text-[12px] leading-4 text-text-secondary">{careTip.summary}</p> : null}
+            </div>
+          ) : null}
+
+          <div className="flex justify-center pt-4 sm:pt-5">
+            <p className="flex max-w-[358px] items-center gap-2 rounded-3xl bg-info px-3 py-1.5 text-[11px] leading-4 tracking-[0.4px] text-info-text">
+              <ShieldCheck size={14} className="shrink-0 sm:size-[15px]" aria-hidden="true" />
+              {t("dashboard.disclaimer", { ns: "common" })}
             </p>
-            <p className="text-[15px] font-semibold leading-5 text-text-primary">{careTip.title}</p>
-            {careTip.summary ? (
-              <p className="text-[12px] leading-4 text-text-secondary">{careTip.summary}</p>
-            ) : null}
           </div>
-        ) : null}
-
-        <div className="flex justify-center pt-5">
-          <p className="flex max-w-[358px] items-center gap-2 rounded-3xl bg-info px-3 py-1.5 text-[11px] leading-4 tracking-[0.4px] text-info-text">
-            <ShieldCheck size={15} className="shrink-0" aria-hidden="true" />
-            {t("dashboard.disclaimer", { ns: "common" })}
-          </p>
         </div>
       </div>
 
-      <div data-reveal className="hidden lg:block">
+      <div className="hidden lg:block">
         {loadError}
 
-        <section className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between xl:gap-6">
+        <section data-reveal className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between xl:gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-4">
               <span className="rounded bg-secondary/30 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.4px] text-secondary-text-on">
@@ -627,20 +780,33 @@ export function DashboardPage() {
                 </span>
               ) : null}
             </div>
-            <h1 className="flex items-center gap-2 pt-2 text-[30px] font-bold leading-10 tracking-[-0.75px] text-text-primary">
-              <span className="min-w-0 break-words">{t("dashboardWeb.greeting", { ns: "common", name: displayName })}</span>
+            <h1 className="flex items-center gap-2 pt-2 text-display font-bold tracking-[-0.75px] text-text-primary">
+              <span className="min-w-0 break-words">
+                {t("dashboardWeb.greeting", { ns: "common", name: displayName })}
+              </span>
               <PawPrint size={24} className="shrink-0 text-primary-dark" aria-hidden="true" />
             </h1>
-            <p className="max-w-[680px] pt-1 text-[15px] leading-6 text-text-secondary">{introText}</p>
+            <p className="max-w-[680px] pt-1 text-body leading-6 text-text-secondary">{introText}</p>
+            {!isGuest ? (
+              <div className="pt-3">
+                <CatSwitcher
+                  cats={cats}
+                  selectedId={selectedCat?.id}
+                  onSelect={selectCat}
+                  label={t("dashboardWeb.catSwitcher", { ns: "common" })}
+                />
+              </div>
+            ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-3 xl:pt-6">
-            <Link
-              to="/scan/select-cat"
-              className="flex h-16 items-center gap-2 rounded-2xl bg-primary-dark px-5 text-[14px] font-bold text-white shadow-[0px_4px_6px_-1px_rgba(13,54,154,0.2)] hover:bg-primary"
+            <button
+              type="button"
+              onClick={startScan}
+              className="flex h-16 items-center gap-2 rounded-2xl bg-primary-dark px-5 text-[14px] font-bold text-white shadow-brand-md hover:bg-primary"
             >
               <Camera size={18} aria-hidden="true" />
               <span className="max-w-[88px] text-left leading-5">{t("dashboardWeb.ctaScan", { ns: "common" })}</span>
-            </Link>
+            </button>
             <Link
               to="/cats/new"
               className="flex h-16 items-center gap-2 rounded-2xl bg-surface px-5 text-[14px] font-bold text-primary-dark shadow-xs hover:bg-background-alt"
@@ -654,7 +820,7 @@ export function DashboardPage() {
         <section className="mt-6 grid grid-cols-12 items-start gap-6">
           <div className="col-span-12 flex flex-col gap-6 xl:col-span-8">
             {catsLoading ? (
-              <div className="grid grid-cols-2 gap-4" aria-hidden="true">
+              <div data-reveal className="grid grid-cols-2 gap-4" aria-hidden="true">
                 {[0, 1].map((i) => (
                   <div key={i} className="h-[132px] rounded-2xl bg-surface p-3">
                     <AntSkeleton active avatar paragraph={{ rows: 1 }} />
@@ -662,7 +828,7 @@ export function DashboardPage() {
                 ))}
               </div>
             ) : cats.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div ref={desktopCatsRef} data-reveal className="grid grid-cols-2 gap-4">
                 {cats.slice(0, 2).map((cat) => {
                   const band = catBand(cat);
                   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
@@ -672,8 +838,9 @@ export function DashboardPage() {
                     <Link
                       key={cat.id}
                       to={`/cats/${cat.id}`}
+                      data-reveal-item
                       className={cn(
-                        "flex flex-col rounded-2xl bg-surface p-4 shadow-xs hover:shadow-brand-md",
+                        "motion-card flex flex-col rounded-2xl bg-surface p-4 shadow-xs",
                         cat.isPrimary && "outline outline-2 outline-primary-dark",
                       )}
                     >
@@ -740,7 +907,7 @@ export function DashboardPage() {
                 })}
               </div>
             ) : !isGuest ? (
-              <div className="rounded-2xl bg-surface p-6 text-center shadow-xs">
+              <div data-reveal className="rounded-2xl bg-surface p-6 text-center shadow-xs">
                 <p className="text-caption font-bold text-text-primary">
                   {t("dashboardWeb.catsEmptyTitle", { ns: "common" })}
                 </p>
@@ -750,7 +917,7 @@ export function DashboardPage() {
               </div>
             ) : null}
 
-            <article className="rounded-2xl bg-surface p-6 shadow-xs">
+            <article data-reveal className="rounded-2xl bg-surface p-6 shadow-xs">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-overline tracking-[0.6px] text-primary">
@@ -775,7 +942,7 @@ export function DashboardPage() {
                 <div className="mt-4 flex gap-5 rounded-xl bg-background-alt/60 p-4">
                   {latestScan.thumbnailHex != null ? (
                     <div
-                      className="relative min-h-[150px] w-[170px] shrink-0 self-stretch overflow-hidden rounded-xl border border-border"
+                      className="relative min-h-[150px] w-[170px] shrink-0 self-stretch overflow-hidden rounded-md border border-border"
                       style={{ backgroundColor: latestScan.thumbnailHex }}
                     >
                       <span className="absolute bottom-1.5 left-1.5 rounded bg-surface/90 px-1.5 py-0.5 text-[11px] font-semibold text-text-primary">
@@ -786,7 +953,9 @@ export function DashboardPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="text-[12px] text-text-secondary">{t("dashboardWeb.extracted", { ns: "common" })}</p>
+                        <p className="text-[12px] text-text-secondary">
+                          {t("dashboardWeb.extracted", { ns: "common" })}
+                        </p>
                         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
                           <span className="text-[32px] font-bold leading-9 text-primary-dark">
                             {t("dashboardWeb.phBig", {
@@ -806,7 +975,9 @@ export function DashboardPage() {
                         <p className="text-[12px] text-text-secondary">
                           {t("dashboardWeb.capturedLabel", { ns: "common" })}
                         </p>
-                        <p className="text-[14px] font-bold leading-5 text-text-primary">{stamp(latestScan.capturedAt)}</p>
+                        <p className="text-[14px] font-bold leading-5 text-text-primary">
+                          {stamp(latestScan.capturedAt)}
+                        </p>
                         {latestScan.catName ? (
                           <p className="text-[12px] leading-4 text-text-secondary">
                             {t("dashboard.sessionOf", { ns: "common", name: latestScan.catName })}
@@ -859,18 +1030,18 @@ export function DashboardPage() {
               )}
             </article>
 
-            {primaryCat ? (
-              <article className="rounded-2xl bg-surface p-6 shadow-xs">
+            {selectedCat ? (
+              <article data-reveal className="rounded-2xl bg-surface p-6 shadow-xs">
                 <div className="flex items-start justify-between gap-4">
                   <h2 className="text-[20px] font-bold leading-7 text-text-primary">
                     {t("dashboardWeb.trendTitle", {
                       ns: "common",
                       days: TREND_RANGE_DAYS[range],
-                      name: primaryCat.name,
+                      name: selectedCat.name,
                     })}
                   </h2>
                   <div
-                    className="flex shrink-0 gap-1 rounded-lg bg-background-alt p-1 text-[12px] font-semibold"
+                    className="flex shrink-0 gap-1 rounded-sm bg-background-alt p-1 text-[12px] font-semibold"
                     role="group"
                   >
                     {WEB_RANGES.map((r) => (
@@ -914,7 +1085,7 @@ export function DashboardPage() {
                   </p>
                 )}
 
-                <div className="mt-4 grid grid-cols-3 gap-3">
+                <div key={range} className="fade-swap mt-4 grid grid-cols-3 gap-3">
                   {[
                     {
                       label: t("dashboardWeb.statAvg", { ns: "common" }),
@@ -945,7 +1116,7 @@ export function DashboardPage() {
             ) : null}
 
             {!isGuest ? (
-              <article className="rounded-2xl bg-surface p-6 shadow-xs">
+              <article data-reveal className="rounded-2xl bg-surface p-6 shadow-xs">
                 <div className="flex items-center justify-between gap-4">
                   <h2 className="text-[20px] font-bold leading-7 text-text-primary">
                     {t("dashboardWeb.logTitle", { ns: "common" })}
@@ -967,7 +1138,9 @@ export function DashboardPage() {
                       <tr className="border-b border-border text-overline tracking-[0.4px] text-text-secondary">
                         <th className="w-[28%] pb-2.5 font-semibold">{t("dashboardWeb.colTime", { ns: "common" })}</th>
                         {recentHasColor ? (
-                          <th className="w-[24%] pb-2.5 font-semibold">{t("dashboardWeb.colColor", { ns: "common" })}</th>
+                          <th className="w-[24%] pb-2.5 font-semibold">
+                            {t("dashboardWeb.colColor", { ns: "common" })}
+                          </th>
                         ) : null}
                         <th className="w-[12%] pb-2.5 font-semibold">{t("dashboardWeb.colPh", { ns: "common" })}</th>
                         <th className="pb-2.5 font-semibold">{t("dashboardWeb.colAi", { ns: "common" })}</th>
@@ -976,12 +1149,12 @@ export function DashboardPage() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody ref={recentScansRef}>
                       {recentScans.map((scan) => {
                         const band = bands?.find((b) => b.code === scan.bandCode);
                         const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
                         return (
-                          <tr key={scan.scanId} className="border-b border-border/60 last:border-0">
+                          <tr key={scan.scanId} data-reveal-item className="border-b border-border/60 last:border-0">
                             <td className="py-2 text-[14px] font-semibold text-text-primary">
                               {stamp(scan.capturedAt)}
                               {scan.catName ? (
@@ -1016,7 +1189,10 @@ export function DashboardPage() {
                                     style.text,
                                   )}
                                 >
-                                  <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", style.solid)} />
+                                  <span
+                                    aria-hidden="true"
+                                    className={cn("size-1.5 shrink-0 rounded-full", style.solid)}
+                                  />
                                   {band.label}
                                 </span>
                               ) : null}
@@ -1025,7 +1201,7 @@ export function DashboardPage() {
                               <Link
                                 to={`/scans/${scan.scanId}`}
                                 aria-label={t("dashboardWeb.colDetail", { ns: "common" })}
-                                className="inline-flex size-11 items-center justify-center rounded-lg text-text-tertiary hover:bg-background-alt hover:text-primary-dark"
+                                className="inline-flex size-11 items-center justify-center rounded-sm text-text-tertiary hover:bg-background-alt hover:text-primary-dark"
                               >
                                 <Eye size={18} aria-hidden="true" />
                               </Link>
@@ -1044,7 +1220,10 @@ export function DashboardPage() {
             ) : null}
           </div>
 
-          <aside className="col-span-12 grid grid-cols-2 items-start gap-6 xl:col-span-4 xl:flex xl:flex-col">
+          <aside
+            data-reveal
+            className="col-span-12 grid grid-cols-2 items-start gap-6 xl:col-span-4 xl:flex xl:flex-col"
+          >
             <article className="rounded-2xl bg-surface p-5 shadow-xs">
               <p className="text-overline tracking-[0.5px] text-text-secondary">
                 {t("dashboardWeb.shortcutsLabel", { ns: "common" })}
@@ -1078,7 +1257,7 @@ export function DashboardPage() {
                       to={item.to}
                       className="flex min-h-14 items-center gap-3 rounded-xl bg-background-alt/70 p-2.5 hover:bg-chip-bg"
                     >
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface text-primary-dark shadow-xs">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface text-primary-dark shadow-xs">
                         <item.icon size={18} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
