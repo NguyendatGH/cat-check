@@ -266,7 +266,7 @@
     "sessionRevoke": "Đăng xuất",
     "sessionRevokeAll": "Đăng xuất mọi thiết bị khác",
     "sessionEmpty": "Không có phiên nào khác.",
-    "sessionLimitNote": "Tối đa 5 phiên cùng lúc. Chạm trần thì lần đăng nhập mới sẽ bị từ chối.",
+    "sessionLimitNote": "Tối đa 20 phiên cùng lúc. Chạm trần thì lần đăng nhập mới sẽ bị từ chối.",
     "sessionsLoadFailed": "Không tải được danh sách thiết bị đang đăng nhập.",
     "newPasswordLength": "Mật khẩu mới cần từ 8 đến 72 ký tự.",
     "changePasswordInvalidNew": "Mật khẩu mới chưa hợp lệ. Hãy dùng từ 8 đến 72 ký tự."

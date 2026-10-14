@@ -83,6 +83,10 @@ catcheck:
       api-secret: ${CLOUDINARY_API_SECRET:}
       folder: ${CLOUDINARY_FOLDER:catcheck}
 
+  auth:
+    # Temporarily raised from the default 5; set CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS to change.
+    max-concurrent-sessions: ${CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS:20}
+
   oauth2:
     mock-enabled: false
     frontend-success-url: ${CATCHECK_OAUTH2_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/complete}
