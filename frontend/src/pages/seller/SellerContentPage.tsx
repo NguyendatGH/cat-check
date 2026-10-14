@@ -226,8 +226,34 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const [reasonTouched, setReasonTouched] = useState(false);
   const [confirmingArchive, setConfirmingArchive] = useState(false);
 
+  const sessionUserId = useSessionStore((state) => state.user?.id);
+
   const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
+  // Backend chặn tự duyệt bài của chính mình (CONTENT_SELF_APPROVAL_FORBIDDEN).
+  const isOwnTip = tip.authorId != null && tip.authorId === sessionUserId;
+  const dirty =
+    title.trim() !== tip.title ||
+    summary !== (tip.summary ?? "") ||
+    bodyMd !== (tip.bodyMd ?? "") ||
+    claimType !== tip.claimType ||
+    sourceReference !== (tip.sourceReference ?? "");
+  const savePayload = () => ({
+    tipId: tip.id,
+    payload: { title: title.trim(), summary, bodyMd, claimType, sourceReference },
+  });
+
+  // Gửi duyệt phải gửi đúng nội dung đang sửa: lưu trước nếu còn thay đổi chưa lưu.
+  const handleSubmitReview = async () => {
+    if (dirty) {
+      try {
+        await update.mutateAsync(savePayload());
+      } catch {
+        return;
+      }
+    }
+    submitReview.mutate(tip.id);
+  };
 
   return (
     <>
@@ -241,10 +267,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         className="mt-4 flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
-          update.mutate({
-            tipId: tip.id,
-            payload: { title: title.trim(), summary, bodyMd, claimType, sourceReference },
-          });
+          update.mutate(savePayload());
         }}
       >
         <div className="grid gap-4 md:grid-cols-2">
@@ -322,8 +345,9 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
               type="button"
               variant="secondary"
               loading={submitReview.isPending}
+              disabled={update.isPending}
               onClick={() => {
-                submitReview.mutate(tip.id);
+                void handleSubmitReview();
               }}
             >
               {t("content.submitReview")}
@@ -384,7 +408,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         </div>
       ) : null}
 
-      {canPublish && tip.status === "IN_REVIEW" ? (
+      {canPublish && tip.status === "IN_REVIEW" && !isOwnTip ? (
         <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-background-alt px-4 py-3">
           <p className="text-body font-semibold text-text-primary">{t("content.publishTitle")}</p>
           <p className="text-caption text-text-secondary">{t("content.publishBody")}</p>

@@ -124,6 +124,8 @@ export interface CareTipDetail {
   claimType: ClaimType;
   sourceReference: string | null;
   sortWeight: number | null;
+  authorId: string | null;
+  reviewedBy: string | null;
   reviewedAt: string | null;
   publishedAt: string | null;
   createdAt: string;

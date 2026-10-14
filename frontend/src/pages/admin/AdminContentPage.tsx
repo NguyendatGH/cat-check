@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import { formatDate } from "@/shared/lib/format/formatDate";
+import { useSessionStore } from "@/entities/user";
 import {
   AdminPageHeader,
   AdminSection,
@@ -180,8 +181,35 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const [reasonTouched, setReasonTouched] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
 
+  const sessionUserId = useSessionStore((state) => state.user?.id);
+
   const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
+  // Backend chặn tự duyệt bài của chính mình (CONTENT_SELF_APPROVAL_FORBIDDEN).
+  const isOwnTip = tip.authorId != null && tip.authorId === sessionUserId;
+  const dirty =
+    title.trim() !== tip.title ||
+    summary !== (tip.summary ?? "") ||
+    bodyMd !== (tip.bodyMd ?? "") ||
+    claimType !== tip.claimType ||
+    sourceReference !== (tip.sourceReference ?? "");
+  const savePayload = () => ({
+    tipId: tip.id,
+    payload: { title: title.trim(), summary, bodyMd, claimType, sourceReference },
+  });
+
+  // Gửi duyệt phải gửi đúng nội dung đang sửa: lưu trước nếu còn thay đổi chưa lưu.
+  const handleSubmitReview = async () => {
+    if (dirty) {
+      if (sourceMissing) return;
+      try {
+        await update.mutateAsync(savePayload());
+      } catch {
+        return;
+      }
+    }
+    submitReview.mutate(tip.id);
+  };
 
   return (
     <AdminSection
@@ -199,16 +227,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
           event.preventDefault();
           // Nội dung có claim phải kèm nguồn; không gửi bản nháp thiếu nguồn.
           if (sourceMissing) return;
-          update.mutate({
-            tipId: tip.id,
-            payload: {
-              title: title.trim(),
-              summary,
-              bodyMd,
-              claimType,
-              sourceReference,
-            },
-          });
+          update.mutate(savePayload());
         }}
       >
         <div className="grid gap-4 md:grid-cols-2">
@@ -285,8 +304,9 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
               variant="tertiary"
               size="md"
               loading={submitReview.isPending}
+              disabled={update.isPending}
               onClick={() => {
-                submitReview.mutate(tip.id);
+                void handleSubmitReview();
               }}
             >
               {t("content.submitReview")}
@@ -329,7 +349,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         }}
       />
 
-      {canPublish && tip.status === "IN_REVIEW" ? (
+      {canPublish && tip.status === "IN_REVIEW" && !isOwnTip ? (
         <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
           <p className="text-body font-semibold text-text-primary">{t("content.publishTitle")}</p>
           <p className="text-caption text-text-secondary">{t("content.publishBody")}</p>
