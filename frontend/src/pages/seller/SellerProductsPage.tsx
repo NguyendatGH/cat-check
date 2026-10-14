@@ -297,7 +297,7 @@ export function SellerProductsPage() {
       ) : null}
 
       {products.isPending ? (
-        <div className="flex flex-col gap-2" role="status" aria-label="Đang tải">
+        <div className="flex flex-col gap-2" role="status" aria-label={t("loading")}>
           {[0, 1, 2, 3, 4].map((i) => (
             <SkeletonLoader key={i} className="h-10" />
           ))}

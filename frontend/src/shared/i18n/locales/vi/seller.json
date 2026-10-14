@@ -25,8 +25,17 @@
     "title": "Sản phẩm",
     "add": "Thêm sản phẩm",
     "search": "Tìm theo tên hoặc SKU",
-    "tabs": { "ALL": "Tất cả", "PUBLISHED": "Đang bán", "DRAFT": "Nháp", "ARCHIVED": "Đã ẩn" },
-    "statuses": { "DRAFT": "Nháp", "PUBLISHED": "Đang bán", "ARCHIVED": "Đã ẩn" },
+    "tabs": {
+      "ALL": "Tất cả",
+      "PUBLISHED": "Đang bán",
+      "DRAFT": "Nháp",
+      "ARCHIVED": "Đã ẩn"
+    },
+    "statuses": {
+      "DRAFT": "Nháp",
+      "PUBLISHED": "Đang bán",
+      "ARCHIVED": "Đã ẩn"
+    },
     "columns": {
       "select": "Chọn",
       "name": "Tên",
@@ -88,6 +97,16 @@
       }
     }
   },
-  "colorChart": { "title": "Bảng màu pH" },
-  "content": { "title": "Care tip" }
+  "colorChart": {
+    "title": "Bảng màu pH"
+  },
+  "content": {
+    "title": "Care tip",
+    "archiveConfirm": {
+      "body": "Care tip sẽ bị gỡ khỏi hiển thị và không sửa hay gửi duyệt lại được. Tiếp tục?",
+      "confirm": "Xác nhận gỡ",
+      "cancel": "Huỷ"
+    }
+  },
+  "loading": "Đang tải…"
 }

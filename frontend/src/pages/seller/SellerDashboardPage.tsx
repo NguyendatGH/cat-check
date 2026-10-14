@@ -33,7 +33,7 @@ export function SellerDashboardPage() {
       </header>
 
       {products.isPending ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-label="Đang tải">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-label={t("loading")}>
           {[0, 1, 2, 3].map((i) => (
             <SkeletonLoader key={i} className="h-24" />
           ))}

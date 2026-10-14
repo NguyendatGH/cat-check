@@ -36,7 +36,7 @@ export function SellerLayout() {
                 <NavLink
                   to={item.to}
                   end={item.end}
-                  style={{ animationDelay: `${index * 40}ms` }}
+                  style={{ animationDelay: `${String(index * 40)}ms` }}
                   className={({ isActive }) =>
                     cn(
                       "tab-pill-animated group flex min-h-[var(--touch-target-min)] items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-caption font-semibold transition-all duration-200 md:text-body md:font-medium",

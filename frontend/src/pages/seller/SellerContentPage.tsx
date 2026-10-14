@@ -210,6 +210,7 @@ function CreateCareTipForm({ onDone }: { onDone: () => void }) {
 
 function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => void }) {
   const { t } = useTranslation("admin");
+  const { t: tSeller } = useTranslation("seller");
   const update = useUpdateCareTip();
   const submitReview = useSubmitCareTipReview();
   const publish = usePublishCareTip();
@@ -223,6 +224,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const [sourceReference, setSourceReference] = useState(tip.sourceReference ?? "");
   const [reason, setReason] = useState("");
   const [reasonTouched, setReasonTouched] = useState(false);
+  const [confirmingArchive, setConfirmingArchive] = useState(false);
 
   const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
@@ -327,13 +329,12 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
               {t("content.submitReview")}
             </Button>
           ) : null}
-          {canPublish && tip.status === "PUBLISHED" ? (
+          {canPublish && tip.status === "PUBLISHED" && !confirmingArchive ? (
             <Button
               type="button"
               variant="secondary"
-              loading={archive.isPending}
               onClick={() => {
-                archive.mutate(tip.id);
+                setConfirmingArchive(true);
               }}
             >
               {t("content.archive")}
@@ -344,6 +345,44 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
           </Button>
         </div>
       </form>
+
+      {canPublish && tip.status === "PUBLISHED" && confirmingArchive ? (
+        <div
+          role="alertdialog"
+          aria-labelledby={`seller-content-archive-${tip.id}`}
+          className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-warning-bg px-4 py-3"
+        >
+          <p id={`seller-content-archive-${tip.id}`} className="text-caption text-warning-text">
+            {tSeller("content.archiveConfirm.body")}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="tertiary"
+              disabled={archive.isPending}
+              onClick={() => {
+                setConfirmingArchive(false);
+              }}
+            >
+              {tSeller("content.archiveConfirm.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              loading={archive.isPending}
+              onClick={() => {
+                archive.mutate(tip.id, {
+                  onSettled: () => {
+                    setConfirmingArchive(false);
+                  },
+                });
+              }}
+            >
+              {tSeller("content.archiveConfirm.confirm")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {canPublish && tip.status === "IN_REVIEW" ? (
         <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-background-alt px-4 py-3">

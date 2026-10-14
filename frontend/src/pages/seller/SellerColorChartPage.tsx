@@ -45,6 +45,8 @@ import {
   type ProductLine,
 } from "@/features/admin";
 import { useListReveal } from "@/shared/lib/motion/usePageReveal";
+import { isApiError } from "@/shared/api";
+import type { TFunction } from "i18next";
 
 const STATUS_TONE: Record<ChartStatus, "neutral" | "success" | "warning"> = {
   DRAFT: "warning",
@@ -60,6 +62,12 @@ const thClass =
 const tdClass = "h-10 px-3 py-1.5 text-caption text-text-primary";
 const cellInputClass =
   "h-9 rounded-lg border border-border bg-surface px-2 text-caption text-text-primary disabled:opacity-50 focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-[var(--focus-ring-color)]";
+
+function apiErrorText(error: unknown, t: TFunction<"admin">): string {
+  const message = error instanceof Error ? error.message : t("feedback.unknownError");
+  const code = isApiError(error) ? error.code : undefined;
+  return code !== undefined ? t("feedback.errorWithCode", { code, message }) : message;
+}
 
 function useCanEditColorChart(): boolean {
   const user = useSessionStore((state) => state.user);
@@ -498,9 +506,7 @@ function ChartDetail({ chartId, canEdit }: { chartId: string; canEdit: boolean }
 
       <div className="mt-4 flex flex-col gap-5">
         {!editable ? (
-          <p className="rounded-xl bg-warning-bg px-3 py-2 text-caption text-warning-text">
-            {t("chart.readOnlyNote")}
-          </p>
+          <p className="rounded-xl bg-warning-bg px-3 py-2 text-caption text-warning-text">{t("chart.readOnlyNote")}</p>
         ) : null}
 
         <form
@@ -750,7 +756,7 @@ function BandsPanel({ canEdit }: { canEdit: boolean }) {
       {bands.isError ? (
         <ErrorState
           title={t("band.title")}
-          description={<ApiErrorNote error={bands.error} />}
+          description={apiErrorText(bands.error, t)}
           onRetry={() => {
             void bands.refetch();
           }}
@@ -923,7 +929,7 @@ function ChartsPanel({ canEdit }: { canEdit: boolean }) {
       {list.isError ? (
         <ErrorState
           title={t("chart.listTitle")}
-          description={<ApiErrorNote error={list.error} />}
+          description={apiErrorText(list.error, t)}
           onRetry={() => {
             void list.refetch();
           }}
