@@ -3,11 +3,77 @@ import { useTranslation } from "react-i18next";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
 import { useSplashStore, type SplashPhase } from "@/shared/lib/motion/splash";
+import headSrc from "@/shared/assets/images/splash/head.png";
+import earsSrc from "@/shared/assets/images/splash/ears.png";
+import checkSrc from "@/shared/assets/images/splash/check.png";
+import letterC1Src from "@/shared/assets/images/splash/l-c1.png";
+import letterASrc from "@/shared/assets/images/splash/l-a.png";
+import letterTSrc from "@/shared/assets/images/splash/l-t.png";
+import letterC2Src from "@/shared/assets/images/splash/l-c2.png";
+import letterHSrc from "@/shared/assets/images/splash/l-h.png";
+import letterESrc from "@/shared/assets/images/splash/l-e.png";
+import letterC3Src from "@/shared/assets/images/splash/l-c3.png";
+import letterKSrc from "@/shared/assets/images/splash/l-k.png";
+import tagLeftSrc from "@/shared/assets/images/splash/tag-left.png";
+import heartSrc from "@/shared/assets/images/splash/heart.png";
+import tagRightSrc from "@/shared/assets/images/splash/tag-right.png";
 
 gsap.registerPlugin(useGSAP);
 
-const WORDMARK = Array.from("CATCHECK");
-const CAT_LETTERS = 3;
+// Layers cut from the brand logo (web-auth/logo.png); boxes are px inside its 459x300 trimmed frame.
+const FRAME = { w: 459, h: 300 };
+
+interface Layer {
+  src: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  part: string;
+}
+
+const MARK_LAYERS: Layer[] = [
+  { src: headSrc, x: 133, y: 0, w: 192, h: 182, part: "head" },
+  { src: earsSrc, x: 152, y: 22, w: 154, h: 39, part: "ears" },
+  { src: checkSrc, x: 173, y: 82, w: 105, h: 83, part: "check" },
+];
+
+const LETTER_LAYERS: Layer[] = [
+  { src: letterC1Src, x: 1, y: 201, w: 61, h: 67, part: "letter" },
+  { src: letterASrc, x: 62, y: 202, w: 66, h: 66, part: "letter" },
+  { src: letterTSrc, x: 128, y: 202, w: 43, h: 66, part: "letter" },
+  { src: letterC2Src, x: 171, y: 202, w: 58, h: 67, part: "letter" },
+  { src: letterHSrc, x: 229, y: 202, w: 60, h: 66, part: "letter" },
+  { src: letterESrc, x: 292, y: 202, w: 47, h: 66, part: "letter" },
+  { src: letterC3Src, x: 339, y: 202, w: 60, h: 67, part: "letter" },
+  { src: letterKSrc, x: 400, y: 202, w: 59, h: 67, part: "letter" },
+];
+
+const TAGLINE_LAYERS: Layer[] = [
+  { src: tagLeftSrc, x: 21, y: 283, w: 196, h: 15, part: "tagline" },
+  { src: heartSrc, x: 230, y: 280, w: 20, h: 20, part: "heart" },
+  { src: tagRightSrc, x: 263, y: 283, w: 174, h: 14, part: "tagline" },
+];
+
+const pct = (value: number, total: number) => `${String((value / total) * 100)}%`;
+
+function LayerImage({ layer }: { layer: Layer }) {
+  return (
+    <img
+      src={layer.src}
+      alt=""
+      draggable={false}
+      data-splash={layer.part}
+      className="absolute max-w-none select-none will-change-transform"
+      style={{
+        left: pct(layer.x, FRAME.w),
+        top: pct(layer.y, FRAME.h),
+        width: pct(layer.w, FRAME.w),
+        height: pct(layer.h, FRAME.h),
+      }}
+    />
+  );
+}
 const HANDOFF_TIMEOUT_MS = 8000;
 
 function canAnimate() {
@@ -37,10 +103,12 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
       const q = gsap.utils.selector(root);
       const content = q("[data-splash='content']");
       const mark = q("[data-splash='mark']");
-      const ring = q("[data-splash='ring']");
+      const head = q("[data-splash='head']");
+      const ears = q("[data-splash='ears']");
       const check = q("[data-splash='check']");
-      const ears = q("[data-splash='ear']");
       const letters = q("[data-splash='letter']");
+      const tagline = q("[data-splash='tagline']");
+      const heart = q("[data-splash='heart']");
       const motion = canAnimate();
       const store = useSplashStore.getState();
 
@@ -50,10 +118,12 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
       };
       const showStatic = () => {
         gsap.set(content, { autoAlpha: 1, y: 0, scale: 1 });
-        gsap.set(mark, { autoAlpha: 1, scale: 1, scaleX: 1, scaleY: 1, rotation: 0 });
-        gsap.set([ring, check], { strokeDashoffset: 0 });
-        gsap.set(ears, { scale: 1, transformOrigin: "50% 100%" });
+        gsap.set(mark, { scale: 1, scaleX: 1, scaleY: 1, rotation: 0 });
+        gsap.set(head, { autoAlpha: 1, "--sweep": "360deg" });
+        gsap.set(ears, { autoAlpha: 1, scale: 1, transformOrigin: "50% 100%" });
+        gsap.set(check, { autoAlpha: 1, clipPath: "inset(0% 0% 0% 0%)" });
         gsap.set(letters, { autoAlpha: 1, y: 0, rotation: 0 });
+        gsap.set([tagline, heart], { autoAlpha: 1, y: 0, scale: 1 });
       };
       const squash = {
         keyframes: [
@@ -135,7 +205,7 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
 
       if (fromVisible) {
         showStatic();
-        tl.fromTo(check, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.2, ease: "power2.out" })
+        tl.fromTo(check, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.24, ease: "power2.out" })
           .to(mark, squash, ">-0.05")
           .to(
             letters,
@@ -147,31 +217,46 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
               stagger: 0.035,
             },
             "<",
-          );
+          )
+          .fromTo(heart, { scale: 1 }, { scale: 1.3, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" }, "<0.2");
       } else {
         gsap.set(content, { autoAlpha: 1, y: 0, scale: 1 });
-        tl.fromTo(root, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.28, ease: "power1.out" })
+        gsap.set(mark, { scale: 1, rotation: 0 });
+        tl.fromTo(root, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.24, ease: "power1.out" })
+          // Head outline draws itself around the face, starting from the open bottom-left tip.
           .fromTo(
-            mark,
-            { autoAlpha: 0, scale: 0.6, rotation: -12 },
-            { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(1.7)" },
-            0.1,
+            head,
+            { autoAlpha: 1, "--sweep": "0deg" },
+            { "--sweep": "360deg", duration: 0.7, ease: "power2.inOut" },
+            0.08,
           )
-          .fromTo(ring, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.55, ease: "power2.inOut" }, 0.1)
           .fromTo(
             ears,
-            { scale: 0, transformOrigin: "50% 100%" },
-            { scale: 1, duration: 0.4, ease: "back.out(2.6)", stagger: 0.06 },
-            0.38,
+            { autoAlpha: 0, scale: 0, transformOrigin: "50% 100%" },
+            { autoAlpha: 1, scale: 1, duration: 0.36, ease: "back.out(2.6)" },
+            0.5,
           )
-          .fromTo(check, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.2, ease: "power2.out" }, 0.55)
+          .fromTo(
+            check,
+            { autoAlpha: 1, clipPath: "inset(0% 100% 0% 0%)" },
+            { clipPath: "inset(0% 0% 0% 0%)", duration: 0.32, ease: "power2.out" },
+            0.66,
+          )
+          .to(mark, squash, 0.94)
           .fromTo(
             letters,
-            { autoAlpha: 0, y: 20, rotation: 8 },
-            { autoAlpha: 1, y: 0, rotation: 0, duration: 0.45, ease: "back.out(2.2)", stagger: 0.04 },
-            0.62,
+            { autoAlpha: 0, y: 24, rotation: 6 },
+            { autoAlpha: 1, y: 0, rotation: 0, duration: 0.42, ease: "back.out(2)", stagger: 0.045 },
+            0.86,
           )
-          .to(mark, squash, 0.85)
+          .fromTo(tagline, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: "power1.out" }, 1.2)
+          .fromTo(
+            heart,
+            { autoAlpha: 0, scale: 0 },
+            { autoAlpha: 1, scale: 1, duration: 0.36, ease: "back.out(3)" },
+            1.28,
+          )
+          .to(heart, { scale: 1.25, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" }, ">")
           .to({}, { duration: 0.08 });
       }
 
@@ -191,57 +276,29 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
       className="invisible fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-surface opacity-0"
     >
       <span className="sr-only">{t("actions.loading")}</span>
-      <div data-splash="content" className="flex flex-col items-center gap-5" aria-hidden="true">
-        <svg data-splash="mark" viewBox="0 0 120 120" className="size-24 will-change-transform md:size-28" fill="none">
-          <path
-            data-splash="ear"
-            d="M28 46 L32 12 L58 30 Z"
-            fill="var(--color-primary)"
-            stroke="var(--color-primary)"
-            strokeWidth="6"
-            strokeLinejoin="round"
-          />
-          <path
-            data-splash="ear"
-            d="M92 46 L88 12 L62 30 Z"
-            fill="var(--color-primary)"
-            stroke="var(--color-primary)"
-            strokeWidth="6"
-            strokeLinejoin="round"
-          />
-          <path data-splash="ear" d="M35 36 L37 21 L49 30 Z" fill="var(--color-secondary)" />
-          <path data-splash="ear" d="M85 36 L83 21 L71 30 Z" fill="var(--color-secondary)" />
-          <path
-            data-splash="ring"
-            d="M41 98.9 A38 38 0 1 1 79 98.9"
-            pathLength={1}
-            strokeDasharray="1"
-            stroke="var(--color-primary)"
-            strokeWidth="10"
-            strokeLinecap="round"
-          />
-          <path
-            data-splash="check"
-            d="M44 66 L56 78 L78 54"
-            pathLength={1}
-            strokeDasharray="1"
-            stroke="var(--color-secondary)"
-            strokeWidth="11"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <div className="flex text-[1.75rem] font-extrabold leading-none tracking-[0.04em] md:text-[2rem]">
-          {WORDMARK.map((char, index) => (
-            <span
-              key={String(index)}
-              data-splash="letter"
-              className={`inline-block will-change-transform ${index < CAT_LETTERS ? "text-primary" : "text-secondary"}`}
-            >
-              {char}
-            </span>
-          ))}
+      <div
+        data-splash="content"
+        className="relative w-[min(78vw,300px)] md:w-[340px]"
+        style={{ aspectRatio: `${String(FRAME.w)} / ${String(FRAME.h)}` }}
+        aria-hidden="true"
+      >
+        <div
+          data-splash="mark"
+          className="absolute inset-x-0 top-0 will-change-transform"
+          style={{ height: pct(182, FRAME.h), transformOrigin: "50% 100%" }}
+        >
+          <div className="absolute inset-x-0 top-0" style={{ height: pct(FRAME.h, 182) }}>
+            {MARK_LAYERS.map((layer) => (
+              <LayerImage key={layer.src} layer={layer} />
+            ))}
+          </div>
         </div>
+        {LETTER_LAYERS.map((layer) => (
+          <LayerImage key={layer.src} layer={layer} />
+        ))}
+        {TAGLINE_LAYERS.map((layer) => (
+          <LayerImage key={layer.src} layer={layer} />
+        ))}
       </div>
     </div>
   );

@@ -839,3 +839,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .logo-shine { display: none; }
 }
+
+/* Brand splash: head outline reveal, swept clockwise from the open bottom-left tip (BrandSplash). */
+[data-splash="head"] {
+  -webkit-mask-image: conic-gradient(from 200deg at 50% 65%, #000 var(--sweep, 360deg), transparent 0);
+  mask-image: conic-gradient(from 200deg at 50% 65%, #000 var(--sweep, 360deg), transparent 0);
+}
