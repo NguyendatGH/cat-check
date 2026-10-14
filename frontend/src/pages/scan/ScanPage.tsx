@@ -98,7 +98,9 @@ export function ScanPage() {
       return query.state.errorUpdateCount >= SCAN_POLL_MAX_ATTEMPTS ? false : SCAN_POLL_INTERVAL_MS;
     },
   });
-  const polledScanId = pollQuery.data?.scanId ?? null;
+  // Only trust the by-request cache while recovering an in-progress submit; otherwise a
+  // finished scan's cached entry for this request id would bounce us to the old result.
+  const polledScanId = inProgress ? (pollQuery.data?.scanId ?? null) : null;
   const polling = inProgress && !pollQuery.data && pollQuery.errorUpdateCount < SCAN_POLL_MAX_ATTEMPTS;
 
   useEffect(() => {
@@ -106,10 +108,12 @@ export function ScanPage() {
     if (scanIdToNavigate && !navigationRef.current) {
       navigationRef.current = true;
       void navigate(`/scan/result/${scanIdToNavigate}`, { replace: true });
+      // The request id is spent: the next visit to /scan must start a fresh attempt.
+      startNewAttempt();
     } else if (!scanIdToNavigate) {
       navigationRef.current = false;
     }
-  }, [resultScanId, polledScanId, navigate]);
+  }, [resultScanId, polledScanId, navigate, startNewAttempt]);
 
   if (!assignment) {
     return isDesktop ? <SelectCatPage /> : <Navigate to="/scan/select-cat" replace />;

@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   type UseMutationResult,
+  type UseQueryOptions,
   type UseQueryResult,
 } from "@tanstack/react-query";
 import type { Cat } from "@/entities/cat";
@@ -68,11 +69,18 @@ export function useScanAnalysis(scanId: string | undefined): UseQueryResult<Scan
   });
 }
 
-export function useScanByRequest(scanRequestId: string | undefined): UseQueryResult<ScanResult> {
+export function useScanByRequest(
+  scanRequestId: string | undefined,
+  options: {
+    enabled?: boolean;
+    refetchInterval?: UseQueryOptions<ScanResult>["refetchInterval"];
+  } = {},
+): UseQueryResult<ScanResult> {
   return useQuery({
     queryKey: scanKeys.byRequest(scanRequestId ?? ""),
     queryFn: () => apiFetch<ScanResult>(`/scans/by-request/${scanRequestId ?? ""}`),
-    enabled: Boolean(scanRequestId),
+    enabled: Boolean(scanRequestId) && (options.enabled ?? true),
+    refetchInterval: options.refetchInterval,
   });
 }
 
