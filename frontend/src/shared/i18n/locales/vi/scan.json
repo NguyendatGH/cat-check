@@ -73,6 +73,9 @@
     "tipsCta": "Mẹo quét",
     "tipsClose": "Đóng mẹo quét",
     "emptyFrame": "Khung quét đang trống",
+    "cameraDenied": "CatCheck chưa được cấp quyền camera. Hãy cho phép camera trong cài đặt trình duyệt, hoặc bấm nút chụp để mở camera của máy.",
+    "cameraUnavailable": "Không mở được camera trực tiếp. Bấm nút chụp để mở camera của máy hoặc chọn ảnh từ album.",
+    "cameraRetry": "Cho phép camera",
     "errors": {
       "imageTooSmall": "Ảnh quá nhỏ — hãy chụp gần hơn hoặc chọn ảnh có độ phân giải cao hơn.",
       "imageTooLarge": "Ảnh vượt quá dung lượng cho phép. Hãy chọn ảnh khác.",

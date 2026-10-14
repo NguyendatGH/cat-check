@@ -23,6 +23,7 @@ import type { PhBand } from "@/entities/ph-bands";
 import { PhBadge, phTokenStyle } from "@/entities/ph-bands";
 import type { CaptureSource, QualityFlag, ScanListItem, ScanResult, TriggeredFlag } from "@/entities/scan-result";
 import { PhGaugeCircular } from "./PhGaugeCircular";
+import { useLiveCamera } from "./useLiveCamera";
 
 
 
@@ -59,6 +60,19 @@ export function CaptureTrigger({
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [, startTransition] = useTransition();
+  const camera = useLiveCamera(!previewUrl);
+
+  const handleShutter = async () => {
+    if (camera.status === "live") {
+      const file = await camera.capture();
+      if (file) {
+        onFileSelected(file, "CAMERA");
+        return;
+      }
+    }
+    // No live preview (denied/unsupported): fall back to the OS camera picker.
+    cameraInputRef.current?.click();
+  };
 
   const handleChange = (source: CaptureSource) => (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -78,8 +92,36 @@ export function CaptureTrigger({
         {previewUrl ? (
           <img src={previewUrl} alt={t("result.imageAlt")} className="absolute inset-0 size-full object-cover" />
         ) : (
-          <span className="absolute inset-0 bg-primary-darker" aria-hidden="true" />
+          <>
+            <span className="absolute inset-0 bg-primary-darker" aria-hidden="true" />
+            <video
+              ref={camera.videoRef}
+              autoPlay
+              playsInline
+              muted
+              aria-hidden="true"
+              className={cn(
+                "absolute inset-0 size-full object-cover transition-opacity duration-300",
+                camera.status === "live" ? "opacity-100" : "opacity-0",
+              )}
+            />
+          </>
         )}
+
+        {!previewUrl && (camera.status === "denied" || camera.status === "unavailable") ? (
+          <div className="absolute inset-x-[8%] top-[5%] flex flex-col items-center gap-2 rounded-2xl bg-surface/15 px-3 py-2.5 text-center text-small text-white">
+            <span>{camera.status === "denied" ? t("capture.cameraDenied") : t("capture.cameraUnavailable")}</span>
+            {camera.status === "denied" ? (
+              <button
+                type="button"
+                onClick={camera.retry}
+                className="rounded-full bg-surface px-3 py-1 text-small font-semibold text-primary-dark"
+              >
+                {t("capture.cameraRetry")}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="absolute inset-x-[9%] top-[20%] aspect-square" aria-hidden="true">
           <span className="absolute inset-0 rounded-xl bg-surface/10" />
@@ -114,7 +156,7 @@ export function CaptureTrigger({
             disabled={disabled}
             aria-label={cameraLabel}
             onClick={() => {
-              cameraInputRef.current?.click();
+              void handleShutter();
             }}
             className="flex size-20 shrink-0 items-center justify-center rounded-full bg-surface/30 p-1.5 shadow-brand-xl disabled:opacity-50"
           >
