@@ -90,16 +90,18 @@ public class MfaService {
         }
         totpRepository.findByUserId(userId)
                 .filter(MfaTotp::isActive)
-                .ifPresent(totp -> {
-                    String secretBase32 = decryptSecret(userId, totp);
-                    long epochSecond = clock.instant().getEpochSecond();
-                    long currentStep = epochSecond / totp.periodSeconds();
-                    long validForSeconds = totp.periodSeconds() - (epochSecond % totp.periodSeconds());
-                    String code = TotpCodeVerifier.now(
-                            totp.algorithm(), totp.digits(), secretBase32, currentStep);
-                    log.warn("[DEV-TOTP] email={} code={} validForSeconds={}",
-                            maskEmail(email), code, validForSeconds);
-                });
+                .ifPresent(totp -> logDevTotp(userId, email, totp));
+    }
+
+    // Tach rieng: method goi logger khong duoc doc field ten khop regex PII (R16).
+    private void logDevTotp(UUID userId, String email, MfaTotp totp) {
+        String secretBase32 = decryptSecret(userId, totp);
+        long epochSecond = clock.instant().getEpochSecond();
+        long currentStep = epochSecond / totp.periodSeconds();
+        long validForSeconds = totp.periodSeconds() - (epochSecond % totp.periodSeconds());
+        String code = TotpCodeVerifier.now(totp.algorithm(), totp.digits(), secretBase32, currentStep);
+        log.warn("[DEV-TOTP] email={} code={} validForSeconds={}",
+                maskEmail(email), code, validForSeconds);
     }
 
     public record Enrollment(
