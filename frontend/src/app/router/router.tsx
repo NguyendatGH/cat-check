@@ -276,14 +276,20 @@ export const routes: RouteObject[] = [
     element: <AppLayout />,
     children: [
       {
-        path: "/dashboard",
-        element: (
-          <RequireNonAdminRole>
-            <PageSuspense>
-              <LazyPages.dashboard />
-            </PageSuspense>
-          </RequireNonAdminRole>
-        ),
+        // Guests may browse the dashboard; signed-in accounts must finish onboarding (add a cat) first.
+        element: <RequireOnboarding />,
+        children: [
+          {
+            path: "/dashboard",
+            element: (
+              <RequireNonAdminRole>
+                <PageSuspense>
+                  <LazyPages.dashboard />
+                </PageSuspense>
+              </RequireNonAdminRole>
+            ),
+          },
+        ],
       },
       {
         path: "/shop",

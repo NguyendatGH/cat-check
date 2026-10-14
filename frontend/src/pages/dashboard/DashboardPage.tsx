@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router";
+import { Link, Navigate, useNavigate } from "react-router";
 import { isToday } from "date-fns";
 import { Skeleton as AntSkeleton } from "antd";
 import {
@@ -309,6 +309,11 @@ export function DashboardPage() {
       className="mt-4 rounded-2xl bg-surface py-8 shadow-xs lg:mt-0 lg:mb-6"
     />
   ) : null;
+
+  // A signed-in account must have at least one cat; otherwise the dashboard has nothing to show.
+  if (!isGuest && catsQuery.isSuccess && cats.length === 0) {
+    return <Navigate to="/cats/new" replace />;
+  }
 
   return (
     <div className="contents">
