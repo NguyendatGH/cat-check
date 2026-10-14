@@ -43,7 +43,7 @@ class SchemaInvariantTests {
         assertThat(migrateResult.success).as("Flyway migrate phải thành công").isTrue();
         assertThat(migrateResult.migrationsExecuted)
                 .as("số migration áp dụng trên DB rỗng")
-                .isEqualTo(35);
+                .isEqualTo(36);
     }
 
     @Test

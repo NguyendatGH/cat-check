@@ -131,6 +131,89 @@ class CommunityServiceTest {
         verify(repository).report(USER_ID, postId, null, "SPAM", null);
     }
 
+    @Test
+    void replyToAReplyIsStoredUnderTheTopLevelCommentAndNamesWhomItAnswers() {
+        UUID postId = UUID.randomUUID();
+        UUID rootId = UUID.randomUUID();
+        UUID replyId = UUID.randomUUID();
+        UUID replyAuthor = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
+        when(repository.findComment(replyId)).thenReturn(java.util.Optional.of(
+                new com.catcheck.community.domain.CommunityCommentRef(replyId, postId, replyAuthor, rootId, null)));
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        service.createComment(USER_ID, postId, replyId, "  Dong y  ", null);
+
+        verify(repository).insertComment(USER_ID, postId, rootId, replyAuthor, "Dong y", null);
+    }
+
+    @Test
+    void directReplyToTopLevelCommentHasNoReplyToLabel() {
+        UUID postId = UUID.randomUUID();
+        UUID rootId = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
+        when(repository.findComment(rootId)).thenReturn(java.util.Optional.of(
+                new com.catcheck.community.domain.CommunityCommentRef(rootId, postId, UUID.randomUUID(), null, null)));
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        service.createComment(USER_ID, postId, rootId, "Hi", null);
+
+        verify(repository).insertComment(USER_ID, postId, rootId, null, "Hi", null);
+    }
+
+    @Test
+    void parentFromAnotherPostOrHiddenIsNotFound() {
+        UUID postId = UUID.randomUUID();
+        UUID foreign = UUID.randomUUID();
+        UUID hidden = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
+        when(repository.findComment(foreign)).thenReturn(java.util.Optional.of(
+                new com.catcheck.community.domain.CommunityCommentRef(foreign, UUID.randomUUID(), UUID.randomUUID(), null, null)));
+        when(repository.findComment(hidden)).thenReturn(java.util.Optional.empty());
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        for (UUID parent : List.of(foreign, hidden)) {
+            assertThatThrownBy(() -> service.createComment(USER_ID, postId, parent, "Hi", null))
+                    .isInstanceOfSatisfying(com.catcheck.shared.error.NotFoundException.class,
+                            ex -> assertThat(ex.errorCode()).isEqualTo(CommunityErrorCode.COMMENT_NOT_FOUND));
+        }
+        verify(repository, never()).insertComment(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void emptyCommentNeedsAnImage() {
+        UUID postId = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        for (String body : java.util.Arrays.asList("", "   ", null, "x".repeat(4001))) {
+            assertThatThrownBy(() -> service.createComment(USER_ID, postId, null, body, null))
+                    .isInstanceOfSatisfying(BusinessRuleException.class,
+                            ex -> assertThat(ex.errorCode()).isEqualTo(CommunityErrorCode.COMMENT_BODY_INVALID));
+        }
+        service.createComment(USER_ID, postId, null, " ", "community-comment/2026/10/14/a.png");
+        verify(repository).insertComment(USER_ID, postId, null, null, "", "community-comment/2026/10/14/a.png");
+    }
+
+    @Test
+    void repliesOfAReplyOrOfAnotherPostAreNotFound() {
+        UUID postId = UUID.randomUUID();
+        UUID replyId = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findComment(replyId)).thenReturn(java.util.Optional.of(
+                new com.catcheck.community.domain.CommunityCommentRef(replyId, postId, UUID.randomUUID(), UUID.randomUUID(), null)));
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        assertThatThrownBy(() -> service.replies(postId, replyId, 0, 20))
+                .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+        assertThatThrownBy(() -> service.replies(UUID.randomUUID(), UUID.randomUUID(), 0, 20))
+                .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+    }
+
     private static CommunityService service(
             CommunityRepository repository, UserAccountPort accountPort, CommunityRateLimiter rateLimiter
     ) {

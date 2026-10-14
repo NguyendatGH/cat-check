@@ -7,7 +7,9 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import {
+  COMMUNITY_REPLY_PAGE_SIZE,
   createCommunityComment,
+  listCommunityCommentReplies,
   createCommunityPost,
   getCommunityPost,
   listCommunityPosts,
@@ -18,6 +20,7 @@ import {
   type CommunityPostApi,
   type CommunityPostDetailApi,
   type CommunityReaction,
+  type CreateCommunityCommentPayload,
 } from "./api";
 
 export const communityKeys = {
@@ -25,6 +28,7 @@ export const communityKeys = {
   feeds: () => [...communityKeys.all, "posts"] as const,
   feed: (category: CommunityCategory | "ALL") => [...communityKeys.feeds(), category] as const,
   detail: (postId: string) => [...communityKeys.all, "post", postId] as const,
+  replies: (postId: string, commentId: string) => [...communityKeys.detail(postId), "replies", commentId] as const,
 };
 
 const COMMUNITY_STALE_TIME = 30_000;
@@ -67,19 +71,38 @@ export function useCreateCommunityPost() {
 export function useCreateCommunityComment(postId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: string) => createCommunityComment(postId, body),
+    mutationFn: (payload: CreateCommunityCommentPayload) => createCommunityComment(postId, payload),
     onSuccess: (comment) => {
-      queryClient.setQueryData<CommunityPostDetailApi>(communityKeys.detail(postId), (old) =>
-        old
-          ? {
-              post: { ...old.post, commentCount: old.post.commentCount + 1 },
-              comments: [...old.comments, comment],
-            }
-          : old,
-      );
-      void queryClient.invalidateQueries({ queryKey: communityKeys.detail(postId) });
+      queryClient.setQueryData<CommunityPostDetailApi>(communityKeys.detail(postId), (old) => {
+        if (!old) return old;
+        const post = { ...old.post, commentCount: old.post.commentCount + 1 };
+        const parentId = comment.parentCommentId;
+        if (!parentId) return { post, comments: [...old.comments, { ...comment, replyCount: 0, replies: [] }] };
+        return {
+          post,
+          comments: old.comments.map((item) =>
+            item.id === parentId ? { ...item, replyCount: (item.replyCount ?? 0) + 1 } : item,
+          ),
+        };
+      });
+      void queryClient.invalidateQueries({ queryKey: communityKeys.detail(postId), exact: true });
       void queryClient.invalidateQueries({ queryKey: communityKeys.feeds() });
     },
+  });
+}
+
+/**
+ * Replies of one top-level comment beyond the preview embedded in the post detail. Disabled until
+ * the reader expands the thread; pages continue from {@code startOffset}.
+ */
+export function useCommunityReplies(postId: string, commentId: string, startOffset: number, enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: [...communityKeys.replies(postId, commentId), startOffset] as const,
+    queryFn: ({ pageParam }) => listCommunityCommentReplies(postId, commentId, pageParam, COMMUNITY_REPLY_PAGE_SIZE),
+    initialPageParam: startOffset,
+    getNextPageParam: (last) => (last.hasMore ? last.offset + last.items.length : undefined),
+    enabled,
+    staleTime: COMMUNITY_STALE_TIME,
   });
 }
 

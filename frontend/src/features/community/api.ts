@@ -29,7 +29,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
   headers.set("Accept-Language", currentAcceptLanguage());
-  if (options.body !== undefined) headers.set("Content-Type", "application/json");
+  if (options.body !== undefined && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   const token = csrf();
   if (token) headers.set(CSRF_HEADER_NAME, token);
   if (method !== "GET") headers.set(IDEMPOTENCY_HEADER_NAME, crypto.randomUUID());
@@ -98,9 +98,36 @@ export interface CommunityPageApi {
 export interface CommunityCommentApi {
   id: string;
   postId: string;
+  /** Top-level comment this reply belongs to; null/absent for top-level comments. */
+  parentCommentId?: string | null;
   authorName: string;
+  /** Set when the reply answers another reply ("trả lời <tên>"). */
+  replyToName?: string | null;
   body: string;
+  imageUrl?: string | null;
+  /** Published replies of a top-level comment; 0 for replies. */
+  replyCount?: number;
+  /** First few replies of a top-level comment (see COMMUNITY_REPLY_PREVIEW); the rest are paged. */
+  replies?: CommunityCommentApi[];
   createdAt: string;
+}
+
+export interface CommunityCommentRepliesApi {
+  items: CommunityCommentApi[];
+  offset: number;
+  limit: number;
+  totalElements: number;
+  hasMore: boolean;
+}
+
+/** Replies embedded with each top-level comment in the post detail (CommunityService.REPLY_PREVIEW_SIZE). */
+export const COMMUNITY_REPLY_PREVIEW = 3;
+export const COMMUNITY_REPLY_PAGE_SIZE = 10;
+
+export interface CreateCommunityCommentPayload {
+  body: string;
+  parentCommentId?: string;
+  image?: File | null;
 }
 
 export interface CommunityPostDetailApi {
@@ -141,11 +168,26 @@ export function getCommunityPost(postId: string) {
   return apiFetch<CommunityPostDetailApi>(`/community/posts/${encodeURIComponent(postId)}`);
 }
 
-export function createCommunityComment(postId: string, body: string) {
-  return apiFetch<CommunityCommentApi>(`/community/posts/${encodeURIComponent(postId)}/comments`, {
-    method: "POST",
-    body: JSON.stringify({ body }),
-  });
+export function createCommunityComment(postId: string, payload: CreateCommunityCommentPayload) {
+  const path = `/community/posts/${encodeURIComponent(postId)}/comments`;
+  if (!payload.image) {
+    return apiFetch<CommunityCommentApi>(path, {
+      method: "POST",
+      body: JSON.stringify({ body: payload.body, parentCommentId: payload.parentCommentId }),
+    });
+  }
+  const form = new FormData();
+  form.append("body", payload.body);
+  if (payload.parentCommentId) form.append("parentCommentId", payload.parentCommentId);
+  form.append("file", payload.image);
+  return apiFetch<CommunityCommentApi>(path, { method: "POST", body: form });
+}
+
+export function listCommunityCommentReplies(postId: string, commentId: string, offset: number, limit: number) {
+  const query = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+  return apiFetch<CommunityCommentRepliesApi>(
+    `/community/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}/replies?${query.toString()}`,
+  );
 }
 
 export function setCommunityReaction(postId: string, reaction: CommunityReaction, active: boolean) {

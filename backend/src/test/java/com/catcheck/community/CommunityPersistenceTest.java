@@ -132,6 +132,44 @@ class CommunityPersistenceTest {
     }
 
     @Test
+    @DisplayName("Tra loi mot cap, binh luan chi co anh, an binh luan goc an ca phan hoi")
+    void repliesImagesAndModeration() {
+        var post = community.createPost(other, "QA", "Tieu de", "Noi dung", List.of());
+        var root = community.createComment(user, post.id(), "Goc");
+        var r1 = community.createComment(other, post.id(), root.id(), "R1", null);
+        var r2 = community.createComment(user, post.id(), r1.id(), "", "community-comment/2026/10/14/a.png");
+        for (int i = 3; i <= 5; i++) community.createComment(other, post.id(), root.id(), "R" + i, null);
+
+        assertThat(r2.parentCommentId()).isEqualTo(root.id());
+        assertThat(r2.replyToName()).isEqualTo("T");
+        assertThat(r2.body()).isEmpty();
+
+        var detail = community.detail(user, post.id());
+        assertThat(detail.post().commentCount()).isEqualTo(6);
+        assertThat(detail.comments()).hasSize(1);
+        var thread = detail.comments().getFirst();
+        assertThat(thread.comment().replyCount()).isEqualTo(5);
+        assertThat(thread.replies()).extracting(c -> c.body()).containsExactly("R1", "", "R3");
+
+        var rest = community.replies(post.id(), root.id(), 3, 20);
+        assertThat(rest.items()).extracting(c -> c.body()).containsExactly("R4", "R5");
+        assertThat(rest.totalElements()).isEqualTo(5);
+        assertThat(rest.hasMore()).isFalse();
+
+        assertThatThrownBy(() -> jdbc.update(
+                "INSERT INTO community_comment (post_id, author_user_id, body) VALUES (?, ?, '  ')", post.id(), user))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        // Reports on a reply still work; hiding the top-level comment hides its whole thread.
+        community.report(other, null, r2.id(), "SPAM", null);
+        jdbc.update("UPDATE community_comment SET status = 'HIDDEN' WHERE id = ?", root.id());
+        assertThat(community.detail(user, post.id()).comments()).isEmpty();
+        assertThat(community.detail(user, post.id()).post().commentCount()).isZero();
+        assertThatThrownBy(() -> community.createComment(user, post.id(), r1.id(), "x", null))
+                .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+    }
+
+    @Test
     @DisplayName("PUT cart vuot ton kho -> STOCK_UNAVAILABLE; dong don tra dung mo ta/ton kho")
     void cartStockCheckAndOrderLineData() {
         UUID product = jdbc.queryForObject("""

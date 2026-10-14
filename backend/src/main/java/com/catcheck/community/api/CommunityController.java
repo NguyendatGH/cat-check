@@ -1,5 +1,6 @@
 package com.catcheck.community.api;
 
+import com.catcheck.community.api.dto.CommunityCommentRepliesResponse;
 import com.catcheck.community.api.dto.CommunityCommentResponse;
 import com.catcheck.community.api.dto.CommunityPageResponse;
 import com.catcheck.community.api.dto.CommunityPostResponse;
@@ -7,6 +8,7 @@ import com.catcheck.community.api.dto.CommunityReactionRequest;
 import com.catcheck.community.api.dto.CommunityReportRequest;
 import com.catcheck.community.api.dto.CreateCommunityCommentRequest;
 import com.catcheck.community.api.dto.CreateCommunityPostRequest;
+import com.catcheck.community.application.CommunityCommentImageService;
 import com.catcheck.community.application.CommunityPostImageService;
 import com.catcheck.community.application.CommunityService;
 import com.catcheck.shared.security.CurrentUser;
@@ -41,10 +43,13 @@ import java.util.UUID;
 public class CommunityController {
     private final CommunityService service;
     private final CommunityPostImageService imageService;
+    private final CommunityCommentImageService commentImageService;
 
-    public CommunityController(CommunityService service, CommunityPostImageService imageService) {
+    public CommunityController(CommunityService service, CommunityPostImageService imageService,
+                               CommunityCommentImageService commentImageService) {
         this.service = service;
         this.imageService = imageService;
+        this.commentImageService = commentImageService;
     }
 
     @GetMapping("/posts")
@@ -62,7 +67,8 @@ public class CommunityController {
     @Operation(operationId = "getCommunityPost")
     public CommunityPostDetailResponse detail(@CurrentUser SecurityPrincipal user, @PathVariable UUID postId) {
         var result = service.detail(user == null ? null : user.userId(), postId);
-        return new CommunityPostDetailResponse(CommunityPostResponse.from(result.post()), result.comments().stream().map(CommunityCommentResponse::from).toList());
+        return new CommunityPostDetailResponse(CommunityPostResponse.from(result.post()), result.comments().stream()
+                .map(thread -> CommunityCommentResponse.from(thread.comment(), thread.replies())).toList());
     }
 
     @PostMapping("/posts")
@@ -96,12 +102,50 @@ public class CommunityController {
                 .body(new InputStreamResource(image.content()));
     }
 
-    @PostMapping("/posts/{postId}/comments")
+    @PostMapping(value = "/posts/{postId}/comments", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createCommunityComment")
     public CommunityCommentResponse comment(@CurrentUser SecurityPrincipal user, @PathVariable UUID postId,
                                             @Valid @RequestBody CreateCommunityCommentRequest request) {
-        return CommunityCommentResponse.from(service.createComment(user.userId(), postId, request.body()));
+        return CommunityCommentResponse.from(
+                service.createComment(user.userId(), postId, request.parentCommentId(), request.body(), null));
+    }
+
+    @PostMapping(value = "/posts/{postId}/comments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(operationId = "createCommunityCommentWithImage", summary = "Binh luan/tra loi kem toi da mot anh")
+    public CommunityCommentResponse commentWithImage(@CurrentUser SecurityPrincipal user, @PathVariable UUID postId,
+                                                     @RequestParam(value = "body", required = false) String body,
+                                                     @RequestParam(value = "parentCommentId", required = false) UUID parentCommentId,
+                                                     @RequestParam(value = "file", required = false) MultipartFile file) {
+        try {
+            var image = file == null || file.isEmpty() ? null : new CommunityPostImageService.ImageInput(
+                    file.getContentType(), file.getInputStream(), file.getSize());
+            return CommunityCommentResponse.from(
+                    commentImageService.createComment(user.userId(), postId, parentCommentId, body, image));
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
+    @GetMapping("/posts/{postId}/comments/{commentId}/replies")
+    @Operation(operationId = "listCommunityCommentReplies", summary = "Cac phan hoi cua mot binh luan, phan trang")
+    public CommunityCommentRepliesResponse replies(@PathVariable UUID postId, @PathVariable UUID commentId,
+                                                   @RequestParam(defaultValue = "0") int offset,
+                                                   @RequestParam(defaultValue = "20") int limit) {
+        var result = service.replies(postId, commentId, offset, limit);
+        return new CommunityCommentRepliesResponse(result.items().stream().map(CommunityCommentResponse::from).toList(),
+                result.offset(), result.limit(), result.totalElements(), result.hasMore());
+    }
+
+    @GetMapping("/posts/{postId}/comments/{commentId}/image")
+    @Operation(operationId = "getCommunityCommentImage", summary = "Anh dinh kem cua binh luan")
+    public ResponseEntity<InputStreamResource> commentImage(@PathVariable UUID postId, @PathVariable UUID commentId) {
+        var image = commentImageService.openImage(postId, commentId);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofMinutes(10)).cachePublic())
+                .contentType(MediaType.parseMediaType(image.contentType()))
+                .body(new InputStreamResource(image.content()));
     }
 
     @PostMapping("/posts/{postId}/reactions")

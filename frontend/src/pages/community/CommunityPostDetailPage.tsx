@@ -1,28 +1,17 @@
-import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useParams } from "react-router";
-import { ArrowLeft, Bookmark, ChevronRight, FileQuestion, Send, Share2 } from "lucide-react";
+import { ArrowLeft, Bookmark, ChevronRight, FileQuestion, Share2 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { formatNumber } from "@/shared/lib/format/formatNumber";
-import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
 import { isApiError } from "@/shared/api/errors";
 import { EmptyState, ErrorState, SkeletonLoader, toast } from "@/shared/ui";
-import { useSessionStore } from "@/entities/user";
-import {
-  COMMUNITY_LIMITS,
-  useCommunityPost,
-  useCommunityReaction,
-  useCreateCommunityComment,
-  type CommunityCommentApi,
-  type CommunityPostApi,
-} from "@/features/community";
+import { useCommunityPost, useCommunityReaction, type CommunityPostApi } from "@/features/community";
+import { CommentsSection } from "./comments";
 import {
   AuthorAvatar,
   AuthorMeta,
   ContentMenu,
   PostActions,
   PostCardSkeleton,
-  RelativeTime,
   RulesCard,
   TagChips,
   useSharePost,
@@ -172,163 +161,6 @@ function PostArticle({ post }: { post: CommunityPostApi }) {
 
       <PostActions post={post} secondaryClassName="lg:hidden" className="mt-5 border-t border-border/60 pt-3" />
     </article>
-  );
-}
-
-function CommentItem({ comment }: { comment: CommunityCommentApi }) {
-  const { t } = useTranslation("community");
-  return (
-    <li className="flex gap-3 border-t border-border/60 pt-4 first:border-t-0 first:pt-0">
-      <AuthorAvatar name={comment.authorName} size="sm" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
-          <p className="min-w-0 flex-1">
-            <span className="block truncate text-[14px] font-bold leading-tight text-text-primary">
-              {comment.authorName}
-            </span>
-            <span className="block pt-0.5 text-[12px] text-text-tertiary">
-              <RelativeTime value={comment.createdAt} />
-            </span>
-          </p>
-          <ContentMenu target={{ commentId: comment.id }} label={t("post.more")} />
-        </div>
-        <p className="whitespace-pre-wrap break-words pt-2 text-[14px] leading-relaxed text-text-primary lg:text-[15px]">
-          {comment.body}
-        </p>
-      </div>
-    </li>
-  );
-}
-
-function CommentComposer({ postId }: { postId: string }) {
-  const { t } = useTranslation("community");
-  const displayName = useSessionStore((s) => s.user?.displayName ?? "");
-  const isDesktop = useBreakpoint("lg");
-  const create = useCreateCommunityComment(postId);
-  const [value, setValue] = useState("");
-  const inputId = useId();
-  const max = COMMUNITY_LIMITS.comment;
-  const trimmed = value.trim();
-  const tooLong = trimmed.length > max;
-
-  const submit = () => {
-    if (!trimmed || tooLong || create.isPending) return;
-    create.mutate(trimmed, {
-      onSuccess: () => {
-        setValue("");
-      },
-    });
-  };
-
-  const message = tooLong ? t("detail.commentTooLong", { max }) : create.isError ? t("detail.commentError") : null;
-
-  return (
-    <form
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        submit();
-      }}
-      className={cn(
-        "fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[var(--z-dropdown)] mx-auto w-full max-w-[480px] border-t border-border bg-surface/95 px-4 py-2.5 backdrop-blur-md",
-        "lg:static lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-2xl lg:border-0 lg:bg-background-alt lg:p-4 lg:backdrop-blur-none",
-      )}
-    >
-      <div className="flex items-end gap-2 lg:items-start lg:gap-3">
-        <span className="hidden lg:block">
-          <AuthorAvatar name={displayName} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <label htmlFor={inputId} className="sr-only">
-            {t("detail.commentLabel")}
-          </label>
-          <textarea
-            id={inputId}
-            rows={1}
-            value={value}
-            onChange={(event) => {
-              setValue(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-                event.preventDefault();
-                submit();
-              }
-            }}
-            placeholder={isDesktop ? t("detail.commentPlaceholder") : t("detail.commentPlaceholderShort")}
-            aria-invalid={tooLong ? true : undefined}
-            aria-describedby={message ? `${inputId}-msg` : undefined}
-            className={cn(
-              "block h-11 w-full resize-none rounded-full border border-border-strong bg-background-alt px-4 py-2.5 text-[14px] leading-snug text-text-primary placeholder:text-text-tertiary",
-              "lg:h-24 lg:rounded-xl lg:bg-surface lg:py-3",
-              "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
-              tooLong && "border-2 border-danger",
-            )}
-          />
-          {message ? (
-            <p id={`${inputId}-msg`} role="alert" className="pt-1.5 text-[12px] font-medium text-danger-text">
-              {message}
-            </p>
-          ) : null}
-          <div className="hidden justify-end pt-3 lg:flex">
-            <button
-              type="submit"
-              disabled={!trimmed || tooLong || create.isPending}
-              className="flex min-h-11 items-center gap-2 rounded-xl bg-primary-dark px-5 text-[14px] font-bold text-white shadow-brand-md hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Send size={15} aria-hidden="true" />
-              {create.isPending ? t("detail.commentSending") : t("detail.commentSend")}
-            </button>
-          </div>
-        </div>
-        <button
-          type="submit"
-          disabled={!trimmed || tooLong || create.isPending}
-          aria-label={create.isPending ? t("detail.commentSending") : t("detail.commentSend")}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-dark text-white shadow-brand-md hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50 lg:hidden"
-        >
-          <Send size={17} aria-hidden="true" />
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function CommentsSection({
-  postId,
-  total,
-  comments,
-}: {
-  postId: string;
-  total: number;
-  comments: CommunityCommentApi[];
-}) {
-  const { t } = useTranslation("community");
-  return (
-    <section className="rounded-2xl bg-surface p-4 shadow-brand-md lg:p-7" aria-labelledby="community-comments-title">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <h2 id="community-comments-title" className="text-[17px] font-bold text-text-primary lg:text-[20px]">
-          {t("detail.commentsTitle")}
-        </h2>
-        <span className="rounded-full bg-chip-bg px-2.5 py-0.5 text-[12px] font-bold text-primary-dark">
-          {t("detail.commentCount", { count: total, formattedCount: formatNumber(total) })}
-        </span>
-      </div>
-
-      <div className="lg:pt-5">
-        <CommentComposer postId={postId} />
-      </div>
-
-      {comments.length > 0 ? (
-        <ul className="flex flex-col gap-4 pt-4 lg:pt-6">
-          {comments.map((item) => (
-            <CommentItem key={item.id} comment={item} />
-          ))}
-        </ul>
-      ) : (
-        <p className="pt-3 text-[13px] leading-relaxed text-text-secondary lg:pt-5">{t("detail.noComments")}</p>
-      )}
-    </section>
   );
 }
 

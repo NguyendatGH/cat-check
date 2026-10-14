@@ -1,6 +1,7 @@
 package com.catcheck.community.domain.port;
 
 import com.catcheck.community.domain.CommunityComment;
+import com.catcheck.community.domain.CommunityCommentRef;
 import com.catcheck.community.domain.CommunityPost;
 import com.catcheck.community.domain.CommunityReport;
 
@@ -15,13 +16,25 @@ public interface CommunityRepository {
 
     Optional<CommunityPost> findPost(UUID viewerId, UUID postId);
 
+    /** Top-level published comments of a post, oldest first, each with its published reply count. */
     List<CommunityComment> findComments(UUID postId, int limit);
+
+    /** The first {@code perParent} published replies of each given top-level comment, oldest first. */
+    List<CommunityComment> findReplyPreviews(List<UUID> parentCommentIds, int perParent);
+
+    List<CommunityComment> findReplies(UUID parentCommentId, int offset, int limit);
+
+    long countReplies(UUID parentCommentId);
+
+    /** A published comment on a published post. */
+    Optional<CommunityCommentRef> findComment(UUID commentId);
 
     CommunityPost insertPost(UUID authorId, String category, String title, String body, List<String> tags);
 
     void updatePostImage(UUID postId, String imageRef);
 
-    CommunityComment insertComment(UUID authorId, UUID postId, String body);
+    CommunityComment insertComment(UUID authorId, UUID postId, UUID parentCommentId, UUID replyToUserId,
+                                   String body, String imageRef);
 
     boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active);
 

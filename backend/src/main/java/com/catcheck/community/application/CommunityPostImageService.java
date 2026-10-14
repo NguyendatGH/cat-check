@@ -28,7 +28,7 @@ public class CommunityPostImageService {
 
     static final String NAMESPACE = "community-post";
 
-    private static final List<String> ALLOWED_CONTENT_TYPES = List.of("image/jpeg", "image/png", "image/webp");
+    static final List<String> ALLOWED_CONTENT_TYPES = List.of("image/jpeg", "image/png", "image/webp");
 
     private final CommunityRepository repository;
     private final UserAccountPort userAccountPort;
@@ -94,14 +94,14 @@ public class CommunityPostImageService {
         }
     }
 
-    private static String contentTypeOf(StorageKey key) {
+    static String contentTypeOf(StorageKey key) {
         String value = key.value().toLowerCase(Locale.ROOT);
         if (value.endsWith(".png")) return "image/png";
         if (value.endsWith(".webp")) return "image/webp";
         return "image/jpeg";
     }
 
-    private static String normalize(String contentType) {
+    static String normalize(String contentType) {
         if (contentType == null) return "";
         int parametersStart = contentType.indexOf(';');
         String base = parametersStart < 0 ? contentType : contentType.substring(0, parametersStart);

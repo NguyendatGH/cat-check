@@ -73,7 +73,8 @@ class MigrationNamingTests {
                         "V25__dsar_email_download_token.sql",
                         "V26__job_run_columns.sql",
                         "V27__community_reaction_multi.sql",
-                        "V28__replace_places_with_da_nang.sql");
+                        "V28__replace_places_with_da_nang.sql",
+                        "V29__community_comment_replies_images.sql");
     }
 
     @Test
