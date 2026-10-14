@@ -22,6 +22,7 @@ import { useSessionStore } from "@/entities/user";
 import { CatAvatar } from "@/entities/cat";
 import { useCatList } from "@/features/cat";
 import { Link } from "react-router";
+import { TourSettingsCard } from "@/features/product-tour";
 import { GoogleGlyph } from "@/shared/assets/icons/GoogleGlyph";
 import {
   MY_AVATAR_PATH,
@@ -464,6 +465,8 @@ export function SettingsProfilePage() {
           </section>
         </div>
       </div>
+
+      <TourSettingsCard tone="card" className="shadow-xs sm:p-5" />
 
       <section
         data-reveal

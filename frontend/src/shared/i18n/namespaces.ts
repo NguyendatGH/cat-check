@@ -19,6 +19,7 @@ export const NAMESPACES = [
   "map",
   "community",
   "assistant",
+  "tour",
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];

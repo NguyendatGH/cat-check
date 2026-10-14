@@ -72,6 +72,7 @@ export function DesktopHeader({ showBack = false }: { showBack?: boolean }) {
             void navigate(ROUTE_PATTERNS.notifications);
           }}
           aria-label={t("nav.notifications")}
+          data-tour="notifications"
           className="relative flex size-10 items-center justify-center rounded-xl transition-all duration-200 hover:bg-background-alt active:scale-95"
         >
           <img src={iconBell} alt="" className="h-[16.667px] w-[13.333px]" />

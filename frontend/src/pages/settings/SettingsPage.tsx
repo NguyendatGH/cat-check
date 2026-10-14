@@ -32,6 +32,7 @@ import type { PhBand } from "@/entities/ph-bands";
 import type { Cat, CatLastScan } from "@/entities/cat";
 import { useLogout, useProfile } from "@/features/auth";
 import { useCatList } from "@/features/cat";
+import { TourSettingsCard } from "@/features/product-tour";
 import { NotificationPreferencesForm } from "./NotificationPreferencesForm";
 import { useLastScanByCat, useScanReminderSummary, type ScanReminderSummary } from "./settingsSummaries";
 
@@ -360,6 +361,8 @@ export function SettingsPage() {
                   </li>
                 ))}
               </ul>
+
+              <TourSettingsCard className="mt-3" />
             </section>
           </div>
         </div>
@@ -468,6 +471,8 @@ export function SettingsPage() {
             note={t("mobile.rows.language.note")}
           />
         </MobileGroup>
+
+        <TourSettingsCard tone="card" className="shadow-brand-md" />
 
         <MobileGroup icon={Headphones} title={t("mobile.groupSupport")}>
           <MobileRow

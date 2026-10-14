@@ -1,4 +1,5 @@
 import { Outlet } from "react-router";
+import { ProductTour } from "@/features/product-tour";
 import { DesktopAside } from "./shell/DesktopAside";
 import { DesktopHeader } from "./shell/DesktopHeader";
 import { BottomNav, MobileAppHeader } from "./shell/MobileChrome";
@@ -17,6 +18,7 @@ export function AppLayout() {
         </main>
       </div>
       <BottomNav />
+      <ProductTour />
     </div>
   );
 }

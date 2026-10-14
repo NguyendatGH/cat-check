@@ -20,11 +20,11 @@ import { NotificationUnreadBadge } from "@/features/notification";
 import { ROUTE_PATTERNS } from "../../router/routes";
 
 const MOBILE_NAV_ITEMS = [
-  { to: ROUTE_PATTERNS.dashboard, icon: NavHomeIcon, labelKey: "nav.dashboard" },
-  { to: ROUTE_PATTERNS.historyRedirect, icon: NavHistoryIcon, labelKey: "nav.history" },
-  { to: ROUTE_PATTERNS.scan, icon: NavScanIcon, labelKey: "nav.scan" },
-  { to: ROUTE_PATTERNS.community, icon: NavCommunityIcon, labelKey: "nav.community" },
-  { to: ROUTE_PATTERNS.settingsProfile, icon: NavProfileIcon, labelKey: "nav.profile" },
+  { to: ROUTE_PATTERNS.dashboard, icon: NavHomeIcon, labelKey: "nav.dashboard", tour: "tab-dashboard" },
+  { to: ROUTE_PATTERNS.historyRedirect, icon: NavHistoryIcon, labelKey: "nav.history", tour: "tab-history" },
+  { to: ROUTE_PATTERNS.scan, icon: NavScanIcon, labelKey: "nav.scan", tour: "tab-scan" },
+  { to: ROUTE_PATTERNS.community, icon: NavCommunityIcon, labelKey: "nav.community", tour: "tab-community" },
+  { to: ROUTE_PATTERNS.settingsProfile, icon: NavProfileIcon, labelKey: "nav.profile", tour: "tab-profile" },
 ] as const;
 
 const ICON_BTN =
@@ -83,6 +83,7 @@ export function MobileAppHeader() {
               void navigate(ROUTE_PATTERNS.notifications);
             }}
             aria-label={t("nav.notifications")}
+            data-tour="notifications"
             className={ICON_BTN}
           >
             <BellIcon size={22} />
@@ -113,6 +114,7 @@ export function MobileAppHeader() {
               <li key={item.key} className="shrink-0">
                 <NavLink
                   to={item.to}
+                  data-tour={`shortcut-${item.key}`}
                   tabIndex={collapsed ? -1 : undefined}
                   className={({ isActive }) =>
                     cn(
@@ -147,6 +149,7 @@ export function BottomNav() {
       key={item.to}
       to={item.to === ROUTE_PATTERNS.dashboard ? homePath : item.to}
       data-motion="none"
+      data-tour={item.tour}
       className={({ isActive: routerActive }) =>
         cn("btm-tab", isNavItemActive(item.to, pathname, routerActive) && "btm-tab-active")
       }
@@ -169,6 +172,7 @@ export function BottomNav() {
         <NavLink
           to={scan.to}
           data-motion="none"
+          data-tour={scan.tour}
           className={({ isActive: routerActive }) =>
             cn("btm-tab btm-tab-scan", isNavItemActive(scan.to, pathname, routerActive) && "btm-tab-active")
           }

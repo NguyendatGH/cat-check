@@ -22,17 +22,19 @@ import navSettings from "@/shared/assets/icons/web-dashboard/nav-settings.svg";
 import { ROUTE_PATTERNS } from "../../router/routes";
 
 const DESKTOP_NAV_ITEMS = [
-  { to: ROUTE_PATTERNS.dashboard, icon: navOverview, labelKey: "nav.overview", end: true },
-  { to: ROUTE_PATTERNS.scan, icon: navScan, labelKey: "nav.scanColor", end: false },
-  { to: ROUTE_PATTERNS.historyRedirect, icon: navHistory, labelKey: "nav.historyAnalytics", end: false },
-  { to: ROUTE_PATTERNS.catsList, icon: navCat, labelKey: "nav.catProfile", end: false },
-  { to: ROUTE_PATTERNS.map, icon: navMap, labelKey: "nav.vetMap", end: false },
-  { to: ROUTE_PATTERNS.community, icon: navCommunity, labelKey: "nav.community", end: false },
-  { to: ROUTE_PATTERNS.shop, icon: navShop, labelKey: "nav.shop", end: false },
-  { to: ROUTE_PATTERNS.settings, icon: navSettings, labelKey: "nav.settings", end: false },
+  { to: ROUTE_PATTERNS.dashboard, icon: navOverview, labelKey: "nav.overview", end: true, tour: "nav-dashboard" },
+  { to: ROUTE_PATTERNS.scan, icon: navScan, labelKey: "nav.scanColor", end: false, tour: "nav-scan" },
+  { to: ROUTE_PATTERNS.historyRedirect, icon: navHistory, labelKey: "nav.historyAnalytics", end: false, tour: "nav-history" },
+  { to: ROUTE_PATTERNS.catsList, icon: navCat, labelKey: "nav.catProfile", end: false, tour: "nav-cats" },
+  { to: ROUTE_PATTERNS.map, icon: navMap, labelKey: "nav.vetMap", end: false, tour: "nav-map" },
+  { to: ROUTE_PATTERNS.community, icon: navCommunity, labelKey: "nav.community", end: false, tour: "nav-community" },
+  { to: ROUTE_PATTERNS.shop, icon: navShop, labelKey: "nav.shop", end: false, tour: "nav-shop" },
+  { to: ROUTE_PATTERNS.settings, icon: navSettings, labelKey: "nav.settings", end: false, tour: "nav-settings" },
 ] as const;
 
-const DESKTOP_NAV_EXTRA = [{ to: ROUTE_PATTERNS.assistant, icon: Sparkles, labelKey: "nav.assistant" }] as const;
+const DESKTOP_NAV_EXTRA = [
+  { to: ROUTE_PATTERNS.assistant, icon: Sparkles, labelKey: "nav.assistant", tour: "nav-assistant" },
+] as const;
 
 const NAV_ITEM_BASE = "nav-item-animated group flex h-11 items-center gap-3 rounded-xl px-4 text-[14px] leading-5 cursor-pointer select-none";
 const NAV_ACTIVE_CLASS = "bg-gradient-to-r from-primary-dark to-primary font-semibold text-white shadow-[0px_4px_14px_rgba(13,54,154,0.28),inset_0_1px_0_rgba(255,255,255,0.22)]";
@@ -222,6 +224,7 @@ export function DesktopAside() {
               to={linkTo(item.to)}
               end={item.end}
               data-motion="row"
+              data-tour={item.tour}
               className={({ isActive }) => {
                 const active = isNavItemActive(item.to, pathname, isActive);
                 return cn(
@@ -262,6 +265,7 @@ export function DesktopAside() {
               key={item.to}
               to={item.to}
               data-motion="row"
+              data-tour={item.tour}
               className={({ isActive }) => {
                 const active = isNavItemActive(item.to, pathname, isActive);
                 return cn(
@@ -299,7 +303,7 @@ export function DesktopAside() {
         </nav>
 
         {signedIn ? (
-          <div className="sidebar-card-enter shrink-0 p-4" style={{ animationDelay: "0.28s" }}>
+          <div className="sidebar-card-enter shrink-0 p-4" style={{ animationDelay: "0.28s" }} data-tour="credits">
             <CreditsCard />
           </div>
         ) : null}
