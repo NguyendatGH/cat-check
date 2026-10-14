@@ -99,27 +99,53 @@
   "newPost": {
     "title": "Đăng bài mới",
     "subtitle": "Mô tả quan sát của bạn thật cụ thể để cộng đồng dễ góp ý.",
-    "publishNotice": "Bài viết hiển thị công khai ngay sau khi đăng. Nội dung vi phạm quy tắc có thể bị báo cáo và gỡ bởi đội kiểm duyệt.",
+    "publishNotice": "Bài viết hiển thị công khai ngay khi đăng và có thể bị gỡ nếu vi phạm quy tắc.",
     "categoryLabel": "Chuyên mục",
     "titleLabel": "Tiêu đề",
     "titlePlaceholder": "Tóm tắt điều bạn muốn chia sẻ",
     "bodyLabel": "Nội dung",
     "bodyPlaceholder": "Bạn quan sát được điều gì? Bé có thay đổi gì trong ăn uống hay sinh hoạt không?",
-    "tagsLabel": "Thẻ",
-    "tagsHint": "Cách nhau bằng dấu phẩy, tối đa {{max}} thẻ, không bắt buộc.",
-    "tagsPlaceholder": "màu cát, đổi hạt",
     "counter": "{{count}}/{{max}}",
     "errors": {
       "titleRequired": "Vui lòng nhập tiêu đề.",
       "bodyRequired": "Vui lòng nhập nội dung.",
-      "tooManyTags": "Tối đa {{max}} thẻ.",
-      "tagTooLong": "Mỗi thẻ tối đa {{max}} ký tự.",
+      "tagTooLong": "Mỗi hashtag tối đa {{max}} ký tự.",
       "submit": "Không đăng được bài viết. Vui lòng kiểm tra nội dung và thử lại.",
-      "session": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi thử lại."
+      "session": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi thử lại.",
+      "tooManyTags": "Tối đa {{max}} hashtag."
     },
     "submit": "Đăng bài",
     "submitting": "Đang đăng…",
-    "cancel": "Huỷ"
+    "cancel": "Huỷ",
+    "hashtag": {
+      "label": "Hashtag",
+      "hint": "Gắn chủ đề để mọi người dễ tìm bài. Nhấn Enter hoặc dấu phẩy để thêm, tối đa {{max}}, không bắt buộc.",
+      "placeholder": "Gõ chủ đề, ví dụ màu cát",
+      "suggested": "Gợi ý",
+      "add": "Thêm #{{tag}}",
+      "remove": "Bỏ #{{tag}}",
+      "count": "{{count}}/{{max}}"
+    },
+    "suggestedTags": {
+      "QA": "hỏi đáp,màu cát,đổi hạt,ph nước tiểu,thói quen đi vệ sinh",
+      "TIP": "mẹo chăm sóc,vệ sinh khay cát,chọn cát,uống nước,dinh dưỡng",
+      "EXPERIENCE": "kinh nghiệm,mèo con,mèo lớn tuổi,chuyển cát,theo dõi ph"
+    },
+    "image": {
+      "label": "Ảnh",
+      "optional": "không bắt buộc",
+      "add": "Thêm ảnh",
+      "dropHint": "Kéo thả hoặc chọn ảnh JPG, PNG, WebP, tối đa {{max}} MB",
+      "remove": "Bỏ ảnh",
+      "change": "Đổi ảnh",
+      "previewAlt": "Ảnh xem trước",
+      "uploading": "Đang tải ảnh… {{percent}}%",
+      "errors": {
+        "type": "Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP.",
+        "size": "Ảnh vượt quá {{max}} MB.",
+        "upload": "Bài viết đã đăng nhưng chưa tải được ảnh."
+      }
+    }
   },
   "api": {
     "error": "Không thể tải bảng tin cộng đồng.",

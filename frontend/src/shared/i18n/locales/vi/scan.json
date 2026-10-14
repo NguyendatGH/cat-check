@@ -52,7 +52,8 @@
     "lastResult": "{{label}} · pH {{value}}",
     "changeCta": "Đổi bé mèo",
     "lastScanToday": "Hôm nay {{time}}",
-    "lastScanYesterday": "Hôm qua {{time}}"
+    "lastScanYesterday": "Hôm qua {{time}}",
+    "lastPh": "pH {{value}}"
   },
   "capture": {
     "guide": "Chụp cận cảnh vùng cát đã đổi màu, đủ sáng và lấy nét rõ.",
@@ -111,7 +112,13 @@
       "rangeBelow": "pH < {{max}}",
       "rangeAbove": "pH > {{min}}",
       "unavailable": "Chưa có thang đo tham chiếu.",
-      "statusColorNote": "Màu trên thang biểu thị vùng pH; chấm đánh dấu dùng màu hạt hệ thống đo được."
+      "statusColorNote": "Màu trên thang biểu thị vùng pH; chấm đánh dấu dùng màu hạt hệ thống đo được.",
+      "currentPh": "pH",
+      "zone": {
+        "acidic": "Axit",
+        "normal": "Bình thường",
+        "alkaline": "Kiềm"
+      }
     },
     "advice": {
       "title": "Bạn nên làm gì?",

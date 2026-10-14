@@ -1,4 +1,8 @@
-import { lazy } from "react";
+import { lazyPage as lazy, preloadInIdle } from "./lazyPage";
+
+export const LazyAdminLayout = lazy(() =>
+  import("../layouts/AdminLayout").then((m) => ({ default: m.AdminLayout })),
+);
 
 export const LazyPages = {
   home: lazy(() => import("@/pages/public/HomePage").then((m) => ({ default: m.HomePage }))),
@@ -164,3 +168,17 @@ export const LazyPages = {
     import("@/pages/seller/SellerProductsPage").then((m) => ({ default: m.SellerProductsPage })),
   ),
 } as const;
+
+const AUTH_PAGES = new Set<string>(["login", "register", "verifyOtp", "forgotPassword", "resetPassword", "oAuthComplete"]);
+
+export function preloadPagesFor(audience: "anonymous" | "buyer" | "staff") {
+  const entries = Object.entries(LazyPages);
+  const isStaffPage = (key: string) => key.startsWith("admin") || key.startsWith("seller");
+  const picked = entries.filter(([key]) => {
+    if (audience === "anonymous") return AUTH_PAGES.has(key) || key === "home";
+    if (audience === "staff") return isStaffPage(key);
+    return !isStaffPage(key) && !AUTH_PAGES.has(key);
+  });
+  const pages = picked.map(([, page]) => page);
+  preloadInIdle(audience === "staff" ? [LazyAdminLayout, ...pages] : pages);
+}

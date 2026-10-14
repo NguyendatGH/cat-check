@@ -7,6 +7,8 @@ import java.net.URI;
 
 public enum CommunityErrorCode implements ErrorCode {
     POST_NOT_FOUND("community/post-not-found", HttpStatus.NOT_FOUND),
+    POST_IMAGE_NOT_FOUND("community/post-image-not-found", HttpStatus.NOT_FOUND),
+    POST_IMAGE_FORBIDDEN("community/post-image-forbidden", HttpStatus.FORBIDDEN),
     REPORT_TARGET_REQUIRED("community/report-target-required", HttpStatus.BAD_REQUEST),
     REPORT_DUPLICATE("community/report-duplicate", HttpStatus.CONFLICT),
     REPORT_NOT_FOUND("community/report-not-found", HttpStatus.NOT_FOUND),

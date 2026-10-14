@@ -1,12 +1,11 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useGSAP } from "@gsap/react";
-import { gsap } from "gsap";
-import { Avatar, Button as AntButton, ConfigProvider, Menu as AntMenu, type MenuProps } from "antd";
+import { Avatar, Button as AntButton, ConfigProvider } from "antd";
 import {
   Archive,
   ArrowLeft,
+  ChevronDown,
   ChevronRight,
   BellRing,
   BookOpenText,
@@ -53,8 +52,6 @@ import { ROUTE_PATTERNS } from "../router/routes";
 import { ROLES, hasAnyRole } from "@/shared/auth/roles";
 import { adminTheme } from "./adminTheme";
 import "./adminLayout.css";
-
-gsap.registerPlugin(useGSAP);
 
 interface AdminNavItem extends AdminNavItemBase {
   labelKey: string;
@@ -247,78 +244,76 @@ function hrefOf(item: AdminNavItem): string {
 interface AdminNavListProps {
   groups: readonly AdminNavGroup<AdminNavItem>[];
   location: { pathname: string; search: string };
-  touch?: boolean;
-  onNavigate?: () => void;
 }
 
-function AdminNavList({ groups, location, touch = false, onNavigate }: AdminNavListProps) {
+function AdminNavList({ groups, location }: AdminNavListProps) {
   const { t } = useTranslation("admin");
   const activeItem = findActiveNavItem(groups, location);
-  const activeGroup = groups.find((group) => group.items.some((item) => item.id === activeItem?.id));
-  const [openGroup, setOpenGroup] = useState<string | null>(
-    activeGroup?.id === "overview" ? null : (activeGroup?.id ?? null),
+  const activeGroupId = groups.find((group) => group.items.some((item) => item.id === activeItem?.id))?.id;
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(
+    () => new Set(activeGroupId ? [activeGroupId] : []),
   );
-  const navRef = useRef<HTMLDivElement>(null);
+  const [trackedActive, setTrackedActive] = useState(activeGroupId);
+  if (activeGroupId !== trackedActive) {
+    setTrackedActive(activeGroupId);
+    if (activeGroupId && !openGroups.has(activeGroupId)) setOpenGroups(new Set(openGroups).add(activeGroupId));
+  }
 
-  useGSAP(
-    () => {
-      if (!openGroup || !navRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const rows = navRef.current.querySelectorAll<HTMLElement>(
-        ".ant-menu-submenu-open .ant-menu-sub > .ant-menu-item",
-      );
-      if (rows.length === 0) return;
-      gsap.fromTo(
-        rows,
-        { autoAlpha: 0, y: -20 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.2,
-          stagger: 0.025,
-          ease: "ease-out",
-          clearProps: "opacity,visibility,transform",
-        },
-      );
-    },
-    { scope: navRef, dependencies: [openGroup], revertOnUpdate: true },
-  );
-
-  const navItem = (item: AdminNavItem) => {
-    const Icon = item.icon;
-    return {
-      key: item.id,
-      icon: <Icon size={17} aria-hidden="true" />,
-      label: (
-        <Link to={hrefOf(item)} onClick={onNavigate} aria-current={activeItem?.id === item.id ? "page" : undefined}>
-          {t(item.labelKey)}
-        </Link>
-      ),
-    };
+  const toggle = (groupId: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
   };
-  const items: MenuProps["items"] = groups.map((group) =>
-    group.id === "overview" && group.items.length === 1
-      ? navItem(group.items[0])
-      : {
-          key: group.id,
-          label: t(group.labelKey),
-          children: group.items.map(navItem),
-        },
-  );
+
+  const navLink = (item: AdminNavItem, nested: boolean) => {
+    const Icon = item.icon;
+    const active = activeItem?.id === item.id;
+    return (
+      <li key={item.id}>
+        <Link
+          to={hrefOf(item)}
+          aria-current={active ? "page" : undefined}
+          className={cn("admin-nav-item", nested && "admin-nav-item--nested", active && "is-active")}
+        >
+          <Icon size={17} aria-hidden="true" className="shrink-0" />
+          <span className="min-w-0 truncate">{t(item.labelKey)}</span>
+        </Link>
+      </li>
+    );
+  };
+
   return (
-    <div ref={navRef}>
-      <AntMenu
-        aria-label={t("nav.label")}
-        className="admin-nav-menu"
-        theme={touch ? "light" : "dark"}
-        mode="inline"
-        selectedKeys={activeItem ? [activeItem.id] : []}
-        openKeys={openGroup ? [openGroup] : []}
-        onOpenChange={(keys) => setOpenGroup(keys.at(-1) ?? null)}
-        items={items}
-        inlineIndent={touch ? 16 : 20}
-        style={{ borderInlineEnd: 0, background: "transparent" }}
-      />
-    </div>
+    <ul className="flex flex-col gap-1">
+      {groups.map((group) => {
+        if (group.id === "overview" && group.items.length === 1) return navLink(group.items[0], false);
+        const isOpen = openGroups.has(group.id);
+        const panelId = `admin-nav-${group.id}`;
+        return (
+          <li key={group.id}>
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              aria-controls={panelId}
+              onClick={() => {
+                toggle(group.id);
+              }}
+              className={cn("admin-nav-group", group.id === activeGroupId && "has-active")}
+            >
+              <span className="min-w-0 flex-1 truncate text-left">{t(group.labelKey)}</span>
+              <ChevronDown size={16} aria-hidden="true" className="admin-nav-chevron shrink-0" />
+            </button>
+            <div id={panelId} className="nav-collapse" data-open={isOpen} inert={!isOpen}>
+              <div>
+                <ul className="flex flex-col gap-0.5 pb-2 pt-1">{group.items.map((item) => navLink(item, true))}</ul>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -469,6 +464,7 @@ function AdminMobileDrawer({
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.id)}
+                    aria-expanded={!isCollapsed}
                     className="flex min-h-11 w-full items-center justify-between px-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     <span>{t(group.labelKey)}</span>
@@ -477,8 +473,9 @@ function AdminMobileDrawer({
                     </span>
                   </button>
 
-                  {!isCollapsed ? (
-                    <div className="space-y-1">
+                  <div className="nav-collapse" data-open={!isCollapsed} inert={isCollapsed}>
+                    <div>
+                    <div className="space-y-1 pb-1">
                       {group.items.map((item) => {
                         const isActive = activeItem?.id === item.id;
                         const Icon = item.icon;
@@ -519,7 +516,8 @@ function AdminMobileDrawer({
                         );
                       })}
                     </div>
-                  ) : null}
+                    </div>
+                  </div>
                 </div>
               );
             })
@@ -589,7 +587,7 @@ export function AdminLayout() {
             </div>
           </div>
           <nav aria-label={t("nav.label")} className="admin-nav-scroll flex-1 overflow-y-auto px-3 py-5">
-            <AdminNavList key={activeGroup?.id ?? "none"} groups={groups} location={location} />
+            <AdminNavList groups={groups} location={location} />
           </nav>
           <div className="border-t border-white/10 px-4 py-4">
             <div className="mb-3 flex min-w-0 items-center gap-2.5">

@@ -1,5 +1,6 @@
 export {
   COMMUNITY_CATEGORIES,
+  COMMUNITY_IMAGE,
   COMMUNITY_LIMITS,
   COMMUNITY_REPORT_REASONS,
   createCommunityComment,
@@ -8,6 +9,7 @@ export {
   listCommunityPosts,
   reportCommunityContent,
   setCommunityReaction,
+  uploadCommunityPostImage,
   type CommunityCategory,
   type CommunityCommentApi,
   type CommunityPageApi,
@@ -27,5 +29,6 @@ export {
   useCommunityReaction,
   useCreateCommunityComment,
   useCreateCommunityPost,
+  useCommunityTagSuggestions,
   useReportCommunityContent,
 } from "./hooks";

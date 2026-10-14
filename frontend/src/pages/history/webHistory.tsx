@@ -1,11 +1,13 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, CheckCircle2, ChevronRight, LineChart } from "lucide-react";
 import { CatAvatar } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
-import { PhGaugeBar, findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import { displayableScanCount } from "@/entities/scan-result";
 import type { ScanListItem, ScanSummary } from "@/entities/scan-result";
-import { PhBandLegendRow, type HistoryFilterKey } from "@/features/history";
+import { ActivityChart, type HistoryFilterKey } from "@/features/history";
+import { HistorySpectrumCard } from "./HistorySpectrumCard";
 
 import tipScanFrequency from "@/shared/assets/images/web-history/tip-scan-frequency.jpg";
 
@@ -28,6 +30,11 @@ export interface WebHistoryScreenProps {
   bands: PhBand[];
   summary: ScanSummary | undefined;
   groups: [string, ScanListItem[]][];
+  activityItems: ScanListItem[];
+  selectedDay: string | null;
+  onSelectDay: (day: string | null) => void;
+  toolbar: ReactNode;
+  filteredEmpty: ReactNode;
   totalLoaded: number;
   totalRecords: number | null;
   filter: HistoryFilterKey;
@@ -53,6 +60,11 @@ export function WebHistoryScreen({
   bands,
   summary,
   groups,
+  activityItems,
+  selectedDay,
+  onSelectDay,
+  toolbar,
+  filteredEmpty,
   totalLoaded,
   totalRecords,
   filter,
@@ -72,6 +84,7 @@ export function WebHistoryScreen({
 }: WebHistoryScreenProps) {
   const { t } = useTranslation(["history", "common"]);
   const dash = t("web.valueUnavailable");
+
 
   const header = (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
@@ -172,11 +185,12 @@ export function WebHistoryScreen({
             ) : null}
           </div>
           <div className="border-t border-border pt-4">
-            <p className="text-body font-bold text-text-primary">{t("spectrum.title")}</p>
-            <div className="flex flex-col gap-2 pt-3">
-              <PhGaugeBar bands={bands} value={summary?.median ?? null} />
-              <PhBandLegendRow bands={bands} />
-            </div>
+            <HistorySpectrumCard
+              bands={bands}
+              median={summary?.median ?? null}
+              scanCount={summary ? displayableScanCount(summary) : 0}
+              className="bg-transparent p-0 shadow-none sm:p-0"
+            />
           </div>
         </Panel>
 
@@ -200,6 +214,14 @@ export function WebHistoryScreen({
             <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
           </button>
         </Panel>
+
+        {activityItems.length > 0 && (
+          <div className="col-span-12">
+            <Panel>
+              <ActivityChart items={activityItems} selectedDay={selectedDay} onSelectDay={onSelectDay} />
+            </Panel>
+          </div>
+        )}
 
         <div className="col-span-12">
           <Panel className="flex flex-col gap-6">
@@ -238,12 +260,15 @@ export function WebHistoryScreen({
             </div>
 
             <div key={filter} className="tab-content-enter flex flex-col gap-6">
+              {toolbar}
               {isPending ? (
                 <div className="flex flex-col gap-4">
                   {[0, 1, 2].map((i) => (
                     <div key={i} className="h-20 animate-pulse rounded-2xl bg-background-alt" />
                   ))}
                 </div>
+              ) : filteredEmpty ? (
+                filteredEmpty
               ) : groups.length === 0 ? (
                 <div className="flex flex-col items-start gap-3 rounded-2xl bg-background-alt p-8">
                   <p className="text-h3 font-bold text-text-primary">{t("state.emptyTitle")}</p>

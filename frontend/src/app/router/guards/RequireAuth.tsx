@@ -6,8 +6,7 @@ export function RequireAuth() {
   const status = useSessionStore((state) => state.status);
   const location = useLocation();
 
-  // Wait for session to load
-  if (status === "loading") {
+  if (status === "idle" || status === "loading") {
     return null;
   }
 

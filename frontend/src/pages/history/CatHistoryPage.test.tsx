@@ -7,6 +7,7 @@ const data = vi.hoisted((): { summary?: unknown; history?: unknown } => ({}));
 
 vi.mock("@/features/history/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("@/features/export/mocks", () => ({ handlers: [], worker: {} }));
+vi.mock("@/features/scan/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("@/features/history", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/history")>()),
   useCat: () => ({ data: { id: "c1", name: "Mướp", sex: "FEMALE" } }),

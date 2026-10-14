@@ -139,3 +139,22 @@ export function useCommunityReaction() {
 export function useReportCommunityContent() {
   return useMutation({ mutationFn: reportCommunityContent });
 }
+
+export function useCommunityTagSuggestions(limit = 12): string[] {
+  const queryClient = useQueryClient();
+  const counts = new Map<string, number>();
+  for (const [, data] of queryClient.getQueriesData<InfiniteData<CommunityPageApi>>({ queryKey: communityKeys.feeds() })) {
+    data?.pages.forEach((page) => {
+      page.items.forEach((post) => {
+        post.tags.forEach((tag) => {
+          const key = tag.replace(/^#+/, "").trim().toLowerCase();
+          if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+        });
+      });
+    });
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([tag]) => tag);
+}

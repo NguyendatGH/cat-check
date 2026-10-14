@@ -3,13 +3,17 @@ import { I18nProvider } from "./I18nProvider";
 import { QueryProvider } from "./QueryProvider";
 import { SessionProvider } from "./SessionProvider";
 import { ToastProvider } from "./ToastProvider";
+import { SplashHost } from "@/shared/ui/BrandSplash";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <I18nProvider>
       <QueryProvider>
         <SessionProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            {children}
+            <SplashHost />
+          </ToastProvider>
         </SessionProvider>
       </QueryProvider>
     </I18nProvider>

@@ -53,3 +53,6 @@ export type { SwitchProps } from "./Switch";
 
 export { Stepper } from "./Stepper";
 export type { StepperProps } from "./Stepper";
+
+export { Pagination } from "./Pagination";
+export type { PaginationProps } from "./Pagination";

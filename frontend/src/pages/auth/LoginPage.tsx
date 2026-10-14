@@ -3,7 +3,10 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
-import { AtSign, ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { loadSession, useSessionStore } from "@/entities/user";
+import { playSplash } from "@/shared/lib/motion/splash";
+import { ArrowLeft, AtSign, ArrowRight, Check, ExternalLink, KeyRound, ShieldCheck } from "lucide-react";
 import { Button, Input, Switch } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import appLogo from "@/shared/assets/images/web-auth/logo.png";
@@ -11,9 +14,9 @@ import portalBadge from "@/shared/assets/icons/web-auth/portal-badge.svg";
 import cloudShield from "@/shared/assets/icons/web-auth/cloud-shield.svg";
 import { LoginShowcase } from "./LoginShowcase";
 import { AuthCard } from "./AuthCard";
-import { resolveRedirectTarget } from "./loginRedirect";
 import {
   GoogleAuthButton,
+  OtpCodeInput,
   InlineAlert,
   PasswordField,
   isMfaChallenge,
@@ -23,9 +26,8 @@ import {
   useLogin,
   useVerifyLoginRecoveryCode,
   useVerifyLoginTotp,
-  apiFetch,
   type LoginFieldValues,
-  type SessionBootstrapResponse,
+  type OtpStatus,
 } from "@/features/auth";
 
 export function LoginPage() {
@@ -44,13 +46,15 @@ export function LoginPage() {
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaError, setMfaError] = useState<string | null>(null);
+  const [mfaStatus, setMfaStatus] = useState<OtpStatus>("idle");
+  const [mfaErrorSignal, setMfaErrorSignal] = useState(0);
   const mfaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (pendingLoginMfaMethods) {
+    if (pendingLoginMfaMethods && useRecoveryCode) {
       mfaInputRef.current?.focus();
     }
-  }, [pendingLoginMfaMethods]);
+  }, [pendingLoginMfaMethods, useRecoveryCode]);
 
   useEffect(() => {
     if (searchParams.get("error") === "oauth_cancelled") {
@@ -68,8 +72,13 @@ export function LoginPage() {
     defaultValues: { email: "", password: "", rememberMe: true },
   });
 
-  const redirectAfterLogin = (roles?: readonly string[]) => {
-    window.location.assign(resolveRedirectTarget(searchParams.get("next"), roles));
+  const queryClient = useQueryClient();
+  const setSession = useSessionStore((state) => state.setSession);
+  const enterApp = () => {
+    playSplash(loadSession(), (user) => {
+      queryClient.removeQueries();
+      setSession(user);
+    });
   };
 
   const onSubmit = async (values: LoginFieldValues) => {
@@ -80,7 +89,7 @@ export function LoginPage() {
         setPendingLoginMfaMethods(result.mfaMethods);
         return;
       }
-      redirectAfterLogin(result.roles);
+      enterApp();
     } catch (error) {
       const code = isApiError(error) ? error.code : undefined;
       if (code === "ACCOUNT_LOCKED") {
@@ -99,17 +108,20 @@ export function LoginPage() {
     }
   };
 
-  const onSubmitMfa = async () => {
+  const onSubmitMfa = async (code = mfaCode) => {
     setMfaError(null);
+    setMfaStatus("verifying");
     try {
       if (useRecoveryCode) {
-        await verifyRecovery.mutateAsync(mfaCode);
+        await verifyRecovery.mutateAsync(code);
       } else {
-        await verifyTotp.mutateAsync(mfaCode);
+        await verifyTotp.mutateAsync(code);
       }
-      const session = await apiFetch<SessionBootstrapResponse>("/auth/session").catch(() => null);
-      redirectAfterLogin(session?.authenticated ? session.roles : undefined);
+      setMfaStatus("success");
+      enterApp();
     } catch (error) {
+      setMfaStatus("error");
+      setMfaErrorSignal((n) => n + 1);
       if (isApiError(error) && error.code === "TOTP_INVALID") {
         setMfaError(t("mfa.errors.invalidCode"));
       } else if (isApiError(error) && error.code === "TOTP_LOCKED") {
@@ -126,60 +138,101 @@ export function LoginPage() {
 
   if (pendingLoginMfaMethods) {
     const isBusy = verifyTotp.isPending || verifyRecovery.isPending;
+    const canSubmit = useRecoveryCode ? mfaCode.length > 0 : mfaCode.length === 6;
     return (
       <AuthCard>
-        <header className="flex flex-col gap-1 text-center">
-          <h1 className="text-h2 font-bold text-text-primary">{t("mfa.title")}</h1>
-          <p className="text-caption text-text-secondary">
-            {useRecoveryCode ? t("mfa.recoverySubtitle") : t("mfa.totpSubtitle")}
-          </p>
-        </header>
+        <div className="flex flex-col items-center gap-6">
+          <header className="flex flex-col items-center gap-3 text-center">
+            <span className="content-enter flex size-14 items-center justify-center rounded-2xl bg-chip-bg text-primary-dark">
+              {useRecoveryCode ? <KeyRound size={26} aria-hidden="true" /> : <ShieldCheck size={26} aria-hidden="true" />}
+            </span>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-h2 font-bold text-text-primary">{t("mfa.title")}</h1>
+              <p className="max-w-xs text-caption leading-relaxed text-text-secondary">
+                {useRecoveryCode ? t("mfa.recoverySubtitle") : t("mfa.totpSubtitle")}
+              </p>
+            </div>
+          </header>
 
-        <Input
-          ref={mfaInputRef}
-          label={useRecoveryCode ? t("mfa.fields.recoveryCode.label") : t("mfa.fields.code.label")}
-          inputMode={useRecoveryCode ? "text" : "numeric"}
-          maxLength={useRecoveryCode ? 24 : 6}
-          value={mfaCode}
-          onChange={(event) => {
-            setMfaCode(event.target.value.trim());
-          }}
-          error={mfaError ?? undefined}
-        />
+          <div key={useRecoveryCode ? "recovery" : "totp"} className="content-enter w-full">
+            {useRecoveryCode ? (
+              <Input
+                ref={mfaInputRef}
+                label={t("mfa.fields.recoveryCode.label")}
+                inputMode="text"
+                autoComplete="one-time-code"
+                maxLength={24}
+                value={mfaCode}
+                onChange={(event) => {
+                  setMfaCode(event.target.value.trim());
+                  setMfaError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && canSubmit && !isBusy) void onSubmitMfa();
+                }}
+                error={mfaError ?? undefined}
+              />
+            ) : (
+              <OtpCodeInput
+                value={mfaCode}
+                onChange={(next) => {
+                  setMfaCode(next);
+                  setMfaError(null);
+                  if (mfaStatus === "error") setMfaStatus("idle");
+                }}
+                onComplete={(full) => {
+                  if (!isBusy) void onSubmitMfa(full);
+                }}
+                error={mfaError ?? undefined}
+                errorSignal={mfaErrorSignal}
+                status={mfaStatus}
+                disabled={isBusy}
+                focusOnMount
+              />
+            )}
+          </div>
 
-        <Button
-          type="button"
-          size="lg"
-          loading={isBusy}
-          disabled={!mfaCode || isBusy}
-          onClick={() => {
-            void onSubmitMfa();
-          }}
-        >
-          {t("mfa.submit")}
-        </Button>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            loading={isBusy}
+            disabled={!canSubmit || isBusy}
+            onClick={() => {
+              void onSubmitMfa();
+            }}
+          >
+            {t("mfa.submit")}
+          </Button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setUseRecoveryCode((v) => !v);
-            setMfaCode("");
-            setMfaError(null);
-          }}
-          className="min-h-11 text-caption font-semibold text-primary hover:underline"
-        >
-          {useRecoveryCode ? t("mfa.useTotpInstead") : t("mfa.useRecoveryInstead")}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setPendingLoginMfaMethods(null);
-          }}
-          className="min-h-11 text-caption text-text-tertiary hover:underline"
-        >
-          {t("mfa.backToLogin")}
-        </button>
+          <div className="flex w-full flex-col items-center gap-1 border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setUseRecoveryCode((v) => !v);
+                setMfaCode("");
+                setMfaError(null);
+                setMfaStatus("idle");
+              }}
+              className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-caption font-semibold text-primary transition-colors hover:bg-chip-bg"
+            >
+              {useRecoveryCode ? <ShieldCheck size={15} aria-hidden="true" /> : <KeyRound size={15} aria-hidden="true" />}
+              {useRecoveryCode ? t("mfa.useTotpInstead") : t("mfa.useRecoveryInstead")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingLoginMfaMethods(null);
+                setMfaCode("");
+                setMfaStatus("idle");
+              }}
+              className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-caption text-text-tertiary transition-colors hover:text-text-secondary"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              {t("mfa.backToLogin")}
+            </button>
+          </div>
+        </div>
       </AuthCard>
     );
   }

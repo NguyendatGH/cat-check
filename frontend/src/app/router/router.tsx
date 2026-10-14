@@ -1,5 +1,5 @@
 import { createBrowserRouter, useLocation, type RouteObject } from "react-router";
-import { lazy, Suspense, useRef, type ReactNode } from "react";
+import { Suspense, useRef, type ReactNode } from "react";
 import { DelayedFallback, PageSkeleton } from "@/shared/ui";
 import { ComingSoonPage } from "@/pages/system/ComingSoonPage";
 import { featureFlags, type FeatureFlagKey } from "@/shared/config/featureFlags";
@@ -15,11 +15,11 @@ import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
 import { RequireAuth } from "./guards/RequireAuth";
 import { RequireOnboarding } from "./guards/RequireOnboarding";
 import { RequireRole } from "./guards/RequireRole";
+import { RequireNonAdminRole } from "./guards/RequireNonAdminRole";
 import { RedirectIfAuthenticated } from "./guards/RedirectIfAuthenticated";
-import { LazyPages } from "./lazy";
+import { LazyAdminLayout as AdminLayout, LazyPages } from "./lazy";
 import { ROLES } from "@/shared/auth/roles";
 
-const AdminLayout = lazy(() => import("../layouts/AdminLayout").then((module) => ({ default: module.AdminLayout })));
 
 function PageEntrance({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -277,9 +277,11 @@ export const routes: RouteObject[] = [
       {
         path: "/dashboard",
         element: (
-          <PageSuspense>
-            <LazyPages.dashboard />
-          </PageSuspense>
+          <RequireNonAdminRole>
+            <PageSuspense>
+              <LazyPages.dashboard />
+            </PageSuspense>
+          </RequireNonAdminRole>
         ),
       },
       {
@@ -348,6 +350,14 @@ export const routes: RouteObject[] = [
           {
             element: <AppLayout />,
             children: [
+              {
+                path: "/scan/select-cat",
+                element: (
+                  <PageSuspense>
+                    <LazyPages.selectCat />
+                  </PageSuspense>
+                ),
+              },
               {
                 path: "/assistant",
                 element: (
@@ -485,14 +495,6 @@ export const routes: RouteObject[] = [
           {
             element: <TaskLayout />,
             children: [
-              {
-                path: "/scan/select-cat",
-                element: (
-                  <PageSuspense>
-                    <LazyPages.selectCat />
-                  </PageSuspense>
-                ),
-              },
               {
                 path: "/cats/new",
                 element: (

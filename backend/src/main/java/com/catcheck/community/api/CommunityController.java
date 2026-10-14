@@ -7,12 +7,16 @@ import com.catcheck.community.api.dto.CommunityReactionRequest;
 import com.catcheck.community.api.dto.CommunityReportRequest;
 import com.catcheck.community.api.dto.CreateCommunityCommentRequest;
 import com.catcheck.community.api.dto.CreateCommunityPostRequest;
+import com.catcheck.community.application.CommunityPostImageService;
 import com.catcheck.community.application.CommunityService;
 import com.catcheck.shared.security.CurrentUser;
 import com.catcheck.shared.security.SecurityPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,8 +27,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,8 +40,12 @@ import java.util.UUID;
 @RequestMapping("/api/v1/community")
 public class CommunityController {
     private final CommunityService service;
+    private final CommunityPostImageService imageService;
 
-    public CommunityController(CommunityService service) { this.service = service; }
+    public CommunityController(CommunityService service, CommunityPostImageService imageService) {
+        this.service = service;
+        this.imageService = imageService;
+    }
 
     @GetMapping("/posts")
     @Operation(operationId = "listCommunityPosts")
@@ -59,6 +71,29 @@ public class CommunityController {
                                                         @Valid @RequestBody CreateCommunityPostRequest request) {
         var post = service.createPost(user.userId(), request.category(), request.title(), request.body(), request.tags() == null ? List.of() : request.tags());
         return ResponseEntity.created(URI.create("/api/v1/community/posts/" + post.id())).body(CommunityPostResponse.from(post));
+    }
+
+    @PostMapping(value = "/posts/{postId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(operationId = "uploadCommunityPostImage", summary = "Gan anh cho bai viet cua chinh minh")
+    public CommunityPostResponse uploadImage(@CurrentUser SecurityPrincipal user, @PathVariable UUID postId,
+                                             @RequestParam("file") MultipartFile file) {
+        try {
+            var post = imageService.replaceImage(user.userId(), postId, new CommunityPostImageService.ImageInput(
+                    file.getContentType(), file.getInputStream(), file.getSize()));
+            return CommunityPostResponse.from(post);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
+    @GetMapping("/posts/{postId}/image")
+    @Operation(operationId = "getCommunityPostImage", summary = "Anh dinh kem cua bai viet")
+    public ResponseEntity<InputStreamResource> image(@PathVariable UUID postId) {
+        var image = imageService.openImage(postId);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofMinutes(10)).cachePublic())
+                .contentType(MediaType.parseMediaType(image.contentType()))
+                .body(new InputStreamResource(image.content()));
     }
 
     @PostMapping("/posts/{postId}/comments")

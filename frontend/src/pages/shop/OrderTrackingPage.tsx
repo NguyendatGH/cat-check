@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
+import { CONFETTI_CLASSES, CONFETTI_COUNT, useOrderCelebration } from "./useOrderCelebration";
 import {
   Banknote,
   Check,
@@ -64,6 +65,11 @@ export function OrderTrackingPage() {
   const { t } = useTranslation("shop");
   const { orderId } = useParams<{ orderId: string }>();
   const orderQuery = useShopOrder(orderId);
+  const location = useLocation();
+  const [justPlaced] = useState(() => (location.state as { justPlaced?: boolean } | null)?.justPlaced === true);
+  const celebrateRef = useRef<HTMLElement>(null);
+  const celebrate = justPlaced && orderQuery.data !== undefined && orderQuery.data.status !== "CANCELLED";
+  useOrderCelebration(celebrateRef, celebrate);
 
   const notFound = !isShopId(orderId) || (isApiError(orderQuery.error) && orderQuery.error.status === 404);
   if (notFound) {
@@ -114,17 +120,41 @@ export function OrderTrackingPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <section className="rounded-2xl bg-surface p-5 shadow-brand-md md:p-6">
+      <section ref={celebrateRef} className="rounded-2xl bg-surface p-5 shadow-brand-md md:p-6">
         <div className="flex flex-col items-center gap-4 text-center md:flex-row md:items-start md:text-left">
-          <span
-            className={cn(
-              "flex size-16 shrink-0 items-center justify-center rounded-2xl",
-              cancelled ? "bg-danger-bg text-danger-text" : "bg-success-bg text-success-text",
-            )}
-          >
-            {cancelled ? <X size={30} aria-hidden="true" /> : <CircleCheckBig size={30} aria-hidden="true" />}
+          <span className="relative shrink-0">
+            {celebrate ? (
+              <>
+                <span
+                  data-celebrate="ring"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-success opacity-0"
+                />
+                {Array.from({ length: CONFETTI_COUNT }, (_, i) => (
+                  <span
+                    key={i}
+                    data-celebrate="confetti"
+                    aria-hidden="true"
+                    className={cn(
+                      "pointer-events-none absolute left-1/2 top-1/2 -ml-1 -mt-1 opacity-0",
+                      i % 3 === 0 ? "size-2 rounded-full" : "h-2.5 w-1.5 rounded-[2px]",
+                      CONFETTI_CLASSES[i % CONFETTI_CLASSES.length],
+                    )}
+                  />
+                ))}
+              </>
+            ) : null}
+            <span
+              data-celebrate="icon"
+              className={cn(
+                "relative flex size-16 items-center justify-center rounded-2xl",
+                cancelled ? "bg-danger-bg text-danger-text" : "bg-success-bg text-success-text",
+              )}
+            >
+              {cancelled ? <X size={30} aria-hidden="true" /> : <CircleCheckBig size={30} aria-hidden="true" />}
+            </span>
           </span>
-          <div className="min-w-0 flex-1">
+          <div data-celebrate="text" className="min-w-0 flex-1">
             <h1 className="text-[22px] font-bold leading-tight text-text-primary md:text-[26px]">
               {t(cancelled ? "order.cancelledTitle" : "order.successTitle")}
             </h1>
@@ -132,7 +162,7 @@ export function OrderTrackingPage() {
               {t(cancelled ? "order.cancelledBody" : "order.successBody")}
             </p>
           </div>
-          <div className="hidden shrink-0 gap-2 md:flex">
+          <div data-celebrate="text" className="hidden shrink-0 gap-2 md:flex">
             <Link
               to="/dashboard"
               className="flex items-center gap-1.5 rounded-xl bg-chip-bg px-4 py-2.5 text-[13px] font-semibold text-primary-dark hover:bg-info"
@@ -149,7 +179,7 @@ export function OrderTrackingPage() {
           </div>
         </div>
 
-        <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl bg-background-alt/60 p-4 md:grid-cols-4">
+        <dl data-celebrate="text" className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl bg-background-alt/60 p-4 md:grid-cols-4">
           <InfoCell label={t("order.codeLabel")} className="col-span-2 md:col-span-1">
             <span className="flex items-center gap-1">
               <span className="truncate font-bold text-primary-dark">#{order.orderCode}</span>

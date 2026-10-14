@@ -1,19 +1,19 @@
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useSearchParams } from "react-router";
 import { useSessionStore } from "@/entities/user";
-import { defaultLandingPath } from "@/shared/auth/landing";
+import { defaultLandingPath, resolveRedirectTarget } from "@/shared/auth/landing";
 
 export function RedirectIfAuthenticated() {
   const status = useSessionStore((state) => state.status);
   const roles = useSessionStore((state) => state.user?.roles);
+  const [searchParams] = useSearchParams();
 
-  // Wait for session to load
-  if (status === "loading") {
+  if (status === "idle" || status === "loading") {
     return null;
   }
 
-  // Redirect authenticated users away from auth pages
   if (status === "authenticated") {
-    return <Navigate to={defaultLandingPath(roles)} replace />;
+    const target = roles?.length ? resolveRedirectTarget(searchParams.get("next"), roles) : defaultLandingPath(roles);
+    return <Navigate to={target} replace />;
   }
 
   return <Outlet />;

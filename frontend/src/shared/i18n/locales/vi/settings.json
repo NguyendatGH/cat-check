@@ -225,7 +225,13 @@
     "avatarHelp": "Ảnh hiển thị ở góc trên của ứng dụng. Chỉ bạn nhìn thấy ảnh này.",
     "avatarSaved": "Đã cập nhật ảnh đại diện.",
     "avatarRemoved": "Đã gỡ ảnh đại diện.",
-    "avatarFailed": "Chưa cập nhật được ảnh đại diện. Vui lòng thử lại."
+    "avatarFailed": "Chưa cập nhật được ảnh đại diện. Vui lòng thử lại.",
+    "unsaved": "Có thay đổi chưa lưu",
+    "myCats": {
+      "title": "Bé mèo của tôi",
+      "count": "{{count}} bé · Quản lý hồ sơ, thêm bé mới",
+      "empty": "Chưa có bé nào · Thêm hồ sơ bé mèo"
+    }
   },
   "security": {
     "intro": "Mật khẩu, xác thực hai lớp và danh sách thiết bị đang đăng nhập.",

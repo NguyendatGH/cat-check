@@ -86,7 +86,7 @@ export function CheckoutPage() {
       },
       {
         onSuccess: (order) => {
-          void navigate(`/orders/${order.id}`, { replace: true });
+          void navigate(`/orders/${order.id}`, { replace: true, state: { justPlaced: true } });
         },
       },
     );

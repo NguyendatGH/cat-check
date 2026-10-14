@@ -566,7 +566,7 @@ export function ConfirmDialog({
 }
 
 
-function EmergencyContent({ showTitle = true }: { showTitle?: boolean }) {
+export function EmergencyContent({ showTitle = true }: { showTitle?: boolean }) {
   const { t } = useTranslation("cat");
   const points = t("disclaimer.emergency.points", { returnObjects: true }) as string[];
   return (

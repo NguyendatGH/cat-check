@@ -1,5 +1,5 @@
+export { OtpCodeInput, type OtpStatus } from "./OtpCodeInput";
 export {
-  OtpCodeInput,
   PasswordField,
   PasswordStrengthMeter,
   ResendCountdown,

@@ -13,7 +13,14 @@ import {
 } from "lucide-react";
 import { Button, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
-import { findBandForPh, PhGaugeBar, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { PhGaugeCircular } from "@/features/scan";
+
+const ASSESSMENT_KEY = {
+  NORMAL: "overview.assessment.good",
+  ATTENTION: "overview.assessment.attention",
+  WATCH: "overview.assessment.abnormal",
+} as const;
 import type { ScanSummary } from "@/entities/scan-result";
 import type { CatSummaryResponse } from "@/features/cat";
 import { useScanHistory } from "@/features/history";
@@ -77,9 +84,14 @@ export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary:
           <ShieldCheck className="mt-px size-4 shrink-0 text-primary" aria-hidden="true" />
           {t("overview.biomarkerEyebrow")}
         </p>
-        <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-small font-semibold", style.bg, style.text)}>
-          {band?.severity === "NORMAL" ? t("overview.biomarkerStable") : t("overview.biomarkerWatch")}
-        </span>
+        {band && band.severity in ASSESSMENT_KEY ? (
+          <span
+            title={t("overview.assessmentHint")}
+            className={cn("shrink-0 rounded-full px-2.5 py-1 text-small font-semibold", style.bg, style.text)}
+          >
+            {t(ASSESSMENT_KEY[band.severity as keyof typeof ASSESSMENT_KEY])}
+          </span>
+        ) : null}
       </div>
 
       {phValue == null ? (
@@ -88,20 +100,23 @@ export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary:
           <p className="pt-1 text-caption leading-relaxed text-text-secondary">{t("overview.biomarkerNoDataBody")}</p>
         </>
       ) : (
-        <>
-          <p className="pt-2 text-h3 font-bold text-text-primary">{band?.label ?? lastScan?.classification}</p>
-          <p className="pt-1 text-caption leading-relaxed text-text-secondary">
-            {t("overview.biomarkerBody", { count: summary?.scanCount30d ?? 0 })}
-          </p>
-
-          <div className="flex flex-wrap items-baseline justify-between gap-2 pt-4">
-            <span className="text-small text-text-tertiary">
-              {t("overview.biomarkerCurrent", { value: phValue.toFixed(1) })}
-            </span>
-            {rangeLabel ? <span className={cn("text-small font-semibold", style.text)}>{rangeLabel}</span> : null}
+        <div className="flex items-center gap-3 pt-3">
+          <PhGaugeCircular
+            bands={bands}
+            value={phValue}
+            activeBand={band ?? undefined}
+            variant="dial"
+            size="xs"
+            className="shrink-0"
+          />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <p className="text-h3 font-bold leading-tight text-text-primary">{band?.label ?? lastScan?.classification}</p>
+            {rangeLabel ? <p className={cn("text-small font-semibold", style.text)}>{rangeLabel}</p> : null}
+            <p className="text-caption leading-relaxed text-text-secondary">
+              {t("overview.biomarkerBody", { count: summary?.scanCount30d ?? 0 })}
+            </p>
           </div>
-          <PhGaugeBar bands={bands} value={phValue} className="pt-1.5" />
-        </>
+        </div>
       )}
     </section>
   );

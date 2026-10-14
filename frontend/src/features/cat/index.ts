@@ -7,6 +7,7 @@ export {
   ClinicalSignPicker,
   ConfirmDialog,
   EmergencyDisclaimerBanner,
+  EmergencyContent,
   FieldError,
   OptionCard,
   PrimaryBadge,

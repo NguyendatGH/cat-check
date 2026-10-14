@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
-import { Archive, ArchiveRestore, Crown, MoreVertical, Pencil, Plus, Stethoscope, Trash2 } from "lucide-react";
+import { AlertTriangle, Archive, ArchiveRestore, Crown, MoreVertical, Pencil, Plus, Stethoscope, Trash2 } from "lucide-react";
 import {
   Badge,
   Button,
@@ -37,7 +37,7 @@ import {
   ClinicalSignPicker,
   clinicalSignFormSchema,
   ConfirmDialog,
-  EmergencyDisclaimerBanner,
+  EmergencyContent,
   FieldError,
   OptionCard,
   SectionHeading,
@@ -73,6 +73,7 @@ import {
 } from "@/features/history";
 import { useExportWizardStore } from "@/features/export";
 import { useScanCaptureStore } from "@/features/scan";
+import { CatEmergencyAlert } from "./CatEmergencyAlert";
 import { HealthFlagDisclosure } from "@/features/insight";
 import { CatClinicalColumn, CatIdentityExtras, CatProfileBar } from "./CatMedicalPanels";
 import { CatProfileHero } from "./CatProfileHero";
@@ -99,6 +100,7 @@ export function CatDetailPage() {
   const softDelete = useSoftDeleteCat(catId ?? "");
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"archive" | "unarchive" | "delete" | "setPrimary" | null>(null);
   const [surveyDialogOpen, setSurveyDialogOpen] = useState(false);
   const [signsDialogOpen, setSignsDialogOpen] = useState(false);
@@ -131,7 +133,6 @@ export function CatDetailPage() {
     );
   }
 
-  const flagged = (cat.unacknowledgedFlagCount ?? 0) > 0;
 
   const runAction = async () => {
     try {
@@ -212,7 +213,14 @@ export function CatDetailPage() {
           <div className="grid grid-cols-12 items-start gap-6">
             <div className="col-span-5 flex flex-col gap-6">
               <CatProfileHero cat={cat} menu={menuButton} />
-              <EmergencyDisclaimerBanner forceExpanded={flagged} />
+              <CatEmergencyAlert
+                catId={catId}
+                flagCount={cat.unacknowledgedFlagCount ?? 0}
+                lastScanAt={cat.lastScanAt}
+                onOpenDetails={() => {
+                  setEmergencyOpen(true);
+                }}
+              />
               <HealthFlagDisclosure catId={catId} count={cat.unacknowledgedFlagCount ?? 0} />
               <CatInfoCard cat={cat} />
               <CatIdentityExtras />
@@ -246,7 +254,14 @@ export function CatDetailPage() {
       ) : (
         <>
           <CatProfileHero cat={cat} menu={menuButton} />
-          <EmergencyDisclaimerBanner forceExpanded={flagged} />
+          <CatEmergencyAlert
+              catId={catId}
+              flagCount={cat.unacknowledgedFlagCount ?? 0}
+              lastScanAt={cat.lastScanAt}
+              onOpenDetails={() => {
+                setEmergencyOpen(true);
+              }}
+            />
           <HealthFlagDisclosure catId={catId} count={cat.unacknowledgedFlagCount ?? 0} />
 
           <Tabs defaultValue="overview">
@@ -287,6 +302,15 @@ export function CatDetailPage() {
         <DialogContent aria-label={t("actions.moreActions")}>
           <DialogTitle>{t("actions.moreActions")}</DialogTitle>
           <div className="mt-4 flex flex-col gap-1">
+            <ListItem
+              leading={<AlertTriangle className="size-5 text-danger-text" aria-hidden="true" />}
+              title={t("actions.emergencySigns")}
+              subtitle={t("actions.emergencySignsHint")}
+              onClick={() => {
+                setMenuOpen(false);
+                setEmergencyOpen(true);
+              }}
+            />
             <ListItem
               leading={<Pencil className="size-5" aria-hidden="true" />}
               title={t("actions.edit")}
@@ -332,6 +356,18 @@ export function CatDetailPage() {
                 setConfirmAction("delete");
               }}
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emergencyOpen} onOpenChange={setEmergencyOpen}>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+          <DialogTitle className="flex items-start gap-2 pr-10 text-danger-text">
+            <AlertTriangle className="mt-1 size-5 shrink-0" aria-hidden="true" />
+            {t("actions.emergencySigns")}
+          </DialogTitle>
+          <div className="mt-3 rounded-xl bg-danger-bg p-4">
+            <EmergencyContent showTitle={false} />
           </div>
         </DialogContent>
       </Dialog>

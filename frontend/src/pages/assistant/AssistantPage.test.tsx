@@ -5,20 +5,23 @@ import { AssistantPage } from "./AssistantPage";
 
 const chat = vi.hoisted(() => ({ chatWithAssistant: vi.fn() }));
 
-vi.mock("@/features/assistant", () => ({ chatWithAssistant: chat.chatWithAssistant }));
+vi.mock("@/features/assistant", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/assistant")>()),
+  chatWithAssistant: chat.chatWithAssistant,
+}));
 vi.mock("@/features/cat", () => ({
   useCatList: () => ({
     data: {
       items: [
-        { id: "cat-a", name: "Mướp", isPrimary: true },
-        { id: "cat-b", name: "Mun", isPrimary: false },
+        { id: "cat-a", name: "Mướp", isPrimary: true, avatarUrl: null },
+        { id: "cat-b", name: "Mun", isPrimary: false, avatarUrl: null },
       ],
     },
   }),
 }));
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "vi" } }),
 }));
 
 beforeEach(() => {
@@ -49,8 +52,11 @@ describe("AssistantPage — đổi bé trong lúc trò chuyện", () => {
     });
 
     const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
-    const select = container.querySelector("select") as HTMLSelectElement;
-    expect(select.value).toBe("cat-a");
+    const catChip = (name: string) =>
+      Array.from(container.querySelectorAll<HTMLButtonElement>('[role="radio"]')).find((chip) =>
+        chip.textContent.includes(name),
+      ) as HTMLButtonElement;
+    expect(catChip("Mướp").getAttribute("aria-checked")).toBe("true");
 
     const type = (value: string) => {
       act(() => {
@@ -78,9 +84,9 @@ describe("AssistantPage — đổi bé trong lúc trò chuyện", () => {
     expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(2, "Còn thức ăn?", "conv-1", "cat-a");
 
     act(() => {
-      select.value = "cat-b";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
+      catChip("Mun").click();
     });
+    expect(catChip("Mun").getAttribute("aria-checked")).toBe("true");
     type("Bé này thì sao?");
     await send();
     expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(3, "Bé này thì sao?", undefined, "cat-b");

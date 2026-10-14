@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
 import { ArrowLeft, Bookmark, ChevronRight, FileQuestion, Send, Share2 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { formatNumber } from "@/shared/lib/format/formatNumber";
@@ -144,6 +144,8 @@ function DetailTopBar({ post }: { post: CommunityPostApi }) {
 
 function PostArticle({ post }: { post: CommunityPostApi }) {
   const { t } = useTranslation("community");
+  const location = useLocation();
+  const imageUploadFailed = (location.state as { imageUploadFailed?: boolean } | null)?.imageUploadFailed === true;
   return (
     <article className="rounded-2xl bg-surface p-4 shadow-brand-md lg:p-7">
       <header className="flex items-start gap-3">
@@ -162,6 +164,11 @@ function PostArticle({ post }: { post: CommunityPostApi }) {
       </p>
 
       {post.imageUrl ? <img src={post.imageUrl} alt="" className="mt-5 w-full rounded-xl object-cover" /> : null}
+      {imageUploadFailed && !post.imageUrl ? (
+        <p role="status" className="mt-4 rounded-xl bg-warning-bg px-3 py-2 text-[12px] font-medium text-warning-text">
+          {t("newPost.image.errors.upload")}
+        </p>
+      ) : null}
 
       <PostActions post={post} secondaryClassName="lg:hidden" className="mt-5 border-t border-border/60 pt-3" />
     </article>

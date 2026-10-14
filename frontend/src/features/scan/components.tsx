@@ -22,6 +22,7 @@ import { CatAvatar } from "@/entities/cat";
 import type { PhBand } from "@/entities/ph-bands";
 import { PhBadge, phTokenStyle } from "@/entities/ph-bands";
 import type { CaptureSource, QualityFlag, ScanListItem, ScanResult, TriggeredFlag } from "@/entities/scan-result";
+import { PhGaugeCircular } from "./PhGaugeCircular";
 
 
 
@@ -289,14 +290,6 @@ const isFiniteNumber = (v: number | null | undefined): v is number => typeof v =
 
 const isDisplayHex = (value: string | null | undefined): value is string => /^#[0-9a-f]{6}$/i.test(value ?? "");
 
-function markerTextClass(hex: string): "text-surface" | "text-text-primary" {
-  const red = Number.parseInt(hex.slice(1, 3), 16);
-  const green = Number.parseInt(hex.slice(3, 5), 16);
-  const blue = Number.parseInt(hex.slice(5, 7), 16);
-  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
-  return luminance > 0.55 ? "text-text-primary" : "text-surface";
-}
-
 const OPEN_END_RATIO = 0.3;
 
 interface ScaleGeometry {
@@ -360,12 +353,10 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
   }
 
   const markerPercent = isFiniteNumber(value) ? percentOf(geometry, value) : null;
-  const markerStyle = phTokenStyle(activeBand?.colorToken ?? "color-ph-unknown");
   const measuredColor = isDisplayHex(markerHex) ? markerHex : null;
   const measuredMarkerStyle = measuredColor
     ? { backgroundColor: measuredColor }
     : undefined;
-  const measuredMarkerTextClass = measuredColor ? markerTextClass(measuredColor) : "";
 
   const rangeLabel = (band: PhBand): string => {
     if (isFiniteNumber(band.phMin) && isFiniteNumber(band.phMax)) {
@@ -376,63 +367,115 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
     return "";
   };
 
+  // Build smooth gradient stops
+  const gradientStops = geometry.segments.map((segment) => {
+    const color = `var(--color-${segment.colorToken.replace("color-", "")})`;
+    return `${color} ${String(segment.left)}%, ${color} ${String(segment.left + segment.width)}%`;
+  }).join(", ");
+
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-surface/50 to-surface/30 p-6", className)}>
+      {/* Large pH Value Display */}
+      {isFiniteNumber(value) && (
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-small text-text-secondary">{t("result.scale.currentPh", { defaultValue: "pH" })}</p>
+          <p className="text-5xl font-bold text-text-primary">{value.toFixed(1)}</p>
+          {activeBand && (
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold",
+              phTokenStyle(activeBand.colorToken).bg,
+              phTokenStyle(activeBand.colorToken).text)}>
+              {activeBand.label}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Scale Info */}
       <div className="flex items-baseline justify-between gap-2 text-xs text-text-tertiary">
         <span>{t("result.scale.acidSide", { value: geometry.innerMin.toFixed(1) })}</span>
+        <span className="flex items-center gap-1">
+          <span className="size-1.5 rounded-full bg-text-tertiary" aria-hidden="true" />
+          <span>{t("result.scale.neutral", { defaultValue: "Neutral" })}</span>
+          <span className="size-1.5 rounded-full bg-text-tertiary" aria-hidden="true" />
+        </span>
         <span>{t("result.scale.alkalineSide", { value: geometry.innerMax.toFixed(1) })}</span>
       </div>
 
-      <div className="relative h-6">
-        {markerPercent !== null && isFiniteNumber(value) ? (
-          <span
-            className={cn(
-              "absolute -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-0.5 text-caption font-semibold border border-current/20",
-              measuredColor ? measuredMarkerTextClass : [markerStyle.bg, markerStyle.text],
-            )}
-            style={{ left: `${String(markerPercent)}%`, ...measuredMarkerStyle }}
-          >
-            {t("result.scale.marker", { value: value.toFixed(1) })}
-          </span>
-        ) : null}
+      {/* Modern pH Bar */}
+      <div className="relative flex flex-col gap-3">
+        {/* Gradient Bar */}
+        <div className="relative h-8 w-full overflow-hidden rounded-full shadow-inner" role="img" aria-hidden="true">
+          {/* Base gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-r" style={{ backgroundImage: `linear-gradient(to right, ${gradientStops})` }} />
+
+          {/* Subtle shine overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/5 rounded-full" />
+
+          {/* Marker thumb */}
+          {markerPercent !== null ? (
+            <div
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${String(markerPercent)}%` }}
+            >
+              {/* Outer shadow ring */}
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-white/40 to-white/10 blur-md" />
+
+              {/* Main thumb */}
+              <div className={cn(
+                "relative size-6 rounded-full border-3 shadow-lg",
+                measuredColor
+                  ? "border-white/60 bg-cover"
+                  : "border-white bg-white"
+              )}
+              style={{
+                ...measuredMarkerStyle,
+                boxShadow: "0 2px 12px rgba(0, 0, 0, 0.25)"
+              }}
+              >
+                {!measuredColor && (
+                  <div className="absolute inset-1 rounded-full bg-gradient-to-br from-current to-current/80" />
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Tick marks and labels */}
+        <div className="relative h-6 px-1">
+          {geometry.ticks.map((tick) => {
+            const tickPercent = percentOf(geometry, tick);
+            const isCenter = Math.abs(tick - 7) < 0.05; // Highlight center (pH 7)
+            return (
+              <div
+                key={tick}
+                className="absolute flex -translate-x-1/2 flex-col items-center"
+                style={{ left: `${String(tickPercent)}%` }}
+              >
+                <span
+                  className={cn(
+                    "block h-1 w-0.5 bg-text-tertiary/40 rounded-full",
+                    isCenter && "h-1.5 w-0.5 bg-text-secondary"
+                  )}
+                  aria-hidden="true"
+                />
+                <span className={cn("mt-0.5 text-xs font-medium", isCenter ? "text-text-secondary font-bold" : "text-text-tertiary")}>
+                  {tick.toFixed(1)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="relative h-2.5 w-full rounded-sm bg-background-alt" role="img" aria-hidden="true">
-        {geometry.segments.map((segment) => (
-          <span
-            key={segment.code}
-            className={cn(
-              "absolute inset-y-0 first:rounded-l-full last:rounded-r-full",
-              phTokenStyle(segment.colorToken).solid,
-            )}
-            style={{ left: `${String(segment.left)}%`, width: `${String(segment.width)}%` }}
-          />
-        ))}
-        {markerPercent !== null ? (
-          <span
-            className={cn(
-              "absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface",
-              measuredColor ? "" : "bg-text-primary",
-            )}
-            style={{ left: `${String(markerPercent)}%`, ...(measuredColor ? { backgroundColor: measuredColor } : {}) }}
-          />
-        ) : null}
-      </div>
-
-      <div className="relative h-4">
-        {geometry.ticks.map((tick) => (
-          <span
-            key={tick}
-            className="absolute -translate-x-1/2 text-xs text-text-tertiary"
-            style={{ left: `${String(percentOf(geometry, tick))}%` }}
-          >
-            {tick.toFixed(1)}
-          </span>
-        ))}
+      {/* Zone Labels */}
+      <div className="flex justify-between px-2 text-center text-caption font-semibold text-text-secondary">
+        <span>{t("result.scale.zone.acidic", { defaultValue: "Acidic" })}</span>
+        <span className="text-primary">{t("result.scale.zone.normal", { defaultValue: "Normal" })}</span>
+        <span>{t("result.scale.zone.alkaline", { defaultValue: "Alkaline" })}</span>
       </div>
 
       {showBandLegend ? (
-        <ul className="grid gap-2 sm:grid-cols-3">
+        <ul className="grid gap-2 sm:grid-cols-3 border-t border-border/40 pt-4">
           {bands
             .slice()
             .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -441,7 +484,7 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
               const style = phTokenStyle(band.colorToken);
               const isActive = activeBand?.code === band.code;
               return (
-                <li key={band.code} className={cn("rounded-lg px-2 py-1.5", isActive ? style.bg : "bg-transparent")}>
+                <li key={band.code} className={cn("rounded-lg px-3 py-2 transition-all", isActive ? [style.bg, "shadow-sm"] : "bg-transparent hover:bg-background-alt")}>
                   <p className={cn("text-small font-bold", style.text)}>{rangeLabel(band)}</p>
                   <p className="text-small leading-snug text-text-secondary">{band.label}</p>
                 </li>
@@ -492,7 +535,7 @@ export function ScanResultSummary({ result, bands, matchLabel, className }: Scan
 
       <div className="rounded-xl bg-background-alt p-4">
         <p className="mb-2 text-caption text-text-secondary">{t("result.scale.statusColorNote")}</p>
-        <PhScale bands={bands} value={result.phValue} activeBand={band} markerHex={displayHex} />
+        <PhGaugeCircular bands={bands} value={result.phValue} activeBand={band} markerHex={displayHex} size="md" />
       </div>
 
       {displayHex !== null || matchPercent !== null ? (

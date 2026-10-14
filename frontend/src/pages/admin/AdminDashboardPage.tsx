@@ -62,17 +62,19 @@ function DashboardContent() {
         return;
       const reveal = gsap.fromTo(
         cards,
-        { autoAlpha: 0, y: 20 },
+        { autoAlpha: 0, y: 10 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.2,
-          stagger: 0.045,
-          ease: "ease-out",
+          duration: 0.28,
+          stagger: 0.04,
+          ease: "power2.out",
           clearProps: "opacity,visibility,transform",
         },
       );
-      return () => reveal.kill();
+      return () => {
+        reveal.progress(1).kill();
+      };
     },
     { scope: dashboardRef, dependencies: [metrics.data] },
   );

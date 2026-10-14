@@ -10,7 +10,6 @@ import {
   CalendarDays,
   Camera,
   ChevronRight,
-  Droplet,
   Eye,
   FileText,
   FlaskConical,
@@ -29,15 +28,16 @@ import { useEntitlement } from "@/features/credit";
 import { HealthFlagDisclosure } from "@/features/insight";
 import { useCareTips } from "./careTipsApi";
 import { HomeGuide } from "./HomeGuide";
+import { DashboardPhCard } from "./DashboardPhCard";
 import { TREND_RANGE_DAYS, toTrendPoints, useCatTrends } from "@/features/trends";
 import type { TrendRange } from "@/features/trends";
-import { PhBadge, PhGaugeBar, phTokenStyle, usePhBands } from "@/entities/ph-bands";
+import { phTokenStyle, usePhBands } from "@/entities/ph-bands";
 import type { PhBand } from "@/entities/ph-bands";
 import { useSessionStore } from "@/entities/user";
 import { CatAvatar, useCatStore } from "@/entities/cat";
 import type { Cat } from "@/entities/cat";
 import { displayableScanCount } from "@/entities/scan-result";
-import type { ConfidenceBand, ScanListItem } from "@/entities/scan-result";
+import type { ScanListItem } from "@/entities/scan-result";
 import type { Reminder } from "@/features/reminder";
 import { ErrorState } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -66,21 +66,9 @@ function buildScale(bands: PhBand[] | undefined): PhScale | null {
   };
 }
 
-function bandSentence(band: PhBand | undefined, phValue: number | null | undefined): string | null {
-  if (!band || band.description === "") return null;
-  if (phValue === null || phValue === undefined) return band.description.replace("{0}", "");
-  return band.description.replace("{0}", phValue.toFixed(1));
-}
-
 function formatRangeBound(value: number | null | undefined, fallback: number): string {
   return (value ?? fallback).toFixed(1);
 }
-
-const CONFIDENCE_LABEL_KEY: Record<ConfidenceBand, string> = {
-  HIGH: "dashboardWeb.confidenceHIGH",
-  MEDIUM: "dashboardWeb.confidenceMEDIUM",
-  LOW: "dashboardWeb.confidenceLOW",
-};
 
 type ScheduledReminder = Reminder & { nextRunAt: string };
 
@@ -377,7 +365,7 @@ export function DashboardPage() {
         </div>
       ) : (
         <div data-reveal className="mx-auto mb-2 max-w-[480px] px-3 pt-3 sm:px-4 sm:pt-4 lg:mb-6 lg:max-w-none lg:px-0 lg:pt-0">
-          <HomeGuide catName={selectedCat?.name} completed={user.onboarding.completed} userId={user.id} />
+          <HomeGuide catName={selectedCat?.name} />
         </div>
       )}
 
@@ -494,16 +482,9 @@ export function DashboardPage() {
 
         {!isGuest ? (
           <section data-reveal className="pt-4 sm:pt-5">
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="shrink-0 text-[16px] font-semibold text-text-primary sm:text-[18px]">
-                {t("dashboard.latestMonitoring", { ns: "common" })}
-              </h2>
-              {selectedCatScan?.catName != null && selectedCatScan.catName !== "" ? (
-                <p className="min-w-0 truncate text-[11px] tracking-[0.4px] text-text-secondary">
-                  {t("dashboard.sessionOf", { ns: "common", name: selectedCatScan.catName })}
-                </p>
-              ) : null}
-            </div>
+            <h2 className="text-[16px] font-semibold text-text-primary sm:text-[18px]">
+              {t("dashboard.latestMonitoring", { ns: "common" })}
+            </h2>
 
             {scansLoading ? (
               <div aria-hidden="true" className="mt-1.5 h-[220px] rounded-2xl bg-surface p-3 sm:mt-2 sm:p-4">
@@ -512,87 +493,20 @@ export function DashboardPage() {
             ) : selectedCatScan ? (
               <Link
                 to={`/scans/${selectedCatScan.scanId}`}
-                className="motion-card mt-1.5 block rounded-2xl bg-surface p-3 shadow-brand-md sm:mt-2 sm:p-4"
+                className="motion-card content-enter mt-1.5 block"
               >
-                <div className="flex items-start justify-between gap-2">
-                  {selectedCatBand ? (
-                    <PhBadge
-                      band={selectedCatBand}
-                      className="min-w-0 whitespace-nowrap px-2 py-0.5 text-[11px] leading-3 [&>svg]:size-3 sm:px-2.5 sm:py-1 sm:text-[12px] sm:leading-4 sm:[&>svg]:size-3.5"
-                    />
-                  ) : null}
-                  <div className="shrink-0 text-right">
-                    <p className="text-[10px] text-text-secondary sm:text-[11px]">{t("dashboard.analyzed", { ns: "common" })}</p>
-                    <p className="whitespace-nowrap text-[11px] font-semibold text-text-primary sm:text-[12px]">
-                      {stamp(selectedCatScan.capturedAt)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-2.5 rounded-xl bg-background-alt/60 p-2.5 sm:mt-3 sm:p-3">
-                  <div className="flex items-center justify-between gap-2 sm:gap-3">
-                    <span className="flex min-w-0 items-center gap-1 text-[11px] leading-3 text-text-secondary sm:gap-1.5 sm:text-[12px] sm:leading-4">
-                      <Droplet size={12} className="shrink-0 text-primary sm:size-[14px]" aria-hidden="true" />
-                      <span className="truncate">{t("dashboard.phReadoutLabel", { ns: "common" })}</span>
+                <DashboardPhCard
+                  scan={selectedCatScan}
+                  band={selectedCatBand}
+                  bands={bands ?? []}
+                  catName={selectedCatScan.catName}
+                  footer={
+                    <span className="flex items-center gap-0.5 text-[12px] font-semibold text-primary-dark sm:text-[13px]">
+                      {t("dashboard.viewDetail", { ns: "common" })}
+                      <ChevronRight size={12} className="sm:size-[14px]" aria-hidden="true" />
                     </span>
-                    <span
-                      className={cn(
-                        "shrink-0 whitespace-nowrap rounded-lg bg-surface px-2 py-0.5 text-[13px] font-bold leading-4 sm:px-2.5 sm:py-1 sm:text-[15px] sm:leading-5",
-                        phTokenStyle(selectedCatBand?.colorToken ?? "color-ph-unknown").text,
-                      )}
-                    >
-                      {t("dashboardWeb.phBig", {
-                        ns: "common",
-                        value: selectedCatScan.phValue?.toFixed(1) ?? t("dashboardWeb.emptyCell", { ns: "common" }),
-                      })}
-                    </span>
-                  </div>
-
-                  {bands ? (
-                    <div className="pt-2.5 sm:pt-3">
-                      <PhGaugeBar bands={bands} value={selectedCatScan.phValue} className="[&>div:last-child]:hidden" />
-                      {scale ? (
-                        <div className="flex items-center justify-between gap-1 pt-1 text-[9px] text-text-secondary sm:gap-2 sm:pt-1.5 sm:text-[10px]">
-                          <span className="whitespace-nowrap">
-                            {t("dashboard.scaleAcid", { ns: "common", value: scale.min.toFixed(1) })}
-                          </span>
-                          <span className="whitespace-nowrap font-semibold text-success-text">
-                            {t("dashboard.scaleIdeal", {
-                              ns: "common",
-                              min: formatRangeBound(scale.normal?.phMin, scale.min),
-                              max: formatRangeBound(scale.normal?.phMax, scale.max),
-                            })}
-                          </span>
-                          <span className="whitespace-nowrap">
-                            {t("dashboard.scaleAlkaline", { ns: "common", value: scale.max.toFixed(1) })}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-
-                {bandSentence(selectedCatBand, selectedCatScan.phValue) !== null ? (
-                  <p className="mt-2 flex gap-1.5 text-[13px] leading-4 text-text-secondary sm:mt-3 sm:gap-2 sm:text-[14px] sm:leading-5">
-                    <Activity size={13} className="mt-0.5 shrink-0 text-primary sm:size-[15px]" aria-hidden="true" />
-                    <span>{bandSentence(selectedCatBand, selectedCatScan.phValue)}</span>
-                  </p>
-                ) : null}
-
-                <div className="mt-2 flex items-center justify-between gap-1.5 sm:mt-3 sm:gap-2">
-                  <span className="flex items-center gap-0.5 text-[12px] font-semibold text-primary-dark sm:text-[13px]">
-                    {t("dashboard.viewDetail", { ns: "common" })}
-                    <ChevronRight size={12} className="sm:size-[14px]" aria-hidden="true" />
-                  </span>
-                  {selectedCatScan.confidenceBand != null ? (
-                    <span className="text-[10px] text-text-secondary sm:text-[11px]">
-                      {t("dashboard.confidence", {
-                        ns: "common",
-                        value: t(CONFIDENCE_LABEL_KEY[selectedCatScan.confidenceBand], { ns: "common" }),
-                      })}
-                    </span>
-                  ) : null}
-                </div>
+                  }
+                />
               </Link>
             ) : (
               <div className="mt-1.5 rounded-2xl bg-surface p-3 text-center shadow-brand-md sm:mt-2 sm:p-4">
@@ -918,104 +832,45 @@ export function DashboardPage() {
             ) : null}
 
             <article data-reveal className="rounded-2xl bg-surface p-6 shadow-xs">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-overline tracking-[0.6px] text-primary">
-                    {t("dashboardWeb.colorimetryLabel", { ns: "common" })}
-                  </p>
-                  <h2 className="pt-1 text-[20px] font-bold leading-7 text-text-primary">
-                    {t("dashboardWeb.colorimetryTitle", { ns: "common" })}
-                  </h2>
-                </div>
-                {latestScan?.confidenceBand != null ? (
-                  <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-background-alt px-3 py-1.5 text-[12px] font-semibold text-text-secondary">
-                    <BadgeCheck size={14} className="shrink-0 text-success" aria-hidden="true" />
-                    {t("dashboardWeb.confidenceLabel", { ns: "common" })}:{" "}
-                    {t(CONFIDENCE_LABEL_KEY[latestScan.confidenceBand], { ns: "common" })}
-                  </span>
-                ) : null}
+              <div className="mb-4">
+                <p className="text-overline tracking-[0.6px] text-primary">
+                  {t("dashboardWeb.colorimetryLabel", { ns: "common" })}
+                </p>
+                <h2 className="pt-1 text-[20px] font-bold leading-7 text-text-primary">
+                  {t("dashboardWeb.colorimetryTitle", { ns: "common" })}
+                </h2>
               </div>
 
               {scansLoading ? (
-                <div aria-hidden="true" className="mt-4 h-[150px] animate-pulse rounded-xl bg-chip-bg/60" />
+                <div aria-hidden="true" className="h-[250px] animate-pulse rounded-xl bg-chip-bg/60" />
               ) : latestScan ? (
-                <div className="mt-4 flex gap-5 rounded-xl bg-background-alt/60 p-4">
+                <div className="content-enter flex flex-col gap-6 lg:flex-row lg:items-start">
+                  <div className="flex-1">
+                    <DashboardPhCard
+                      scan={latestScan}
+                      band={latestBand}
+                      bands={bands ?? []}
+                      catName={latestScan.catName}
+                    />
+                  </div>
                   {latestScan.thumbnailHex != null ? (
-                    <div
-                      className="relative min-h-[150px] w-[170px] shrink-0 self-stretch overflow-hidden rounded-md border border-border"
-                      style={{ backgroundColor: latestScan.thumbnailHex }}
-                    >
-                      <span className="absolute bottom-1.5 left-1.5 rounded bg-surface/90 px-1.5 py-0.5 text-[11px] font-semibold text-text-primary">
+                    <div className="flex flex-col items-center gap-2 lg:items-end">
+                      <p className="text-[12px] text-text-secondary">
                         {t("dashboardWeb.measuredSwatch", { ns: "common" })}
-                      </span>
+                      </p>
+                      <div
+                        className="h-[140px] w-[140px] shrink-0 overflow-hidden rounded-md border border-border"
+                        style={{ backgroundColor: latestScan.thumbnailHex }}
+                        aria-hidden="true"
+                      />
+                      <p className="text-[12px] font-semibold text-text-primary">
+                        {latestScan.thumbnailHex}
+                      </p>
                     </div>
                   ) : null}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="text-[12px] text-text-secondary">
-                          {t("dashboardWeb.extracted", { ns: "common" })}
-                        </p>
-                        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
-                          <span className="text-[32px] font-bold leading-9 text-primary-dark">
-                            {t("dashboardWeb.phBig", {
-                              ns: "common",
-                              value: latestScan.phValue?.toFixed(1) ?? t("dashboardWeb.emptyCell", { ns: "common" }),
-                            })}
-                          </span>
-                          {latestBand ? (
-                            <PhBadge
-                              band={latestBand}
-                              className="whitespace-nowrap px-2.5 py-1 text-[12px] leading-4 [&>svg]:size-3.5"
-                            />
-                          ) : null}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-[12px] text-text-secondary">
-                          {t("dashboardWeb.capturedLabel", { ns: "common" })}
-                        </p>
-                        <p className="text-[14px] font-bold leading-5 text-text-primary">
-                          {stamp(latestScan.capturedAt)}
-                        </p>
-                        {latestScan.catName ? (
-                          <p className="text-[12px] leading-4 text-text-secondary">
-                            {t("dashboard.sessionOf", { ns: "common", name: latestScan.catName })}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {bands ? (
-                      <div className="pt-4">
-                        <PhGaugeBar bands={bands} value={latestScan.phValue} className="[&>div:last-child]:hidden" />
-                        {scale ? (
-                          <div className="flex justify-between gap-2 pt-1.5 text-[11px] text-text-secondary">
-                            <span>{t("dashboardWeb.scaleAcid", { ns: "common", value: scale.min.toFixed(1) })}</span>
-                            <span className="font-semibold text-success-text">
-                              {t("dashboardWeb.scaleSafe", {
-                                ns: "common",
-                                min: formatRangeBound(scale.normal?.phMin, scale.min),
-                                max: formatRangeBound(scale.normal?.phMax, scale.max),
-                              })}
-                            </span>
-                            <span>
-                              {t("dashboardWeb.scaleAlkaline", { ns: "common", value: scale.max.toFixed(1) })}
-                            </span>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-
-                    {bandSentence(latestBand, latestScan.phValue) !== null ? (
-                      <p className="pt-3 text-[14px] leading-5 text-text-secondary">
-                        {bandSentence(latestBand, latestScan.phValue)}
-                      </p>
-                    ) : null}
-                  </div>
                 </div>
               ) : (
-                <div className="mt-4 rounded-xl bg-background-alt/60 p-8 text-center">
+                <div className="rounded-xl bg-background-alt/60 p-8 text-center">
                   <p className="text-caption font-bold text-text-primary">
                     {isGuest
                       ? t("dashboard.guestBanner.title", { ns: "common" })

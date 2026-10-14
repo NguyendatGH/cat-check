@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { format, isToday, isYesterday } from "date-fns";
@@ -18,7 +18,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Badge, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
+import { Badge, EmptyState, ErrorState, Pagination, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useSessionStore } from "@/entities/user";
 import {
@@ -32,6 +32,8 @@ import {
 
 
 type InboxTab = "all" | "unread";
+
+const PER_PAGE = 8;
 
 const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   WELCOME_ONBOARDING: PartyPopper,
@@ -63,6 +65,8 @@ export function NotificationsPage() {
   const { t } = useTranslation(["notification", "common"]);
   const navigate = useNavigate();
   const [tab, setTab] = useState<InboxTab>("all");
+  const [page, setPage] = useState(0);
+  const listTopRef = useRef<HTMLDivElement>(null);
   const signedIn = Boolean(useSessionStore((s) => s.user));
 
   const inbox = useNotificationInbox(signedIn);
@@ -75,16 +79,40 @@ export function NotificationsPage() {
 
   const visible = useMemo(() => (tab === "unread" ? items.filter((item) => !item.read) : items), [items, tab]);
 
+  const pageCount = Math.max(1, Math.ceil(visible.length / PER_PAGE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const pageItems = useMemo(
+    () => visible.slice(currentPage * PER_PAGE, (currentPage + 1) * PER_PAGE),
+    [visible, currentPage],
+  );
+
+  const goToPage = (next: number) => {
+    const scrollUp = () => {
+      listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    if (next < pageCount) {
+      setPage(next);
+      scrollUp();
+      return;
+    }
+    if (inbox.hasNextPage) {
+      void inbox.fetchNextPage().then(() => {
+        setPage(next);
+        scrollUp();
+      });
+    }
+  };
+
   const dayGroups = useMemo(() => {
     const map = new Map<string, NotificationItem[]>();
-    visible.forEach((item) => {
+    pageItems.forEach((item) => {
       const key = dayGroupKey(item.createdAt);
       const list = map.get(key) ?? [];
       list.push(item);
       map.set(key, list);
     });
     return [...map.entries()];
-  }, [visible]);
+  }, [pageItems]);
 
   const dayLabel = (key: string): string => {
     const date = new Date(key);
@@ -109,7 +137,7 @@ export function NotificationsPage() {
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-5 lg:px-0 lg:py-0">
       <header data-reveal>
         <div>
-          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">{t("app.wordmark")}</p>
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">{t("common:app.wordmark")}</p>
           <h1 className="text-[28px] font-bold leading-tight tracking-[-0.04em] text-text-primary lg:text-h1">
             {t("pages.list.title")}
           </h1>
@@ -133,6 +161,7 @@ export function NotificationsPage() {
                   aria-selected={tab === option.value}
                   onClick={() => {
                     setTab(option.value);
+                    setPage(0);
                   }}
                   className={cn(
                     "tab-pill-animated cursor-pointer min-h-10 flex-1 rounded-xl px-4 text-caption font-semibold transition-all duration-200 active:scale-[0.97] sm:flex-none",
@@ -164,7 +193,7 @@ export function NotificationsPage() {
             </button>
           </div>
 
-          <div key={tab} className="tab-content-enter flex flex-col gap-5">
+          <div ref={listTopRef} key={`${tab}-${String(currentPage)}`} className="tab-content-enter flex scroll-mt-20 flex-col gap-5">
             {inbox.isPending && signedIn ? (
               <div className="flex flex-col gap-2" aria-busy="true">
                 <SkeletonLoader className="h-20 rounded-xl" />
@@ -237,18 +266,29 @@ export function NotificationsPage() {
               />
             ) : null}
 
-            {inbox.hasNextPage ? (
-              <button
-                type="button"
-                disabled={inbox.isFetchingNextPage}
-                onClick={() => {
-                  void inbox.fetchNextPage();
-                }}
-                className="flex min-h-11 items-center justify-center gap-2 self-center rounded-xl border border-border px-4 text-caption font-semibold text-primary hover:bg-background-alt disabled:opacity-60"
-              >
-                {inbox.isFetchingNextPage ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : null}
-                {t("inbox.loadMore")}
-              </button>
+            {visible.length > 0 ? (
+              <div className="flex flex-col items-center gap-2 pt-1">
+                <Pagination
+                  page={currentPage}
+                  pageCount={pageCount}
+                  hasMore={inbox.hasNextPage}
+                  loading={inbox.isFetchingNextPage}
+                  onPageChange={goToPage}
+                  labels={{
+                    nav: t("inbox.pagination.nav"),
+                    previous: t("inbox.pagination.previous"),
+                    next: t("inbox.pagination.next"),
+                    page: (n) => t("inbox.pagination.page", { page: n }),
+                  }}
+                />
+                <p className="text-small text-text-tertiary">
+                  {t(inbox.hasNextPage ? "inbox.pagination.rangeMore" : "inbox.pagination.range", {
+                    from: currentPage * PER_PAGE + 1,
+                    to: currentPage * PER_PAGE + pageItems.length,
+                    total: visible.length,
+                  })}
+                </p>
+              </div>
             ) : null}
           </div>
         </div>

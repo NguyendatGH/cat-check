@@ -1,7 +1,6 @@
-import { forwardRef, useRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useSurfaceEnter } from "@/shared/lib/motion/usePageReveal";
 import { cn } from "../cn";
 
 export const Dialog = RadixDialog.Root;
@@ -12,16 +11,10 @@ export const DialogOverlay = forwardRef<
   ComponentRef<typeof RadixDialog.Overlay>,
   ComponentPropsWithoutRef<typeof RadixDialog.Overlay>
 >(({ className, ...props }, ref) => {
-  const motionRef = useRef<HTMLElement | null>(null);
-  useSurfaceEnter(motionRef, "overlay");
   return (
     <RadixDialog.Overlay
-      ref={(node) => {
-        motionRef.current = node;
-        if (typeof ref === "function") ref(node);
-        else if (ref) ref.current = node;
-      }}
-      className={cn("fixed inset-0 z-[var(--z-overlay)] bg-primary-darker/40", className)}
+      ref={ref}
+      className={cn("ui-overlay fixed inset-0 z-[var(--z-overlay)] bg-primary-darker/40", className)}
       {...props}
     />
   );
@@ -32,19 +25,13 @@ export const DialogContent = forwardRef<
   ComponentRef<typeof RadixDialog.Content>,
   ComponentPropsWithoutRef<typeof RadixDialog.Content> & { hideCloseButton?: boolean }
 >(({ className, children, hideCloseButton, ...props }, ref) => {
-  const motionRef = useRef<HTMLElement | null>(null);
-  useSurfaceEnter(motionRef, "dialog");
   return (
   <RadixDialog.Portal>
     <DialogOverlay />
     <RadixDialog.Content
-      ref={(node) => {
-        motionRef.current = node;
-        if (typeof ref === "function") ref(node);
-        else if (ref) ref.current = node;
-      }}
+      ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-[var(--z-modal)] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2",
+        "ui-dialog fixed left-1/2 top-1/2 z-[var(--z-modal)] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2",
         "rounded-2xl border border-border bg-surface p-6 shadow-brand-xl",
         "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
         className,

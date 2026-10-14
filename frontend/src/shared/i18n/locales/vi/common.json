@@ -233,7 +233,8 @@
     "scheduleOverdue": "Đã quá hạn từ {{time}}",
     "scheduleScanFor": "{{title}} · {{name}}",
     "loadError": "Không tải được dữ liệu Trang chủ",
-    "loadErrorBody": "Kiểm tra kết nối rồi thử lại."
+    "loadErrorBody": "Kiểm tra kết nối rồi thử lại.",
+    "otherCats": "Các bé khác"
   },
   "healthFlags": {
     "countCta": "{{count}} dấu hiệu cần xem",

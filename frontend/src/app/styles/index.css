@@ -323,20 +323,9 @@ body {
   content: "";
 }
 
-@keyframes pageSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* PERF: Reduced from 0.2s to 0.08s to prevent paint blocking on skeleton reveal */
-.fade-swap {
-  animation: pageSlideUp 0.08s ease-out forwards;
+.fade-swap,
+.content-enter {
+  animation: tabContentEnter 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes rowFlash {
@@ -358,6 +347,8 @@ body {
   .animate-pop-spring,
   .shimmer-effect::after,
   .fade-swap,
+  .content-enter,
+  .tab-content-enter,
   .row-flash {
     animation: none;
   }
@@ -469,7 +460,7 @@ body {
 }
 
 .tab-content-enter {
-  animation: tabContentEnter 0.2s ease-out forwards;
+  animation: tabContentEnter 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .double-bezel {
@@ -490,24 +481,35 @@ body {
 
 @keyframes fabPulseRing {
   0% {
-    box-shadow:
-      0 8px 24px -4px rgba(47, 79, 178, 0.35),
-      0 0 0 0 rgba(47, 79, 178, 0.25);
+    opacity: 0.45;
+    transform: scale(1);
   }
-  70% {
-    box-shadow:
-      0 8px 24px -4px rgba(47, 79, 178, 0.35),
-      0 0 0 8px rgba(47, 79, 178, 0);
-  }
+  70%,
   100% {
-    box-shadow:
-      0 8px 24px -4px rgba(47, 79, 178, 0.35),
-      0 0 0 0 rgba(47, 79, 178, 0);
+    opacity: 0;
+    transform: scale(1.28);
   }
 }
 
 .fab-scan-pulse {
+  position: relative;
+}
+
+.fab-scan-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 3px rgba(47, 79, 178, 0.3);
+  pointer-events: none;
   animation: fabPulseRing 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab-scan-pulse::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 @keyframes scanLineMove {
@@ -546,17 +548,15 @@ body {
 
 .header-glass {
   background: rgba(250, 248, 255, 0.84);
-  backdrop-filter: blur(16px) saturate(1.8);
-  -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow:
     0px 1px 8px 0px rgba(0, 0, 0, 0.04),
     inset 0 -1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .bottom-nav-glass {
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(18px) saturate(1.6);
-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  background: rgba(255, 255, 255, 0.97);
   box-shadow:
     0px -4px 24px 0px rgba(47, 79, 178, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -622,4 +622,84 @@ body {
   .animate-scan-line {
     animation: none;
   }
+}
+
+/* Radix keeps a closing surface mounted until its exit animation ends. */
+@keyframes uiFadeIn {
+  from { opacity: 0; }
+}
+@keyframes uiFadeOut {
+  to { opacity: 0; }
+}
+@keyframes uiSheetLeftIn {
+  from { transform: translate3d(-100%, 0, 0); }
+}
+@keyframes uiSheetLeftOut {
+  to { transform: translate3d(-100%, 0, 0); }
+}
+@keyframes uiSheetRightIn {
+  from { transform: translate3d(100%, 0, 0); }
+}
+@keyframes uiSheetRightOut {
+  to { transform: translate3d(100%, 0, 0); }
+}
+@keyframes uiSheetBottomIn {
+  from { transform: translate3d(0, 100%, 0); }
+}
+@keyframes uiSheetBottomOut {
+  to { transform: translate3d(0, 100%, 0); }
+}
+@keyframes uiSheetTopIn {
+  from { transform: translate3d(0, -100%, 0); }
+}
+@keyframes uiSheetTopOut {
+  to { transform: translate3d(0, -100%, 0); }
+}
+@keyframes uiDialogIn {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+}
+@keyframes uiDialogOut {
+  to { opacity: 0; transform: scale(0.97) translateY(4px); }
+}
+
+.ui-overlay[data-state="open"] { animation: uiFadeIn 0.24s ease-out; }
+.ui-overlay[data-state="closed"] { animation: uiFadeOut 0.2s ease-in forwards; }
+
+.ui-sheet[data-state="open"] { animation-duration: 0.34s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+.ui-sheet[data-state="closed"] {
+  animation-duration: 0.22s;
+  animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  animation-fill-mode: forwards;
+}
+.ui-sheet[data-side="left"][data-state="open"] { animation-name: uiSheetLeftIn; }
+.ui-sheet[data-side="left"][data-state="closed"] { animation-name: uiSheetLeftOut; }
+.ui-sheet[data-side="right"][data-state="open"] { animation-name: uiSheetRightIn; }
+.ui-sheet[data-side="right"][data-state="closed"] { animation-name: uiSheetRightOut; }
+.ui-sheet[data-side="bottom"][data-state="open"] { animation-name: uiSheetBottomIn; }
+.ui-sheet[data-side="bottom"][data-state="closed"] { animation-name: uiSheetBottomOut; }
+.ui-sheet[data-side="top"][data-state="open"] { animation-name: uiSheetTopIn; }
+.ui-sheet[data-side="top"][data-state="closed"] { animation-name: uiSheetTopOut; }
+
+.ui-dialog[data-state="open"] { animation: uiDialogIn 0.24s cubic-bezier(0.22, 1, 0.36, 1); }
+.ui-dialog[data-state="closed"] { animation: uiDialogOut 0.16s ease-in forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay,
+  .ui-sheet,
+  .ui-dialog {
+    animation: none !important;
+  }
+}
+
+/* Universal-indicator style hues for the pH dial (chemistry scale, not severity). */
+:root {
+  --ph-hue-3: #e4352b;
+  --ph-hue-4: #f26a21;
+  --ph-hue-5: #f7b500;
+  --ph-hue-6: #c4cf2b;
+  --ph-hue-7: #3fae4a;
+  --ph-hue-8: #1d9d8f;
+  --ph-hue-9: #2e6fca;
+  --ph-hue-10: #4a4fb8;
+  --ph-hue-11: #7a3fa8;
 }

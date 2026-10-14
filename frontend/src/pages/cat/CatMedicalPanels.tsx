@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { BellRing, Check, ChevronRight, Droplet, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Cat } from "@/entities/cat";
-import { PhGaugeBar, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { PhGaugeCircular } from "@/features/scan";
 import { useCatNotes, type CatSummaryResponse } from "@/features/cat";
 import { useScanHistory } from "@/features/history";
 import { cn } from "@/shared/lib/cn";
@@ -200,7 +201,26 @@ function SpectrumCard({ cat, summary, bands }: { cat: Cat; summary?: CatSummaryR
       <h3 className="text-h3 font-bold text-text-primary">{t("web.profile.spectrumTitle")}</h3>
       <p className="pt-1 text-caption text-text-secondary">{t("web.profile.spectrumSub")}</p>
 
-      <PhGaugeBar bands={bands} value={phValue} className="mt-6" />
+      <div className="mt-5 flex items-center gap-5">
+        <PhGaugeCircular
+          bands={bands}
+          value={phValue}
+          activeBand={findBandForPh(bands, phValue)}
+          variant="dial"
+          size="sm"
+          className="shrink-0"
+        />
+        <ul className="flex min-w-0 flex-1 flex-col gap-1.5">
+          {[...bands]
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((b) => (
+              <li key={b.code} className="flex items-center gap-2 text-caption text-text-secondary">
+                <span className={cn("size-2.5 shrink-0 rounded-full", phTokenStyle(b.colorToken).solid)} aria-hidden="true" />
+                <span className="truncate">{b.label}</span>
+              </li>
+            ))}
+        </ul>
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-info px-3 py-2">
         <img src={iconLastScan} alt="" className="size-3.5 shrink-0" />

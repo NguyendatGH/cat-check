@@ -1,6 +1,5 @@
-import { forwardRef, useRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
-import { useSurfaceEnter } from "@/shared/lib/motion/usePageReveal";
 import { cn } from "../cn";
 import { DialogOverlay } from "../Dialog/Dialog";
 
@@ -16,8 +15,6 @@ export const SheetContent = forwardRef<
   ComponentRef<typeof RadixDialog.Content>,
   SheetContentProps
 >(({ className, children, side = "bottom", ...props }, ref) => {
-  const motionRef = useRef<HTMLElement | null>(null);
-  useSurfaceEnter(motionRef, "sheet");
 
   const sideClasses = {
     bottom: "inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t border-border bg-surface p-6 shadow-top",
@@ -30,14 +27,10 @@ export const SheetContent = forwardRef<
     <RadixDialog.Portal>
       <DialogOverlay />
       <RadixDialog.Content
-        ref={(node) => {
-          motionRef.current = node;
-          if (typeof ref === "function") ref(node);
-          else if (ref) ref.current = node;
-        }}
+        ref={ref}
         data-side={side}
         className={cn(
-          "fixed z-[var(--z-modal)] overflow-y-auto",
+          "ui-sheet fixed z-[var(--z-modal)] overflow-y-auto",
           sideClasses[side],
           "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
           className,

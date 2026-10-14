@@ -19,6 +19,8 @@ public interface CommunityRepository {
 
     CommunityPost insertPost(UUID authorId, String category, String title, String body, List<String> tags);
 
+    void updatePostImage(UUID postId, String imageRef);
+
     CommunityComment insertComment(UUID authorId, UUID postId, String body);
 
     boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active);

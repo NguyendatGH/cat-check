@@ -36,14 +36,14 @@ export function PhBadge({ band, className }: PhBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold",
+        "inline-flex items-center gap-2 rounded-full px-4 py-2 text-small font-bold shadow-sm",
         style.bg,
         style.text,
         className,
       )}
     >
-      <Icon className="size-4 shrink-0" aria-hidden="true" />
-      {band.label}
+      <Icon className="size-5 shrink-0" aria-hidden="true" />
+      <span>{band.label}</span>
     </span>
   );
 }
@@ -74,32 +74,46 @@ export function PhGaugeBar({ bands, value, domain, className }: PhGaugeBarProps)
 
   const clampPercent = (ph: number) => Math.min(100, Math.max(0, ((ph - min) / span) * 100));
 
+  // Build smooth gradient for modern look
+  const gradientStops = axisBands.map((band) => {
+    const segMin = band.phMin ?? min;
+    const segMax = band.phMax ?? max;
+    const leftPercent = clampPercent(segMin);
+    const rightPercent = clampPercent(segMax);
+    const color = `var(--color-${band.colorToken.replace("color-", "")})`;
+    return `${color} ${String(leftPercent)}%, ${color} ${String(rightPercent)}%`;
+  }).join(", ");
+
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <div className="relative h-3 w-full overflow-hidden rounded-full" role="img" aria-hidden="true">
-        <div className="flex h-full w-full">
-          {axisBands.map((band) => {
-            const segMin = band.phMin ?? min;
-            const segMax = band.phMax ?? max;
-            const widthPercent = Math.max(0, clampPercent(segMax) - clampPercent(segMin));
-            if (widthPercent <= 0) return null;
-            return (
-              <span
-                key={band.code}
-                style={{ width: `${String(widthPercent)}%` }}
-                className={cn("shrink-0", phTokenStyle(band.colorToken).solid)}
-              />
-            );
-          })}
-        </div>
+    <div className={cn("flex flex-col gap-2.5", className)}>
+      {/* Modern Gradient Bar */}
+      <div className="relative h-4 w-full overflow-hidden rounded-full shadow-sm" role="img" aria-hidden="true">
+        {/* Main gradient background */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{ backgroundImage: `linear-gradient(to right, ${gradientStops})` }}
+        />
+
+        {/* Subtle shine overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-transparent to-black/10 rounded-full" />
+
+        {/* Value marker thumb */}
         {value !== null && value !== undefined ? (
-          <span
-            className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-text-primary shadow-sm"
+          <div
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${String(clampPercent(value))}%` }}
-          />
+          >
+            {/* Glow effect */}
+            <div className="absolute -inset-1.5 rounded-full bg-white/30 blur-md" />
+
+            {/* Thumb marker */}
+            <div className="relative size-5 rounded-full border-2 border-white bg-text-primary shadow-md" />
+          </div>
         ) : null}
       </div>
-      <div className="flex justify-between text-small text-text-tertiary">
+
+      {/* Min/Max Labels */}
+      <div className="flex justify-between text-caption text-text-secondary font-medium">
         <span>{min.toFixed(1)}</span>
         <span>{max.toFixed(1)}</span>
       </div>
@@ -114,15 +128,15 @@ export interface PhRangeLegendProps {
 
 export function PhRangeLegend({ bands, className }: PhRangeLegendProps) {
   return (
-    <ul className={cn("flex flex-wrap gap-x-4 gap-y-1.5", className)}>
+    <ul className={cn("flex flex-wrap gap-x-4 gap-y-2", className)}>
       {bands
         .slice()
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((band) => (
-          <li key={band.code} className="flex items-center gap-1.5 text-caption text-text-secondary">
+          <li key={band.code} className="flex items-center gap-2 rounded-lg px-3 py-1.5 bg-surface/40 text-small font-medium text-text-secondary transition-all hover:bg-surface/60">
             <span
               aria-hidden="true"
-              className={cn("size-2.5 shrink-0 rounded-full", phTokenStyle(band.colorToken).solid)}
+              className={cn("size-3 shrink-0 rounded-full shadow-sm", phTokenStyle(band.colorToken).solid)}
             />
             {band.label}
           </li>

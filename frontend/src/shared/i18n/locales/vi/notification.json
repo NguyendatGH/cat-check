@@ -41,7 +41,15 @@
       }
     },
     "settingsCta": "Tuỳ chỉnh thông báo",
-    "remindersCta": "Xem lịch nhắc"
+    "remindersCta": "Xem lịch nhắc",
+    "pagination": {
+      "nav": "Phân trang thông báo",
+      "previous": "Trang trước",
+      "next": "Trang sau",
+      "page": "Trang {{page}}",
+      "range": "{{from}}–{{to}} trên {{total}}",
+      "rangeMore": "{{from}}–{{to}} trên {{total}}+"
+    }
   },
   "badge": {
     "unreadAria": "{{count}} thông báo chưa đọc"

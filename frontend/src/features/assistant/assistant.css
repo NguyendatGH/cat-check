@@ -1,0 +1,51 @@
+@keyframes assistantMsgIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes assistantDot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translate3d(0, 0, 0);
+  }
+  40% {
+    opacity: 1;
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+.assistant-msg-in {
+  animation: assistantMsgIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.assistant-dot {
+  animation: assistantDot 1.1s ease-in-out infinite;
+}
+
+.assistant-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.assistant-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.assistant-scroll {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-msg-in,
+  .assistant-dot {
+    animation: none;
+  }
+}

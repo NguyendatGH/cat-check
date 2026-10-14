@@ -22,23 +22,40 @@ const TWEEN = { duration: 0.32, ease: "sine.out", overwrite: "auto" as const };
 const PRESS_TWEEN = { duration: 0.1, ease: "power1.out", overwrite: "auto" as const };
 
 type MotionKind = "card" | "row" | "control";
-type SurfaceKind = "dialog" | "sheet" | "overlay";
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+const kindCache = new WeakMap<HTMLElement, MotionKind>();
+const skipCache = new WeakMap<HTMLElement, boolean>();
+
 function motionKind(element: HTMLElement): MotionKind {
+  const cached = kindCache.get(element);
+  if (cached) return cached;
   const attr = element.getAttribute("data-motion");
-  if (attr === "card" || attr === "row" || attr === "control") return attr;
-  if (element.classList.contains("motion-card")) return "card";
-  return element.offsetWidth >= 240 ? "row" : "control";
+  let kind: MotionKind;
+  if (attr === "card" || attr === "row" || attr === "control") kind = attr;
+  else if (element.classList.contains("motion-card")) kind = "card";
+  else kind = element.offsetWidth >= 240 ? "row" : "control";
+  kindCache.set(element, kind);
+  return kind;
 }
 
+// GSAP writes inline transforms every frame; a CSS transition on the same property would chase
+// each frame and make the motion lag, so elements that already animate transforms in CSS are left alone.
 function skipMotion(element: HTMLElement) {
-  if (element.closest("[data-motion='none']")) return true;
-  return /(?:^|\s)-translate-(?:x|y)-1\/2(?:\s|$)/.test(element.className);
+  const cached = skipCache.get(element);
+  if (cached !== undefined) return cached;
+  let skip = Boolean(element.closest("[data-motion='none']"));
+  if (!skip && /(?:^|\s)-translate-(?:x|y)-1\/2(?:\s|$)/.test(element.className)) skip = true;
+  if (!skip) {
+    const props = getComputedStyle(element).transitionProperty;
+    skip = /\b(all|transform|translate|scale)\b/.test(props);
+  }
+  skipCache.set(element, skip);
+  return skip;
 }
 
 function hoverVars(element: HTMLElement) {
@@ -76,29 +93,23 @@ export function usePageReveal(scope: RefObject<HTMLElement | null>) {
         gsap.set(items, { autoAlpha: 1, clearProps: "transform,opacity,visibility" });
       });
       media.add("(prefers-reduced-motion: no-preference)", () => {
-        // PERF: Dramatically reduce animation duration and stagger to avoid paint blocking
-        // Content should be visible within 100ms on all connections
-        const isMobile = window.matchMedia("(max-width: 767px)").matches;
-
-        // Desktop: subtle stagger, very fast (50ms total)
-        // Mobile: no stagger, instant (0ms)
-        const duration = isMobile ? 0 : 0.03;
-        const staggerAmount = isMobile ? 0 : 0.015;
-
-        const intro = gsap.timeline({ defaults: { ease: "power2.out" } });
-        intro.fromTo(
-          items,
-          { autoAlpha: 0, y: 8 },
+        const visible = items.filter((el) => el.getClientRects().length > 0);
+        if (visible.length === 0) return;
+        const intro = gsap.fromTo(
+          visible,
+          { autoAlpha: 0, y: 10 },
           {
             autoAlpha: 1,
             y: 0,
-            duration: duration,
-            ease: "ease-out",
-            stagger: { amount: staggerAmount, from: "start" },
+            duration: 0.26,
+            ease: "power2.out",
+            stagger: Math.min(0.035, 0.18 / visible.length),
             clearProps: "transform,opacity,visibility",
           },
         );
-        return () => intro.kill();
+        return () => {
+          intro.progress(1).kill();
+        };
       });
 
       return () => {
@@ -158,60 +169,6 @@ export function useWelcomeScene(scope: RefObject<HTMLElement | null>) {
       };
     },
     { scope },
-  );
-}
-
-export function useSurfaceEnter(scope: RefObject<HTMLElement | null>, kind: SurfaceKind) {
-  useGSAP(
-    () => {
-      const element = scope.current;
-      if (!element) return;
-      if (prefersReducedMotion()) {
-        gsap.set(element, { autoAlpha: 1, clearProps: "transform,opacity,visibility" });
-        return;
-      }
-      if (kind === "overlay") {
-        gsap.fromTo(element, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: "power1.out" });
-        return;
-      }
-      if (kind === "sheet") {
-        const side = element.getAttribute("data-side");
-        if (side === "left") {
-          gsap.fromTo(
-            element,
-            { autoAlpha: 0, x: -36 },
-            { autoAlpha: 1, x: 0, duration: 0.28, ease: "power2.out", clearProps: "transform" },
-          );
-          return;
-        }
-        if (side === "right") {
-          gsap.fromTo(
-            element,
-            { autoAlpha: 0, x: 36 },
-            { autoAlpha: 1, x: 0, duration: 0.28, ease: "power2.out", clearProps: "transform" },
-          );
-          return;
-        }
-        gsap.fromTo(
-          element,
-          { autoAlpha: 0, y: 20 },
-          { autoAlpha: 1, y: 0, duration: 0.36, ease: "sine.out", clearProps: "transform" },
-        );
-        return;
-      }
-      gsap.fromTo(
-        element,
-        { autoAlpha: 0, xPercent: -50, yPercent: -50 },
-        {
-          autoAlpha: 1,
-          xPercent: -50,
-          yPercent: -50,
-          duration: 0.3,
-          ease: "sine.out",
-        },
-      );
-    },
-    { scope, dependencies: [kind] },
   );
 }
 
@@ -286,7 +243,7 @@ export function useListReveal(scope: RefObject<HTMLElement | null>, dependency: 
       if (!container) return;
 
       if (prefersReducedMotion()) {
-        gsap.set(container.querySelectorAll("[data-reveal-item], > *"), {
+        gsap.set(container.querySelectorAll("[data-reveal-item], :scope > *"), {
           autoAlpha: 1,
           clearProps: "transform,opacity,visibility",
         });
@@ -294,35 +251,28 @@ export function useListReveal(scope: RefObject<HTMLElement | null>, dependency: 
       }
 
       const marked = gsap.utils.toArray<HTMLElement>("[data-reveal-item]", container);
-      const items = marked.length > 0 ? marked : Array.from(container.children) as HTMLElement[];
-
+      const all = marked.length > 0 ? marked : (Array.from(container.children) as HTMLElement[]);
+      const items = all.filter((el) => !el.hasAttribute("data-revealed") && el.getClientRects().length > 0);
       if (items.length === 0) return;
+      items.forEach((el) => {
+        el.setAttribute("data-revealed", "");
+      });
 
-      // PERF: Minimize animation duration to avoid paint blocking
-      // Content should be visible immediately on fast connections
-      const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-
-      // Desktop: very fast stagger (30ms total for multiple items)
-      // Mobile: instant reveal (0ms)
-      const duration = isMobile ? 0 : 0.02;
-      const staggerAmount = isMobile ? 0 : 0.01;
-
-      const tl = gsap.timeline();
-      tl.fromTo(
+      const tween = gsap.fromTo(
         items,
-        { autoAlpha: 0, y: 6 },
+        { autoAlpha: 0, y: 8 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: duration,
-          ease: "ease-out",
-          stagger: { amount: staggerAmount, from: "start" },
+          duration: 0.24,
+          ease: "power2.out",
+          stagger: Math.min(0.03, 0.18 / items.length),
           clearProps: "transform,opacity,visibility",
         },
       );
 
       return () => {
-        tl.kill();
+        tween.progress(1).kill();
       };
     },
     { scope, dependencies: [dependency] },

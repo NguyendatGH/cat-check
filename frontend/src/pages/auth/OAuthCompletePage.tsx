@@ -1,6 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { loadSession, useSessionStore } from "@/entities/user";
+import { playSplash } from "@/shared/lib/motion/splash";
 import { Button, EmptyState, SkeletonLoader } from "@/shared/ui";
 import { useAuthSessionQuery } from "@/features/auth";
 
@@ -9,11 +12,18 @@ export function OAuthCompletePage() {
   const navigate = useNavigate();
   const { data, isLoading, isError } = useAuthSessionQuery(true);
 
+  const queryClient = useQueryClient();
+  const setSession = useSessionStore((state) => state.setSession);
+  const started = useRef(false);
+
   useEffect(() => {
-    if (data?.authenticated) {
-      window.location.assign("/");
-    }
-  }, [data]);
+    if (!data?.authenticated || started.current) return;
+    started.current = true;
+    playSplash(loadSession(), (user) => {
+      queryClient.removeQueries();
+      setSession(user);
+    });
+  }, [data, queryClient, setSession]);
 
   if (isLoading) {
     return (

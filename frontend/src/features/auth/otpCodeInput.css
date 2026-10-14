@@ -1,0 +1,85 @@
+.otp-box {
+  height: 3.5rem;
+  width: 100%;
+  min-width: 0;
+  border-radius: 0.875rem;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  caret-color: var(--color-primary);
+  outline: none;
+  transition:
+    border-color 180ms ease,
+    background-color 220ms ease,
+    color 220ms ease,
+    box-shadow 180ms ease,
+    scale 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.otp-box[data-filled="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-chip-bg);
+  color: var(--color-primary-dark);
+}
+
+.otp-box:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  scale: 1.04;
+}
+
+.otp-row[data-state="error"] .otp-box {
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.otp-row[data-state="success"] .otp-box {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+@keyframes otpVerifying {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.otp-row[data-state="verifying"] .otp-box {
+  animation: otpVerifying 0.9s ease-in-out infinite;
+}
+
+@keyframes otpCheckIn {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+}
+
+.otp-check {
+  animation: otpCheckIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp-box {
+    transition: none;
+  }
+  .otp-box:focus {
+    scale: none;
+  }
+  .otp-row[data-state="verifying"] .otp-box,
+  .otp-check {
+    animation: none;
+  }
+}

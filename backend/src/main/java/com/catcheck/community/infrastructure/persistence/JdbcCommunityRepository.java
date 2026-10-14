@@ -85,6 +85,11 @@ public class JdbcCommunityRepository implements CommunityRepository {
     }
 
     @Override
+    public void updatePostImage(UUID postId, String imageRef) {
+        jdbc.update("UPDATE community_post SET image_url = ?, updated_at = now() WHERE id = ?", imageRef, postId);
+    }
+
+    @Override
     public CommunityComment insertComment(UUID authorId, UUID postId, String body) {
         UUID id = jdbc.queryForObject("""
                 INSERT INTO community_comment (post_id, author_user_id, body)

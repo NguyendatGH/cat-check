@@ -16,11 +16,14 @@ interface RawSessionResponse {
 const NEXT_STEP_BY_STATUS: Record<RawSessionUser["onboardingStatus"], string | null> = {
   ACCOUNT_ONLY: "cat",
   CAT_CREATED: "health-survey",
-  SURVEY_DONE_OR_SKIPPED: "disclaimer",
+  SURVEY_DONE_OR_SKIPPED: null,
   COMPLETED: null,
 };
 
-const ONBOARDING_DONE: ReadonlySet<RawSessionUser["onboardingStatus"]> = new Set(["COMPLETED"]);
+const ONBOARDING_DONE: ReadonlySet<RawSessionUser["onboardingStatus"]> = new Set([
+  "SURVEY_DONE_OR_SKIPPED",
+  "COMPLETED",
+]);
 
 function toSessionUser(raw: RawSessionResponse): SessionUser | null {
   if (!raw.authenticated || !raw.user) return null;

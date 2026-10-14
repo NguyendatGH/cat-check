@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type InputHTMLAttributes,
-  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,106 +14,6 @@ import { cn } from "@/shared/lib/cn";
 import { estimatePasswordStrength, type PasswordStrength } from "./schemas";
 import type { ConsentPurposeOption, SessionItem } from "./types";
 
-
-
-const OTP_LENGTH = 6;
-
-interface OtpCodeInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
-  disabled?: boolean;
-  focusOnMount?: boolean;
-}
-
-export function OtpCodeInput({ value, onChange, error, disabled, focusOnMount }: OtpCodeInputProps) {
-  const { t } = useTranslation("auth");
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
-  const digits = value.padEnd(OTP_LENGTH, " ").split("").slice(0, OTP_LENGTH);
-
-  useEffect(() => {
-    if (focusOnMount) {
-      inputsRef.current[0]?.focus();
-    }
-  }, [focusOnMount]);
-
-  const setDigit = (index: number, digit: string) => {
-    const next = digits.slice();
-    next[index] = digit;
-    onChange(next.join("").replace(/\s/g, ""));
-  };
-
-  const handleChange = (index: number, raw: string) => {
-    const clean = raw.replace(/\D/g, "");
-    if (!clean) {
-      setDigit(index, "");
-      return;
-    }
-    if (clean.length > 1) {
-      const chars = clean.slice(0, OTP_LENGTH - index).split("");
-      const next = digits.slice();
-      chars.forEach((char, offset) => {
-        next[index + offset] = char;
-      });
-      onChange(next.join("").replace(/\s/g, ""));
-      const lastIndex = Math.min(index + chars.length, OTP_LENGTH - 1);
-      inputsRef.current[lastIndex]?.focus();
-      return;
-    }
-    setDigit(index, clean);
-    if (index < OTP_LENGTH - 1) {
-      inputsRef.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Backspace" && !digits[index]?.trim() && index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div
-        className="flex justify-between gap-2 lg:max-w-[460px] lg:gap-3"
-        role="group"
-        aria-label={t("verifyOtp.fields.code.label")}
-      >
-        {digits.map((digit, index) => (
-          <input
-            key={index}
-            ref={(el) => {
-              inputsRef.current[index] = el;
-            }}
-            type="text"
-            inputMode="numeric"
-            autoComplete={index === 0 ? "one-time-code" : "off"}
-            maxLength={OTP_LENGTH}
-            value={digit.trim()}
-            disabled={disabled}
-            aria-invalid={error ? true : undefined}
-            onChange={(event) => {
-              handleChange(index, event.target.value);
-            }}
-            onKeyDown={(event) => {
-              handleKeyDown(index, event);
-            }}
-            className={cn(
-              "h-14 w-full min-w-0 rounded-xl bg-surface text-center text-h3 font-bold text-text-primary shadow-xs lg:rounded-lg lg:bg-background-alt lg:text-primary-dark lg:shadow-none",
-              "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
-              error && "outline outline-2 outline-danger",
-            )}
-          />
-        ))}
-      </div>
-      {error ? (
-        <p role="alert" className="text-small font-medium text-danger-text">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
 
 
 interface PasswordFieldProps extends InputHTMLAttributes<HTMLInputElement> {

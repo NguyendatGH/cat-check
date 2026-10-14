@@ -197,7 +197,7 @@ export function DesktopAside() {
   const { pathname } = useLocation();
 
   return (
-    <div className="hidden w-72 shrink-0 border-r border-border/50 bg-surface/95 backdrop-blur-xs lg:block">
+    <div className="hidden w-72 shrink-0 border-r border-border/50 bg-surface lg:block">
       <div className="sticky top-0 flex h-dvh flex-col">
         <div className="flex h-[83px] shrink-0 items-center justify-center px-4">
           <NavLink
