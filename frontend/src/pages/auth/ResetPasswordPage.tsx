@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { Button, EmptyState } from "@/shared/ui";
-import { toast } from "sonner";
+import { toast } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import {
   InlineAlert,

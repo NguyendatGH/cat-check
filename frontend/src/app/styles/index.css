@@ -703,3 +703,139 @@ body {
   --ph-hue-10: #4a4fb8;
   --ph-hue-11: #7a3fa8;
 }
+
+/* Mobile header shortcut row: collapses on scroll down (MobileAppHeader). */
+.header-shortcuts {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+}
+
+.header-shortcuts[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bottom navigation: icon sits in a pill indicator, label always visible. */
+.btm-tab {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--color-nav-inactive);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btm-tab-indicator {
+  display: flex;
+  height: 32px;
+  width: 56px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btm-tab:active .btm-tab-indicator,
+.btm-tab:active .btm-scan-btn {
+  transform: scale(0.92);
+}
+
+.btm-tab-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.btm-tab-active {
+  color: var(--color-primary-dark);
+}
+
+.btm-tab-active .btm-tab-indicator {
+  background: rgba(47, 79, 178, 0.12);
+}
+
+.btm-tab-active .btm-tab-label {
+  font-weight: 800;
+}
+
+.btm-scan-btn {
+  display: flex;
+  height: 44px;
+  width: 56px;
+  margin-top: -14px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  box-shadow:
+    0 6px 16px rgba(47, 79, 178, 0.32),
+    0 0 0 4px var(--color-surface);
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btm-tab-scan .btm-tab-label {
+  color: var(--color-primary-dark);
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-shortcuts,
+  .btm-tab-indicator,
+  .btm-scan-btn {
+    transition: none;
+  }
+}
+
+/* Glossy sweep across the brand logo every 5s (ShineLogo). */
+.logo-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgb(255 255 255 / 0.75) 50%,
+    transparent 60%
+  );
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  background-repeat: no-repeat;
+  -webkit-mask-image: var(--logo-mask);
+  mask-image: var(--logo-mask);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: var(--logo-mask-pos, center);
+  mask-position: var(--logo-mask-pos, center);
+  animation: logoShine 5s ease-in-out infinite;
+}
+
+@keyframes logoShine {
+  0% { background-position: 150% 0; }
+  22%, 100% { background-position: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-shine { display: none; }
+}

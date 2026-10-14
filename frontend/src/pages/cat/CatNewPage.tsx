@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
-import { toast } from "sonner";
+import { toast } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import {

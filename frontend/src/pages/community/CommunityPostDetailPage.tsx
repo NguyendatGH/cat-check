@@ -230,7 +230,7 @@ function CommentComposer({ postId }: { postId: string }) {
         submit();
       }}
       className={cn(
-        "fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[var(--z-dropdown)] mx-auto w-full max-w-[480px] border-t border-border bg-surface/95 px-4 py-2.5 backdrop-blur-md",
+        "fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-[var(--z-dropdown)] mx-auto w-full max-w-[480px] border-t border-border bg-surface/95 px-4 py-2.5 backdrop-blur-md",
         "lg:static lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-2xl lg:border-0 lg:bg-background-alt lg:p-4 lg:backdrop-blur-none",
       )}
     >

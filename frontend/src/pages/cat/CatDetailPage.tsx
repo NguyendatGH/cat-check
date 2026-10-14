@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
-import { toast } from "sonner";
+import { toast } from "@/shared/ui";
 import { AlertTriangle, Archive, ArchiveRestore, Crown, MoreVertical, Pencil, Plus, Stethoscope, Trash2 } from "lucide-react";
 import {
   Badge,

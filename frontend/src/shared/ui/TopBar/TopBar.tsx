@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/cn";
+import { ShineLogo } from "../ShineLogo";
 import appLogo from "@/shared/assets/images/web-auth/logo.png";
 
 export interface TopBarProps {
@@ -38,7 +39,7 @@ export function TopBar({ variant, title, onBack, actions }: TopBarProps) {
       <header className={HEADER_SHELL}>
         <div className="flex h-14 items-center justify-between px-4">
           <Link to="/" className="inline-flex shrink-0 items-center" aria-label={t("app.name")}>
-            <img src={appLogo} alt={t("app.name")} className="h-11 w-[122px] object-contain object-left" />
+            <ShineLogo src={appLogo} alt={t("app.name")} align="left" className="h-11 w-[122px] object-contain object-left" />
           </Link>
           <div className="flex items-center gap-2">{actions}</div>
         </div>
@@ -59,7 +60,7 @@ export function TopBar({ variant, title, onBack, actions }: TopBarProps) {
             <ArrowLeft size={20} aria-hidden="true" />
           </button>
           <Link to="/" className="inline-flex shrink-0 items-center" aria-label={t("app.name")}>
-            <img src={appLogo} alt={t("app.name")} className="h-10 w-[112px] object-contain object-left" />
+            <ShineLogo src={appLogo} alt={t("app.name")} align="left" className="h-10 w-[112px] object-contain object-left" />
           </Link>
           {title ? (
             <span className="truncate border-l border-border pl-2 text-xs font-semibold text-text-tertiary">

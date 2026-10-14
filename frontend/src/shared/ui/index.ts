@@ -11,7 +11,7 @@ export { Badge, badgeVariants } from "./Badge";
 export type { BadgeProps, BadgeVariantProps } from "./Badge";
 
 export { Toast, toast } from "./Toast";
-export type { ToastProps } from "./Toast";
+export type { ToastOptions, ToastProps } from "./Toast";
 
 export {
   Dialog,
@@ -56,3 +56,6 @@ export type { StepperProps } from "./Stepper";
 
 export { Pagination } from "./Pagination";
 export type { PaginationProps } from "./Pagination";
+
+export { ShineLogo } from "./ShineLogo";
+export type { ShineLogoProps } from "./ShineLogo";

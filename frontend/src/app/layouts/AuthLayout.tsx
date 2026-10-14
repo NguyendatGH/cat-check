@@ -1,6 +1,6 @@
 import { Link, Outlet, useMatches } from "react-router";
 import { useTranslation } from "react-i18next";
-import { TopBar } from "@/shared/ui";
+import { ShineLogo, TopBar } from "@/shared/ui";
 import webLogo from "@/shared/assets/images/web-auth/logo.png";
 import headerShield from "@/shared/assets/icons/web-auth/header-shield.svg";
 
@@ -26,7 +26,7 @@ export function AuthLayout() {
       <header className="header-glass sticky top-0 z-[var(--z-sticky-header)] hidden w-full border-b border-border/40 lg:block">
         <div className="mx-auto flex h-[78px] max-w-[1280px] items-center justify-between px-12">
           <Link to="/" className="inline-flex items-center" aria-label={t("pages.login.title")}>
-            <img src={webLogo} alt={t("pages.login.title")} className="h-20 w-[120px] object-contain" />
+            <ShineLogo src={webLogo} alt={t("pages.login.title")} className="h-20 w-[120px] object-contain" />
           </Link>
           <div className="flex items-center gap-1">
             <img src={headerShield} alt="" className="h-[15px] w-3" />

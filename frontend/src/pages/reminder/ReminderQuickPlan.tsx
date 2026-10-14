@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
+import { toast } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import {
   REMINDER_ERROR,

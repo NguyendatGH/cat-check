@@ -302,53 +302,11 @@ export const routes: RouteObject[] = [
           </PageSuspense>,
         ),
       },
-    ],
-  },
-  {
-    element: <RequireAuth />,
-    children: [
       {
-        element: <TaskLayout />,
+        element: <RequireAuth />,
         children: [
           {
-            path: "/cart",
-            element: featureGated(
-              "shop",
-              <PageSuspense>
-                <LazyPages.cart />
-              </PageSuspense>,
-            ),
-          },
-          {
-            path: "/checkout",
-            element: featureGated(
-              "shop",
-              <PageSuspense>
-                <LazyPages.checkout />
-              </PageSuspense>,
-            ),
-          },
-          {
-            path: "/orders/:orderId",
-            element: featureGated(
-              "shop",
-              <PageSuspense>
-                <LazyPages.orderTracking />
-              </PageSuspense>,
-            ),
-          },
-        ],
-      },
-    ],
-  },
-  {
-    element: <RequireAuth />,
-    children: [
-      {
-        element: <RequireOnboarding />,
-        children: [
-          {
-            element: <AppLayout />,
+            element: <RequireOnboarding />,
             children: [
               {
                 path: "/scan/select-cat",
@@ -492,6 +450,53 @@ export const routes: RouteObject[] = [
               },
             ],
           },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        element: <TaskLayout />,
+        children: [
+          {
+            path: "/cart",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.cart />
+              </PageSuspense>,
+            ),
+          },
+          {
+            path: "/checkout",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.checkout />
+              </PageSuspense>,
+            ),
+          },
+          {
+            path: "/orders/:orderId",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.orderTracking />
+              </PageSuspense>,
+            ),
+          },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        element: <RequireOnboarding />,
+        children: [
           {
             element: <TaskLayout />,
             children: [

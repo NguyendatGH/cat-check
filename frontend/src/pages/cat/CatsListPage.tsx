@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { useQueries } from "@tanstack/react-query";
 import { Skeleton as AntSkeleton } from "antd";
 import { Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import { Button, EmptyState, ErrorState, Tabs, TabsList, TabsTrigger } from "@/shared/ui";
 import { CatAvatar, resolveCatLastScan, useFormatCatAge, type Cat, type CatLastScan, type CatStatus } from "@/entities/cat";

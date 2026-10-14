@@ -7,6 +7,7 @@ import { CatAvatar } from "@/entities/cat";
 import { useSessionStore } from "@/entities/user";
 import { useCatList } from "@/features/cat";
 import { formatRemainingSeconds, useCreditBalance } from "@/features/credit";
+import { ShineLogo } from "@/shared/ui";
 import webLogo from "@/shared/assets/images/web-auth/logo.png";
 import iconChevron from "@/shared/assets/icons/web-dashboard/side-chevron.svg";
 import iconPromo from "@/shared/assets/icons/web-dashboard/side-promo.svg";
@@ -205,7 +206,7 @@ export function DesktopAside() {
             className="group flex items-center justify-center rounded-xl p-1 transition-transform duration-200 active:scale-95"
             aria-label={t("app.name")}
           >
-            <img src={webLogo} alt={t("app.name")} className="h-[53px] w-40 object-contain transition-opacity duration-200 group-hover:opacity-90" />
+            <ShineLogo src={webLogo} alt={t("app.name")} className="h-[53px] w-40 object-contain transition-opacity duration-200 group-hover:opacity-90" />
           </NavLink>
         </div>
 
