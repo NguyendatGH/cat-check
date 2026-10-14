@@ -25,6 +25,11 @@ describe("shouldAutoStartTour", () => {
     expect(shouldAutoStartTour({ ...base, status: "disabled" })).toBe(false);
   });
 
+  it("đợi pháo hoa (quà chào mừng) xong mới chạy", () => {
+    expect(shouldAutoStartTour({ ...base, celebrationBusy: true })).toBe(false);
+    expect(shouldAutoStartTour({ ...base, celebrationBusy: false })).toBe(true);
+  });
+
   it("không chạy khi splash còn hiện", () => {
     for (const phase of ["boot", "intro", "exit"]) {
       expect(shouldAutoStartTour({ ...base, splashPhase: phase })).toBe(false);

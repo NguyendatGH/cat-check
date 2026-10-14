@@ -87,6 +87,13 @@ catcheck:
     # Temporarily raised from the default 5; set CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS to change.
     max-concurrent-sessions: ${CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS:20}
 
+  credit:
+    # Quà chào mừng cho mỗi tài khoản người mua mới (đăng ký email đã xác minh / Google OAuth).
+    welcome-bonus:
+      enabled: ${CATCHECK_WELCOME_BONUS_ENABLED:true}
+      amount: ${CATCHECK_WELCOME_BONUS_AMOUNT:10}
+      validity: ${CATCHECK_WELCOME_BONUS_VALIDITY:5d}
+
   oauth2:
     mock-enabled: false
     frontend-success-url: ${CATCHECK_OAUTH2_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/complete}

@@ -4,6 +4,7 @@ import com.catcheck.credit.domain.Entitlement;
 import com.catcheck.credit.domain.PackagePlan;
 import com.catcheck.credit.domain.PlanFeatures;
 import com.catcheck.credit.domain.PlanTier;
+import com.catcheck.credit.domain.WelcomeBonus;
 import com.catcheck.credit.domain.port.CreditBatchPort;
 import com.catcheck.credit.domain.port.PackagePlanPort;
 import com.catcheck.credit.domain.port.UserEntitlementPort;
@@ -40,6 +41,8 @@ public class EntitlementRecalculationService {
         for (String packageCode : creditBatchPort.findAllBatches(userId).stream()
                 .map(batch -> batch.packageCode())
                 .filter(Objects::nonNull)
+                // Lô quà chào mừng chỉ cho lượt quét, không phải gói đã kích hoạt — không nâng hạng.
+                .filter(code -> !WelcomeBonus.isWelcomePackage(code))
                 .toList()) {
             highestCode = PlanTier.isHigher(packageCode, highestCode) ? packageCode : highestCode;
         }

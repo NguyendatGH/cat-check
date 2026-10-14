@@ -18,6 +18,16 @@ export {
   usePackageCatalog,
 } from "./hooks";
 export { apiFetch } from "./api";
+export { WelcomeBonusCelebration } from "./WelcomeBonusCelebration";
+export {
+  WELCOME_PACKAGE_CODE,
+  batchValidityDays,
+  findWelcomeBatch,
+  hasCelebratedWelcome,
+  isWelcomeBatch,
+  markWelcomeCelebrated,
+  shouldCheckWelcome,
+} from "./welcome";
 export { handlers, worker } from "./mocks";
 export { formatActivationCode, isValidActivationCode, normalizeActivationCode } from "./schemas";
 export type {

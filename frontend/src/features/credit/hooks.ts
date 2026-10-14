@@ -28,10 +28,11 @@ export function usePackageCatalog(): UseQueryResult<PackagePlan[]> {
   });
 }
 
-export function useCreditBalance(): UseQueryResult<CreditBalance> {
+export function useCreditBalance(enabled = true): UseQueryResult<CreditBalance> {
   return useQuery({
     queryKey: creditKeys.balance(),
     queryFn: () => apiFetch<CreditBalance>("/credits/balance"),
+    enabled,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
     refetchInterval: 60 * 1000,

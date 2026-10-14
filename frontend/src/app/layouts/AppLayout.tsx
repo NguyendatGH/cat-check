@@ -1,4 +1,5 @@
 import { Outlet } from "react-router";
+import { WelcomeBonusCelebration } from "@/features/credit";
 import { ProductTour } from "@/features/product-tour";
 import { DesktopAside } from "./shell/DesktopAside";
 import { DesktopHeader } from "./shell/DesktopHeader";
@@ -18,6 +19,7 @@ export function AppLayout() {
         </main>
       </div>
       <BottomNav />
+      <WelcomeBonusCelebration />
       <ProductTour />
     </div>
   );

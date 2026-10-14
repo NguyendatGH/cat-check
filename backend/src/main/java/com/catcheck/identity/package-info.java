@@ -3,5 +3,6 @@
         "audit::api",
         "media::api",
         "notification::api",
-        "privacy::spi" })
+        "privacy::spi",
+        "credit::api" })
 package com.catcheck.identity;

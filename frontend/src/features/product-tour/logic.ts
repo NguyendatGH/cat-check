@@ -11,11 +11,20 @@ export interface TourStartInput {
   /** Pha của brand splash; tour chỉ chạy khi splash đã ẩn hẳn. */
   splashPhase: string;
   status: TourStatus;
+  /** Đang/sắp có pháo hoa (vd. quà chào mừng) — tour đợi chạy sau. */
+  celebrationBusy?: boolean;
 }
 
 /** Tour chỉ tự chạy cho tài khoản người mua đã xong onboarding, đang ở Trang chủ, chưa xem/tắt. */
-export function shouldAutoStartTour({ user, pathname, splashPhase, status }: TourStartInput): boolean {
+export function shouldAutoStartTour({
+  user,
+  pathname,
+  splashPhase,
+  status,
+  celebrationBusy = false,
+}: TourStartInput): boolean {
   if (!user) return false;
+  if (celebrationBusy) return false;
   if (!hasNonAdminRole(user)) return false;
   if (!user.onboarding.completed) return false;
   if (splashPhase !== "hidden") return false;

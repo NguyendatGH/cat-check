@@ -4,6 +4,7 @@ import { QueryProvider } from "./QueryProvider";
 import { SessionProvider } from "./SessionProvider";
 import { ToastProvider } from "./ToastProvider";
 import { SplashHost } from "@/shared/ui/BrandSplash";
+import { CelebrationHost } from "@/shared/ui/Celebration";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <ToastProvider>
             {children}
             <SplashHost />
+            <CelebrationHost />
           </ToastProvider>
         </SessionProvider>
       </QueryProvider>

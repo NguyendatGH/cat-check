@@ -59,3 +59,8 @@ export type { PaginationProps } from "./Pagination";
 
 export { ShineLogo } from "./ShineLogo";
 export type { ShineLogoProps } from "./ShineLogo";
+
+export { CelebrationHost, Fireworks } from "./Celebration";
+export type { FireworksProps } from "./Celebration";
+export { celebrate, useCelebrationBusy, useCelebrationStore } from "@/shared/lib/motion/celebration";
+export type { CelebrationRequest } from "@/shared/lib/motion/celebration";

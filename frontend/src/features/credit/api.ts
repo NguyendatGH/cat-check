@@ -46,6 +46,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Non-JSON error body: fall back to the HTTP status below.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

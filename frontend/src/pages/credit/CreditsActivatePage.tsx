@@ -18,7 +18,7 @@ import {
   Ticket,
   X,
 } from "lucide-react";
-import { Badge, Button, Card, SkeletonLoader } from "@/shared/ui";
+import { Badge, Button, Card, SkeletonLoader, celebrate } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api";
 import {
@@ -89,6 +89,7 @@ export function CreditsActivatePage() {
     try {
       const result = await activateCode.mutateAsync(formatActivationCode(code));
       setSuccess(result);
+      celebrate();
     } catch (error) {
       if (isApiError(error)) {
         switch (error.code) {

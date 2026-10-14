@@ -41,6 +41,7 @@ import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.security.MfaLevel;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -216,7 +217,8 @@ class IdentitySecurityLogicReviewTest {
                 .thenReturn(Optional.of(google));
         when(accounts.findById(USER_A)).thenReturn(Optional.of(account(USER_A, UserStatus.RESTRICTED)));
 
-        OAuthService service = new OAuthService(accounts, identities, mock(UserRoleRepository.class), audit(), CLOCK);
+        OAuthService service = new OAuthService(accounts, identities, mock(UserRoleRepository.class), audit(),
+                mock(ApplicationEventPublisher.class), CLOCK);
 
         assertThatThrownBy(() -> service.findOrCreate(Map.of("sub", "google-sub",
                 "email", "person@example.com", "email_verified", true), CONTEXT))

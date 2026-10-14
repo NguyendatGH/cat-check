@@ -15,6 +15,24 @@ Mỗi lần khởi động, mật khẩu và vai trò được đặt lại về
 | `seller@catcheck.vn` | `Admin@123` | `USER`, `ADMIN_CATALOG` | Console seller/catalog |
 | `admin@catcheck.vn` | `Admin@123` | `USER`, `ADMIN_SUPER` | Console admin (gồm mã kích hoạt) |
 
+## Quà chào mừng (tài khoản mới)
+
+Mọi tài khoản **người mua** mới tự nhận một lô quà **10 credit, hạn 5 ngày** — áp dụng mọi profile,
+không chỉ `local`:
+
+- Đăng ký email: tặng lúc xác minh OTP xong. Google OAuth: tặng lúc tạo tài khoản lần đầu.
+- Đúng **một lần** mỗi tài khoản (khoá `credit_ledger.idempotency_key = welcome-bonus:<userId>`).
+  Staff (có vai trò ngoài `USER`) không nhận. Ba tài khoản demo ở trên do seeder tạo thẳng nên
+  **không** có quà — muốn thử, đăng ký tài khoản mới.
+- Lô có `package_code = WELCOME`, hiện là "Quà chào mừng" ở màn Credit; chỉ cho lượt quét, không mở
+  tính năng gói. 3 lượt dùng thử vẫn được dùng trước, sau đó mới trừ credit quà (FEFO).
+- Lần đầu vào Trang chủ sau onboarding: pháo hoa + "Quà chào mừng: 10 lượt quét, dùng trong 5 ngày"
+  (một lần mỗi user, nhớ bằng localStorage `catcheck.welcomeBonus.v1:<userId>`), rồi mới tới hướng
+  dẫn tính năng. Kích hoạt mã thành công cũng bắn pháo hoa.
+- Cấu hình: `catcheck.credit.welcome-bonus.enabled|amount|validity`
+  (env `CATCHECK_WELCOME_BONUS_ENABLED`, `CATCHECK_WELCOME_BONUS_AMOUNT`, `CATCHECK_WELCOME_BONUS_VALIDITY`,
+  vd. `5d`). Đổi cấu hình chỉ áp dụng cho tài khoản tặng sau đó.
+
 ## Mã credit (mã kích hoạt)
 
 Seeder: `backend/src/main/java/com/catcheck/credit/application/DemoActivationCodeSeeder.java`.

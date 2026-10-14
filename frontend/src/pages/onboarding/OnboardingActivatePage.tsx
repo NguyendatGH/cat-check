@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { PartyPopper } from "lucide-react";
-import { Button, Card } from "@/shared/ui";
+import { Button, Card, celebrate } from "@/shared/ui";
 import {
   ActivationCodeInput,
   OnboardingShell,
@@ -51,6 +51,7 @@ export function OnboardingActivatePage() {
         credits: result.creditsGranted,
         expiresAt: result.expiresAt,
       });
+      celebrate();
     } catch (error) {
       if (isApiError(error)) {
         switch (error.code) {

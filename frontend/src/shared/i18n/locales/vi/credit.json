@@ -135,5 +135,10 @@
     "emptyDescription": "Khi có gói mới, danh mục sẽ hiện ở đây.",
     "errorTitle": "Không tải được danh mục gói",
     "currentBadge": "Gói hiện tại"
+  },
+  "welcome": {
+    "title": "Chào mừng bạn đến với CatCheck!",
+    "message": "Quà chào mừng: {{credits}} lượt quét, dùng trong {{days}} ngày",
+    "batchName": "Quà chào mừng"
   }
 }

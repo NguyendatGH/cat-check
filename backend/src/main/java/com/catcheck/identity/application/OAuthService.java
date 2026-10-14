@@ -2,6 +2,7 @@ package com.catcheck.identity.application;
 
 import com.catcheck.audit.api.AuditEvent;
 import com.catcheck.audit.api.AuditLogService;
+import com.catcheck.credit.api.BuyerAccountActivatedEvent;
 import com.catcheck.identity.api.IdentityErrorCode;
 import com.catcheck.identity.domain.EmailAddress;
 import com.catcheck.identity.domain.IdentityProvider;
@@ -15,6 +16,7 @@ import com.catcheck.identity.domain.port.UserIdentityRepository;
 import com.catcheck.identity.domain.port.UserRoleRepository;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,17 +33,20 @@ public class OAuthService {
     private final UserIdentityRepository identityRepository;
     private final UserRoleRepository roleRepository;
     private final AuditLogService auditLogService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     public OAuthService(UserAccountRepository accountRepository,
                         UserIdentityRepository identityRepository,
                         UserRoleRepository roleRepository,
                         AuditLogService auditLogService,
+                        ApplicationEventPublisher eventPublisher,
                         Clock clock) {
         this.accountRepository = accountRepository;
         this.identityRepository = identityRepository;
         this.roleRepository = roleRepository;
         this.auditLogService = auditLogService;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
@@ -139,7 +144,12 @@ public class OAuthService {
                 .userAgent(context.userAgent())
                 .build());
 
-        return result(accountRepository.findById(userId).orElseThrow(), true);
+        OAuthResult created = result(accountRepository.findById(userId).orElseThrow(), true);
+        if (BuyerAccounts.isBuyerOnly(created.roles())) {
+            eventPublisher.publishEvent(new BuyerAccountActivatedEvent(
+                    userId, BuyerAccountActivatedEvent.SignupMethod.GOOGLE, now));
+        }
+        return created;
     }
 
     private OAuthResult result(UserAccount account, boolean newlyCreated) {

@@ -6,6 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { formatActivationCode } from "./schemas";
 import { usePackageCatalog } from "./hooks";
 import type { CreditBatch, CreditLedgerType, Entitlement, LedgerEntry } from "./types";
+import { WELCOME_PACKAGE_CODE, isWelcomeBatch } from "./welcome";
 
 
 const SECONDS_PER_DAY = 86_400;
@@ -78,7 +79,9 @@ export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
     <Card className={cn("flex flex-col gap-3", className)}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-body font-semibold text-text-primary">
-          {plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode}
+          {isWelcomeBatch(batch)
+            ? t("welcome.batchName")
+            : (plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode)}
         </p>
         <Badge tone={expired ? "neutral" : "brand"}>
           {expired ? t("batch.expired") : formatRemainingSeconds(batch.remainingSeconds, t)}
@@ -119,7 +122,9 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
   const Icon = entry.amount >= 0 ? ArrowUpCircle : ArrowDownCircle;
   const { data: plans } = usePackageCatalog();
   const batchPlanName = entry.packageCode
-    ? (plans?.find((plan) => plan.code === entry.packageCode)?.name ?? entry.packageCode)
+    ? entry.packageCode === WELCOME_PACKAGE_CODE
+      ? t("welcome.batchName")
+      : (plans?.find((plan) => plan.code === entry.packageCode)?.name ?? entry.packageCode)
     : null;
 
   return (

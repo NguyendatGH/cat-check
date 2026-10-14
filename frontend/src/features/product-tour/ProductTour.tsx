@@ -7,6 +7,7 @@ import { useSessionStore } from "@/entities/user";
 import { featureFlags } from "@/shared/config/featureFlags";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
 import { useMediaQuery } from "@/shared/lib/hooks/useMediaQuery";
+import { useCelebrationBusy } from "@/shared/lib/motion/celebration";
 import { useSplashStore } from "@/shared/lib/motion/splash";
 import { findTourTarget, resolveTourSteps, shouldAutoStartTour, statusAfterClose, type ResolvedTourStep } from "./logic";
 import { TOUR_STEPS } from "./steps";
@@ -41,6 +42,7 @@ export function ProductTour() {
   const userId = user?.id ?? null;
   const { pathname } = useLocation();
   const splashPhase = useSplashStore((s) => s.phase);
+  const celebrationBusy = useCelebrationBusy();
   const status = useTourStatus(userId);
   const isDesktop = useBreakpoint("lg");
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -49,7 +51,7 @@ export function ProductTour() {
   const [current, setCurrent] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  const eligible = shouldAutoStartTour({ user, pathname, splashPhase, status });
+  const eligible = shouldAutoStartTour({ user, pathname, splashPhase, status, celebrationBusy });
   const fresh = active !== null && active.isDesktop === isDesktop;
 
   useEffect(() => {

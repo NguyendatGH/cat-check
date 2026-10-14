@@ -2,6 +2,7 @@ package com.catcheck.identity.application;
 
 import com.catcheck.audit.api.AuditEvent;
 import com.catcheck.audit.api.AuditLogService;
+import com.catcheck.credit.api.BuyerAccountActivatedEvent;
 import com.catcheck.identity.api.IdentityErrorCode;
 import com.catcheck.privacy.spi.RegistrationConsentEvent;
 import com.catcheck.identity.domain.AppLocale;
@@ -152,6 +153,7 @@ public class RegistrationService {
         accountRepository.markEmailVerified(account.id(), now);
         identityRepository.findLocal(account.id())
                 .ifPresent(identity -> identityRepository.touchLastUsed(identity.id(), now));
+        publishBuyerActivated(account.id(), now);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(account.id())
@@ -173,6 +175,7 @@ public class RegistrationService {
 
         if (account.emailVerifiedAt() == null) {
             accountRepository.markEmailVerified(account.id(), now);
+            publishBuyerActivated(account.id(), now);
         }
 
         auditLogService.record(AuditEvent.builder()
@@ -184,6 +187,19 @@ public class RegistrationService {
                 .build());
 
         return new RegistrationResult(account.id(), account.email(), account.fullName(), true, true);
+    }
+
+    /**
+     * Tài khoản email chỉ "dùng được" sau khi xác minh OTP — đó là lúc tặng quà chào mừng, để
+     * hạn 5 ngày không trôi khi user chưa xác minh và nhắc hết hạn không gửi tới email chưa xác minh.
+     * Chỉ tài khoản người mua thuần (vai trò USER duy nhất); staff không nhận quà.
+     */
+    private void publishBuyerActivated(UUID userId, Instant now) {
+        if (!BuyerAccounts.isBuyerOnly(roleRepository.findByUserId(userId))) {
+            return;
+        }
+        eventPublisher.publishEvent(new BuyerAccountActivatedEvent(
+                userId, BuyerAccountActivatedEvent.SignupMethod.EMAIL, now));
     }
 
     private void requireAcceptablePassword(String rawPassword) {
