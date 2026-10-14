@@ -24,6 +24,14 @@ public class JdbcAdminMetricsQueryAdapter implements AdminMetricsQueryPort {
                         + count("SELECT count(*) FROM notification_outbox WHERE status = 'PENDING'"));
     }
 
+    @Override
+    public java.util.Map<String, Long> countUsersByStatus() {
+        java.util.Map<String, Long> counts = new java.util.LinkedHashMap<>();
+        jdbc.query("SELECT status, count(*) AS n FROM app_user GROUP BY status ORDER BY status",
+                rs -> { counts.put(rs.getString("status"), rs.getLong("n")); });
+        return counts;
+    }
+
     private long count(String sql) {
         Long value = jdbc.queryForObject(sql, Long.class);
         return value == null ? 0L : value;

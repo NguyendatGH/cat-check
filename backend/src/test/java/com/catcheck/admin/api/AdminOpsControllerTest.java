@@ -91,6 +91,23 @@ class AdminOpsControllerTest {
     }
 
     @Test
+    void userStatusSummaryReturnsTotalsForUserReadRolesOnly() throws Exception {
+        Mockito.when(opsQueryService.userStatusCounts())
+                .thenReturn(java.util.Map.of("ACTIVE", 13L, "LOCKED", 2L));
+
+        AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_SUPPORT"));
+        mockMvc.perform(get("/api/v1/admin/users/summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.byStatus.ACTIVE").value(13))
+                .andExpect(jsonPath("$.byStatus.LOCKED").value(2));
+
+        AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_CATALOG"));
+        mockMvc.perform(get("/api/v1/admin/users/summary"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"));
+    }
+
+    @Test
     void maintenanceWithAReasonShorterThanTenCharactersIsRejectedBeforeAnyUpdate() throws Exception {
         AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_SUPER"));
 

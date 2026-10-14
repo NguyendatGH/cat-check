@@ -189,6 +189,22 @@ public class JdbcDsarRequestAdapter implements DsarRequestPort {
         return count == null ? 0 : count;
     }
 
+    @Override
+    public AdminSummary summarizeForAdmin(DsarRequestType requestType, Instant now) {
+        List<Object> args = new ArrayList<>();
+        args.add(now);
+        StringBuilder sql = new StringBuilder("""
+                SELECT count(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REJECTED')) AS open_count,
+                       count(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REJECTED')
+                                          AND coalesce(extended_to, fulfil_due_at) < ?) AS overdue_count,
+                       count(*) FILTER (WHERE status = 'EXTENDED') AS extended_count
+                  FROM dsar_request WHERE 1 = 1""");
+        appendAdminFilter(sql, args, "request_type", requestType == null ? null : requestType.name());
+        return jdbc.queryForObject(sql.toString(), (rs, rowNum) -> new AdminSummary(
+                rs.getLong("open_count"), rs.getLong("overdue_count"), rs.getLong("extended_count")),
+                args.toArray());
+    }
+
     private static void appendAdminFilter(StringBuilder sql, List<Object> args, String column, String value) {
         if (value != null) {
             sql.append(" AND ").append(column).append(" = ?");

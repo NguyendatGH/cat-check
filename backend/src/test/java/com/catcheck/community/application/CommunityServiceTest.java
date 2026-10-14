@@ -106,6 +106,19 @@ class CommunityServiceTest {
     }
 
     @Test
+    void reportReasonOutsideWhitelistIsRejectedBeforeAnyWrite() {
+        CommunityRepository repository = mock(CommunityRepository.class);
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        for (String reason : java.util.Arrays.asList("spam", "ABUSE", "", null)) {
+            assertThatThrownBy(() -> service.report(USER_ID, UUID.randomUUID(), null, reason, null))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+        verify(repository, never()).findReportTargetAuthor(any(), any());
+        verify(repository, never()).report(any(), any(), any(), any(), any());
+    }
+
+    @Test
     void reportingSomeoneElsesPostStillWorks() {
         UUID postId = UUID.randomUUID();
         CommunityRepository repository = mock(CommunityRepository.class);

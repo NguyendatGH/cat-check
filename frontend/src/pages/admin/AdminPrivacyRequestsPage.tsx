@@ -24,6 +24,7 @@ import {
   formatAdminNumber,
   useAdminPrivacyRequest,
   useAdminPrivacyRequests,
+  useAdminPrivacyRequestSummary,
   useCreateAdminPrivacyRequest,
   useTransitionAdminPrivacyRequest,
   isReasonValid,
@@ -81,6 +82,8 @@ export function AdminPrivacyRequestsPage() {
   const [extendedTo, setExtendedTo] = useState("");
   const requests = useAdminPrivacyRequests({ requestType, status, page, size: 20 });
   const detail = useAdminPrivacyRequest(selectedId);
+  const summary = useAdminPrivacyRequestSummary(requestType);
+  const summaryValue = (value: number | undefined) => (value === undefined ? "—" : formatAdminNumber(value));
   const create = useCreateAdminPrivacyRequest();
   const transition = useTransitionAdminPrivacyRequest();
   const items = requests.data?.items ?? [];
@@ -216,19 +219,19 @@ export function AdminPrivacyRequestsPage() {
           />
           <KpiTile
             label={t("pages.privacyRequests.kpiOpen")}
-            value={formatAdminNumber(items.filter((item) => !CLOSED_STATUSES.includes(item.status)).length)}
-            hint={t("dense.onPageHint")}
+            value={summaryValue(summary.data?.open)}
+            hint={t("dense.summaryIgnoresStatusHint")}
           />
           <KpiTile
             label={t("pages.privacyRequests.kpiOverdue")}
-            value={formatAdminNumber(items.filter((item) => isOverdue(item, now)).length)}
-            hint={t("dense.onPageHint")}
-            tone={items.some((item) => isOverdue(item, now)) ? "danger" : "neutral"}
+            value={summaryValue(summary.data?.overdue)}
+            hint={t("dense.summaryIgnoresStatusHint")}
+            tone={(summary.data?.overdue ?? 0) > 0 ? "danger" : "neutral"}
           />
           <KpiTile
             label={t("pages.privacyRequests.kpiExtended")}
-            value={formatAdminNumber(items.filter((item) => item.status === "EXTENDED").length)}
-            hint={t("dense.onPageHint")}
+            value={summaryValue(summary.data?.extended)}
+            hint={t("dense.summaryIgnoresStatusHint")}
             tone="warning"
           />
         </KpiGrid>

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { CatAvatar } from "@/entities/cat";
-import { useSessionStore } from "@/entities/user";
+import { useHomePath, useSessionStore } from "@/entities/user";
 import { useCatList } from "@/features/cat";
 import { formatRemainingSeconds, useCreditBalance } from "@/features/credit";
 import { ShineLogo } from "@/shared/ui";
@@ -196,13 +196,16 @@ export function DesktopAside() {
   const { t } = useTranslation("common");
   const signedIn = Boolean(useSessionStore((s) => s.user));
   const { pathname } = useLocation();
+  // Staff bị chặn ở /dashboard (RequireNonAdminRole) nên "Tổng quan"/logo đưa họ về cổng quản trị.
+  const homePath = useHomePath();
+  const linkTo = (to: string) => (to === ROUTE_PATTERNS.dashboard ? homePath : to);
 
   return (
     <div className="hidden w-72 shrink-0 border-r border-border/50 bg-surface lg:block">
       <div className="sticky top-0 flex h-dvh flex-col">
         <div className="flex h-[83px] shrink-0 items-center justify-center px-4">
           <NavLink
-            to={ROUTE_PATTERNS.dashboard}
+            to={homePath}
             className="group flex items-center justify-center rounded-xl p-1 transition-transform duration-200 active:scale-95"
             aria-label={t("app.name")}
           >
@@ -216,7 +219,7 @@ export function DesktopAside() {
           {DESKTOP_NAV_ITEMS.map((item, index) => (
             <NavLink
               key={item.to}
-              to={item.to}
+              to={linkTo(item.to)}
               end={item.end}
               data-motion="row"
               className={({ isActive }) => {
@@ -227,7 +230,7 @@ export function DesktopAside() {
                   active ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS,
                 );
               }}
-              style={{ animationDelay: `${index * 35}ms` }}
+              style={{ animationDelay: `${String(index * 35)}ms` }}
             >
               {({ isActive }) => {
                 const active = isNavItemActive(item.to, pathname, isActive);
@@ -267,7 +270,7 @@ export function DesktopAside() {
                   active ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS,
                 );
               }}
-              style={{ animationDelay: `${(DESKTOP_NAV_ITEMS.length + index) * 35}ms` }}
+              style={{ animationDelay: `${String((DESKTOP_NAV_ITEMS.length + index) * 35)}ms` }}
             >
               {({ isActive }) => {
                 const active = isNavItemActive(item.to, pathname, isActive);

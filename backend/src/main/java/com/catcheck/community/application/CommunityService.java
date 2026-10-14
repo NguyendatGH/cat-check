@@ -19,6 +19,9 @@ import java.util.UUID;
 
 @Service
 public class CommunityService {
+    /** Khớp COMMUNITY_REPORT_REASONS ở frontend và @Pattern của CommunityReportRequest. */
+    static final java.util.Set<String> REPORT_REASONS = java.util.Set.of("SPAM", "MISLEADING", "HARASSMENT", "PRIVACY", "OTHER");
+
     private final CommunityRepository repository;
     private final UserAccountPort userAccountPort;
     private final CommunityRateLimiter rateLimiter;
@@ -75,6 +78,10 @@ public class CommunityService {
     @Transactional
     public void report(UUID userId, UUID postId, UUID commentId, String reason, String details) {
         requireWriteAllowed(userId);
+        if (reason == null || !REPORT_REASONS.contains(reason)) {
+            // GlobalExceptionHandler map sang VALIDATION_FAILED (400); không tiêu hao hạn mức báo cáo.
+            throw new IllegalArgumentException("community report reason không hợp lệ");
+        }
         requireRateLimit(CommunityRateLimitRule.REPORT_CREATE_BY_USER, CommunityErrorCode.REPORT_RATE_LIMITED, userId);
         if ((postId == null) == (commentId == null)) {
             throw new com.catcheck.shared.error.BusinessRuleException(CommunityErrorCode.REPORT_TARGET_REQUIRED);

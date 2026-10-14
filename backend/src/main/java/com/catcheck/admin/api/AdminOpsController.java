@@ -70,6 +70,9 @@ public class AdminOpsController {
 
     static final Set<String> SUPER_ONLY = Set.of("ADMIN_SUPER");
 
+    /** Trùng quyền đọc danh sách người dùng (AdminUserController.READ_ROLES). */
+    static final Set<String> USER_SUMMARY_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
+
     static final Set<String> BROADCAST_INCIDENT_ROLES = Set.of("ADMIN_SUPER", "DPO");
 
     static final String TEMPLATE_PRIVACY_INCIDENT = "PRIVACY_INCIDENT_NOTICE";
@@ -191,6 +194,19 @@ public class AdminOpsController {
         AdminGuard.requireAnyRole(principal, DASHBOARD_METRICS_ROLES);
         return AdminMetricsResponse.from(opsQueryService.metrics());
     }
+
+
+    @Operation(
+            operationId = "getAdminUserStatusSummary",
+            summary = "L1b — đếm tài khoản theo trạng thái",
+            description = "Chỉ đọc, trên toàn bộ người dùng (không riêng trang đang xem); chỉ trả số đếm, không PII.")
+    @GetMapping("/users/summary")
+    public UserStatusSummaryResponse userStatusSummary(@CurrentUser SecurityPrincipal principal) {
+        AdminGuard.requireAnyRole(principal, USER_SUMMARY_ROLES);
+        return new UserStatusSummaryResponse(opsQueryService.userStatusCounts());
+    }
+
+    public record UserStatusSummaryResponse(java.util.Map<String, Long> byStatus) { }
 
 
     @Operation(

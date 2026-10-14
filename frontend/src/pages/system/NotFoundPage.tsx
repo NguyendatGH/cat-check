@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Camera, Cat, ChevronRight, Compass, LineChart } from "lucide-react";
 import { Button } from "@/shared/ui";
+import { useHomePath } from "@/entities/user";
 
 
 interface Shortcut {
@@ -20,6 +21,7 @@ export function NotFoundPage() {
   const { t } = useTranslation(["errors", "common"]);
   const location = useLocation();
   const navigate = useNavigate();
+  const homePath = useHomePath();
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-10">
@@ -46,7 +48,7 @@ export function NotFoundPage() {
           type="button"
           size="lg"
           onClick={() => {
-            void navigate("/dashboard");
+            void navigate(homePath);
           }}
         >
           {t("errors:notFound.homeCta")}

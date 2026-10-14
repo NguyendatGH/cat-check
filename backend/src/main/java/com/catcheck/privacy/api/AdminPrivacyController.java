@@ -91,6 +91,19 @@ public class AdminPrivacyController {
         return PageResponse.of(items, safePage, safeSize, total);
     }
 
+    @Operation(operationId = "getAdminPrivacyRequestSummary",
+            summary = "L49b — đếm DSAR đang mở/quá hạn/gia hạn",
+            description = "Chỉ đọc, trên toàn bộ DSAR (lọc tuỳ chọn theo loại), không riêng trang đang xem.")
+    @GetMapping("/summary")
+    public SummaryResponse summary(@CurrentUser SecurityPrincipal principal,
+                                   @RequestParam(required = false) String requestType) {
+        AdminGuard.requireAnyRole(principal, READ_ROLES);
+        DsarRequestPort.AdminSummary summary = adminDsarService.summary(parseType(requestType));
+        return new SummaryResponse(summary.open(), summary.overdue(), summary.extended());
+    }
+
+    public record SummaryResponse(long open, long overdue, long extended) { }
+
     @Operation(operationId = "getAdminPrivacyRequest", summary = "L50 — chi tiết DSAR admin")
     @GetMapping("/{requestId}")
     public AdminDsarRequestResponse detail(@CurrentUser SecurityPrincipal principal,

@@ -30,4 +30,12 @@ public interface DsarRequestPort {
     List<DsarRequest> findForAdmin(DsarRequestType requestType, DsarStatus status, int offset, int limit);
 
     long countForAdmin(DsarRequestType requestType, DsarStatus status);
+
+    /**
+     * Đếm toàn bộ DSAR (không phân trang) cho KPI admin: đang mở (chưa COMPLETED/REJECTED),
+     * quá hạn (đang mở và coalesce(extended_to, fulfil_due_at) trước {@code now}), đã gia hạn (EXTENDED).
+     */
+    AdminSummary summarizeForAdmin(DsarRequestType requestType, Instant now);
+
+    record AdminSummary(long open, long overdue, long extended) { }
 }

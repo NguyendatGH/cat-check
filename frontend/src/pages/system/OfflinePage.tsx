@@ -3,9 +3,11 @@ import { Link } from "react-router";
 import { RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { useOnlineStatus } from "@/shared/lib/hooks/useOnlineStatus";
+import { useHomePath } from "@/entities/user";
 
 export function OfflinePage() {
   const { t } = useTranslation(["errors", "common"]);
+  const homePath = useHomePath();
   const online = useOnlineStatus();
 
   return (
@@ -52,7 +54,7 @@ export function OfflinePage() {
           {t("errors:offlinePage.retryCta")}
         </Button>
         <Link
-          to="/dashboard"
+          to={homePath}
           className="flex min-h-11 items-center justify-center rounded-xl border border-border px-4 text-body font-semibold text-primary hover:bg-background-alt"
         >
           {t("errors:offlinePage.homeCta")}

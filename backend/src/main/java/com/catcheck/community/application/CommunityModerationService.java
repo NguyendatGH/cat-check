@@ -53,13 +53,18 @@ public class CommunityModerationService {
             throw new BusinessRuleException(CommunityErrorCode.MODERATION_ACTION_INVALID, normalizedAction);
         }
         repository.moderateReport(reportId, normalizedAction);
+        // subject_user_id là FK tới app_user: chỉ được ghi id tác giả nội dung, không phải id bài/bình luận
+        // (id nội dung nằm trong metadata.targetId). ck_audit_subject_type không có COMMENT nên bình luận
+        // được ghi theo người bị ảnh hưởng (USER); bài viết dùng ARTICLE.
+        UUID authorId = repository.findReportTargetAuthor(report.postId(), report.commentId()).orElse(null);
         auditLogService.record(AuditEvent.builder()
                 .actor(AuditActor.admin(context.adminId(), context.role()))
-                .subject(AuditSubjectType.ARTICLE, report.targetId())
+                .subject(subjectType(report), authorId)
                 .action("COMMUNITY_REPORT_MODERATE")
                 .outcome(AuditOutcome.SUCCESS)
                 .meta("reportId", reportId)
                 .meta("targetType", report.targetType())
+                .meta("targetId", report.targetId())
                 .meta("action", normalizedAction)
                 .meta("reason", reason)
                 .requestId(context.requestId())
@@ -67,6 +72,10 @@ public class CommunityModerationService {
                 .userAgent(context.userAgent())
                 .build());
         return repository.findReport(reportId).orElseThrow();
+    }
+
+    static AuditSubjectType subjectType(CommunityReport report) {
+        return report.postId() != null ? AuditSubjectType.ARTICLE : AuditSubjectType.USER;
     }
 
     private static boolean actionMatchesTarget(String action, CommunityReport report) {

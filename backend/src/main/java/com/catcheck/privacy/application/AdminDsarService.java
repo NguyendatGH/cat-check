@@ -44,6 +44,12 @@ public class AdminDsarService {
         this.clock = clock;
     }
 
+    /** KPI admin trên toàn bộ DSAR; chỉ đọc, không ghi audit (không lộ PII, chỉ số đếm). */
+    @Transactional(readOnly = true)
+    public DsarRequestPort.AdminSummary summary(DsarRequestType requestType) {
+        return dsarPort.summarizeForAdmin(requestType, clock.instant());
+    }
+
     @Transactional
     public DsarRequest create(
             UUID actorId,

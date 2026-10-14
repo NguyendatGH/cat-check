@@ -25,6 +25,7 @@ import {
   isReasonValid,
   useAdminActivationBatches,
   useAdminActivationCodes,
+  useAdminActivationCodeSummary,
   useDownloadActivationBatchCsv,
   useIssueActivationBatch,
   useVoidActivationBatch,
@@ -61,6 +62,7 @@ export function AdminActivationCodesPage() {
   const [productionBatch, setProductionBatch] = useState("");
 
   const codes = useAdminActivationCodes({ prefix, packageCode, status, batchId, page, size: PAGE_SIZE });
+  const codeSummary = useAdminActivationCodeSummary({ prefix, packageCode, batchId });
   const batches = useAdminActivationBatches(batchPage, PAGE_SIZE);
   const issue = useIssueActivationBatch();
   const voidCode = useVoidActivationCode();
@@ -263,8 +265,8 @@ export function AdminActivationCodesPage() {
             <KpiTile
               key={value}
               label={t(`activation.status.${value}`)}
-              value={formatAdminNumber(codeItems.filter((code) => code.status === value).length)}
-              hint={t("dense.onPageHint")}
+              value={codeSummary.data ? formatAdminNumber(codeSummary.data.byStatus[value] ?? 0) : "—"}
+              hint={t("dense.summaryIgnoresStatusHint")}
               tone={value === "REDEEMED" ? "success" : value === "VOID" ? "warning" : "neutral"}
             />
           ))}

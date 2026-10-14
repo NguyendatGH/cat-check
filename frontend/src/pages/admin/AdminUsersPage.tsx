@@ -21,6 +21,7 @@ import {
   formatAdminDateTime,
   formatAdminNumber,
   useAdminUsers,
+  useAdminUserStatusSummary,
   useLockAdminUser,
   useUnlockAdminUser,
 } from "@/features/admin";
@@ -75,7 +76,9 @@ export function AdminUsersPage() {
   const canLock = can("userLock");
   const activeMutation = pending?.mode === "unlock" ? unlock : lock;
   const items = users.data?.items ?? [];
-  const countOf = (value: AdminUserStatus) => items.filter((user) => user.status === value).length;
+  const summary = useAdminUserStatusSummary();
+  const countOf = (value: AdminUserStatus) => summary.data?.byStatus[value] ?? 0;
+  const shownCount = (value: AdminUserStatus) => (summary.data ? formatAdminNumber(countOf(value)) : "—");
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,20 +125,20 @@ export function AdminUsersPage() {
           <KpiTile label={t("users.kpiTotal")} value={formatAdminNumber(users.data.totalElements)} tone="info" />
           <KpiTile
             label={t("users.statuses.ACTIVE")}
-            value={formatAdminNumber(countOf("ACTIVE"))}
-            hint={t("dense.onPageHint")}
+            value={shownCount("ACTIVE")}
+            hint={t("dense.allRecordsHint")}
             tone="success"
           />
           <KpiTile
             label={t("users.statuses.LOCKED")}
-            value={formatAdminNumber(countOf("LOCKED"))}
-            hint={t("dense.onPageHint")}
+            value={shownCount("LOCKED")}
+            hint={t("dense.allRecordsHint")}
             tone={countOf("LOCKED") > 0 ? "warning" : "neutral"}
           />
           <KpiTile
             label={t("users.statuses.DELETION_REQUESTED")}
-            value={formatAdminNumber(countOf("DELETION_REQUESTED"))}
-            hint={t("dense.onPageHint")}
+            value={shownCount("DELETION_REQUESTED")}
+            hint={t("dense.allRecordsHint")}
             tone={countOf("DELETION_REQUESTED") > 0 ? "danger" : "neutral"}
           />
         </KpiGrid>

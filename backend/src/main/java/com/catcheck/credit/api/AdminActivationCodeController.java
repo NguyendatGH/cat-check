@@ -79,6 +79,28 @@ public class AdminActivationCodeController {
 
 
     @Operation(
+            operationId = "getAdminActivationCodeSummary",
+            summary = "L19b — đếm mã theo trạng thái",
+            description = "Chỉ đọc. Dùng cùng bộ lọc prefix/gói/lô với L19 (bỏ qua trạng thái) và trả "
+                    + "tổng số mã cho từng trạng thái trên toàn bộ dữ liệu, không riêng trang đang xem.")
+    @GetMapping("/summary")
+    public ActivationCodeSummaryResponse summary(
+            @CurrentUser SecurityPrincipal principal,
+            @RequestParam(required = false) String prefix,
+            @RequestParam(required = false) String packageCode,
+            @RequestParam(required = false) String batchId) {
+        AdminGuard.requireAnyRole(principal, READ_ROLES);
+        java.util.Map<ActivationCodeStatus, Long> counts = adminService.countByStatus(
+                new ActivationCodeFilter(prefix, packageCode, null, batchId));
+        java.util.Map<String, Long> byStatus = new java.util.LinkedHashMap<>();
+        counts.forEach((status, count) -> byStatus.put(status.name(), count));
+        return new ActivationCodeSummaryResponse(byStatus);
+    }
+
+    public record ActivationCodeSummaryResponse(java.util.Map<String, Long> byStatus) { }
+
+
+    @Operation(
             operationId = "issueAdminActivationBatch",
             summary = "L20 — sinh lô mã",
             description = "≤ 50 000 mã/lần, vượt ⇒ 422 ACTIVATION_BATCH_TOO_LARGE. `productionBatch` "

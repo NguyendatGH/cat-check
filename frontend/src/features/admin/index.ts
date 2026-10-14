@@ -22,6 +22,9 @@ export {
   useAdminCommunityReports,
   useModerateCommunityReport,
   useAdminActivationCodes,
+  useAdminActivationCodeSummary,
+  useAdminUserStatusSummary,
+  useAdminPrivacyRequestSummary,
   useAdminActivationBatches,
   useIssueActivationBatch,
   useVoidActivationCode,
@@ -108,6 +111,7 @@ export {
   summarizeBulk,
 } from "./tableTools";
 export type { SortState, SortDirection, BulkOutcome } from "./tableTools";
+export type { AdminStatusSummary, AdminPrivacyRequestSummary } from "./hooks";
 
 export {
   isUuid,

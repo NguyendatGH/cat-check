@@ -15,7 +15,7 @@ import {
 } from "@/shared/assets/icons/AppIcons";
 import { ShineLogo } from "@/shared/ui";
 import appLogo from "@/shared/assets/images/web-auth/logo.png";
-import { useSessionStore } from "@/entities/user";
+import { useHomePath, useSessionStore } from "@/entities/user";
 import { NotificationUnreadBadge } from "@/features/notification";
 import { ROUTE_PATTERNS } from "../../router/routes";
 
@@ -58,6 +58,7 @@ function useHeaderCollapsed() {
 export function MobileAppHeader() {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
+  const homePath = useHomePath();
   const sessionUser = useSessionStore((s) => s.user);
   const signedIn = Boolean(sessionUser);
   const collapsed = useHeaderCollapsed();
@@ -72,7 +73,7 @@ export function MobileAppHeader() {
   return (
     <header className="header-glass sticky top-0 z-[var(--z-sticky-header)] w-full lg:hidden">
       <div className="flex h-16 items-center justify-between gap-2 pl-4 pr-2">
-        <Link to={ROUTE_PATTERNS.dashboard} className="inline-flex min-w-0 items-center" aria-label={t("app.name")}>
+        <Link to={homePath} className="inline-flex min-w-0 items-center" aria-label={t("app.name")}>
           <ShineLogo src={appLogo} alt={t("app.name")} align="left" className="h-11 w-[120px] object-contain object-left" />
         </Link>
         <div className="flex shrink-0 items-center gap-1">
@@ -138,11 +139,13 @@ export function BottomNav() {
   const { t } = useTranslation("common");
   const [home, history, scan, community, profile] = MOBILE_NAV_ITEMS;
   const { pathname } = useLocation();
+  // Staff bị chặn ở /dashboard (RequireNonAdminRole): tab "Trang chủ" đưa họ về cổng quản trị.
+  const homePath = useHomePath();
 
   const tab = (item: (typeof MOBILE_NAV_ITEMS)[number]) => (
     <NavLink
       key={item.to}
-      to={item.to}
+      to={item.to === ROUTE_PATTERNS.dashboard ? homePath : item.to}
       data-motion="none"
       className={({ isActive: routerActive }) =>
         cn("btm-tab", isNavItemActive(item.to, pathname, routerActive) && "btm-tab-active")

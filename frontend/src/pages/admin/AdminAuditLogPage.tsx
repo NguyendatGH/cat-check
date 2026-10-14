@@ -28,6 +28,39 @@ import { useGroup3Can } from "./group3Ops";
 
 type AuditSortKey = "occurredAt" | "action" | "result" | "actorType" | "subjectType";
 
+const RESULTS = ["SUCCESS", "DENIED", "ERROR"] as const;
+const ACTOR_TYPES = ["USER", "ADMIN", "DPO", "SYSTEM", "JOB"] as const;
+
+type LabelMap = Readonly<Record<string, string>>;
+
+/**
+ * Đọc cả nhóm nhãn dưới dạng object để mã có dấu chấm (vd. `SCAN.SAVED`) không bị i18next
+ * hiểu nhầm thành khoá lồng nhau. Mã chưa có nhãn hiển thị nguyên giá trị thô.
+ */
+function readLabels(value: unknown): LabelMap {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as LabelMap) : {};
+}
+
+function labelOf(labels: LabelMap, code: string | null | undefined): string {
+  if (!code) return "";
+  const label = labels[code];
+  return typeof label === "string" && label.length > 0 ? label : code;
+}
+
+function useAuditLabels() {
+  const { t } = useTranslation("admin");
+  return useMemo(
+    () => ({
+      action: readLabels(t("auditLog.actions", { returnObjects: true })),
+      result: readLabels(t("auditLog.results", { returnObjects: true })),
+      actorType: readLabels(t("auditLog.actorTypes", { returnObjects: true })),
+      subjectType: readLabels(t("auditLog.subjectTypes", { returnObjects: true })),
+      role: readLabels(t("roleLabels", { returnObjects: true })),
+    }),
+    [t],
+  );
+}
+
 export function AdminAuditLogPage() {
   const { t } = useTranslation("admin");
   const can = useGroup3Can();
@@ -51,13 +84,26 @@ function AuditLogPanel() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortState<AuditSortKey> | null>(null);
   const logs = useAdminAuditLogs({ action, result, actorType, page, size: 20 });
+  const labels = useAuditLabels();
 
   const rows = useMemo(() => {
     const filtered = (logs.data?.items ?? []).filter((log) =>
-      matchesQuery([log.action, log.actorType, log.actorRole, log.subjectType, log.metadata], query),
+      matchesQuery(
+        [
+          log.action,
+          labelOf(labels.action, log.action),
+          log.actorType,
+          labelOf(labels.actorType, log.actorType),
+          log.actorRole,
+          log.subjectType,
+          labelOf(labels.subjectType, log.subjectType),
+          log.metadata,
+        ],
+        query,
+      ),
     );
     return sortRows(filtered, sort, (log: AdminAuditLog, key) => log[key]);
-  }, [logs.data, query, sort]);
+  }, [logs.data, query, sort, labels]);
 
   const header = (label: string, key: AuditSortKey) => (
     <SortableTh
@@ -90,9 +136,11 @@ function AuditLogPanel() {
           }}
         >
           <option value="">{t("auditLog.all")}</option>
-          <option value="SUCCESS">SUCCESS</option>
-          <option value="DENIED">DENIED</option>
-          <option value="ERROR">ERROR</option>
+          {RESULTS.map((value) => (
+            <option key={value} value={value}>
+              {labelOf(labels.result, value)}
+            </option>
+          ))}
         </AdminSelect>
         <AdminSelect
           label={t("auditLog.actorType")}
@@ -103,11 +151,11 @@ function AuditLogPanel() {
           }}
         >
           <option value="">{t("auditLog.all")}</option>
-          <option value="USER">USER</option>
-          <option value="ADMIN">ADMIN</option>
-          <option value="DPO">DPO</option>
-          <option value="SYSTEM">SYSTEM</option>
-          <option value="JOB">JOB</option>
+          {ACTOR_TYPES.map((value) => (
+            <option key={value} value={value}>
+              {labelOf(labels.actorType, value)}
+            </option>
+          ))}
         </AdminSelect>
         <SearchField label={t("auditLog.search")} value={query} onChange={setQuery} placeholder={t("dense.search")} />
       </div>
@@ -144,14 +192,14 @@ function AuditLogPanel() {
                   <tr key={log.id} className={denseRowClass}>
                     <td className={denseTdClass}>{formatAdminDateTime(log.occurredAt)}</td>
                     <td className={denseTdClass}>
-                      <code>{log.action}</code>
+                      <span title={log.action}>{labelOf(labels.action, log.action)}</span>
                     </td>
-                    <td className={denseTdClass}>{log.result}</td>
+                    <td className={denseTdClass}>{labelOf(labels.result, log.result)}</td>
                     <td className={denseTdClass}>
-                      {log.actorType}
-                      {log.actorRole ? ` · ${log.actorRole}` : ""}
+                      {labelOf(labels.actorType, log.actorType)}
+                      {log.actorRole ? ` · ${labelOf(labels.role, log.actorRole)}` : ""}
                     </td>
-                    <td className={denseTdClass}>{log.subjectType}</td>
+                    <td className={denseTdClass}>{labelOf(labels.subjectType, log.subjectType)}</td>
                     <td className={denseTdClass}>
                       <code className="break-all text-small">{log.metadata}</code>
                     </td>

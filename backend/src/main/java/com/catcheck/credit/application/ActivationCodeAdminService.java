@@ -45,6 +45,17 @@ public class ActivationCodeAdminService {
     }
 
 
+    /** Đếm mã theo từng trạng thái, giữ nguyên các bộ lọc khác (bỏ qua bộ lọc trạng thái). */
+    @Transactional(readOnly = true)
+    public java.util.Map<ActivationCodeStatus, Long> countByStatus(ActivationCodeFilter filter) {
+        java.util.Map<ActivationCodeStatus, Long> counts = new java.util.EnumMap<>(ActivationCodeStatus.class);
+        for (ActivationCodeStatus status : ActivationCodeStatus.values()) {
+            counts.put(status, codePort.count(new ActivationCodeFilter(
+                    filter.codePrefix(), filter.packageCode(), status, filter.productionBatch())));
+        }
+        return counts;
+    }
+
     @Transactional(readOnly = true)
     public Page<ActivationCode> search(ActivationCodeFilter filter, int page, int size) {
         return new Page<>(

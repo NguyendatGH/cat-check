@@ -40,6 +40,11 @@ public class AdminOpsQueryService {
     }
 
     @Transactional(readOnly = true)
+    public java.util.Map<String, Long> userStatusCounts() {
+        return adminMetricsQueryPort.countUsersByStatus();
+    }
+
+    @Transactional(readOnly = true)
     public Page<AuditLogRow> auditLogs(String action, String result, String actorType, UUID actorId, int page, int size) {
         return new Page<>(auditLogQueryPort.find(action, result, actorType, actorId, page * size, size),
                 auditLogQueryPort.count(action, result, actorType, actorId));

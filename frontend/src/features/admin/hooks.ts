@@ -934,3 +934,53 @@ export function useSetAdminProductStatus(): UseMutationResult<
     },
   });
 }
+
+/** Số đếm toàn bộ dữ liệu cho KPI admin (không riêng trang đang xem). */
+export interface AdminStatusSummary {
+  byStatus: Record<string, number>;
+}
+
+export interface AdminPrivacyRequestSummary {
+  open: number;
+  overdue: number;
+  extended: number;
+}
+
+export function useAdminUserStatusSummary(): UseQueryResult<AdminStatusSummary> {
+  return useQuery({
+    // Tiền tố ["admin", "users"] để lock/unlock tự làm mới số đếm.
+    queryKey: ["admin", "users", "summary"] as const,
+    queryFn: () => adminFetch<AdminStatusSummary>("/admin/users/summary"),
+    retry: false,
+  });
+}
+
+export function useAdminActivationCodeSummary(filters: {
+  prefix: string;
+  packageCode: string;
+  batchId: string;
+}): UseQueryResult<AdminStatusSummary> {
+  return useQuery({
+    queryKey: ["admin", "activation-codes", "summary", filters] as const,
+    queryFn: () =>
+      adminFetch<AdminStatusSummary>(
+        `/admin/activation-codes/summary${adminQuery({
+          prefix: filters.prefix || undefined,
+          packageCode: filters.packageCode || undefined,
+          batchId: filters.batchId || undefined,
+        })}`,
+      ),
+    retry: false,
+  });
+}
+
+export function useAdminPrivacyRequestSummary(requestType: string): UseQueryResult<AdminPrivacyRequestSummary> {
+  return useQuery({
+    queryKey: ["admin", "privacy-requests", "summary", requestType] as const,
+    queryFn: () =>
+      adminFetch<AdminPrivacyRequestSummary>(
+        `/admin/privacy/requests/summary${adminQuery({ requestType: requestType || undefined })}`,
+      ),
+    retry: false,
+  });
+}
