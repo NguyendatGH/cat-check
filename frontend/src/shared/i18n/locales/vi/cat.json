@@ -39,6 +39,7 @@
     "breed": {
       "label": "Giống mèo",
       "placeholder": "Chọn giống mèo",
+      "unknown": "Không xác định",
       "searchPlaceholder": "Tìm giống mèo...",
       "loading": "Đang tải danh sách giống...",
       "empty": "Không tìm thấy giống phù hợp",

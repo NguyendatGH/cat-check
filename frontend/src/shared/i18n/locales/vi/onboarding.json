@@ -48,6 +48,7 @@
       "label": "Giống mèo",
       "placeholder": "Chọn giống mèo",
       "all": "Tất cả giống",
+      "unknown": "Không xác định",
       "required": "Vui lòng chọn giống mèo.",
       "searchPlaceholder": "Tìm giống mèo…",
       "empty": "Không tìm thấy giống mèo phù hợp.",

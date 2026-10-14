@@ -532,6 +532,8 @@ interface BreedPickerProps {
 }
 
 const QUICK_BREED_COUNT = 6;
+// Catalog code for mixed / unknown breed (V7 seed); pinned first so owners who don't know can still continue.
+const UNKNOWN_BREED_CODE = "MIXED_UNKNOWN";
 
 export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPickerProps) {
   const { t } = useTranslation("onboarding");
@@ -547,11 +549,15 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
     return breeds.filter((b) => b.name.toLowerCase().includes(q));
   }, [breeds, query]);
 
+  const breedName = (breed: { code: string; name: string }) =>
+    breed.code === UNKNOWN_BREED_CODE ? t("cat.breed.unknown") : breed.name;
+
   const quick = useMemo(() => {
     if (!breeds) return [];
-    const head = breeds.slice(0, QUICK_BREED_COUNT);
-    if (!selected || head.some((b) => b.code === selected.code)) return head;
-    return [selected, ...head.slice(0, QUICK_BREED_COUNT - 1)];
+    const unknown = breeds.find((b) => b.code === UNKNOWN_BREED_CODE);
+    const pinned = [unknown, selected].filter((b, i, all): b is NonNullable<typeof b> => !!b && all.indexOf(b) === i);
+    const rest = breeds.filter((b) => !pinned.includes(b));
+    return [...pinned, ...rest].slice(0, QUICK_BREED_COUNT);
   }, [breeds, selected]);
 
   return (
@@ -588,7 +594,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
               error && "outline outline-2 outline-danger",
             )}
           >
-            <span className="truncate">{selected?.name ?? t("cat.breed.placeholder")}</span>
+            <span className="truncate">{selected ? breedName(selected) : t("cat.breed.placeholder")}</span>
             <ChevronDown className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
           </button>
         )}
@@ -619,7 +625,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
                   )}
                 >
                   {isSelected ? <Check className="size-4" aria-hidden="true" strokeWidth={3} /> : null}
-                  {breed.name}
+                  {breedName(breed)}
                 </button>
               );
             })}
@@ -674,7 +680,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
                           : "text-text-primary hover:bg-background-alt",
                       )}
                     >
-                      <span>{breed.name}</span>
+                      <span>{breedName(breed)}</span>
                       {isSelected ? <Check className="size-4 shrink-0" aria-hidden="true" /> : null}
                     </button>
                   </li>

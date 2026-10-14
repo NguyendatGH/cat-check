@@ -128,13 +128,23 @@ interface BreedPickerProps {
   error?: string;
 }
 
+// Catalog code for mixed / unknown breed (V7 seed).
+const UNKNOWN_BREED_CODE = "MIXED_UNKNOWN";
+
 export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPickerProps) {
   const { t } = useTranslation("cat");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
   const selected = breeds?.find((b) => b.code === value);
-  const popular = useMemo(() => breeds?.filter((b) => b.popular) ?? [], [breeds]);
+  const breedName = (breed: { code: string; name: string }) =>
+    breed.code === UNKNOWN_BREED_CODE ? t("form.breed.unknown") : breed.name;
+  // Unknown/mixed breed is pinned first among the quick chips.
+  const popular = useMemo(() => {
+    if (!breeds) return [];
+    const unknown = breeds.filter((b) => b.code === UNKNOWN_BREED_CODE);
+    return [...unknown, ...breeds.filter((b) => b.popular && b.code !== UNKNOWN_BREED_CODE)];
+  }, [breeds]);
 
   const filtered = useMemo(() => {
     if (!breeds) return [];
@@ -156,7 +166,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
           }}
         >
           <span className={cn("truncate text-left", !selected && "text-text-tertiary")}>
-            {selected ? selected.name : t("form.breed.placeholder")}
+            {selected ? breedName(selected) : t("form.breed.placeholder")}
           </span>
           <ChevronDown className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
         </Button>
@@ -191,7 +201,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
                   }}
                   className="min-h-9 rounded-full border border-border bg-background-alt px-3 text-caption font-medium text-text-primary hover:border-primary"
                 >
-                  {breed.name}
+                  {breedName(breed)}
                 </button>
               ))}
             </div>
@@ -226,7 +236,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
                           : "text-text-primary hover:bg-background-alt",
                       )}
                     >
-                      <span>{breed.name}</span>
+                      <span>{breedName(breed)}</span>
                       {isSelected ? <Check className="size-4 shrink-0" aria-hidden="true" /> : null}
                     </button>
                   </li>
