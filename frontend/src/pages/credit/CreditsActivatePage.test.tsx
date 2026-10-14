@@ -19,6 +19,25 @@ vi.mock("@/features/credit", async (importOriginal) => {
       mutateAsync: vi.fn(),
       isPending: false,
     }),
+    usePackageCatalog: () => ({
+      isPending: false,
+      isError: false,
+      data: [
+        {
+          code: "PLUS",
+          name: "CATCHECK Plus",
+          weightKg: 3,
+          creditAmount: 10,
+          creditValidityDays: 7,
+          maxCatProfiles: 1,
+          historyLevel: "ADVANCED",
+          hasTrend: true,
+          hasReminder: true,
+          hasExport: true,
+          storeImage: true,
+        },
+      ],
+    }),
   };
 });
 
@@ -49,6 +68,9 @@ describe("CreditsActivatePage", () => {
     expect(container.textContent).toContain("12 balance.unit");
     expect(container.textContent).toContain("activate.guideTitle");
     expect(container.textContent).toContain("activate.perksTitle");
+    expect(container.textContent).toContain("CATCHECK Plus");
+    expect(container.textContent).toContain("activate.perks.scans");
+    expect(container.textContent).toContain("activate.perks.aiTitle");
 
     act(() => {
       root.unmount();

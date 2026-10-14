@@ -2,22 +2,23 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import {
-  Activity,
   ArrowRight,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   ClipboardPaste,
-  FileText,
   HelpCircle,
+  MessageCircle,
   PartyPopper,
+  ScanLine,
   ShieldAlert,
   ShoppingBag,
   Sparkles,
   Ticket,
   X,
 } from "lucide-react";
-import { Badge, Button, Card } from "@/shared/ui";
+import { Badge, Button, Card, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api";
 import {
@@ -26,7 +27,9 @@ import {
   formatActivationCode,
   useActivateCode,
   useCreditBalance,
+  usePackageCatalog,
   type ActivationResult,
+  type PackagePlan,
 } from "@/features/credit";
 import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
 
@@ -62,6 +65,7 @@ export function CreditsActivatePage() {
         }, 2000);
       }
     } catch {
+      // Clipboard access denied or unavailable: the user can still type the code.
     }
   };
 
@@ -427,50 +431,80 @@ export function CreditsActivatePage() {
         <h2 className="text-overline font-bold uppercase tracking-wider text-text-tertiary">
           {t("activate.perksTitle")}
         </h2>
-        <div className="flex flex-col gap-2.5">
-          <div className="group flex items-start gap-3.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-brand-md">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
-              <Activity className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-body font-bold text-text-primary transition-colors group-hover:text-primary">
-                {t("activate.perk1Title")}
-              </p>
-              <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
-                {t("activate.perk1Desc")}
-              </p>
-            </div>
-          </div>
-
-          <div className="group flex items-start gap-3.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-warning/40 hover:shadow-brand-md">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning-bg text-warning-text transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
-              <ShieldAlert className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-body font-bold text-text-primary transition-colors group-hover:text-warning-text">
-                {t("activate.perk2Title")}
-              </p>
-              <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
-                {t("activate.perk2Desc")}
-              </p>
-            </div>
-          </div>
-
-          <div className="group flex items-start gap-3.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-brand-md">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
-              <FileText className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-body font-bold text-text-primary transition-colors group-hover:text-primary-dark">
-                {t("activate.perk3Title")}
-              </p>
-              <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
-                {t("activate.perk3Desc")}
-              </p>
-            </div>
-          </div>
-        </div>
+        <PackagePerks />
       </section>
+    </div>
+  );
+}
+
+// Mirrors backend AiChatRateLimitRule.AI_CHAT_BY_USER ("20/1h"); chat does not consume credits.
+const AI_CHAT_MESSAGES_PER_HOUR = 20;
+
+function PackagePerks() {
+  const { t } = useTranslation("credit");
+  const { data: packages, isPending, isError } = usePackageCatalog();
+
+  const featuresOf = (plan: PackagePlan) =>
+    [
+      plan.historyLevel === "ADVANCED"
+        ? t("activate.perks.historyAdvanced")
+        : plan.historyLevel === "BASIC"
+          ? t("activate.perks.historyBasic")
+          : null,
+      plan.hasTrend ? t("activate.perks.trend") : null,
+      plan.hasReminder ? t("activate.perks.reminder") : null,
+      plan.hasExport ? t("activate.perks.export") : null,
+      plan.storeImage ? t("activate.perks.storeImage") : null,
+      plan.maxCatProfiles === null
+        ? t("activate.perks.catsUnlimited")
+        : t("activate.perks.cats", { count: plan.maxCatProfiles }),
+    ].filter((item): item is string => item !== null);
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-start gap-3.5 rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <MessageCircle className="size-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-body font-bold text-text-primary">{t("activate.perks.aiTitle")}</p>
+          <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
+            {t("activate.perks.aiDesc", { count: AI_CHAT_MESSAGES_PER_HOUR })}
+          </p>
+        </div>
+      </div>
+
+      {isPending ? (
+        <SkeletonLoader shape="card" />
+      ) : isError ? (
+        <p className="text-caption text-text-secondary">{t("activate.perks.loadError")}</p>
+      ) : (
+        packages.map((plan) => (
+          <div key={plan.code} className="flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 text-body font-bold text-text-primary">{plan.name}</p>
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-secondary-light px-2.5 py-1 text-caption font-bold text-secondary-text-on">
+                <ScanLine className="size-3.5" aria-hidden="true" />
+                {t("activate.perks.scans", { count: plan.creditAmount })}
+              </span>
+            </div>
+            <p className="text-caption text-text-secondary">
+              {t("activate.perks.validity", { count: plan.creditValidityDays })}
+            </p>
+            <ul className="flex flex-wrap gap-1.5">
+              {featuresOf(plan).map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-center gap-1 rounded-full bg-chip-bg px-2.5 py-1 text-small font-medium text-text-primary"
+                >
+                  <Check className="size-3 text-primary" aria-hidden="true" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
     </div>
   );
 }
