@@ -174,7 +174,11 @@ beforeEach(() => {
         },
       ],
     },
-    "/api/v1/admin/privacy/requests": offsetPage([DSAR]),
+    // Backend DSAR trả `page` (không phải `number`) — giữ đúng hình dạng thật để bắt lỗi "Trang NaN".
+    "/api/v1/admin/privacy/requests": {
+      status: 200,
+      body: { items: [DSAR], page: 0, size: 20, totalElements: 1, totalPages: 1, hasMore: false },
+    },
     "/api/v1/admin/privacy/requests/d1": { status: 200, body: DSAR },
     "/api/v1/admin/privacy/retention-policies": {
       status: 200,
@@ -354,6 +358,19 @@ describe("AdminPrivacyRequestsPage", () => {
   it("DPO thấy khối tạo DSAR", async () => {
     const view = text(await renderPage(<AdminPrivacyRequestsPage />, "DPO"));
     expect(view).toContain("pages.privacyRequests.createTitle");
+    expect(view).toContain("pages.privacyRequests.userLookup.emailLabel");
+  });
+
+  it("phân trang đọc trường page của backend, không ra NaN", async () => {
+    const view = text(await renderPage(<AdminPrivacyRequestsPage />, "ADMIN_SUPPORT"));
+    expect(view).toContain('pager.summary{"page":1,"totalPages":1,"totalElements":1}');
+    expect(view).not.toContain("NaN");
+  });
+
+  it("hiển thị phần giải thích và nhãn trạng thái thay vì mã thô", async () => {
+    const view = text(await renderPage(<AdminPrivacyRequestsPage />, "ADMIN_SUPPORT"));
+    expect(view).toContain("pages.privacyRequests.explainer.summary");
+    expect(view).toContain("pages.privacyRequests.statuses.RECEIVED");
   });
 });
 

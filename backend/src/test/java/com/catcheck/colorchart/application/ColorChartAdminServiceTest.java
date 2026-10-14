@@ -65,6 +65,20 @@ class ColorChartAdminServiceTest {
     }
 
     @Test
+    void publishReplacesTheActiveChartOfTheSameLineAndArchivesIt() {
+        UUID oldId = charts.add(ChartStatus.ACTIVE, ProductLine.STANDARD, "LOT-2026A", true);
+        UUID draftId = charts.add(ChartStatus.DRAFT, ProductLine.STANDARD, "LOT-2026A", true);
+        points.seedValidPoints(draftId);
+
+        ColorChart published = service.publish(draftId);
+
+        assertEquals(ChartStatus.ACTIVE, published.getStatus());
+        ColorChart old = charts.findById(oldId).orElseThrow();
+        assertEquals(ChartStatus.ARCHIVED, old.getStatus());
+        assertEquals(NOW, old.getEffectiveTo());
+    }
+
+    @Test
     void createDraftUsesTheNextFreeVersionAfterTwoExistingVersions() {
         charts.add("CHART-TEST", 1, ChartStatus.ARCHIVED);
         charts.add("CHART-TEST", 2, ChartStatus.ACTIVE);

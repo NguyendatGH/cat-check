@@ -174,13 +174,7 @@ public class ColorChartAdminService {
                     String.join(",", validation.violations()));
         }
 
-        if (chart.getProductLine() != null
-                && colorChartRepository.existsActiveByProductLineAndBatch(
-                        chart.getProductLine(), chart.getProductionBatch())) {
-            throw new ConflictException(ColorChartErrorCode.COLOR_CHART_IN_USE,
-                    chartId.toString(), "ACTIVE");
-        }
-
+        // Publishing replaces the active chart of the same line/batch: the old one is archived below.
         Instant now = clock.instant();
 
         try {

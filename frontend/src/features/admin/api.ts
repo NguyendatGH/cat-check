@@ -74,7 +74,24 @@ export async function adminRequest<T>(path: string, options: AdminRequestInit = 
 }
 
 export async function adminFetch<T>(path: string, options: AdminRequestInit = {}): Promise<T> {
-  return (await adminRequest<T>(path, options)).data;
+  return normalizeOffsetPage((await adminRequest<T>(path, options)).data);
+}
+
+/**
+ * Admin list endpoints disagree on the page envelope: some return `number`/`totalPages`/`hasMore`,
+ * others (color chart, community reports, privacy requests) only `page` + `totalElements`.
+ * Fill in the AdminOffsetPage fields so pagers never compute NaN.
+ */
+export function normalizeOffsetPage<T>(data: T): T {
+  if (data === null || typeof data !== "object" || !Array.isArray((data as { items?: unknown }).items)) return data;
+  const page = data as Record<string, unknown>;
+  const isNum = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+  const number = isNum(page.number) ? page.number : isNum(page.page) ? page.page : 0;
+  const size = isNum(page.size) && page.size > 0 ? page.size : (page.items as unknown[]).length || 1;
+  const totalElements = isNum(page.totalElements) ? page.totalElements : (page.items as unknown[]).length;
+  const totalPages = isNum(page.totalPages) ? page.totalPages : Math.max(1, Math.ceil(totalElements / size));
+  const hasMore = typeof page.hasMore === "boolean" ? page.hasMore : number + 1 < totalPages;
+  return { ...page, number, size, totalElements, totalPages, hasMore } as T;
 }
 
 export async function downloadAdminActivationBatchCsv(batchId: string, reason: string): Promise<Blob> {

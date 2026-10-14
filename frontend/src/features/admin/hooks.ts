@@ -749,6 +749,59 @@ export function usePublishColorChart(): UseMutationResult<ColorChartDetail, Erro
   });
 }
 
+export interface CloneChartVariables {
+  source: ColorChartDetail;
+  reason: string;
+}
+
+/**
+ * Tạo bản nháp mới (cùng mã, phiên bản kế tiếp) rồi chép toàn bộ mức màu của bảng nguồn.
+ * Máy chủ chưa có endpoint clone riêng nên ghép từ L28 (tạo) + L29 (lấy ETag) + L31 (thay mức).
+ */
+export function useCloneColorChart(): UseMutationResult<ColorChartDetail, Error, CloneChartVariables> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ source, reason }) => {
+      const created = await adminFetch<ColorChartDetail>("/admin/color-charts", {
+        method: "POST",
+        json: {
+          code: source.code,
+          name: source.name,
+          productLine: source.productLine ?? "STANDARD",
+          ...(source.productionBatch !== null && source.productionBatch.trim() !== ""
+            ? { productionBatch: source.productionBatch }
+            : {}),
+        } satisfies CreateColorChartPayload,
+      });
+      if (source.points.length === 0) {
+        return created;
+      }
+      const fresh = await adminRequest<ColorChartDetail>(`/admin/color-charts/${created.id}`);
+      const points: ColorChartPointInput[] = [...source.points]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((point) => ({
+          phValue: point.phValue,
+          labL: point.labL,
+          labA: point.labA,
+          labB: point.labB,
+          toleranceDeltaE: point.toleranceDeltaE,
+          hexSrgb: point.hexSrgb,
+          displayHex: point.displayHex,
+          displayNameVi: point.displayNameVi,
+          displayNameEn: point.displayNameEn,
+        }));
+      return adminFetch<ColorChartDetail>(`/admin/color-charts/${created.id}/points`, {
+        method: "PUT",
+        ifMatch: fresh.etag,
+        json: { points, reason },
+      });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.all });
+    },
+  });
+}
+
 export function useAdminPhBands(): UseQueryResult<ApiEnvelope<PhBand[]>> {
   return useQuery({
     queryKey: adminKeys.phBands,

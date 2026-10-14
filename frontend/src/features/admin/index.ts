@@ -9,6 +9,7 @@ export {
   useUpdateColorChart,
   useReplaceChartPoints,
   usePublishColorChart,
+  useCloneColorChart,
   useAdminPhBands,
   useUpdatePhBand,
   useAdminCareTips,
