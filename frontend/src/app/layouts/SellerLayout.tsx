@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { FlaskConical, LayoutDashboard, Lightbulb, Package, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { ROUTE_PATTERNS } from "../router/routes";
+import { StaffLogoutButton } from "./shell/StaffLogoutButton";
 
 const SELLER_NAV_ITEMS: readonly { to: string; labelKey: string; icon: LucideIcon; end: boolean }[] = [
   { to: ROUTE_PATTERNS.sellerDashboard, labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
@@ -65,6 +66,9 @@ export function SellerLayout() {
               </li>
             );
           })}
+          <li className="shrink-0 md:mt-auto md:w-full">
+            <StaffLogoutButton className="w-full text-caption text-danger hover:bg-danger-bg md:justify-start md:px-3.5 md:text-body" />
+          </li>
         </ul>
       </nav>
       <main className="min-w-0 flex-1 p-4 md:p-6 lg:p-8 animate-reveal">

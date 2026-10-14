@@ -47,6 +47,7 @@ import {
   type RoleCheck,
 } from "@/features/admin";
 import { ForbiddenPage } from "@/pages/system/ForbiddenPage";
+import { StaffLogoutButton } from "./shell/StaffLogoutButton";
 import { ROUTE_PATTERNS } from "../router/routes";
 import { ROLES, hasAnyRole } from "@/shared/auth/roles";
 import { adminTheme } from "./adminTheme";
@@ -486,6 +487,7 @@ function AdminMobileDrawer({ open, onOpenChange, groups, location, user, onNavig
             >
               <Settings size={16} aria-hidden="true" />
             </Link>
+            <StaffLogoutButton variant="icon" className="bg-white/10 text-slate-200 hover:bg-danger hover:text-white" />
           </div>
         </div>
 
@@ -632,6 +634,7 @@ export function AdminLayout() {
                 <p className="truncate text-small text-slate-300">{primaryRoleLabel(user?.roles, t)}</p>
               </div>
             </div>
+            <StaffLogoutButton className="mt-3 w-full border border-white/10 bg-white/5 text-caption text-slate-200 hover:bg-danger hover:text-white" />
           </div>
         </aside>
 
@@ -691,6 +694,10 @@ export function AdminLayout() {
                 </span>
                 <span className="hidden md:inline truncate max-w-[140px]">{user?.displayName}</span>
               </Link>
+              <StaffLogoutButton
+                variant="icon"
+                className="border border-border/60 bg-background-alt text-text-secondary hover:border-danger hover:bg-danger-bg hover:text-danger"
+              />
             </div>
           </header>
 
