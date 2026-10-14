@@ -33,6 +33,23 @@ public final class ActivationCodeFormat {
         return PREFIX + packageCode + "-" + body;
     }
 
+    /**
+     * Ghép mã đầy đủ từ phần ngẫu nhiên cho trước (đúng {@link #RANDOM_LENGTH} ký tự trong
+     * {@link #ALPHABET}) và tự tính ký tự checksum. Dùng cho mã demo cố định ở profile local.
+     */
+    public static String compose(String packageCode, String randomPart) {
+        requirePackageCode(packageCode);
+        if (randomPart == null || randomPart.length() != RANDOM_LENGTH) {
+            throw new IllegalArgumentException("Phần ngẫu nhiên phải đúng " + RANDOM_LENGTH + " ký tự");
+        }
+        for (int i = 0; i < randomPart.length(); i++) {
+            if (valueOf(randomPart.charAt(i)) < 0) {
+                throw new IllegalArgumentException("Ký tự ngoài bảng mã: " + randomPart.charAt(i));
+            }
+        }
+        return PREFIX + packageCode + "-" + randomPart + checksumChar(randomPart);
+    }
+
     public static String normalize(String rawCode) {
         if (rawCode == null) {
             return "";

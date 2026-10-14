@@ -225,6 +225,9 @@ export interface CommunityReport {
 
 export type ActivationCodeStatus = "ISSUED" | "REDEEMED" | "VOID";
 
+/** Trạng thái hiển thị: EXPIRED = mã ISSUED đã quá validUntil (backend suy diễn, không lưu DB). */
+export type ActivationCodeEffectiveStatus = ActivationCodeStatus | "EXPIRED";
+
 export interface ActivationCodeAdmin {
   id: string;
   codePrefix: string;
@@ -233,6 +236,8 @@ export interface ActivationCodeAdmin {
   issuedAt: string;
   validUntil: string;
   status: ActivationCodeStatus;
+  effectiveStatus: ActivationCodeEffectiveStatus;
+  expired: boolean;
   redeemedBy: string | null;
   redeemedAt: string | null;
 }
@@ -253,7 +258,7 @@ export interface ActivationBatch {
 export interface ActivationCodeFilter {
   prefix?: string;
   packageCode?: string;
-  status?: ActivationCodeStatus | "";
+  status?: ActivationCodeEffectiveStatus | "";
   batchId?: string;
   page: number;
   size?: number;

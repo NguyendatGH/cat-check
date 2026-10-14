@@ -32,4 +32,14 @@ public record ActivationCode(
     public boolean isIssuanceExpiredAt(Instant now) {
         return validUntil != null && !validUntil.isAfter(now);
     }
+
+    /** Trạng thái hiển thị cho admin: mã ISSUED đã quá {@code validUntil} được coi là EXPIRED. */
+    public ActivationCodeEffectiveStatus effectiveStatusAt(Instant now) {
+        return switch (status) {
+            case REDEEMED -> ActivationCodeEffectiveStatus.REDEEMED;
+            case VOID -> ActivationCodeEffectiveStatus.VOID;
+            case ISSUED -> isIssuanceExpiredAt(now)
+                    ? ActivationCodeEffectiveStatus.EXPIRED : ActivationCodeEffectiveStatus.ISSUED;
+        };
+    }
 }

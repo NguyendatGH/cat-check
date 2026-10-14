@@ -9,8 +9,8 @@ import com.catcheck.credit.api.dto.IssuedActivationBatchResponse;
 import com.catcheck.credit.application.ActivationCodeAdminService;
 import com.catcheck.credit.domain.ActivationBatchSummary;
 import com.catcheck.credit.domain.ActivationCode;
+import com.catcheck.credit.domain.ActivationCodeEffectiveStatus;
 import com.catcheck.credit.domain.ActivationCodeFilter;
-import com.catcheck.credit.domain.ActivationCodeStatus;
 import com.catcheck.shared.security.AdminGuard;
 import com.catcheck.shared.security.CurrentUser;
 import com.catcheck.shared.security.SecurityPrincipal;
@@ -56,8 +56,9 @@ public class AdminActivationCodeController {
     @Operation(
             operationId = "listAdminActivationCodes",
             summary = "L19 — tra cứu mã kích hoạt",
-            description = "Lọc theo prefix/gói/trạng thái/lô. KHÔNG tra theo mã đầy đủ: DB chỉ có "
-                    + "`code_hash` (p8 §8.4.12). Phân trang offset.")
+            description = "Lọc theo prefix/gói/trạng thái/lô. `status` nhận ISSUED (chưa dùng, còn hạn), "
+                    + "EXPIRED (chưa dùng nhưng quá hạn kích hoạt — suy diễn, không lưu DB), REDEEMED, VOID. "
+                    + "KHÔNG tra theo mã đầy đủ: DB chỉ có `code_hash` (p8 §8.4.12). Phân trang offset.")
     @GetMapping
     public AdminPageResponse<ActivationCodeAdminResponse> list(
             @CurrentUser SecurityPrincipal principal,
@@ -68,12 +69,11 @@ public class AdminActivationCodeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         AdminGuard.requireAnyRole(principal, READ_ROLES);
-        ActivationCodeFilter filter = new ActivationCodeFilter(
-                prefix, packageCode, parseStatus(status), batchId);
+        ActivationCodeFilter filter = adminService.filterOf(prefix, packageCode, parseStatus(status), batchId);
         ActivationCodeAdminService.Page<ActivationCode> result =
                 adminService.search(filter, normalizePage(page), normalizeSize(size));
         return AdminPageResponse.of(
-                result.items().stream().map(ActivationCodeAdminResponse::from).toList(),
+                result.items().stream().map(this::toResponse).toList(),
                 normalizePage(page), normalizeSize(size), result.totalElements());
     }
 
@@ -82,7 +82,8 @@ public class AdminActivationCodeController {
             operationId = "getAdminActivationCodeSummary",
             summary = "L19b — đếm mã theo trạng thái",
             description = "Chỉ đọc. Dùng cùng bộ lọc prefix/gói/lô với L19 (bỏ qua trạng thái) và trả "
-                    + "tổng số mã cho từng trạng thái trên toàn bộ dữ liệu, không riêng trang đang xem.")
+                    + "tổng số mã cho từng trạng thái (ISSUED còn hạn, EXPIRED, REDEEMED, VOID) trên toàn "
+                    + "bộ dữ liệu, không riêng trang đang xem.")
     @GetMapping("/summary")
     public ActivationCodeSummaryResponse summary(
             @CurrentUser SecurityPrincipal principal,
@@ -90,8 +91,8 @@ public class AdminActivationCodeController {
             @RequestParam(required = false) String packageCode,
             @RequestParam(required = false) String batchId) {
         AdminGuard.requireAnyRole(principal, READ_ROLES);
-        java.util.Map<ActivationCodeStatus, Long> counts = adminService.countByStatus(
-                new ActivationCodeFilter(prefix, packageCode, null, batchId));
+        java.util.Map<ActivationCodeEffectiveStatus, Long> counts =
+                adminService.countByStatus(prefix, packageCode, batchId);
         java.util.Map<String, Long> byStatus = new java.util.LinkedHashMap<>();
         counts.forEach((status, count) -> byStatus.put(status.name(), count));
         return new ActivationCodeSummaryResponse(byStatus);
@@ -186,7 +187,7 @@ public class AdminActivationCodeController {
             @Valid @RequestBody AdminReasonRequest request,
             HttpServletRequest httpRequest) {
         AdminGuard.requireAnyRole(principal, WRITE_ROLES);
-        return ActivationCodeAdminResponse.from(adminService.voidCode(
+        return toResponse(adminService.voidCode(
                 codeId, AdminContext.of(principal, request.reason(), httpRequest)));
     }
 
@@ -209,6 +210,10 @@ public class AdminActivationCodeController {
     }
 
 
+    private ActivationCodeAdminResponse toResponse(ActivationCode code) {
+        return ActivationCodeAdminResponse.from(code, adminService.effectiveStatusOf(code));
+    }
+
     private static String csvPath(String batchId) {
         return "/api/v1/admin/activation-codes/batches/" + batchId + "/csv";
     }
@@ -217,11 +222,11 @@ public class AdminActivationCodeController {
         return batchId.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
-    private static ActivationCodeStatus parseStatus(String status) {
+    private static ActivationCodeEffectiveStatus parseStatus(String status) {
         if (status == null || status.isBlank()) {
             return null;
         }
-        return ActivationCodeStatus.valueOf(status.strip().toUpperCase(java.util.Locale.ROOT));
+        return ActivationCodeEffectiveStatus.valueOf(status.strip().toUpperCase(java.util.Locale.ROOT));
     }
 
     private static int normalizePage(int page) {

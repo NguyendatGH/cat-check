@@ -28,7 +28,7 @@ import type {
   CommunityReportAction,
   ActivationBatch,
   ActivationCodeAdmin,
-  ActivationCodeStatus,
+  ActivationCodeEffectiveStatus,
   IssueActivationBatchPayload,
   IssuedActivationBatch,
   AdminPackagePlan,
@@ -69,7 +69,7 @@ export const adminKeys = {
   activationCodes: (filters: {
     prefix: string;
     packageCode: string;
-    status: ActivationCodeStatus | "";
+    status: ActivationCodeEffectiveStatus | "";
     batchId: string;
     page: number;
     size: number;
@@ -512,7 +512,7 @@ export function useUpdateAdminPackagePlan(): UseMutationResult<
 export function useAdminActivationCodes(filters: {
   prefix: string;
   packageCode: string;
-  status: ActivationCodeStatus | "";
+  status: ActivationCodeEffectiveStatus | "";
   batchId: string;
   page: number;
   size?: number;

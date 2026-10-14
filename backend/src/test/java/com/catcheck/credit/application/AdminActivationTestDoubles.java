@@ -174,13 +174,7 @@ final class AdminActivationTestDoubles {
 
         private java.util.stream.Stream<ActivationCode> matching(ActivationCodeFilter filter) {
             return rows.values().stream()
-                    .filter(row -> filter.codePrefix() == null
-                            || row.codePrefix().startsWith(filter.codePrefix()))
-                    .filter(row -> filter.packageCode() == null
-                            || filter.packageCode().equals(row.packageCode()))
-                    .filter(row -> filter.status() == null || filter.status() == row.status())
-                    .filter(row -> filter.productionBatch() == null
-                            || filter.productionBatch().equals(row.productionBatch()))
+                    .filter(filter::matches)
                     .sorted(Comparator.comparing(ActivationCode::issuedAt)
                             .thenComparing(ActivationCode::id));
         }

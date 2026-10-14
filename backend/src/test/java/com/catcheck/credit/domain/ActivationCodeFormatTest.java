@@ -29,6 +29,24 @@ class ActivationCodeFormatTest {
     }
 
     @Test
+    void composeAppendsChecksumThatPassesValidation() {
+        String code = ActivationCodeFormat.compose("PLUS", "DEM000001");
+        assertEquals("CC-PLUS-DEM000001C", code);
+        assertEquals(code, ActivationCodeFormat.validateOrNull(code));
+        // Người dùng gõ chữ O thay số 0 vẫn khớp nhờ normalize.
+        assertEquals(code, ActivationCodeFormat.validateOrNull("cc-plus-demo00001c"));
+        assertEquals("CC-CARE_BOX-DEM000001C", ActivationCodeFormat.compose("CARE_BOX", "DEM000001"));
+    }
+
+    @Test
+    void composeRejectsBadRandomPart() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ActivationCodeFormat.compose("PLUS", "DEM00001"));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ActivationCodeFormat.compose("PLUS", "DEMO00001"));
+    }
+
+    @Test
     void alphabetExcludesConfusableCharacters() {
         assertFalse(ActivationCodeFormat.ALPHABET.contains("I"));
         assertFalse(ActivationCodeFormat.ALPHABET.contains("L"));

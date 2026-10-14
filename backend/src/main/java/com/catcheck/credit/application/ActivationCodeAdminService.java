@@ -7,6 +7,7 @@ import com.catcheck.audit.api.AuditSubjectType;
 import com.catcheck.credit.api.CreditErrorCode;
 import com.catcheck.credit.domain.ActivationBatchSummary;
 import com.catcheck.credit.domain.ActivationCode;
+import com.catcheck.credit.domain.ActivationCodeEffectiveStatus;
 import com.catcheck.credit.domain.ActivationCodeFilter;
 import com.catcheck.credit.domain.ActivationCodeStatus;
 import com.catcheck.credit.domain.port.ActivationCodePort;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,25 +35,42 @@ public class ActivationCodeAdminService {
     private final ActivationCodeIssuanceService issuanceService;
     private final ActivationCsvVault csvVault;
     private final AuditLogService auditLogService;
+    private final Clock clock;
 
     public ActivationCodeAdminService(ActivationCodePort codePort,
                                       ActivationCodeIssuanceService issuanceService,
                                       ActivationCsvVault csvVault,
-                                      AuditLogService auditLogService) {
+                                      AuditLogService auditLogService,
+                                      Clock clock) {
         this.codePort = codePort;
         this.issuanceService = issuanceService;
         this.csvVault = csvVault;
         this.auditLogService = auditLogService;
+        this.clock = clock;
+    }
+
+    /** Bộ lọc theo trạng thái suy diễn (EXPIRED = ISSUED quá valid_until) tại thời điểm hiện tại. */
+    public ActivationCodeFilter filterOf(String codePrefix, String packageCode,
+                                         ActivationCodeEffectiveStatus effectiveStatus, String productionBatch) {
+        return ActivationCodeFilter.of(codePrefix, packageCode, effectiveStatus, productionBatch, clock.instant());
+    }
+
+    public ActivationCodeEffectiveStatus effectiveStatusOf(ActivationCode code) {
+        return code.effectiveStatusAt(clock.instant());
     }
 
 
-    /** Đếm mã theo từng trạng thái, giữ nguyên các bộ lọc khác (bỏ qua bộ lọc trạng thái). */
+    /**
+     * Đếm mã theo từng trạng thái suy diễn (ISSUED còn hạn / EXPIRED / REDEEMED / VOID), giữ nguyên
+     * các bộ lọc prefix/gói/lô, bỏ qua bộ lọc trạng thái.
+     */
     @Transactional(readOnly = true)
-    public java.util.Map<ActivationCodeStatus, Long> countByStatus(ActivationCodeFilter filter) {
-        java.util.Map<ActivationCodeStatus, Long> counts = new java.util.EnumMap<>(ActivationCodeStatus.class);
-        for (ActivationCodeStatus status : ActivationCodeStatus.values()) {
-            counts.put(status, codePort.count(new ActivationCodeFilter(
-                    filter.codePrefix(), filter.packageCode(), status, filter.productionBatch())));
+    public java.util.Map<ActivationCodeEffectiveStatus, Long> countByStatus(
+            String codePrefix, String packageCode, String productionBatch) {
+        java.util.Map<ActivationCodeEffectiveStatus, Long> counts =
+                new java.util.EnumMap<>(ActivationCodeEffectiveStatus.class);
+        for (ActivationCodeEffectiveStatus status : ActivationCodeEffectiveStatus.values()) {
+            counts.put(status, codePort.count(filterOf(codePrefix, packageCode, status, productionBatch)));
         }
         return counts;
     }

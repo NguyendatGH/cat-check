@@ -18,6 +18,9 @@ set `catcheck.notification.email-sink=file` and inspect `backend/target/dev-mail
 Docker is not required for the local verification path; do not build the application image for
 this workflow.
 
+Demo accounts and single-use credit (activation) codes seeded by the `local` profile are
+listed in [`docs/DEMO_ACCOUNTS.md`](docs/DEMO_ACCOUNTS.md) — local only, never for production.
+
 The containerized frontend is available at <http://localhost:5173> and proxies same-origin API requests to the backend.
 
 Read `CLAUDE.md`, then `context/spec/04-index.md`, before changing application behavior.

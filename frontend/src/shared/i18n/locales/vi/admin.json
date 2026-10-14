@@ -487,11 +487,12 @@
     "colIssued": "Phát hành lúc",
     "colValidUntil": "Hạn kích hoạt",
     "colStatus": "Trạng thái",
-    "colTotals": "Tổng / đã dùng / đã huỷ",
+    "colTotals": "Tổng / đã dùng / đã vô hiệu",
     "colAction": "Thao tác",
     "status": {
-      "ISSUED": "Đã phát hành",
-      "REDEEMED": "Đã kích hoạt",
+      "ISSUED": "Chưa dùng",
+      "EXPIRED": "Hết hạn",
+      "REDEEMED": "Đã dùng",
       "VOID": "Đã vô hiệu"
     },
     "void": "Vô hiệu mã",
@@ -501,7 +502,12 @@
     "readOnlyNote": "Bạn chỉ có quyền tra cứu. Sinh lô, tải CSV và vô hiệu mã cần vai trò ADMIN_SUPER.",
     "voidConsequence": "Mã chưa kích hoạt này sẽ không dùng được nữa. Không thể hoàn tác.",
     "voidBatchConsequence": "Mọi mã chưa kích hoạt trong lô sẽ không dùng được nữa; mã đã kích hoạt giữ nguyên. Không thể hoàn tác.",
-    "csvConsequence": "Tệp CSV chứa mã thô và chỉ tải được một lần. Lượt tải được ghi vào nhật ký kiểm toán."
+    "csvConsequence": "Tệp CSV chứa mã thô và chỉ tải được một lần. Lượt tải được ghi vào nhật ký kiểm toán.",
+    "colRedeemedAt": "Đã dùng lúc",
+    "choosePackage": "Chọn gói",
+    "packageOption": "{{code}} · {{name}} · {{credits}} credit",
+    "validUntilPreview": "Mã phải được kích hoạt trước {{date}}; quá hạn sẽ hiện trạng thái Hết hạn.",
+    "singleUseNote": "Mỗi mã chỉ dùng được một lần và là duy nhất trong hệ thống."
   },
   "packageAdmin": {
     "listTitle": "Danh sách gói",

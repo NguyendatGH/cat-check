@@ -111,6 +111,7 @@ export {
   summarizeBulk,
 } from "./tableTools";
 export type { SortState, SortDirection, BulkOutcome } from "./tableTools";
+export { ACTIVATION_CODE_STATUSES, activationEffectiveStatus } from "./activationStatus";
 export type { AdminStatusSummary, AdminPrivacyRequestSummary } from "./hooks";
 
 export {
@@ -256,6 +257,7 @@ export type {
   CommunityReport,
   CommunityReportAction,
   ActivationCodeStatus,
+  ActivationCodeEffectiveStatus,
   ActivationCodeAdmin,
   ActivationBatch,
   IssueActivationBatchPayload,

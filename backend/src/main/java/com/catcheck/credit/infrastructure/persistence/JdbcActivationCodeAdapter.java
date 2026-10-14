@@ -214,6 +214,13 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
             append(where, "production_batch = ?");
             args.add(filter.productionBatch());
         }
+        if (filter.expired() != null) {
+            // Cùng quy tắc ActivationCode.isIssuanceExpiredAt: hết hạn khi valid_until <= now.
+            append(where, filter.expired()
+                    ? "(valid_until IS NOT NULL AND valid_until <= ?)"
+                    : "(valid_until IS NULL OR valid_until > ?)");
+            args.add(RowReaders.utc(filter.asOf()));
+        }
         return where.toString();
     }
 

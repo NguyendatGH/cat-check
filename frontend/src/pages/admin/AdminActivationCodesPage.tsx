@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Download, Plus, ShieldOff } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import {
+  ACTIVATION_CODE_STATUSES,
   AdminPageHeader,
   AdminQueryError,
   AdminSelect,
@@ -16,6 +17,7 @@ import {
   ReasonConfirmDialog,
   ReasonField,
   TableSkeleton,
+  activationEffectiveStatus,
   denseRowClass,
   denseTableClass,
   denseTdClass,
@@ -26,16 +28,62 @@ import {
   useAdminActivationBatches,
   useAdminActivationCodes,
   useAdminActivationCodeSummary,
+  useAdminPackagePlans,
   useDownloadActivationBatchCsv,
   useIssueActivationBatch,
   useVoidActivationBatch,
   useVoidActivationCode,
 } from "@/features/admin";
-import type { ActivationBatch, ActivationCodeAdmin, ActivationCodeStatus } from "@/features/admin";
+import type { ActivationBatch, ActivationCodeAdmin, ActivationCodeEffectiveStatus } from "@/features/admin";
 import { useGroup1Can } from "./group1Access";
 
 const PAGE_SIZE = 20;
-const CODE_STATUSES: ActivationCodeStatus[] = ["ISSUED", "REDEEMED", "VOID"];
+const DAY_MS = 86_400_000;
+
+const STATUS_TONE: Record<ActivationCodeEffectiveStatus, "neutral" | "success" | "warning"> = {
+  ISSUED: "neutral",
+  EXPIRED: "warning",
+  REDEEMED: "success",
+  VOID: "warning",
+};
+
+/** Chọn gói từ danh sách gói đang bán; chỉ gọi API gói khi form sinh lô đang mở. */
+function IssuePackageSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation("admin");
+  const plans = useAdminPackagePlans(false);
+  const options = (plans.data ?? []).filter((plan) => plan.active);
+  if (plans.isError || (plans.data && options.length === 0)) {
+    return (
+      <Input
+        label={t("activation.packageCode")}
+        value={value}
+        className="h-10"
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        required
+      />
+    );
+  }
+  return (
+    <AdminSelect
+      label={t("activation.packageCode")}
+      value={value}
+      className="h-10"
+      onChange={(event) => {
+        onChange(event.target.value);
+      }}
+      required
+    >
+      <option value="">{t("activation.choosePackage")}</option>
+      {options.map((plan) => (
+        <option key={plan.code} value={plan.code}>
+          {t("activation.packageOption", { code: plan.code, name: plan.name, credits: plan.creditAmount })}
+        </option>
+      ))}
+    </AdminSelect>
+  );
+}
 
 export function AdminActivationCodesPage() {
   const { t } = useTranslation("admin");
@@ -43,7 +91,7 @@ export function AdminActivationCodesPage() {
   const canManage = can("activationCodesWrite");
   const [prefix, setPrefix] = useState("");
   const [packageCode, setPackageCode] = useState("");
-  const [status, setStatus] = useState<ActivationCodeStatus | "">("");
+  const [status, setStatus] = useState<ActivationCodeEffectiveStatus | "">("");
   const [batchId, setBatchId] = useState("");
   const [page, setPage] = useState(0);
   const [batchPage, setBatchPage] = useState(0);
@@ -72,6 +120,11 @@ export function AdminActivationCodesPage() {
   const activeMutation =
     pendingAction?.kind === "voidCode" ? voidCode : pendingAction?.kind === "voidBatch" ? voidBatch : downloadCsv;
   const codeItems = codes.data?.items ?? [];
+  const validDays = Number(validForDays);
+  const validUntilPreview =
+    Number.isInteger(validDays) && validDays >= 1 && validDays <= 3650
+      ? formatAdminDateTime(new Date(Date.now() + validDays * DAY_MS).toISOString())
+      : null;
 
   function downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
@@ -134,15 +187,7 @@ export function AdminActivationCodesPage() {
             }}
           >
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              <Input
-                label={t("activation.packageCode")}
-                value={issuePackageCode}
-                className="h-10"
-                onChange={(event) => {
-                  setIssuePackageCode(event.target.value);
-                }}
-                required
-              />
+              <IssuePackageSelect value={issuePackageCode} onChange={setIssuePackageCode} />
               <Input
                 label={t("activation.productionBatch")}
                 value={productionBatch}
@@ -177,6 +222,12 @@ export function AdminActivationCodesPage() {
                 required
               />
             </div>
+            {validUntilPreview ? (
+              <p className="text-caption text-text-secondary">
+                {t("activation.validUntilPreview", { date: validUntilPreview })}
+              </p>
+            ) : null}
+            <p className="text-caption text-text-secondary">{t("activation.singleUseNote")}</p>
             <ReasonField
               value={issueReason}
               onChange={setIssueReason}
@@ -234,12 +285,12 @@ export function AdminActivationCodesPage() {
             value={status}
             className="h-10"
             onChange={(event) => {
-              setStatus(event.target.value as ActivationCodeStatus | "");
+              setStatus(event.target.value as ActivationCodeEffectiveStatus | "");
               setPage(0);
             }}
           >
             <option value="">{t("activation.allStatuses")}</option>
-            {CODE_STATUSES.map((value) => (
+            {ACTIVATION_CODE_STATUSES.map((value) => (
               <option key={value} value={value}>
                 {t(`activation.status.${value}`)}
               </option>
@@ -261,13 +312,13 @@ export function AdminActivationCodesPage() {
       {codes.data ? (
         <KpiGrid label={t("dense.kpiLabel")}>
           <KpiTile label={t("activation.kpiTotal")} value={formatAdminNumber(codes.data.totalElements)} tone="info" />
-          {CODE_STATUSES.map((value) => (
+          {ACTIVATION_CODE_STATUSES.map((value) => (
             <KpiTile
               key={value}
               label={t(`activation.status.${value}`)}
               value={codeSummary.data ? formatAdminNumber(codeSummary.data.byStatus[value] ?? 0) : "—"}
               hint={t("dense.summaryIgnoresStatusHint")}
-              tone={value === "REDEEMED" ? "success" : value === "VOID" ? "warning" : "neutral"}
+              tone={STATUS_TONE[value]}
             />
           ))}
         </KpiGrid>
@@ -310,6 +361,9 @@ export function AdminActivationCodesPage() {
                     <th scope="col" className={denseThClass}>
                       {t("activation.colStatus")}
                     </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colRedeemedAt")}
+                    </th>
                     {canManage ? (
                       <th scope="col" className={denseThClass}>
                         {t("activation.colAction")}
@@ -331,7 +385,12 @@ export function AdminActivationCodesPage() {
                       <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
                         {formatAdminDateTime(code.validUntil)}
                       </td>
-                      <td className={`${denseTdClass} whitespace-nowrap`}>{t(`activation.status.${code.status}`)}</td>
+                      <td className={`${denseTdClass} whitespace-nowrap`}>
+                        {t(`activation.status.${activationEffectiveStatus(code)}`)}
+                      </td>
+                      <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                        {code.redeemedAt ? formatAdminDateTime(code.redeemedAt) : EMPTY_CELL}
+                      </td>
                       {canManage ? (
                         <td className={denseTdClass}>
                           {code.status === "ISSUED" ? (

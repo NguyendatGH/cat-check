@@ -8,6 +8,7 @@ import com.catcheck.credit.application.AdminActivationTestDoubles.RecordingAudit
 import com.catcheck.credit.application.AdminActivationTestDoubles.TestCodeHasher;
 import com.catcheck.credit.domain.ActivationBatchSummary;
 import com.catcheck.credit.domain.ActivationCode;
+import com.catcheck.credit.domain.ActivationCodeEffectiveStatus;
 import com.catcheck.credit.domain.ActivationCodeFilter;
 import com.catcheck.credit.domain.ActivationCodeStatus;
 import com.catcheck.shared.error.BusinessRuleException;
@@ -54,7 +55,7 @@ class ActivationCodeAdminServiceTest {
         ActivationCodeIssuanceService issuanceService = new ActivationCodeIssuanceService(
                 codePort, packagePlanPort, codeHasher, new SecureRandom(), new UuidV7(clock), clock);
         adminService = new ActivationCodeAdminService(
-                codePort, issuanceService, csvVault, auditLog);
+                codePort, issuanceService, csvVault, auditLog, clock);
     }
 
     @Test
@@ -227,6 +228,40 @@ class ActivationCodeAdminServiceTest {
                 new ActivationCodeFilter(null, null, null, "LOT-J"), 0, 20);
         assertThat(inBatchJ.items()).hasSize(2);
         assertThat(inBatchJ.items()).allMatch(code -> code.status() == ActivationCodeStatus.VOID);
+    }
+
+
+    @Test
+    @DisplayName("L19: mã ISSUED quá valid_until suy ra EXPIRED; lọc ISSUED/EXPIRED tách rời, đếm đủ 4 trạng thái")
+    void expiredIsDerivedFromIssuedPastValidUntil() {
+        adminService.issueBatch("PLUS", 2, "LOT-K", 365, context());
+        ActivationCode stale = new ActivationCode(UUID.randomUUID(), codeHasher.hash("CC-PLUS-STALE").hex(),
+                (short) 1, "PLUS-", "PLUS", "LOT-OLD", NOW.minusSeconds(86_400 * 30L),
+                NOW.minusSeconds(60), ActivationCodeStatus.ISSUED, null, null);
+        codePort.insert(stale);
+        ActivationCode redeemedLate = codePort.rows.values().stream()
+                .filter(code -> "LOT-K".equals(code.productionBatch())).findFirst().orElseThrow();
+        codePort.markRedeemed(redeemedLate.id(), USER_ID, NOW);
+
+        assertThat(adminService.effectiveStatusOf(stale)).isEqualTo(ActivationCodeEffectiveStatus.EXPIRED);
+        assertThat(adminService.effectiveStatusOf(codePort.findById(redeemedLate.id()).orElseThrow()))
+                .isEqualTo(ActivationCodeEffectiveStatus.REDEEMED);
+
+        ActivationCodeAdminService.Page<ActivationCode> expired = adminService.search(
+                adminService.filterOf(null, "PLUS", ActivationCodeEffectiveStatus.EXPIRED, null), 0, 20);
+        assertThat(expired.items()).extracting(ActivationCode::id).containsExactly(stale.id());
+        assertThat(expired.totalElements()).isEqualTo(1);
+
+        ActivationCodeAdminService.Page<ActivationCode> stillValid = adminService.search(
+                adminService.filterOf(null, "PLUS", ActivationCodeEffectiveStatus.ISSUED, null), 0, 20);
+        assertThat(stillValid.items()).hasSize(1).noneMatch(code -> code.id().equals(stale.id()));
+
+        assertThat(adminService.countByStatus(null, "PLUS", null)).containsExactlyInAnyOrderEntriesOf(
+                java.util.Map.of(
+                        ActivationCodeEffectiveStatus.ISSUED, 1L,
+                        ActivationCodeEffectiveStatus.EXPIRED, 1L,
+                        ActivationCodeEffectiveStatus.REDEEMED, 1L,
+                        ActivationCodeEffectiveStatus.VOID, 0L));
     }
 
 

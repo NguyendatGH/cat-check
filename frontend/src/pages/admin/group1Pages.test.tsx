@@ -123,6 +123,21 @@ beforeEach(() => {
         issuedAt: "2026-09-01T00:00:00Z",
         validUntil: "2027-09-01T00:00:00Z",
         status: "ISSUED",
+        effectiveStatus: "ISSUED",
+        expired: false,
+        redeemedBy: null,
+        redeemedAt: null,
+      },
+      {
+        id: "c2",
+        codePrefix: "PLUS-",
+        packageCode: "PLUS",
+        productionBatch: "DEMO-EXPIRED",
+        issuedAt: "2025-09-01T00:00:00Z",
+        validUntil: "2025-10-01T00:00:00Z",
+        status: "ISSUED",
+        effectiveStatus: "EXPIRED",
+        expired: true,
         redeemedBy: null,
         redeemedAt: null,
       },
@@ -292,6 +307,8 @@ describe("AdminActivationCodesPage", () => {
   it("ADMIN_SUPPORT chỉ tra cứu: không sinh lô, không vô hiệu, không tải CSV", async () => {
     const view = text(await renderPage(<AdminActivationCodesPage />, "ADMIN_SUPPORT"));
     expect(view).toContain("CC7Q");
+    expect(view).toContain("activation.status.EXPIRED");
+    expect(view).toContain("activation.colRedeemedAt");
     expect(view).toContain("activation.readOnlyNote");
     for (const key of ["activation.issueButton", "activation.void", "activation.voidBatch", "activation.downloadCsv"]) {
       expect(view).not.toContain(key);
