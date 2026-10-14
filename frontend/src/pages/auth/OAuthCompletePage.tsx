@@ -1,15 +1,17 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { loadSession, useSessionStore } from "@/entities/user";
 import { playSplash } from "@/shared/lib/motion/splash";
+import { resolveRedirectTarget } from "@/shared/auth/landing";
 import { Button, EmptyState, SkeletonLoader } from "@/shared/ui";
 import { useAuthSessionQuery } from "@/features/auth";
 
 export function OAuthCompletePage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { data, isLoading, isError } = useAuthSessionQuery(true);
 
   const queryClient = useQueryClient();
@@ -19,11 +21,13 @@ export function OAuthCompletePage() {
   useEffect(() => {
     if (!data?.authenticated || started.current) return;
     started.current = true;
+    const next = searchParams.get("next");
     playSplash(loadSession(), (user) => {
       queryClient.removeQueries();
       setSession(user);
+      void navigate(user ? resolveRedirectTarget(next, user.roles) : "/auth/login", { replace: true });
     });
-  }, [data, queryClient, setSession]);
+  }, [data, navigate, queryClient, searchParams, setSession]);
 
   if (isLoading) {
     return (

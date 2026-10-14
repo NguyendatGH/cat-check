@@ -208,16 +208,17 @@ export const routes: RouteObject[] = [
               </PageSuspense>
             ),
           },
-          {
-            path: "/auth/oauth/complete",
-            handle: { titleKey: "pages.oauthComplete.title" },
-            element: (
-              <PageSuspense>
-                <LazyPages.oAuthComplete />
-              </PageSuspense>
-            ),
-          },
         ],
+      },
+      {
+        // Outside RedirectIfAuthenticated: the page itself plays the brand splash, then navigates.
+        path: "/auth/oauth/complete",
+        handle: { titleKey: "pages.oauthComplete.title" },
+        element: (
+          <PageSuspense>
+            <LazyPages.oAuthComplete />
+          </PageSuspense>
+        ),
       },
     ],
   },
