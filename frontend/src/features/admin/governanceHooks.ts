@@ -36,7 +36,6 @@ import type {
   UpdateSecurityIncidentPayload,
 } from "./governanceTypes";
 
-
 export const governanceKeys = {
   userScans: (userId: string, page: number, size: number) => ["admin", "user-scans", userId, page, size] as const,
   userScansAll: ["admin", "user-scans"] as const,
@@ -58,7 +57,6 @@ const AUDITED_QUERY = {
   refetchOnReconnect: false,
   staleTime: 5 * 60_000,
 } as const;
-
 
 export interface UserScansParams {
   userId: string;
@@ -132,6 +130,7 @@ export async function fetchAdminScanImage(scanId: string, reason: string): Promi
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Body lỗi không phải JSON: giữ thông điệp mặc định theo mã HTTP.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -145,7 +144,6 @@ export async function fetchAdminScanImage(scanId: string, reason: string): Promi
 export function useAdminScanImage(): UseMutationResult<Blob, Error, { scanId: string; reason: string }> {
   return useMutation({ mutationFn: ({ scanId, reason }) => fetchAdminScanImage(scanId, reason) });
 }
-
 
 export function useAdminMonitoringRules(): UseQueryResult<AdminMonitoringRule[]> {
   return useQuery({
@@ -188,7 +186,6 @@ export function useUpdateMonitoringRule(): UseMutationResult<
     },
   });
 }
-
 
 export interface IncidentFilters {
   severity: IncidentSeverity | "";
@@ -275,7 +272,6 @@ export function usePurgeAllSessions(): UseMutationResult<
   });
 }
 
-
 export interface PolicyVersionFilters {
   policyType: PolicyType | "";
   locale: PolicyLocale | "";
@@ -327,7 +323,6 @@ export function usePublishPolicyVersion(): UseMutationResult<
     },
   });
 }
-
 
 const CONSENT_PAGE_LIMIT = 100;
 

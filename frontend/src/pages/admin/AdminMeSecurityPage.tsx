@@ -46,11 +46,7 @@ export function AdminMeSecurityPage() {
 
   return (
     <div className="flex max-w-4xl flex-col gap-5">
-      <AdminPageHeader
-        title={t("pages.meSecurity.title")}
-        description={t("pages.meSecurity.description")}
-        specRef="GET|POST|DELETE /api/v1/account/mfa/totp* (B13–B17) · /api/v1/auth/sessions (A14–A16)"
-      />
+      <AdminPageHeader title={t("pages.meSecurity.title")} description={t("pages.meSecurity.description")} />
 
       <p className="flex items-start gap-2 rounded-xl bg-info px-4 py-3 text-caption text-info-text">
         <ShieldAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />

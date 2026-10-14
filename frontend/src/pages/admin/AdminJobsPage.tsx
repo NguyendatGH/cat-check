@@ -10,7 +10,7 @@ import {
   DenseTableFrame,
   MutationErrorNote,
   Pager,
-  ReasonField,
+  ReasonConfirmDialog,
   SearchField,
   SortableTh,
   TableSkeleton,
@@ -22,12 +22,14 @@ import {
   nextSort,
   sortRows,
   formatAdminDateTime,
-  isReasonValid,
   useAdminJobRuns,
   type AdminJobRun,
   type SortState,
 } from "@/features/admin";
-import { isJobRunValid, useGroup3Can, useRunAdminJob } from "./group3Ops";
+import { useGroup3Can, useRunAdminJob } from "./group3Ops";
+
+// Khớp ck_job_run_status (V26__job_run_columns.sql).
+const JOB_STATUSES = ["RUNNING", "SUCCESS", "FAILED", "PARTIAL", "SKIPPED", "SKIPPED_THRESHOLD"] as const;
 
 type JobSortKey = "jobName" | "status" | "startedAt" | "durationMs" | "rowCount";
 
@@ -39,11 +41,7 @@ export function AdminJobsPage() {
   }
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.jobs.title")}
-        description={t("pages.jobs.description")}
-        specRef="L64 · GET /api/v1/admin/jobs/runs"
-      />
+      <AdminPageHeader title={t("pages.jobs.title")} description={t("pages.jobs.description")} />
       {can("jobRun") ? <RunJobPanel /> : null}
       <JobRunsPanel />
     </div>
@@ -53,10 +51,10 @@ export function AdminJobsPage() {
 function RunJobPanel() {
   const { t } = useTranslation("admin");
   const [jobName, setJobName] = useState("");
-  const [reason, setReason] = useState("");
   const [dryRun, setDryRun] = useState(true);
+  const [confirming, setConfirming] = useState(false);
   const run = useRunAdminJob();
-  const valid = isJobRunValid(jobName, reason) && isReasonValid(reason);
+  const valid = jobName.trim().length > 0;
   return (
     <DensePanel title={t("jobs.runTitle")} description={t("jobs.runDescription")}>
       <Input
@@ -66,7 +64,6 @@ function RunJobPanel() {
           setJobName(event.target.value);
         }}
       />
-      <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
       <label className="flex items-center gap-2 text-caption text-text-primary">
         <input
           type="checkbox"
@@ -83,7 +80,8 @@ function RunJobPanel() {
           disabled={!valid || run.isPending}
           loading={run.isPending}
           onClick={() => {
-            run.mutate({ jobName, dryRun, reason: reason.trim() });
+            run.reset();
+            setConfirming(true);
           }}
         >
           {t("jobs.runButton")}
@@ -93,14 +91,35 @@ function RunJobPanel() {
         <p role="status" className="rounded-lg bg-info/60 px-3 py-2 text-caption text-text-primary">
           {t("jobs.runResult", {
             name: run.data.jobName,
-            status: run.data.status,
+            status: t(`jobs.statuses.${run.data.status}`, { defaultValue: run.data.status }),
             processed: run.data.itemsProcessed ?? 0,
             deleted: run.data.itemsDeleted ?? 0,
             failed: run.data.itemsFailed ?? 0,
           })}
         </p>
       ) : null}
-      <MutationErrorNote error={run.error} />
+      {confirming ? null : <MutationErrorNote error={run.error} />}
+      <ReasonConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t("jobs.runConfirmTitle")}
+        target={jobName.trim()}
+        consequence={dryRun ? t("jobs.runDryConsequence") : t("jobs.runConsequence")}
+        confirmLabel={t("jobs.runButton")}
+        destructive={!dryRun}
+        pending={run.isPending}
+        error={run.error}
+        onConfirm={(reason) => {
+          run.mutate(
+            { jobName, dryRun, reason },
+            {
+              onSuccess: () => {
+                setConfirming(false);
+              },
+            },
+          );
+        }}
+      />
     </DensePanel>
   );
 }
@@ -165,10 +184,11 @@ function JobRunsPanel() {
           }}
         >
           <option value="">{t("jobs.allStatuses")}</option>
-          <option value="SUCCESS">SUCCESS</option>
-          <option value="FAILED">FAILED</option>
-          <option value="RUNNING">RUNNING</option>
-          <option value="SKIPPED">SKIPPED</option>
+          {JOB_STATUSES.map((value) => (
+            <option key={value} value={value}>
+              {t(`jobs.statuses.${value}`)}
+            </option>
+          ))}
         </AdminSelect>
         <SearchField label={t("jobs.search")} value={query} onChange={setQuery} placeholder={t("dense.search")} />
       </div>
@@ -209,7 +229,7 @@ function JobRunsPanel() {
                     <td className={denseTdClass}>
                       <code>{run.jobName}</code>
                     </td>
-                    <td className={denseTdClass}>{run.status}</td>
+                    <td className={denseTdClass}>{t(`jobs.statuses.${run.status}`, { defaultValue: run.status })}</td>
                     <td className={denseTdClass}>{formatAdminDateTime(run.startedAt)}</td>
                     <td className={denseTdClass}>{formatAdminDateTime(run.finishedAt)}</td>
                     <td className={`${denseTdClass} font-mono tabular-nums`}>

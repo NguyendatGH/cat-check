@@ -59,6 +59,7 @@ export async function adminRequest<T>(path: string, options: AdminRequestInit = 
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Body lỗi không phải JSON: giữ thông điệp mặc định theo mã HTTP.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -94,6 +95,7 @@ export async function downloadAdminActivationBatchCsv(batchId: string, reason: s
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Body lỗi không phải JSON: giữ thông điệp mặc định theo mã HTTP.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

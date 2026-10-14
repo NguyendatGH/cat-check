@@ -101,7 +101,6 @@ export function AdminPrivacyRetentionPage() {
       <AdminPageHeader
         title={t("pages.privacyRetention.title")}
         description={t("pages.privacyRetention.description")}
-        specRef="GET/PATCH /api/v1/admin/privacy/retention-policies"
       />
 
       <DensePanel title={t("retention.inventoryTitle")} description={t("retention.inventoryDescription")}>

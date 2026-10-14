@@ -108,11 +108,7 @@ export function AdminProductsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <AdminPageHeader
-        title={t("pages.products.title")}
-        description={t("pages.products.description")}
-        specRef="GET/POST/PUT/PATCH /api/v1/admin/shop/products"
-      />
+      <AdminPageHeader title={t("pages.products.title")} description={t("pages.products.description")} />
 
       <AdminSection title={t("productAdmin.listTitle")} description={t("productAdmin.listDescription")}>
         <div className="flex items-center gap-3">

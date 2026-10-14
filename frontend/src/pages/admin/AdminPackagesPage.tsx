@@ -95,11 +95,7 @@ export function AdminPackagesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.packages.title")}
-        description={t("pages.packages.description")}
-        specRef="L25–L26 · GET/PATCH /api/v1/admin/package-plans"
-      />
+      <AdminPageHeader title={t("pages.packages.title")} description={t("pages.packages.description")} />
 
       <DensePanel title={t("packageAdmin.listTitle")} description={t("packageAdmin.listDescription")}>
         {canEdit ? null : <p className="text-caption text-text-secondary">{t("packageAdmin.readOnlyNote")}</p>}

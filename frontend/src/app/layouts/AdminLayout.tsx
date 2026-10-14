@@ -1,10 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Avatar, Button as AntButton, ConfigProvider } from "antd";
+import { Avatar, ConfigProvider } from "antd";
 import {
   Archive,
-  ArrowLeft,
   ChevronDown,
   ChevronRight,
   BellRing,
@@ -237,6 +236,14 @@ const ADMIN_NAV: readonly AdminNavGroup<AdminNavItem>[] = [
   },
 ];
 
+// Vai trò ưu tiên hiển thị dưới tên người dùng; dùng nhãn nghiệp vụ thay cho enum thô (p17 A4).
+const ROLE_PRIORITY = ["ADMIN_SUPER", "DPO", "ADMIN_SUPPORT", "ADMIN_CATALOG", "MODERATOR"] as const;
+
+function primaryRoleLabel(roles: readonly string[] | undefined, t: (key: string) => string): string {
+  const role = ROLE_PRIORITY.find((item) => roles?.includes(item));
+  return role === undefined ? t("nav.label") : t(`roleLabels.${role}`);
+}
+
 function hrefOf(item: AdminNavItem): string {
   return item.tab === undefined ? item.to : `${item.to}?tab=${item.tab}`;
 }
@@ -246,8 +253,74 @@ interface AdminNavListProps {
   location: { pathname: string; search: string };
 }
 
+function filterNavByQuery(
+  groups: readonly AdminNavGroup<AdminNavItem>[],
+  query: string,
+  label: (item: AdminNavItem) => string,
+): AdminNavGroup<AdminNavItem>[] {
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => label(item).toLowerCase().includes(query)),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+function NavSearchInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation("admin");
+  return (
+    <div className="relative">
+      <Search
+        size={14}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        aria-hidden="true"
+      />
+      <input
+        type="search"
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        aria-label={t("actions.search")}
+        placeholder={t("actions.search")}
+        className="h-10 w-full rounded-md border border-white/15 bg-white/5 pl-8 pr-10 text-[13px] text-white transition-colors placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      {value ? (
+        <button
+          type="button"
+          onClick={() => {
+            onChange("");
+          }}
+          className="absolute right-0 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center text-slate-400 hover:text-white"
+          aria-label={t("actions.clearSearch")}
+        >
+          <X size={13} aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function NavSearchEmpty({ onClear }: { onClear: () => void }) {
+  const { t } = useTranslation("admin");
+  return (
+    <div className="py-8 text-center text-[12px] text-slate-400">
+      <p>{t("nav.searchEmpty")}</p>
+      <button
+        type="button"
+        onClick={onClear}
+        className="mt-2 min-h-11 cursor-pointer font-medium text-primary-light underline"
+      >
+        {t("nav.clearFilter")}
+      </button>
+    </div>
+  );
+}
+
 function AdminNavList({ groups, location }: AdminNavListProps) {
   const { t } = useTranslation("admin");
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
   const activeItem = findActiveNavItem(groups, location);
   const activeGroupId = groups.find((group) => group.items.some((item) => item.id === activeItem?.id))?.id;
   const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(
@@ -285,35 +358,58 @@ function AdminNavList({ groups, location }: AdminNavListProps) {
     );
   };
 
+  if (normalizedQuery) {
+    const matches = filterNavByQuery(groups, normalizedQuery, (item) => t(item.labelKey));
+    return (
+      <div className="flex flex-col gap-3">
+        <NavSearchInput value={query} onChange={setQuery} />
+        {matches.length === 0 ? (
+          <NavSearchEmpty
+            onClear={() => {
+              setQuery("");
+            }}
+          />
+        ) : (
+          <ul className="flex flex-col gap-0.5">
+            {matches.flatMap((group) => group.items.map((item) => navLink(item, false)))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <ul className="flex flex-col gap-1">
-      {groups.map((group) => {
-        if (group.id === "overview" && group.items.length === 1) return navLink(group.items[0], false);
-        const isOpen = openGroups.has(group.id);
-        const panelId = `admin-nav-${group.id}`;
-        return (
-          <li key={group.id}>
-            <button
-              type="button"
-              aria-expanded={isOpen}
-              aria-controls={panelId}
-              onClick={() => {
-                toggle(group.id);
-              }}
-              className={cn("admin-nav-group", group.id === activeGroupId && "has-active")}
-            >
-              <span className="min-w-0 flex-1 truncate text-left">{t(group.labelKey)}</span>
-              <ChevronDown size={16} aria-hidden="true" className="admin-nav-chevron shrink-0" />
-            </button>
-            <div id={panelId} className="nav-collapse" data-open={isOpen} inert={!isOpen}>
-              <div>
-                <ul className="flex flex-col gap-0.5 pb-2 pt-1">{group.items.map((item) => navLink(item, true))}</ul>
+    <div className="flex flex-col gap-3">
+      <NavSearchInput value={query} onChange={setQuery} />
+      <ul className="flex flex-col gap-1">
+        {groups.map((group) => {
+          if (group.id === "overview" && group.items.length === 1) return navLink(group.items[0], false);
+          const isOpen = openGroups.has(group.id);
+          const panelId = `admin-nav-${group.id}`;
+          return (
+            <li key={group.id}>
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={panelId}
+                onClick={() => {
+                  toggle(group.id);
+                }}
+                className={cn("admin-nav-group", group.id === activeGroupId && "has-active")}
+              >
+                <span className="min-w-0 flex-1 truncate text-left">{t(group.labelKey)}</span>
+                <ChevronDown size={16} aria-hidden="true" className="admin-nav-chevron shrink-0" />
+              </button>
+              <div id={panelId} className="nav-collapse" data-open={isOpen} inert={!isOpen}>
+                <div>
+                  <ul className="flex flex-col gap-0.5 pb-2 pt-1">{group.items.map((item) => navLink(item, true))}</ul>
+                </div>
               </div>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -326,16 +422,8 @@ interface AdminMobileDrawerProps {
   onNavigate: () => void;
 }
 
-function AdminMobileDrawer({
-  open,
-  onOpenChange,
-  groups,
-  location,
-  user,
-  onNavigate,
-}: AdminMobileDrawerProps) {
+function AdminMobileDrawer({ open, onOpenChange, groups, location, user, onNavigate }: AdminMobileDrawerProps) {
   const { t } = useTranslation("admin");
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const activeItem = findActiveNavItem(groups, location);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -348,15 +436,7 @@ function AdminMobileDrawer({
 
   const filteredGroups = useMemo(() => {
     if (!normalizedQuery) return groups;
-    return groups
-      .map((group) => {
-        const matchingItems = group.items.filter((item) => {
-          const label = t(item.labelKey).toLowerCase();
-          return label.includes(normalizedQuery) || item.id.toLowerCase().includes(normalizedQuery);
-        });
-        return { ...group, items: matchingItems };
-      })
-      .filter((group) => group.items.length > 0);
+    return filterNavByQuery(groups, normalizedQuery, (item) => t(item.labelKey));
   }, [groups, normalizedQuery, t]);
 
   return (
@@ -364,11 +444,11 @@ function AdminMobileDrawer({
       <SheetContent
         side="left"
         aria-describedby={undefined}
-        className="admin-mobile-drawer !p-0 !max-w-[340px] w-[86vw] bg-[#14213d] text-white border-r border-white/10 flex flex-col h-dvh overflow-hidden shadow-lg"
+        className="admin-mobile-drawer !p-0 !max-w-[340px] w-[86vw] text-white border-r border-white/10 flex flex-col h-dvh overflow-hidden shadow-lg"
       >
         <SheetTitle className="sr-only">{t("nav.label")}</SheetTitle>
 
-        <div className="border-b border-white/10 bg-[#0f1a30] px-4 pt-5 pb-3 shrink-0">
+        <div className="admin-drawer-header border-b border-white/10 px-4 pt-5 pb-3 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-white">
@@ -378,9 +458,7 @@ function AdminMobileDrawer({
                 <p className="truncate text-[15px] font-extrabold tracking-tight text-white leading-tight">
                   {t("nav.brand")}
                 </p>
-                <p className="truncate text-[11px] font-medium text-slate-300">
-                  {t("nav.label")}
-                </p>
+                <p className="truncate text-[11px] font-medium text-slate-300">{t("nav.label")}</p>
               </div>
             </div>
             <SheetClose asChild>
@@ -394,21 +472,11 @@ function AdminMobileDrawer({
             </SheetClose>
           </div>
 
-          <div className="mt-3 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 border border-emerald-500/30">
-              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Online Console
-            </span>
-            <span className="truncate max-w-[120px] rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-mono font-medium text-slate-300 border border-white/10">
-              {user?.roles?.[0] ?? "ADMIN"}
-            </span>
-          </div>
-
-          <div className="mt-2.5 flex items-center gap-2.5 rounded-lg bg-white/[0.06] p-2 border border-white/10">
+          <div className="mt-3 flex items-center gap-2.5 rounded-lg bg-white/[0.06] p-2 border border-white/10">
             <Avatar size={32} className="!rounded-md !bg-primary" icon={<ShieldCheck size={16} aria-hidden="true" />} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-bold text-white">{user?.displayName ?? "Admin"}</p>
-              <p className="truncate text-[10px] text-slate-400">Quản trị viên</p>
+              <p className="truncate text-[12px] font-bold text-white">{user?.displayName}</p>
+              <p className="truncate text-[10px] text-slate-400">{primaryRoleLabel(user?.roles, t)}</p>
             </div>
             <Link
               to={ROUTE_PATTERNS.adminMeSecurity}
@@ -416,46 +484,22 @@ function AdminMobileDrawer({
               aria-label={t("nav.settings")}
               className="flex size-11 items-center justify-center rounded-md bg-white/10 text-slate-200 hover:text-white hover:bg-white/20 transition-colors cursor-pointer"
             >
-              <Settings size={13} aria-hidden="true" />
+              <Settings size={16} aria-hidden="true" />
             </Link>
           </div>
         </div>
 
         <div className="px-3.5 pt-3 pb-1 shrink-0">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("actions.search", "Tìm tính năng...")}
-              className="h-10 w-full rounded-md bg-white/5 border border-white/15 pl-8 pr-8 text-[13px] text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-            />
-            {searchQuery ? (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center text-slate-400 hover:text-white"
-                aria-label="Xoá tìm kiếm"
-              >
-                <X size={13} aria-hidden="true" />
-              </button>
-            ) : null}
-          </div>
+          <NavSearchInput value={searchQuery} onChange={setSearchQuery} />
         </div>
 
         <nav aria-label={t("nav.label")} className="admin-mobile-scroll flex-1 overflow-y-auto px-3 py-2 space-y-3">
           {filteredGroups.length === 0 ? (
-            <div className="py-8 text-center text-slate-400 text-[12px]">
-              <p>Không tìm thấy tính năng phù hợp</p>
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="mt-2 text-primary-light underline font-medium cursor-pointer"
-              >
-                Xoá bộ lọc
-              </button>
-            </div>
+            <NavSearchEmpty
+              onClear={() => {
+                setSearchQuery("");
+              }}
+            />
           ) : (
             filteredGroups.map((group) => {
               const isCollapsed = !normalizedQuery && collapsedGroups[group.id];
@@ -463,7 +507,9 @@ function AdminMobileDrawer({
                 <div key={group.id} className="space-y-1">
                   <button
                     type="button"
-                    onClick={() => toggleGroup(group.id)}
+                    onClick={() => {
+                      toggleGroup(group.id);
+                    }}
                     aria-expanded={!isCollapsed}
                     className="flex min-h-11 w-full items-center justify-between px-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase hover:text-slate-200 transition-colors cursor-pointer"
                   >
@@ -475,47 +521,47 @@ function AdminMobileDrawer({
 
                   <div className="nav-collapse" data-open={!isCollapsed} inert={isCollapsed}>
                     <div>
-                    <div className="space-y-1 pb-1">
-                      {group.items.map((item) => {
-                        const isActive = activeItem?.id === item.id;
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.id}
-                            to={hrefOf(item)}
-                            onClick={onNavigate}
-                            aria-current={isActive ? "page" : undefined}
-                            className={cn(
-                              "group flex min-h-12 items-center gap-3 rounded-md px-2.5 py-2 text-[13px] font-semibold transition-colors",
-                              isActive
-                                ? "bg-primary text-white"
-                                : "text-slate-300 hover:bg-white/8 hover:text-white active:bg-white/10"
-                            )}
-                          >
-                            <span
+                      <div className="space-y-1 pb-1">
+                        {group.items.map((item) => {
+                          const isActive = activeItem?.id === item.id;
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.id}
+                              to={hrefOf(item)}
+                              onClick={onNavigate}
+                              aria-current={isActive ? "page" : undefined}
                               className={cn(
-                                "flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
+                                "group flex min-h-12 items-center gap-3 rounded-md px-2.5 py-2 text-[13px] font-semibold transition-colors",
                                 isActive
-                                  ? "bg-white/20 text-white"
-                                  : "bg-white/5 text-slate-300 group-hover:bg-white/10 group-hover:text-white"
+                                  ? "bg-primary text-white"
+                                  : "text-slate-300 hover:bg-white/8 hover:text-white active:bg-white/10",
                               )}
-                              aria-hidden="true"
                             >
-                              <Icon size={16} />
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span>
-                            <ChevronRight
-                              size={14}
-                              aria-hidden="true"
-                              className={cn(
-                                "shrink-0 transition-transform",
-                                isActive ? "text-white opacity-90" : "text-white/20 group-hover:text-white/50"
-                              )}
-                            />
-                          </Link>
-                        );
-                      })}
-                    </div>
+                              <span
+                                className={cn(
+                                  "flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
+                                  isActive
+                                    ? "bg-white/20 text-white"
+                                    : "bg-white/5 text-slate-300 group-hover:bg-white/10 group-hover:text-white",
+                                )}
+                                aria-hidden="true"
+                              >
+                                <Icon size={16} />
+                              </span>
+                              <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span>
+                              <ChevronRight
+                                size={14}
+                                aria-hidden="true"
+                                className={cn(
+                                  "shrink-0 transition-transform",
+                                  isActive ? "text-white opacity-90" : "text-white/20 group-hover:text-white/50",
+                                )}
+                              />
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -523,20 +569,6 @@ function AdminMobileDrawer({
             })
           )}
         </nav>
-
-        <div className="border-t border-white/10 bg-[#0f1a30] p-3 shrink-0 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              onNavigate();
-              void navigate(ROUTE_PATTERNS.dashboard);
-            }}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.98] px-3 py-2 text-[13px] font-bold text-white border border-white/10 transition-all cursor-pointer"
-          >
-            <ArrowLeft size={16} aria-hidden="true" />
-            <span>{t("nav.backToApp")}</span>
-          </button>
-        </div>
       </SheetContent>
     </Sheet>
   );
@@ -545,7 +577,6 @@ function AdminMobileDrawer({
 export function AdminLayout() {
   const { t } = useTranslation("admin");
   const location = useLocation();
-  const navigate = useNavigate();
   const user = useSessionStore((state) => state.user);
   const roles = user?.roles;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -590,25 +621,17 @@ export function AdminLayout() {
             <AdminNavList groups={groups} location={location} />
           </nav>
           <div className="border-t border-white/10 px-4 py-4">
-            <div className="mb-3 flex min-w-0 items-center gap-2.5">
+            <div className="flex min-w-0 items-center gap-2.5">
               <Avatar
                 size={36}
                 className="!rounded-xl !bg-primary"
                 icon={<ShieldCheck size={17} aria-hidden="true" />}
               />
-              <span className="min-w-0 truncate text-caption font-semibold text-white">{user?.displayName}</span>
+              <div className="min-w-0">
+                <p className="truncate text-caption font-semibold text-white">{user?.displayName}</p>
+                <p className="truncate text-small text-slate-300">{primaryRoleLabel(user?.roles, t)}</p>
+              </div>
             </div>
-            <AntButton
-              type="text"
-              block
-              icon={<ArrowLeft size={16} aria-hidden="true" />}
-              className="admin-back-link !flex !min-h-11 !items-center !justify-start"
-              onClick={() => {
-                void navigate(ROUTE_PATTERNS.dashboard);
-              }}
-            >
-              {t("nav.backToApp")}
-            </AntButton>
           </div>
         </aside>
 
@@ -621,7 +644,9 @@ export function AdminLayout() {
                   variant="tertiary"
                   size="sm"
                   aria-label={t("nav.openMenu")}
-                  onClick={() => setMenuOpen(true)}
+                  onClick={() => {
+                    setMenuOpen(true);
+                  }}
                   className="!size-11 !rounded-md !p-0 border border-border/80 bg-background text-text-primary shadow-xs hover:bg-background-alt"
                 >
                   <Menu size={20} aria-hidden="true" />
@@ -632,7 +657,9 @@ export function AdminLayout() {
                   groups={groups}
                   location={location}
                   user={user}
-                  onNavigate={() => setMenuOpen(false)}
+                  onNavigate={() => {
+                    setMenuOpen(false);
+                  }}
                 />
               </div>
 
@@ -646,29 +673,21 @@ export function AdminLayout() {
                     </>
                   ) : null}
                 </p>
-                <h1 className="truncate text-[15px] sm:text-body font-extrabold tracking-tight text-text-primary">
+                <p className="truncate text-[15px] sm:text-body font-extrabold tracking-tight text-text-primary">
                   {activeItem !== undefined ? t(activeItem.labelKey) : t("nav.label")}
-                </h1>
+                </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Link
-                to={ROUTE_PATTERNS.dashboard}
-                aria-label={t("nav.backToApp")}
-                title={t("nav.backToApp")}
-                className="flex size-11 items-center justify-center rounded-md border border-border/80 bg-background text-text-secondary hover:text-text-primary hover:bg-background-alt shadow-xs lg:hidden cursor-pointer"
-              >
-                <ArrowLeft size={17} aria-hidden="true" />
-              </Link>
-              <Link
                 to={ROUTE_PATTERNS.adminMeSecurity}
                 className="flex min-h-11 items-center gap-2 rounded-md bg-background-alt border border-border/60 p-1.5 sm:px-3 sm:py-1.5 text-small font-semibold text-primary-dark hover:bg-background"
-                title={user?.displayName ?? "Admin"}
+                title={t("nav.settings")}
+                aria-label={t("nav.settings")}
               >
                 <span className="relative flex size-7 items-center justify-center rounded-lg bg-primary text-white font-bold text-[11px]">
                   {user?.displayName ? user.displayName.slice(0, 1).toUpperCase() : <ShieldCheck size={14} />}
-                  <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-surface" />
                 </span>
                 <span className="hidden md:inline truncate max-w-[140px]">{user?.displayName}</span>
               </Link>

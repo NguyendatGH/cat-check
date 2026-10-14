@@ -36,7 +36,6 @@ import {
 } from "@/features/admin";
 import { useGroup2Can } from "./group2Access";
 
-
 const CHART_STATUS_CLASS: Record<ChartStatus, string> = {
   DRAFT: "bg-background-alt text-text-secondary",
   ACTIVE: "bg-success-bg text-success-text",
@@ -61,7 +60,6 @@ function Swatch({ hex }: { hex: string }) {
     />
   );
 }
-
 
 function CreateChartForm({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation("admin");
@@ -147,7 +145,6 @@ function CreateChartForm({ onDone }: { onDone: () => void }) {
     </form>
   );
 }
-
 
 interface PointDraft {
   key: string;
@@ -390,7 +387,6 @@ function PointsEditor({
   );
 }
 
-
 function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () => void }) {
   const { t } = useTranslation("admin");
   const detail = useAdminColorChart(chartId);
@@ -556,7 +552,6 @@ function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () =
     </AdminSection>
   );
 }
-
 
 function BandEditor({ band, etag, onClose }: { band: PhBand; etag: string | null; onClose: () => void }) {
   const { t, i18n } = useTranslation("admin");
@@ -773,7 +768,6 @@ function BandsSection() {
   );
 }
 
-
 export function AdminPhColorChartPage() {
   const { t } = useTranslation("admin");
   const [status, setStatus] = useState<ChartStatus | "">("");
@@ -787,11 +781,7 @@ export function AdminPhColorChartPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <AdminPageHeader
-        title={t("pages.phColorChart.title")}
-        description={t("pages.phColorChart.description")}
-        specRef="/api/v1/admin/color-charts · /api/v1/admin/ph-classification-bands — L27–L32, L36, L37"
-      />
+      <AdminPageHeader title={t("pages.phColorChart.title")} description={t("pages.phColorChart.description")} />
 
       <Tabs defaultValue="charts">
         <TabsList>

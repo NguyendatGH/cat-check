@@ -6,16 +6,15 @@ import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api";
 import { ADMIN_REASON_MIN_LENGTH } from "./api";
 
-
-
 export interface AdminPageHeaderProps {
   title: string;
   description?: string;
-  specRef?: string;
+  /** Thông tin phụ cho người vận hành (vd. ID đối tượng). Không dùng cho mã spec/endpoint (p17 A4). */
+  meta?: string;
   actions?: ReactNode;
 }
 
-export function AdminPageHeader({ title, description, specRef, actions }: AdminPageHeaderProps) {
+export function AdminPageHeader({ title, description, meta, actions }: AdminPageHeaderProps) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4" data-reveal>
       <div className="min-w-0">
@@ -23,7 +22,7 @@ export function AdminPageHeader({ title, description, specRef, actions }: AdminP
           {title}
         </Typography.Title>
         {description !== undefined ? <p className="pt-1 text-body text-text-secondary">{description}</p> : null}
-        {specRef !== undefined ? <p className="pt-1 font-mono text-small text-text-tertiary">{specRef}</p> : null}
+        {meta !== undefined ? <p className="pt-1 font-mono text-small text-text-tertiary">{meta}</p> : null}
       </div>
       {actions !== undefined ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
     </header>
@@ -71,7 +70,6 @@ export const adminTableClass = "w-full min-w-[720px] border-collapse text-captio
 export const adminThClass =
   "border-b border-border px-3 py-2 text-left text-overline font-semibold text-text-tertiary whitespace-nowrap";
 export const adminTdClass = "border-b border-border/60 px-3 py-2 align-top text-text-primary";
-
 
 export interface MissingApiEndpoint {
   code: string;
@@ -125,7 +123,6 @@ export function MissingApiNotice({ specSection, endpoints, note }: MissingApiNot
     </section>
   );
 }
-
 
 export interface AdminSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
@@ -200,7 +197,6 @@ export function ReasonField({ value, onChange, showError = false, disabled = fal
     </div>
   );
 }
-
 
 export function ApiErrorNote({ error }: { error: unknown }) {
   const { t } = useTranslation("admin");

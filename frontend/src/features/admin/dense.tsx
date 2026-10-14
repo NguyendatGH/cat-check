@@ -9,8 +9,6 @@ import { classifyAdminError } from "./adminAccess";
 import { ariaSortOf, type SortState } from "./tableTools";
 import { shortId } from "./adminFormat";
 
-
-
 export interface DensePanelProps {
   title: string;
   description?: string;
@@ -43,7 +41,6 @@ export function DensePanel({ title, description, actions, children, className }:
     </AntCard>
   );
 }
-
 
 export type KpiTone = "neutral" | "info" | "success" | "warning" | "danger";
 
@@ -80,10 +77,7 @@ export function KpiTile({ label, value, hint, tone = "neutral" }: KpiTileProps) 
 
 export function KpiGrid({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <dl
-      aria-label={label}
-      className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 sm:gap-3"
-    >
+    <dl aria-label={label} className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 sm:gap-3">
       {children}
     </dl>
   );
@@ -132,8 +126,8 @@ export function DistributionBar({ label, segments }: { label: string; segments: 
   );
 }
 
-
 export function DenseTableFrame({ children, label }: { children: ReactNode; label: string }) {
+  const { t } = useTranslation("admin");
   return (
     <div className="relative flex flex-col">
       <div
@@ -146,7 +140,7 @@ export function DenseTableFrame({ children, label }: { children: ReactNode; labe
         {children}
       </div>
       <p className="mt-1 flex items-center justify-between px-1 text-[11px] text-text-tertiary sm:hidden">
-        <span>Cuộn ngang để xem đầy đủ cột dữ liệu</span>
+        <span>{t("dense.scrollHint")}</span>
         <span aria-hidden="true">↔</span>
       </p>
     </div>
@@ -270,7 +264,6 @@ export function KpiSkeleton() {
   );
 }
 
-
 export function SearchField({
   label,
   value,
@@ -353,7 +346,6 @@ export function TextAreaField({
   );
 }
 
-
 export function MonoId({ value, chars = 8 }: { value: string | null | undefined; chars?: number }) {
   return (
     <code title={value ?? undefined} className="font-mono text-small text-text-secondary">
@@ -374,7 +366,6 @@ export function DetailGrid({ items }: { items: readonly (readonly [string, React
     </dl>
   );
 }
-
 
 export function AccessDeniedState({ description }: { description?: string }) {
   const { t } = useTranslation("admin");

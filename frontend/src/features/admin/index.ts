@@ -1,4 +1,3 @@
-
 export { ADMIN_REASON_MIN_LENGTH, isReasonValid, isHexColor } from "./api";
 
 export {
@@ -75,7 +74,8 @@ export {
   adminTdClass,
 } from "./components";
 export type { MissingApiEndpoint, MissingApiNoticeProps } from "./components";
-
+export { ReasonConfirmDialog } from "./ReasonConfirmDialog";
+export type { ReasonConfirmDialogProps } from "./ReasonConfirmDialog";
 
 export {
   computeCapabilities,

@@ -13,6 +13,7 @@ import {
   KpiTile,
   MutationErrorNote,
   Pager,
+  ReasonConfirmDialog,
   ReasonField,
   TableSkeleton,
   denseRowClass,
@@ -29,7 +30,7 @@ import {
   useVoidActivationBatch,
   useVoidActivationCode,
 } from "@/features/admin";
-import type { ActivationCodeStatus } from "@/features/admin";
+import type { ActivationBatch, ActivationCodeAdmin, ActivationCodeStatus } from "@/features/admin";
 import { useGroup1Can } from "./group1Access";
 
 const PAGE_SIZE = 20;
@@ -45,7 +46,15 @@ export function AdminActivationCodesPage() {
   const [batchId, setBatchId] = useState("");
   const [page, setPage] = useState(0);
   const [batchPage, setBatchPage] = useState(0);
-  const [reason, setReason] = useState("");
+  // Lý do hỏi tại thời điểm hành động (p17 A3): form sinh lô có ô lý do riêng, còn vô hiệu/tải CSV hỏi trong hộp xác nhận.
+  const [issueReason, setIssueReason] = useState("");
+  const [issuePackageCode, setIssuePackageCode] = useState("");
+  const [pendingAction, setPendingAction] = useState<
+    | { kind: "voidCode"; code: ActivationCodeAdmin }
+    | { kind: "voidBatch"; batch: ActivationBatch }
+    | { kind: "csv"; batch: ActivationBatch }
+    | null
+  >(null);
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [quantity, setQuantity] = useState("100");
   const [validForDays, setValidForDays] = useState("365");
@@ -57,7 +66,9 @@ export function AdminActivationCodesPage() {
   const voidCode = useVoidActivationCode();
   const voidBatch = useVoidActivationBatch();
   const downloadCsv = useDownloadActivationBatchCsv();
-  const canWrite = canManage && isReasonValid(reason);
+  const canIssue = canManage && isReasonValid(issueReason);
+  const activeMutation =
+    pendingAction?.kind === "voidCode" ? voidCode : pendingAction?.kind === "voidBatch" ? voidBatch : downloadCsv;
   const codeItems = codes.data?.items ?? [];
 
   function downloadBlob(blob: Blob, filename: string) {
@@ -76,7 +87,6 @@ export function AdminActivationCodesPage() {
       <AdminPageHeader
         title={t("pages.activationCodes.title")}
         description={t("pages.activationCodes.description")}
-        specRef="L19–L24 · GET/POST /api/v1/admin/activation-codes"
         actions={
           canManage ? (
             <Button
@@ -100,19 +110,21 @@ export function AdminActivationCodesPage() {
             className="flex flex-col gap-3"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!canWrite) return;
+              if (!canIssue) return;
               issue.mutate(
                 {
-                  packageCode: packageCode.trim().toUpperCase(),
+                  packageCode: issuePackageCode.trim().toUpperCase(),
                   quantity: Number(quantity),
                   productionBatch: productionBatch.trim(),
                   validForDays: Number(validForDays),
-                  reason: reason.trim(),
+                  reason: issueReason.trim(),
                 },
                 {
                   onSuccess: () => {
                     setShowIssueForm(false);
+                    setIssueReason("");
                     setBatchId(productionBatch.trim());
+                    setPage(0);
                     setBatchPage(0);
                   },
                 },
@@ -122,10 +134,10 @@ export function AdminActivationCodesPage() {
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               <Input
                 label={t("activation.packageCode")}
-                value={packageCode}
+                value={issuePackageCode}
                 className="h-10"
                 onChange={(event) => {
-                  setPackageCode(event.target.value);
+                  setIssuePackageCode(event.target.value);
                 }}
                 required
               />
@@ -164,9 +176,9 @@ export function AdminActivationCodesPage() {
               />
             </div>
             <ReasonField
-              value={reason}
-              onChange={setReason}
-              showError={issue.isError || reason.length > 0}
+              value={issueReason}
+              onChange={setIssueReason}
+              showError={issue.isError || issueReason.length > 0}
               disabled={issue.isPending}
             />
             <MutationErrorNote error={issue.error} />
@@ -176,7 +188,7 @@ export function AdminActivationCodesPage() {
                 variant="primary"
                 size="sm"
                 loading={issue.isPending}
-                disabled={!canWrite || !packageCode.trim() || !productionBatch.trim()}
+                disabled={!canIssue || !issuePackageCode.trim() || !productionBatch.trim()}
               >
                 {t("activation.issueSubmit")}
               </Button>
@@ -241,11 +253,7 @@ export function AdminActivationCodesPage() {
             }}
           />
         </div>
-        {canManage ? (
-          <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
-        ) : (
-          <p className="text-caption text-text-secondary">{t("activation.readOnlyNote")}</p>
-        )}
+        {canManage ? null : <p className="text-caption text-text-secondary">{t("activation.readOnlyNote")}</p>}
       </DensePanel>
 
       {codes.data ? (
@@ -329,9 +337,10 @@ export function AdminActivationCodesPage() {
                               variant="tertiary"
                               size="sm"
                               leftIcon={<ShieldOff size={14} />}
-                              disabled={!canWrite || voidCode.isPending}
+                              disabled={voidCode.isPending}
                               onClick={() => {
-                                voidCode.mutate({ codeId: code.id, reason: reason.trim() });
+                                voidCode.reset();
+                                setPendingAction({ kind: "voidCode", code });
                               }}
                             >
                               {t("activation.void")}
@@ -354,7 +363,7 @@ export function AdminActivationCodesPage() {
             />
           </>
         ) : null}
-        <MutationErrorNote error={voidCode.error} />
+        {pendingAction === null ? <MutationErrorNote error={voidCode.error} /> : null}
       </DensePanel>
 
       <DensePanel title={t("activation.batchesTitle")}>
@@ -420,16 +429,10 @@ export function AdminActivationCodesPage() {
                                 variant="tertiary"
                                 size="sm"
                                 leftIcon={<Download size={14} />}
-                                disabled={!canWrite || downloadCsv.isPending}
+                                disabled={downloadCsv.isPending}
                                 onClick={() => {
-                                  downloadCsv.mutate(
-                                    { batchId: batch.batchId, reason: reason.trim() },
-                                    {
-                                      onSuccess: (blob) => {
-                                        downloadBlob(blob, `activation-codes-${batch.batchId}.csv`);
-                                      },
-                                    },
-                                  );
+                                  downloadCsv.reset();
+                                  setPendingAction({ kind: "csv", batch });
                                 }}
                               >
                                 {t("activation.downloadCsv")}
@@ -439,9 +442,10 @@ export function AdminActivationCodesPage() {
                               variant="tertiary"
                               size="sm"
                               leftIcon={<ShieldOff size={14} />}
-                              disabled={!canWrite || voidBatch.isPending}
+                              disabled={voidBatch.isPending || batch.issuedCodes <= 0}
                               onClick={() => {
-                                voidBatch.mutate({ batchId: batch.batchId, reason: reason.trim() });
+                                voidBatch.reset();
+                                setPendingAction({ kind: "voidBatch", batch });
                               }}
                             >
                               {t("activation.voidBatch")}
@@ -462,8 +466,67 @@ export function AdminActivationCodesPage() {
             />
           </>
         ) : null}
-        <MutationErrorNote error={voidBatch.error ?? downloadCsv.error} />
+        {pendingAction === null ? <MutationErrorNote error={voidBatch.error ?? downloadCsv.error} /> : null}
       </DensePanel>
+      <ReasonConfirmDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+        title={
+          pendingAction?.kind === "voidCode"
+            ? t("activation.void")
+            : pendingAction?.kind === "voidBatch"
+              ? t("activation.voidBatch")
+              : t("activation.downloadCsv")
+        }
+        target={
+          pendingAction === null
+            ? ""
+            : pendingAction.kind === "voidCode"
+              ? `${pendingAction.code.codePrefix}•••• · ${pendingAction.code.packageCode}`
+              : `${pendingAction.batch.productionBatch} · ${pendingAction.batch.packageCode}`
+        }
+        consequence={
+          pendingAction?.kind === "voidCode"
+            ? t("activation.voidConsequence")
+            : pendingAction?.kind === "voidBatch"
+              ? t("activation.voidBatchConsequence")
+              : t("activation.csvConsequence")
+        }
+        confirmLabel={
+          pendingAction?.kind === "voidCode"
+            ? t("activation.void")
+            : pendingAction?.kind === "voidBatch"
+              ? t("activation.voidBatch")
+              : t("activation.downloadCsv")
+        }
+        destructive={pendingAction?.kind !== "csv"}
+        pending={activeMutation.isPending}
+        error={activeMutation.error}
+        onConfirm={(reason) => {
+          if (pendingAction === null) return;
+          const done = () => {
+            setPendingAction(null);
+          };
+          if (pendingAction.kind === "voidCode") {
+            voidCode.mutate({ codeId: pendingAction.code.id, reason }, { onSuccess: done });
+          } else if (pendingAction.kind === "voidBatch") {
+            voidBatch.mutate({ batchId: pendingAction.batch.batchId, reason }, { onSuccess: done });
+          } else {
+            const { batchId: target } = pendingAction.batch;
+            downloadCsv.mutate(
+              { batchId: target, reason },
+              {
+                onSuccess: (blob) => {
+                  downloadBlob(blob, `activation-codes-${target}.csv`);
+                  done();
+                },
+              },
+            );
+          }
+        }}
+      />
     </div>
   );
 }

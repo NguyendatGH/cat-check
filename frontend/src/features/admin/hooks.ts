@@ -53,7 +53,6 @@ import type {
 } from "./types";
 import { downloadAdminActivationBatchCsv } from "./api";
 
-
 export const adminKeys = {
   all: ["admin"] as const,
   systemStatus: ["admin", "system-status"] as const,
@@ -238,6 +237,8 @@ export function useAdminMetrics(): UseQueryResult<AdminMetrics> {
     queryFn: () => adminFetch<AdminMetrics>("/admin/metrics/dashboard"),
     retry: false,
     staleTime: 30_000,
+    // dashboard.metricsDescription hứa "cập nhật tự động mỗi 30 giây".
+    refetchInterval: 30_000,
   });
 }
 
@@ -336,8 +337,10 @@ export function useLockAdminUser(): UseMutationResult<
   return useMutation({
     mutationFn: ({ userId, reason }) =>
       adminFetch(`/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST", json: { reason } }),
-    onSuccess: () => {
+    onSuccess: (_data, { userId }) => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.userDetail(userId) });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.userSessions(userId) });
     },
   });
 }
@@ -351,8 +354,10 @@ export function useUnlockAdminUser(): UseMutationResult<
   return useMutation({
     mutationFn: ({ userId, reason }) =>
       adminFetch(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST", json: { reason } }),
-    onSuccess: () => {
+    onSuccess: (_data, { userId }) => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.userDetail(userId) });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.userSessions(userId) });
     },
   });
 }
@@ -594,7 +599,14 @@ export function useVoidActivationBatch(): UseMutationResult<
 }
 
 export function useDownloadActivationBatchCsv(): UseMutationResult<Blob, Error, { batchId: string; reason: string }> {
-  return useMutation({ mutationFn: ({ batchId, reason }) => downloadAdminActivationBatchCsv(batchId, reason) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ batchId, reason }) => downloadAdminActivationBatchCsv(batchId, reason),
+    // CSV chỉ tải được một lần (L22): làm mới để `csvAvailable` phản ánh trạng thái server.
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "activation-batches"] });
+    },
+  });
 }
 
 export function useAdminCommunityReports(
@@ -634,7 +646,6 @@ export function useModerateCommunityReport(): UseMutationResult<
   });
 }
 
-
 export function useAdminSystemStatus(): UseQueryResult<AdminSystemStatus> {
   return useQuery({
     queryKey: adminKeys.systemStatus,
@@ -643,7 +654,6 @@ export function useAdminSystemStatus(): UseQueryResult<AdminSystemStatus> {
     refetchInterval: 60_000,
   });
 }
-
 
 export function useAdminColorCharts(
   status: ChartStatus | "",
@@ -769,7 +779,6 @@ export function useUpdatePhBand(): UseMutationResult<PhBand, Error, UpdatePhBand
   });
 }
 
-
 export function useAdminCareTips(
   locale: string,
   status: CareTipStatus | "",
@@ -853,7 +862,6 @@ export function useArchiveCareTip(): UseMutationResult<CareTipDetail, Error, str
   });
 }
 
-
 export function useAdminDataInventory(): UseQueryResult<PrivacyPage<DataInventoryItem>> {
   return useQuery({
     queryKey: adminKeys.dataInventory,
@@ -869,7 +877,6 @@ export function useAdminConsentPurposes(): UseQueryResult<PrivacyPage<ConsentPur
     retry: false,
   });
 }
-
 
 const ADMIN_PRODUCTS_KEY = ["admin", "shop-products"] as const;
 

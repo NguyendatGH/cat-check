@@ -36,11 +36,7 @@ export function AdminAuditLogPage() {
   }
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.auditLog.title")}
-        description={t("pages.auditLog.description")}
-        specRef="L68 · GET /api/v1/admin/audit-logs"
-      />
+      <AdminPageHeader title={t("pages.auditLog.title")} description={t("pages.auditLog.description")} />
       <AuditLogPanel />
     </div>
   );

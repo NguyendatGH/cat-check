@@ -35,7 +35,10 @@
       "community": "Cộng đồng",
       "privacy": "Quyền riêng tư",
       "ops": "Vận hành"
-    }
+    },
+    "searchEmpty": "Không tìm thấy tính năng phù hợp",
+    "clearFilter": "Xoá bộ lọc",
+    "roleSubtitle": "Quản trị viên"
   },
   "actions": {
     "cancel": "Huỷ",
@@ -44,7 +47,9 @@
     "dryRun": "Dry-run",
     "dryRunResult": "Kết quả dry-run {{code}}",
     "dryRunCount": "Ước tính {{count}} bản ghi trong {{table}} sẽ {{action}} khi chạy retention. Không có dữ liệu nào bị thay đổi.",
-    "open": "Mở"
+    "open": "Mở",
+    "search": "Tìm tính năng…",
+    "clearSearch": "Xoá tìm kiếm"
   },
   "feedback": {
     "empty": "Chưa có dữ liệu nào.",
@@ -113,6 +118,24 @@
         "REMOVE_POST": "Gỡ bài viết",
         "HIDE_COMMENT": "Ẩn bình luận",
         "DISMISS": "Bỏ qua report"
+      },
+      "done": "Đã xử lý report.",
+      "targetTypes": {
+        "POST": "Bài viết",
+        "COMMENT": "Bình luận"
+      },
+      "reasons": {
+        "SPAM": "Spam hoặc quảng cáo",
+        "MISLEADING": "Thông tin sai lệch, gây hiểu nhầm",
+        "HARASSMENT": "Xúc phạm hoặc quấy rối",
+        "PRIVACY": "Lộ thông tin cá nhân",
+        "OTHER": "Lý do khác"
+      },
+      "consequences": {
+        "HIDE_POST": "Bài viết bị ẩn khỏi cộng đồng và report được đánh dấu đã xử lý.",
+        "REMOVE_POST": "Bài viết bị gỡ khỏi cộng đồng và report được đánh dấu đã xử lý.",
+        "HIDE_COMMENT": "Bình luận bị ẩn khỏi cộng đồng và report được đánh dấu đã xử lý.",
+        "DISMISS": "Nội dung giữ nguyên, report được đóng ở trạng thái bỏ qua."
       }
     },
     "content": {
@@ -181,7 +204,42 @@
       "kpiTotal": "Tổng yêu cầu khớp bộ lọc",
       "kpiOpen": "Đang mở",
       "kpiOverdue": "Quá hạn xử lý",
-      "kpiExtended": "Đã gia hạn"
+      "kpiExtended": "Đã gia hạn",
+      "types": {
+        "ACCESS_EXPORT": "Xuất dữ liệu cá nhân",
+        "RECTIFY": "Chỉnh sửa dữ liệu không chính xác",
+        "ERASE": "Xoá tài khoản",
+        "RESTRICT": "Tạm ngừng xử lý dữ liệu",
+        "OBJECT": "Phản đối việc xử lý",
+        "WITHDRAW_CONSENT": "Rút lại đồng ý",
+        "PROTECTION_MEASURE": "Yêu cầu áp dụng biện pháp bảo vệ",
+        "COMPLAINT": "Khiếu nại"
+      },
+      "statuses": {
+        "RECEIVED": "Đã nhận",
+        "IDENTITY_PENDING": "Chờ xác minh danh tính",
+        "IN_PROGRESS": "Đang xử lý",
+        "EXTENDED": "Đã gia hạn",
+        "COMPLETED": "Hoàn tất",
+        "REJECTED": "Từ chối"
+      },
+      "channels": {
+        "SELF_SERVICE": "Tự phục vụ",
+        "WEB_FORM": "Biểu mẫu web",
+        "EMAIL": "Email",
+        "POST": "Bưu điện"
+      },
+      "transitions": {
+        "ACK": "Xác nhận đã nhận",
+        "ASSIGN": "Nhận xử lý",
+        "EXTEND": "Gia hạn",
+        "COMPLETE": "Hoàn tất",
+        "REJECT": "Từ chối"
+      },
+      "closedNote": "Yêu cầu đã đóng, không thể chuyển trạng thái nữa.",
+      "created": "Đã tạo yêu cầu {{ref}}.",
+      "completeConsequence": "Yêu cầu chuyển sang Hoàn tất và không thể chuyển trạng thái tiếp.",
+      "rejectConsequence": "Yêu cầu chuyển sang Từ chối kèm lý do đã nhập và không thể chuyển trạng thái tiếp."
     },
     "privacyRetention": {
       "description": "Danh mục dữ liệu đang lưu và các mục đích xử lý đã công bố.",
@@ -216,7 +274,12 @@
       "approveReadOnly": "Chỉ DPO được duyệt reset TOTP. Bạn chỉ xem được hàng đợi.",
       "expiresAt": "Hết hạn",
       "selfRequest": "Bạn tạo yêu cầu này, cần người khác duyệt",
-      "expired": "Đã hết hạn"
+      "expired": "Đã hết hạn",
+      "userIdInvalid": "ID người dùng phải là UUID hợp lệ.",
+      "grantConsequence": "Tài khoản sẽ có thêm vai trò {{role}} và truy cập được các khu vực quản trị tương ứng.",
+      "revokeConsequence": "Tài khoản sẽ mất vai trò {{role}} và các quyền quản trị đi kèm.",
+      "requestResetConsequence": "Tạo yêu cầu reset xác thực hai lớp. Yêu cầu chỉ có hiệu lực khi một người khác duyệt.",
+      "approveConsequence": "Secret TOTP và mã khôi phục của tài khoản bị xoá; người dùng phải đăng ký lại xác thực hai lớp. Không thể hoàn tác."
     },
     "userDetail": {
       "description": "Hồ sơ một người dùng: trạng thái, gói, mèo, lượt quét, credit.",
@@ -281,7 +344,10 @@
     "lastSeen": "Hoạt động gần nhất",
     "expires": "Hết hạn",
     "unknownDevice": "Thiết bị không rõ",
-    "sessionsReadOnly": "Xem và thu hồi phiên đăng nhập cần vai trò ADMIN_SUPER."
+    "sessionsReadOnly": "Xem và thu hồi phiên đăng nhập cần vai trò ADMIN_SUPER.",
+    "revokeConfirmTitle": "Thu hồi mọi phiên đăng nhập",
+    "revokeConsequence": "{{count}} phiên đang mở sẽ bị đăng xuất ngay. Người dùng phải đăng nhập lại trên mọi thiết bị.",
+    "revokedCount": "Đã thu hồi {{count}} phiên."
   },
   "auditLog": {
     "filtersTitle": "Bộ lọc nhật ký",
@@ -329,7 +395,10 @@
     "voidBatch": "Vô hiệu lô",
     "downloadCsv": "Tải CSV",
     "kpiTotal": "Tổng mã khớp bộ lọc",
-    "readOnlyNote": "Bạn chỉ có quyền tra cứu. Sinh lô, tải CSV và vô hiệu mã cần vai trò ADMIN_SUPER."
+    "readOnlyNote": "Bạn chỉ có quyền tra cứu. Sinh lô, tải CSV và vô hiệu mã cần vai trò ADMIN_SUPER.",
+    "voidConsequence": "Mã chưa kích hoạt này sẽ không dùng được nữa. Không thể hoàn tác.",
+    "voidBatchConsequence": "Mọi mã chưa kích hoạt trong lô sẽ không dùng được nữa; mã đã kích hoạt giữ nguyên. Không thể hoàn tác.",
+    "csvConsequence": "Tệp CSV chứa mã thô và chỉ tải được một lần. Lượt tải được ghi vào nhật ký kiểm toán."
   },
   "packageAdmin": {
     "listTitle": "Danh sách gói",
@@ -375,7 +444,18 @@
     "runName": "Tên job",
     "runDry": "Chạy thử (dry-run), không thay đổi dữ liệu",
     "runButton": "Chạy job",
-    "runResult": "{{name}}: {{status}} — xử lý {{processed}}, xoá {{deleted}}, lỗi {{failed}}."
+    "runResult": "{{name}}: {{status}} — xử lý {{processed}}, xoá {{deleted}}, lỗi {{failed}}.",
+    "statuses": {
+      "RUNNING": "Đang chạy",
+      "SUCCESS": "Thành công",
+      "FAILED": "Lỗi",
+      "PARTIAL": "Hoàn tất một phần",
+      "SKIPPED": "Bỏ qua",
+      "SKIPPED_THRESHOLD": "Bỏ qua do vượt ngưỡng"
+    },
+    "runConfirmTitle": "Chạy job thủ công",
+    "runConsequence": "Job sẽ chạy thật và có thể ghi hoặc xoá dữ liệu. Lần chạy được ghi vào nhật ký kiểm toán.",
+    "runDryConsequence": "Chạy thử chỉ đếm, không ghi hoặc xoá dữ liệu, nhưng vẫn để lại một dòng lịch sử job."
   },
   "outbox": {
     "filtersTitle": "Bộ lọc hàng đợi",
@@ -396,7 +476,16 @@
     "search": "Tìm trong trang này",
     "colActions": "Thao tác",
     "resend": "Gửi lại",
-    "resent": "Đã đưa bản ghi về hàng đợi, sẽ gửi ở lần chạy kế tiếp."
+    "resent": "Đã đưa bản ghi về hàng đợi, sẽ gửi ở lần chạy kế tiếp.",
+    "statuses": {
+      "PENDING": "Chờ gửi",
+      "SENT": "Đã gửi",
+      "FAILED": "Lỗi"
+    },
+    "channels": {
+      "EMAIL": "Email",
+      "PUSH": "Thông báo đẩy"
+    }
   },
   "users": {
     "filtersTitle": "Bộ lọc người dùng",
@@ -423,7 +512,17 @@
       "ANONYMIZED": "Đã ẩn danh"
     },
     "kpiTotal": "Tổng tài khoản khớp bộ lọc",
-    "readOnlyNote": "Bạn chỉ có quyền xem. Khoá và mở khoá tài khoản cần vai trò ADMIN_SUPER."
+    "readOnlyNote": "Bạn chỉ có quyền xem. Khoá và mở khoá tài khoản cần vai trò ADMIN_SUPER.",
+    "onboardingStatuses": {
+      "ACCOUNT_ONLY": "Mới tạo tài khoản",
+      "CAT_CREATED": "Đã thêm mèo",
+      "SURVEY_DONE_OR_SKIPPED": "Đã qua khảo sát",
+      "COMPLETED": "Hoàn tất"
+    },
+    "lockConfirmTitle": "Khoá tài khoản",
+    "lockConsequence": "Người dùng sẽ không đăng nhập được và mọi phiên đang mở bị thu hồi. Có thể mở khoá lại sau.",
+    "unlockConfirmTitle": "Mở khoá tài khoản",
+    "unlockConsequence": "Người dùng đăng nhập lại được. Hệ thống không tự tạo lại phiên nào."
   },
   "dashboard": {
     "checkedAt": "Kiểm tra lúc {{at}}",
@@ -595,7 +694,8 @@
       "IN_REVIEW": "Chờ duyệt",
       "PUBLISHED": "Đã công bố"
     },
-    "submitReview": "Gửi duyệt"
+    "submitReview": "Gửi duyệt",
+    "archiveConsequence": "Bài sẽ gỡ khỏi trang người dùng và chuyển sang lưu trữ. Không sửa được bài đã lưu trữ."
   },
   "chart": {
     "addPoint": "Thêm mức",
@@ -740,7 +840,8 @@
     "bulkStale": "{{count}} dòng đã bị người khác sửa trong lúc chạy. Tải lại rồi làm lại các dòng đó.",
     "yes": "Có",
     "no": "Không",
-    "close": "Đóng"
+    "close": "Đóng",
+    "scrollHint": "Cuộn ngang để xem đầy đủ cột dữ liệu"
   },
   "scans": {
     "lookupTitle": "Tra cứu theo người dùng",
@@ -1115,5 +1216,14 @@
     "confirmBody": "Mẫu \"{{template}}\" sẽ được ghi cho mọi người dùng đủ điều kiện và không thể thu hồi.",
     "confirmCheck": "Tôi đã kiểm tra nội dung và xác nhận phát thật.",
     "confirmSend": "Phát thật"
+  },
+  "roleLabels": {
+    "ADMIN_SUPER": "Quản trị cấp cao",
+    "ADMIN_SUPPORT": "Hỗ trợ khách hàng",
+    "ADMIN_CATALOG": "Quản lý danh mục",
+    "DPO": "Cán bộ bảo vệ dữ liệu (DPO)",
+    "MODERATOR": "Kiểm duyệt viên",
+    "VET": "Bác sĩ thú y",
+    "USER": "Người dùng"
   }
 }

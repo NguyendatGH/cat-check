@@ -16,7 +16,6 @@ export function useGroup3Can(): (key: Group3Capability) => boolean {
   return (key) => hasRole(user, ROLES[key]);
 }
 
-
 export const BROADCAST_TEMPLATES = ["SYSTEM_MAINTENANCE", "PRIVACY_INCIDENT_NOTICE"] as const;
 export type BroadcastTemplate = (typeof BROADCAST_TEMPLATES)[number];
 export const INCIDENT_TEMPLATE: BroadcastTemplate = "PRIVACY_INCIDENT_NOTICE";
@@ -73,7 +72,6 @@ export function buildBroadcastRequest(
   };
 }
 
-
 export function canResendOutbox(can: (key: Group3Capability) => boolean, status: string): boolean {
   return can("outbox") && status === "FAILED";
 }
@@ -81,7 +79,6 @@ export function canResendOutbox(can: (key: Group3Capability) => boolean, status:
 export function isJobRunValid(jobName: string, reason: string): boolean {
   return jobName.trim().length > 0 && reason.trim().length >= ADMIN_REASON_MIN_LENGTH;
 }
-
 
 function readCsrf(): string | null {
   const match = new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`).exec(document.cookie);
@@ -109,6 +106,7 @@ async function adminPost<T>(path: string, json?: unknown): Promise<T> {
     try {
       problem = (await response.json()) as { detail?: string; errorCode?: string };
     } catch {
+      // Body lỗi không phải JSON: giữ thông điệp mặc định theo mã HTTP.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

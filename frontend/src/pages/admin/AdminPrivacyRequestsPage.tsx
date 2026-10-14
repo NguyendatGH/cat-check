@@ -13,6 +13,7 @@ import {
   KpiTile,
   MutationErrorNote,
   Pager,
+  ReasonConfirmDialog,
   ReasonField,
   TableSkeleton,
   denseRowClass,
@@ -44,6 +45,9 @@ const REQUEST_TYPES = [
 const STATUSES = ["RECEIVED", "IDENTITY_PENDING", "IN_PROGRESS", "EXTENDED", "COMPLETED", "REJECTED"] as const;
 const CHANNELS = ["WEB_FORM", "EMAIL", "POST"] as const;
 const TRANSITIONS = ["ACK", "ASSIGN", "EXTEND", "COMPLETE", "REJECT"] as const;
+// AdminDsarService: ADMIN_SUPPORT chỉ được ACK/ASSIGN; COMPLETE/REJECT không hoàn tác được nên cần xác nhận riêng.
+const SUPPORT_TRANSITIONS: readonly string[] = ["ACK", "ASSIGN"];
+const IRREVERSIBLE_TRANSITIONS: readonly string[] = ["COMPLETE", "REJECT"];
 const CLOSED_STATUSES: readonly string[] = ["COMPLETED", "REJECTED"];
 
 function dueAtOf(item: AdminDsarRequest): string {
@@ -59,6 +63,11 @@ export function AdminPrivacyRequestsPage() {
   const can = useGroup1Can();
   const canCreate = can("privacyExport");
   const canTransition = can("privacyRequests");
+  // privacyExport = ADMIN_SUPER/DPO — đúng tập role được dùng mọi transition ở backend.
+  const allowedTransitions = canCreate
+    ? TRANSITIONS
+    : TRANSITIONS.filter((value) => SUPPORT_TRANSITIONS.includes(value));
+  const [confirmingTransition, setConfirmingTransition] = useState(false);
   const [requestType, setRequestType] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(0);
@@ -79,11 +88,7 @@ export function AdminPrivacyRequestsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.privacyRequests.title")}
-        description={t("pages.privacyRequests.description")}
-        specRef="L49–L50 · GET /api/v1/admin/privacy/requests"
-      />
+      <AdminPageHeader title={t("pages.privacyRequests.title")} description={t("pages.privacyRequests.description")} />
       <DensePanel title={t("pages.privacyRequests.filtersTitle")}>
         <div className="grid gap-3 md:grid-cols-2">
           <AdminSelect
@@ -98,7 +103,7 @@ export function AdminPrivacyRequestsPage() {
             <option value="">{t("pages.privacyRequests.all")}</option>
             {REQUEST_TYPES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {t(`pages.privacyRequests.types.${value}`)}
               </option>
             ))}
           </AdminSelect>
@@ -114,7 +119,7 @@ export function AdminPrivacyRequestsPage() {
             <option value="">{t("pages.privacyRequests.all")}</option>
             {STATUSES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {t(`pages.privacyRequests.statuses.${value}`)}
               </option>
             ))}
           </AdminSelect>
@@ -147,7 +152,7 @@ export function AdminPrivacyRequestsPage() {
             >
               {REQUEST_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {t(`pages.privacyRequests.types.${value}`)}
                 </option>
               ))}
             </AdminSelect>
@@ -161,7 +166,7 @@ export function AdminPrivacyRequestsPage() {
             >
               {CHANNELS.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {t(`pages.privacyRequests.channels.${value}`)}
                 </option>
               ))}
             </AdminSelect>
@@ -172,12 +177,21 @@ export function AdminPrivacyRequestsPage() {
               disabled={!createUserId.trim() || !isReasonValid(createReason) || create.isPending}
               loading={create.isPending}
               onClick={() => {
-                create.mutate({
-                  userId: createUserId.trim(),
-                  requestType: createType,
-                  channel: createChannel,
-                  reason: createReason.trim(),
-                });
+                create.mutate(
+                  {
+                    userId: createUserId.trim(),
+                    requestType: createType,
+                    channel: createChannel,
+                    reason: createReason.trim(),
+                  },
+                  {
+                    onSuccess: (created) => {
+                      setCreateUserId("");
+                      setCreateReason("");
+                      setSelectedId(created.id);
+                    },
+                  },
+                );
               }}
             >
               {t("pages.privacyRequests.create")}
@@ -185,6 +199,11 @@ export function AdminPrivacyRequestsPage() {
           </div>
           <ReasonField value={createReason} onChange={setCreateReason} showError={createReason.length > 0} />
           <MutationErrorNote error={create.error} />
+          {create.isSuccess ? (
+            <p role="status" className="text-caption text-success-text">
+              {t("pages.privacyRequests.created", { ref: create.data.publicRef })}
+            </p>
+          ) : null}
         </DensePanel>
       ) : null}
 
@@ -269,8 +288,12 @@ export function AdminPrivacyRequestsPage() {
                           {item.publicRef}
                         </button>
                       </td>
-                      <td className={`${denseTdClass} font-mono text-small`}>{item.requestType}</td>
-                      <td className={`${denseTdClass} font-mono text-small`}>{item.status}</td>
+                      <td className={denseTdClass}>
+                        {t(`pages.privacyRequests.types.${item.requestType}`, { defaultValue: item.requestType })}
+                      </td>
+                      <td className={`${denseTdClass} whitespace-nowrap`}>
+                        {t(`pages.privacyRequests.statuses.${item.status}`, { defaultValue: item.status })}
+                      </td>
                       <td className={denseTdClass}>{item.contactEmailMasked}</td>
                       <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
                         {formatAdminDateTime(item.receivedAt)}
@@ -297,6 +320,7 @@ export function AdminPrivacyRequestsPage() {
         ) : null}
       </DensePanel>
 
+      {selectedId && detail.isPending ? <TableSkeleton rows={3} /> : null}
       {selectedId && detail.isError ? (
         <AdminQueryError
           error={detail.error}
@@ -310,6 +334,14 @@ export function AdminPrivacyRequestsPage() {
           <DetailGrid
             items={[
               [t("pages.privacyRequests.ref"), detail.data.publicRef],
+              [
+                t("pages.privacyRequests.type"),
+                t(`pages.privacyRequests.types.${detail.data.requestType}`, { defaultValue: detail.data.requestType }),
+              ],
+              [
+                t("pages.privacyRequests.status"),
+                t(`pages.privacyRequests.statuses.${detail.data.status}`, { defaultValue: detail.data.status }),
+              ],
               [t("pages.privacyRequests.contact"), detail.data.contactEmailMasked],
               [t("pages.privacyRequests.ackDue"), formatAdminDateTime(detail.data.ackDueAt)],
               [t("pages.privacyRequests.fulfilDue"), formatAdminDateTime(dueAtOf(detail.data))],
@@ -317,7 +349,12 @@ export function AdminPrivacyRequestsPage() {
               [t("pages.privacyRequests.rejection"), detail.data.rejectionReason ?? EMPTY_CELL],
             ]}
           />
-          {canTransition ? (
+          {canTransition && CLOSED_STATUSES.includes(detail.data.status) ? (
+            <p className="border-t border-border pt-3 text-caption text-text-secondary">
+              {t("pages.privacyRequests.closedNote")}
+            </p>
+          ) : null}
+          {canTransition && !CLOSED_STATUSES.includes(detail.data.status) ? (
             <>
               <div className="grid gap-3 border-t border-border pt-3 md:grid-cols-[1fr_1.5fr_1.5fr_auto] md:items-end">
                 <AdminSelect
@@ -328,11 +365,13 @@ export function AdminPrivacyRequestsPage() {
                     setAction(event.target.value);
                   }}
                 >
-                  {TRANSITIONS.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
+                  {allowedTransitions
+                    .filter((value) => value !== "EXTEND" || detail.data.extendedTo === null)
+                    .map((value) => (
+                      <option key={value} value={value}>
+                        {t(`pages.privacyRequests.transitions.${value}`)}
+                      </option>
+                    ))}
                 </AdminSelect>
                 <Input
                   label={t("pages.privacyRequests.extendedToInput")}
@@ -364,6 +403,11 @@ export function AdminPrivacyRequestsPage() {
                   loading={transition.isPending}
                   onClick={() => {
                     if (!selectedId) return;
+                    if (IRREVERSIBLE_TRANSITIONS.includes(action)) {
+                      transition.reset();
+                      setConfirmingTransition(true);
+                      return;
+                    }
                     transition.mutate({
                       requestId: selectedId,
                       action,
@@ -375,7 +419,36 @@ export function AdminPrivacyRequestsPage() {
                   {t("pages.privacyRequests.apply")}
                 </Button>
               </div>
-              <MutationErrorNote error={transition.error} />
+              {confirmingTransition ? null : <MutationErrorNote error={transition.error} />}
+              <ReasonConfirmDialog
+                open={confirmingTransition}
+                onOpenChange={setConfirmingTransition}
+                title={t(`pages.privacyRequests.transitions.${action}`, { defaultValue: action })}
+                target={`${detail.data.publicRef} · ${t(`pages.privacyRequests.types.${detail.data.requestType}`, {
+                  defaultValue: detail.data.requestType,
+                })}`}
+                consequence={
+                  action === "REJECT"
+                    ? t("pages.privacyRequests.rejectConsequence")
+                    : t("pages.privacyRequests.completeConsequence")
+                }
+                confirmLabel={t(`pages.privacyRequests.transitions.${action}`, { defaultValue: action })}
+                requireReason={false}
+                destructive={action === "REJECT"}
+                pending={transition.isPending}
+                error={transition.error}
+                onConfirm={() => {
+                  if (!selectedId) return;
+                  transition.mutate(
+                    { requestId: selectedId, action, reason: actionReason.trim() || undefined },
+                    {
+                      onSuccess: () => {
+                        setConfirmingTransition(false);
+                      },
+                    },
+                  );
+                }}
+              />
             </>
           ) : null}
         </DensePanel>

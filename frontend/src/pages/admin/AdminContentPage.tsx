@@ -14,6 +14,7 @@ import {
   CLAIM_TYPES,
   DenseTableFrame,
   Pager,
+  ReasonConfirmDialog,
   ReasonField,
   SavedNote,
   denseRowClass,
@@ -35,7 +36,6 @@ import {
 } from "@/features/admin";
 import { useGroup2Can } from "./group2Access";
 
-
 const STATUS_CLASS: Record<CareTipStatus, string> = {
   DRAFT: "bg-background-alt text-text-secondary",
   IN_REVIEW: "bg-warning-bg text-warning-text",
@@ -50,7 +50,6 @@ function StatusChip({ status, label }: { status: CareTipStatus; label: string })
     </span>
   );
 }
-
 
 function CreateCareTipForm({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation("admin");
@@ -162,7 +161,6 @@ function CreateCareTipForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-
 function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => void }) {
   const { t } = useTranslation("admin");
   const update = useUpdateCareTip();
@@ -180,6 +178,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const [sourceReference, setSourceReference] = useState(tip.sourceReference ?? "");
   const [reason, setReason] = useState("");
   const [reasonTouched, setReasonTouched] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
 
   const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
@@ -198,6 +197,8 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
+          // Nội dung có claim phải kèm nguồn; không gửi bản nháp thiếu nguồn.
+          if (sourceMissing) return;
           update.mutate({
             tipId: tip.id,
             payload: {
@@ -275,7 +276,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         <SavedNote visible={update.isSuccess} />
 
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="md" disabled={!editable} loading={update.isPending}>
+          <Button type="submit" size="md" disabled={!editable || sourceMissing} loading={update.isPending}>
             {t("content.saveDraft")}
           </Button>
           {canWrite && tip.status === "DRAFT" ? (
@@ -298,15 +299,35 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
               size="md"
               loading={archive.isPending}
               onClick={() => {
-                archive.mutate(tip.id);
+                archive.reset();
+                setConfirmArchive(true);
               }}
             >
               {t("content.archive")}
             </Button>
           ) : null}
         </div>
-        <ApiErrorNote error={submitReview.error ?? archive.error} />
+        <ApiErrorNote error={submitReview.error ?? (confirmArchive ? null : archive.error)} />
       </form>
+      <ReasonConfirmDialog
+        open={confirmArchive}
+        onOpenChange={setConfirmArchive}
+        title={t("content.archive")}
+        target={tip.title}
+        consequence={t("content.archiveConsequence")}
+        confirmLabel={t("content.archive")}
+        requireReason={false}
+        destructive
+        pending={archive.isPending}
+        error={archive.error}
+        onConfirm={() => {
+          archive.mutate(tip.id, {
+            onSuccess: () => {
+              setConfirmArchive(false);
+            },
+          });
+        }}
+      />
 
       {canPublish && tip.status === "IN_REVIEW" ? (
         <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
@@ -343,7 +364,6 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   );
 }
 
-
 export function AdminContentPage() {
   const { t } = useTranslation("admin");
   const [locale, setLocale] = useState("");
@@ -362,7 +382,6 @@ export function AdminContentPage() {
       <AdminPageHeader
         title={t("pages.content.title")}
         description={t("pages.content.description")}
-        specRef="/api/v1/admin/care-tips — L40–L45 (p8 §8.4.12 c)"
         actions={
           canWrite ? (
             <Button

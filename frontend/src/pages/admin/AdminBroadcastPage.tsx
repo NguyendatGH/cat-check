@@ -33,11 +33,7 @@ export function AdminBroadcastPage() {
   }
   return (
     <div className="flex max-w-4xl flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.broadcast.title")}
-        description={t("pages.broadcast.description")}
-        specRef="L71–L72 · /api/v1/admin"
-      />
+      <AdminPageHeader title={t("pages.broadcast.title")} description={t("pages.broadcast.description")} />
       {can("broadcast") ? <MaintenancePanel /> : null}
       <BroadcastPanel templates={templates} />
     </div>

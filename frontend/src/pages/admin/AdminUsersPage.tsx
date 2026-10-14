@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Lock, LockOpen } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
@@ -11,9 +11,8 @@ import {
   DenseTableFrame,
   KpiGrid,
   KpiTile,
-  MutationErrorNote,
   Pager,
-  ReasonField,
+  ReasonConfirmDialog,
   TableSkeleton,
   denseRowClass,
   denseTableClass,
@@ -21,12 +20,11 @@ import {
   denseThClass,
   formatAdminDateTime,
   formatAdminNumber,
-  isReasonValid,
   useAdminUsers,
   useLockAdminUser,
   useUnlockAdminUser,
 } from "@/features/admin";
-import type { AdminUserStatus } from "@/features/admin";
+import type { AdminUserStatus, AdminUserSummary } from "@/features/admin";
 import { useGroup1Can } from "./group1Access";
 
 const STATUSES: AdminUserStatus[] = [
@@ -38,29 +36,50 @@ const STATUSES: AdminUserStatus[] = [
   "ANONYMIZED",
 ];
 
+// Backend (AdminUserService.lock) từ chối khoá ANONYMIZED / DELETION_REQUESTED / RESTRICTED (409).
+const LOCKABLE: readonly AdminUserStatus[] = ["PENDING_VERIFICATION", "ACTIVE"];
+
+function readStatus(value: string | null): AdminUserStatus | "" {
+  return STATUSES.find((item) => item === value) ?? "";
+}
+
 export function AdminUsersPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  const [status, setStatus] = useState<AdminUserStatus | "">("");
-  const [email, setEmail] = useState("");
-  const [packageCode, setPackageCode] = useState("");
-  const [page, setPage] = useState(0);
-  const [reason, setReason] = useState("");
+  // Filter + trang nằm trong query string để giữ nguyên khi quay lại từ trang chi tiết (p17 A2).
+  const [params, setParams] = useSearchParams();
+  const status = readStatus(params.get("status"));
+  const email = params.get("email") ?? "";
+  const packageCode = params.get("package") ?? "";
+  const page = Math.max(0, Number.parseInt(params.get("page") ?? "0", 10) || 0);
+  const updateParams = (patch: Record<string, string>) => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(patch)) {
+          if (value === "" || (key === "page" && value === "0")) next.delete(key);
+          else next.set(key, value);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  };
+  const setPage = (value: number) => {
+    updateParams({ page: String(value) });
+  };
+  const [pending, setPending] = useState<{ user: AdminUserSummary; mode: "lock" | "unlock" } | null>(null);
   const users = useAdminUsers({ status, email, packageCode, page, size: 20 });
   const lock = useLockAdminUser();
   const unlock = useUnlockAdminUser();
   const canLock = can("userLock");
-  const canWrite = canLock && isReasonValid(reason);
+  const activeMutation = pending?.mode === "unlock" ? unlock : lock;
   const items = users.data?.items ?? [];
   const countOf = (value: AdminUserStatus) => items.filter((user) => user.status === value).length;
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.users.title")}
-        description={t("pages.users.description")}
-        specRef="L1 · GET /api/v1/admin/users"
-      />
+      <AdminPageHeader title={t("pages.users.title")} description={t("pages.users.description")} />
       <DensePanel title={t("users.filtersTitle")}>
         <div className="grid gap-3 md:grid-cols-3">
           <Input
@@ -68,8 +87,7 @@ export function AdminUsersPage() {
             value={email}
             className="h-10"
             onChange={(event) => {
-              setEmail(event.target.value);
-              setPage(0);
+              updateParams({ email: event.target.value, page: "0" });
             }}
           />
           <Input
@@ -77,8 +95,7 @@ export function AdminUsersPage() {
             value={packageCode}
             className="h-10"
             onChange={(event) => {
-              setPackageCode(event.target.value);
-              setPage(0);
+              updateParams({ package: event.target.value, page: "0" });
             }}
           />
           <AdminSelect
@@ -86,8 +103,7 @@ export function AdminUsersPage() {
             value={status}
             className="h-10"
             onChange={(event) => {
-              setStatus(event.target.value as AdminUserStatus | "");
-              setPage(0);
+              updateParams({ status: event.target.value, page: "0" });
             }}
           >
             <option value="">{t("users.allStatuses")}</option>
@@ -98,11 +114,7 @@ export function AdminUsersPage() {
             ))}
           </AdminSelect>
         </div>
-        {canLock ? (
-          <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
-        ) : (
-          <p className="text-caption text-text-secondary">{t("users.readOnlyNote")}</p>
-        )}
+        {canLock ? null : <p className="text-caption text-text-secondary">{t("users.readOnlyNote")}</p>}
       </DensePanel>
 
       {users.data ? (
@@ -186,7 +198,11 @@ export function AdminUsersPage() {
                         <span className="block text-small text-text-secondary">{user.emailMasked}</span>
                       </td>
                       <td className={`${denseTdClass} whitespace-nowrap`}>{t(`users.statuses.${user.status}`)}</td>
-                      <td className={`${denseTdClass} font-mono text-small`}>{user.onboardingStatus}</td>
+                      <td className={denseTdClass}>
+                        {t(`users.onboardingStatuses.${user.onboardingStatus}`, {
+                          defaultValue: user.onboardingStatus,
+                        })}
+                      </td>
                       <td className={`${denseTdClass} text-right font-mono tabular-nums`}>{user.catCount}</td>
                       <td className={`${denseTdClass} text-right font-mono tabular-nums`}>{user.scanCount}</td>
                       <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
@@ -199,9 +215,10 @@ export function AdminUsersPage() {
                               variant="tertiary"
                               size="sm"
                               leftIcon={<LockOpen size={14} />}
-                              disabled={!canWrite || unlock.isPending}
+                              disabled={unlock.isPending}
                               onClick={() => {
-                                unlock.mutate({ userId: user.userId, reason: reason.trim() });
+                                unlock.reset();
+                                setPending({ user, mode: "unlock" });
                               }}
                             >
                               {t("users.unlock")}
@@ -211,9 +228,10 @@ export function AdminUsersPage() {
                               variant="tertiary"
                               size="sm"
                               leftIcon={<Lock size={14} />}
-                              disabled={!canWrite || lock.isPending || user.status === "ANONYMIZED"}
+                              disabled={lock.isPending || !LOCKABLE.includes(user.status)}
                               onClick={() => {
-                                lock.mutate({ userId: user.userId, reason: reason.trim() });
+                                lock.reset();
+                                setPending({ user, mode: "lock" });
                               }}
                             >
                               {t("users.lock")}
@@ -234,8 +252,32 @@ export function AdminUsersPage() {
             />
           </>
         ) : null}
-        <MutationErrorNote error={lock.error ?? unlock.error} />
       </DensePanel>
+
+      <ReasonConfirmDialog
+        open={pending !== null}
+        onOpenChange={(open) => {
+          if (!open) setPending(null);
+        }}
+        title={pending?.mode === "unlock" ? t("users.unlockConfirmTitle") : t("users.lockConfirmTitle")}
+        target={pending === null ? "" : `${pending.user.fullName} · ${pending.user.emailMasked}`}
+        consequence={pending?.mode === "unlock" ? t("users.unlockConsequence") : t("users.lockConsequence")}
+        confirmLabel={pending?.mode === "unlock" ? t("users.unlock") : t("users.lock")}
+        destructive={pending?.mode === "lock"}
+        pending={activeMutation.isPending}
+        error={activeMutation.error}
+        onConfirm={(reason) => {
+          if (pending === null) return;
+          activeMutation.mutate(
+            { userId: pending.user.userId, reason },
+            {
+              onSuccess: () => {
+                setPending(null);
+              },
+            },
+          );
+        }}
+      />
     </div>
   );
 }

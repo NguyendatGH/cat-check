@@ -7,6 +7,14 @@
   box-shadow: 8px 0 32px rgb(20 33 61 / 8%);
 }
 
+.admin-mobile-drawer {
+  background: #14213d;
+}
+
+.admin-drawer-header {
+  background: #0f1a30;
+}
+
 .admin-nav-scroll {
   scrollbar-color: rgb(207 216 236 / 35%) transparent;
   scrollbar-width: thin;

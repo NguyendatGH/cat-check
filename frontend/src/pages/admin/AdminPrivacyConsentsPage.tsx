@@ -106,13 +106,7 @@ export function AdminPrivacyConsentsPage() {
     setSort((current) => nextSort(current, key));
   };
 
-  const header = (
-    <AdminPageHeader
-      title={t("pages.consents.title")}
-      description={t("pages.consents.description")}
-      specRef="L55 — GET /api/v1/admin/privacy/consents"
-    />
-  );
+  const header = <AdminPageHeader title={t("pages.consents.title")} description={t("pages.consents.description")} />;
 
   if (!canRead) {
     return (

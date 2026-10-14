@@ -20,6 +20,7 @@ import java.util.UUID;
 @Service
 public class CommunityModerationService {
     private static final List<String> ACTIONS = List.of("HIDE_POST", "REMOVE_POST", "HIDE_COMMENT", "DISMISS");
+    private static final List<String> OPEN_STATUSES = List.of("OPEN", "REVIEWING");
 
     private final CommunityRepository repository;
     private final AuditLogService auditLogService;
@@ -46,6 +47,11 @@ public class CommunityModerationService {
         if (!ACTIONS.contains(normalizedAction)) {
             throw new BusinessRuleException(CommunityErrorCode.MODERATION_ACTION_INVALID, normalizedAction);
         }
+        // Report đã đóng không xử lý lại; thao tác phải khớp loại nội dung, nếu không report bị
+        // đóng (RESOLVED) trong khi bài/bình luận vẫn nguyên trạng.
+        if (!OPEN_STATUSES.contains(report.status()) || !actionMatchesTarget(normalizedAction, report)) {
+            throw new BusinessRuleException(CommunityErrorCode.MODERATION_ACTION_INVALID, normalizedAction);
+        }
         repository.moderateReport(reportId, normalizedAction);
         auditLogService.record(AuditEvent.builder()
                 .actor(AuditActor.admin(context.adminId(), context.role()))
@@ -61,6 +67,14 @@ public class CommunityModerationService {
                 .userAgent(context.userAgent())
                 .build());
         return repository.findReport(reportId).orElseThrow();
+    }
+
+    private static boolean actionMatchesTarget(String action, CommunityReport report) {
+        return switch (action) {
+            case "HIDE_POST", "REMOVE_POST" -> report.postId() != null;
+            case "HIDE_COMMENT" -> report.commentId() != null;
+            default -> true;
+        };
     }
 
     public record Page(List<CommunityReport> items, int page, int size, long totalElements) {

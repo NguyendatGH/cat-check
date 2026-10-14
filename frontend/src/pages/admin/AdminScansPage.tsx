@@ -168,11 +168,7 @@ export function AdminScansPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.scans.title")}
-        description={t("pages.scans.description")}
-        specRef="L5 · L6 · L18 — /api/v1/admin"
-      />
+      <AdminPageHeader title={t("pages.scans.title")} description={t("pages.scans.description")} />
 
       <DensePanel title={t("scans.lookupTitle")} description={t("scans.auditNote")}>
         <form className="grid gap-3 lg:grid-cols-12" onSubmit={onLookup} noValidate>
@@ -494,7 +490,6 @@ export function AdminScansPage() {
   );
 }
 
-
 interface ScanDetailDialogProps {
   scan: AdminScanItem | null;
   lookupReason: string;
@@ -660,7 +655,6 @@ function ScanImagePanel({ scanId, defaultReason }: { scanId: string; defaultReas
     </section>
   );
 }
-
 
 interface ReassignDialogProps {
   userId: string;

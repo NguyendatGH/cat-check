@@ -17,13 +17,7 @@ export function AdminSecurityPage() {
   if (can("securityIncidentsRead")) available.push("incidents");
   if (can("securitySessionsPurge")) available.push("sessions");
 
-  const header = (
-    <AdminPageHeader
-      title={t("pages.security.title")}
-      description={t("pages.security.description")}
-      specRef="L59–L62 — /api/v1/admin/security"
-    />
-  );
+  const header = <AdminPageHeader title={t("pages.security.title")} description={t("pages.security.description")} />;
 
   if (available.length === 0) {
     return (

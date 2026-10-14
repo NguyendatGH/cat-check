@@ -17,7 +17,6 @@ import meSecuritySource from "./AdminMeSecurityPage.tsx?raw";
 import setup2faSource from "./AdminSetup2faPage.tsx?raw";
 import { AdminStaffPage } from "./AdminStaffPage";
 
-
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
@@ -160,6 +159,19 @@ describe("AdminStaffPage — phân quyền", () => {
     expect(approve).toBeDefined();
     await act(async () => {
       approve.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    // Thao tác khó hoàn tác (xoá secret TOTP) phải qua bước xác nhận riêng (p17 A3).
+    expect(fetchCalls()).not.toContainEqual({
+      url: "/api/v1/admin/totp-reset-requests/req-other/approve",
+      method: "POST",
+    });
+    const dialog = document.body.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    const confirm = dialog?.querySelector<HTMLButtonElement>('button[type="submit"]');
+    expect(confirm).toBeDefined();
+    await act(async () => {
+      confirm?.click();
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(fetchCalls()).toContainEqual({

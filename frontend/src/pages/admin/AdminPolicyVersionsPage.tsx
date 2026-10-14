@@ -123,7 +123,6 @@ export function AdminPolicyVersionsPage() {
     <AdminPageHeader
       title={t("pages.policyVersions.title")}
       description={t("pages.policyVersions.description")}
-      specRef="L46–L48 — /api/v1/admin/policy-versions"
       actions={
         canWrite ? (
           <Button
@@ -381,7 +380,6 @@ export function AdminPolicyVersionsPage() {
   );
 }
 
-
 function CreatePolicyDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("admin");
   const create = useCreatePolicyVersion();
@@ -606,7 +604,6 @@ function CreatePolicyDialog({ onClose }: { onClose: () => void }) {
     </Dialog>
   );
 }
-
 
 function PublishPolicyDialog({
   version,

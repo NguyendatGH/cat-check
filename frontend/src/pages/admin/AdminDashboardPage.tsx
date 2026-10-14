@@ -4,7 +4,19 @@ import { Link } from "react-router";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
 import { Card as AntCard, Skeleton as AntSkeleton } from "antd";
-import { Archive, ArrowRight, BookOpenText, Database, Palette, ShieldCheck } from "lucide-react";
+import {
+  Archive,
+  ArrowRight,
+  BookOpenText,
+  CalendarClock,
+  Database,
+  Flag,
+  Inbox,
+  Palette,
+  Send,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 import {
   AccessDeniedState,
   AdminQueryError,
@@ -22,8 +34,19 @@ import { formatDate } from "@/shared/lib/format/formatDate";
 import { Badge, buttonVariants } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 
-
+// p17 A1 Pha 1: lối vào theo công việc (DSAR, báo cáo cộng đồng, sự cố, job, outbox) lọc theo capability;
+// không tự đếm số việc từ trang đầu của từng danh sách.
 const WIRED_LINKS = [
+  { to: "/admin/privacy/requests", labelKey: "nav.privacyRequests", capability: "privacyRequests", icon: Inbox },
+  { to: "/admin/community/reports", labelKey: "nav.communityReports", capability: "communityModeration", icon: Flag },
+  {
+    to: "/admin/security?tab=incidents",
+    labelKey: "nav.incidents",
+    capability: "securityIncidentsRead",
+    icon: ShieldAlert,
+  },
+  { to: "/admin/system/jobs", labelKey: "nav.jobs", capability: "jobs", icon: CalendarClock },
+  { to: "/admin/notifications/outbox", labelKey: "nav.outbox", capability: "outbox", icon: Send },
   { to: "/admin/ph-color-chart", labelKey: "dashboard.linkPhColorChart", capability: "colorChart", icon: Palette },
   { to: "/admin/content", labelKey: "dashboard.linkContent", capability: "careTipsWrite", icon: BookOpenText },
   { to: "/admin/privacy/retention", labelKey: "dashboard.linkRetention", capability: "retention", icon: Archive },
@@ -94,11 +117,16 @@ function DashboardContent() {
             <h1 className="text-h2 font-extrabold tracking-tight text-text-primary sm:text-h1 md:text-display">
               {t("pages.dashboard.title")}
             </h1>
-            <p className="mt-2 max-w-xl text-caption text-text-secondary sm:text-body">{t("pages.dashboard.description")}</p>
+            <p className="mt-2 max-w-xl text-caption text-text-secondary sm:text-body">
+              {t("pages.dashboard.description")}
+            </p>
           </div>
           <Link
             to="/admin/me/security"
-            className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full shrink-0 min-h-[44px] justify-center sm:w-auto")}
+            className={cn(
+              buttonVariants({ variant: "primary", size: "md" }),
+              "w-full shrink-0 min-h-[44px] justify-center sm:w-auto",
+            )}
           >
             <ShieldCheck size={18} aria-hidden="true" />
             {t("nav.settings")}

@@ -37,11 +37,7 @@ export function AdminNotificationsOutboxPage() {
   }
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.outbox.title")}
-        description={t("pages.outbox.description")}
-        specRef="L66 · GET /api/v1/admin/notifications/outbox"
-      />
+      <AdminPageHeader title={t("pages.outbox.title")} description={t("pages.outbox.description")} />
       <OutboxPanel />
     </div>
   );
@@ -101,8 +97,8 @@ function OutboxPanel() {
           }}
         >
           <option value="">{t("outbox.allChannels")}</option>
-          <option value="EMAIL">EMAIL</option>
-          <option value="PUSH">PUSH</option>
+          <option value="EMAIL">{t("outbox.channels.EMAIL")}</option>
+          <option value="PUSH">{t("outbox.channels.PUSH")}</option>
         </AdminSelect>
         <AdminSelect
           label={t("outbox.status")}
@@ -113,9 +109,9 @@ function OutboxPanel() {
           }}
         >
           <option value="">{t("outbox.allStatuses")}</option>
-          <option value="PENDING">PENDING</option>
-          <option value="SENT">SENT</option>
-          <option value="FAILED">FAILED</option>
+          <option value="PENDING">{t("outbox.statuses.PENDING")}</option>
+          <option value="SENT">{t("outbox.statuses.SENT")}</option>
+          <option value="FAILED">{t("outbox.statuses.FAILED")}</option>
         </AdminSelect>
         <SearchField label={t("outbox.search")} value={query} onChange={setQuery} placeholder={t("dense.search")} />
       </div>
@@ -167,8 +163,12 @@ function OutboxPanel() {
               <tbody>
                 {rows.map((entry) => (
                   <tr key={entry.id} className={denseRowClass}>
-                    <td className={denseTdClass}>{entry.channel}</td>
-                    <td className={denseTdClass}>{entry.status}</td>
+                    <td className={denseTdClass}>
+                      {t(`outbox.channels.${entry.channel}`, { defaultValue: entry.channel })}
+                    </td>
+                    <td className={denseTdClass}>
+                      {t(`outbox.statuses.${entry.status}`, { defaultValue: entry.status })}
+                    </td>
                     <td className={denseTdClass}>{entry.recipientMasked}</td>
                     <td className={denseTdClass}>
                       <code>{entry.reference}</code>

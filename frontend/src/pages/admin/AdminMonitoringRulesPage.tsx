@@ -136,11 +136,7 @@ export function AdminMonitoringRulesPage() {
   }, [visible]);
 
   const header = (
-    <AdminPageHeader
-      title={t("pages.monitoringRules.title")}
-      description={t("pages.monitoringRules.description")}
-      specRef="L38 · L39 — /api/v1/admin/monitoring-rules"
-    />
+    <AdminPageHeader title={t("pages.monitoringRules.title")} description={t("pages.monitoringRules.description")} />
   );
 
   if (!canRead) {
@@ -430,7 +426,6 @@ export function AdminMonitoringRulesPage() {
   );
 }
 
-
 interface RuleEditorDialogProps {
   rule: AdminMonitoringRule;
   canWrite: boolean;
@@ -632,7 +627,6 @@ function RuleEditorDialog({ rule, canWrite, onReload, onClose }: RuleEditorDialo
     </Dialog>
   );
 }
-
 
 interface BulkToggleDialogProps {
   rules: readonly AdminMonitoringRule[];
