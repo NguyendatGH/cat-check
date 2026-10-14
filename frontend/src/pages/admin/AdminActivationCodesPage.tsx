@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Plus, ShieldOff } from "lucide-react";
-import { Button, Input } from "@/shared/ui";
+import { Check, Copy, Download, Plus, ShieldOff } from "lucide-react";
+import { Button, Dialog, DialogContent, DialogDescription, DialogTitle, Input, toast } from "@/shared/ui";
 import {
   ACTIVATION_CODE_STATUSES,
   AdminPageHeader,
@@ -34,7 +34,12 @@ import {
   useVoidActivationBatch,
   useVoidActivationCode,
 } from "@/features/admin";
-import type { ActivationBatch, ActivationCodeAdmin, ActivationCodeEffectiveStatus } from "@/features/admin";
+import type {
+  ActivationBatch,
+  ActivationCodeAdmin,
+  ActivationCodeEffectiveStatus,
+  IssuedActivationBatch,
+} from "@/features/admin";
 import { useGroup1Can } from "./group1Access";
 
 const PAGE_SIZE = 20;
@@ -105,6 +110,9 @@ export function AdminActivationCodesPage() {
     | null
   >(null);
   const [showIssueForm, setShowIssueForm] = useState(false);
+  // Raw codes exist only in the one-time CSV; keep them on screen after download so admins can copy them.
+  const [revealedCodes, setRevealedCodes] = useState<{ batch: string; codes: string[] } | null>(null);
+  const [justIssued, setJustIssued] = useState<IssuedActivationBatch | null>(null);
   const [quantity, setQuantity] = useState("100");
   const [validForDays, setValidForDays] = useState("365");
   const [productionBatch, setProductionBatch] = useState("");
@@ -175,7 +183,8 @@ export function AdminActivationCodesPage() {
                   reason: issueReason.trim(),
                 },
                 {
-                  onSuccess: () => {
+                  onSuccess: (issued) => {
+                    setJustIssued(issued);
                     setShowIssueForm(false);
                     setIssueReason("");
                     setBatchId(productionBatch.trim());
@@ -309,6 +318,47 @@ export function AdminActivationCodesPage() {
         {canManage ? null : <p className="text-caption text-text-secondary">{t("activation.readOnlyNote")}</p>}
       </DensePanel>
 
+      {justIssued ? (
+        <div
+          role="status"
+          className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-bg px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0">
+            <p className="text-body font-semibold text-text-primary">
+              {t("activation.issuedNoticeTitle", { count: justIssued.quantity, batch: justIssued.productionBatch })}
+            </p>
+            <p className="text-caption text-text-secondary">{t("activation.issuedNoticeBody")}</p>
+          </div>
+          {justIssued.csvAvailable ? (
+            <Button
+              type="button"
+              size="sm"
+              leftIcon={<Download className="size-4" aria-hidden="true" />}
+              onClick={() => {
+                downloadCsv.reset();
+                setPendingAction({
+                  kind: "csv",
+                  batch: {
+                    batchId: justIssued.batchId,
+                    productionBatch: justIssued.productionBatch,
+                    packageCode: justIssued.packageCode,
+                    totalCodes: justIssued.quantity,
+                    issuedCodes: justIssued.quantity,
+                    redeemedCodes: 0,
+                    voidedCodes: 0,
+                    issuedAt: justIssued.issuedAt,
+                    validUntil: justIssued.validUntil,
+                    csvAvailable: true,
+                  },
+                });
+              }}
+            >
+              {t("activation.getCodesNow")}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {codes.data ? (
         <KpiGrid label={t("dense.kpiLabel")}>
           <KpiTile label={t("activation.kpiTotal")} value={formatAdminNumber(codes.data.totalElements)} tone="info" />
@@ -324,7 +374,7 @@ export function AdminActivationCodesPage() {
         </KpiGrid>
       ) : null}
 
-      <DensePanel title={t("activation.codesTitle")}>
+      <DensePanel title={t("activation.codesTitle")} description={t("activation.codesMaskedHint")}>
         {codes.isPending ? <TableSkeleton /> : null}
         {codes.isError ? (
           <AdminQueryError
@@ -581,6 +631,10 @@ export function AdminActivationCodesPage() {
               {
                 onSuccess: (blob) => {
                   downloadBlob(blob, `activation-codes-${target}.csv`);
+                  void blob.text().then((text) => {
+                    setRevealedCodes({ batch: pendingAction.batch.productionBatch, codes: parseCodesCsv(text) });
+                  });
+                  if (justIssued?.batchId === target) setJustIssued(null);
                   done();
                 },
               },
@@ -588,6 +642,90 @@ export function AdminActivationCodesPage() {
           }
         }}
       />
+      <RevealedCodesDialog
+        value={revealedCodes}
+        onClose={() => {
+          setRevealedCodes(null);
+        }}
+      />
     </div>
+  );
+}
+
+/** First column of the issuance CSV ("code,package_code,production_batch,valid_until"). */
+function parseCodesCsv(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .slice(1)
+    .map((line) => line.split(",")[0]?.trim() ?? "")
+    .filter((code) => code.length > 0);
+}
+
+function RevealedCodesDialog({
+  value,
+  onClose,
+}: {
+  value: { batch: string; codes: string[] } | null;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("admin");
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+    } catch {
+      toast.error(t("activation.copyFailed"));
+    }
+  };
+
+  return (
+    <Dialog
+      open={value !== null}
+      onOpenChange={(open) => {
+        if (!open) {
+          setCopied(null);
+          onClose();
+        }
+      }}
+    >
+      <DialogContent aria-label={t("activation.revealedTitle")}>
+        <DialogTitle>{t("activation.revealedTitle")}</DialogTitle>
+        <DialogDescription>
+          {t("activation.revealedBody", { batch: value?.batch ?? "", count: value?.codes.length ?? 0 })}
+        </DialogDescription>
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant="tertiary"
+            leftIcon={copied === "all" ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+            onClick={() => {
+              void copy(value?.codes.join("\n") ?? "", "all");
+            }}
+          >
+            {t("activation.copyAll")}
+          </Button>
+        </div>
+        <ul className="mt-2 flex max-h-80 flex-col gap-1 overflow-y-auto">
+          {value?.codes.map((code) => (
+            <li key={code} className="flex items-center justify-between gap-2 rounded-md bg-background-alt px-3 py-1.5">
+              <code className="font-mono text-small text-text-primary">{code}</code>
+              <button
+                type="button"
+                aria-label={t("activation.copyCode", { code })}
+                onClick={() => {
+                  void copy(code, code);
+                }}
+                className="flex size-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-primary"
+              >
+                {copied === code ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
   );
 }
