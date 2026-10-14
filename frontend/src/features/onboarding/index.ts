@@ -24,6 +24,7 @@ export {
   useUpdateCat,
   useUploadAvatar,
   useSubmitSurvey,
+  refreshOnboardingSession,
   useActivateCode,
   useCreditBalance,
   useCatSummary,

@@ -17,6 +17,7 @@ import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
 import {
   OnboardingShell,
   PhBandBar,
+  refreshOnboardingSession,
   useCreditBalance,
   useOnboardingStore,
   usePhBands,
@@ -60,6 +61,11 @@ export function OnboardingSuccessPage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
   const { createdCat, activation, surveySkipped } = useOnboardingStore();
+  // Refresh the session first so RequireOnboarding sees onboarding as finished.
+  const leaveOnboarding = async (path: string) => {
+    await refreshOnboardingSession();
+    await navigate(path);
+  };
   const { data: bands } = usePhBands();
   const { data: balance } = useCreditBalance();
 
@@ -81,7 +87,7 @@ export function OnboardingSuccessPage() {
             size="lg"
             className="w-full"
             onClick={() => {
-              void navigate("/dashboard");
+              void leaveOnboarding("/dashboard");
             }}
           >
             {t("success.cta")}
@@ -160,7 +166,7 @@ export function OnboardingSuccessPage() {
             size="lg"
             className="w-full"
             onClick={() => {
-              void navigate("/dashboard");
+              void leaveOnboarding("/dashboard");
             }}
           >
             {t("success.cta")}
@@ -173,7 +179,7 @@ export function OnboardingSuccessPage() {
             className="w-full"
             leftIcon={<ScanLine className="size-5" aria-hidden="true" />}
             onClick={() => {
-              void navigate("/scan/select-cat");
+              void leaveOnboarding("/scan/select-cat");
             }}
           >
             {t("success.ctaScan")}

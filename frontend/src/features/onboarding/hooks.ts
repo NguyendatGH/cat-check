@@ -5,6 +5,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
+import { loadSession, useSessionStore } from "@/entities/user";
 import { apiFetch, apiUploadAvatar } from "./api";
 import type {
   ActivationResult,
@@ -46,6 +47,15 @@ export function useHealthSurveyDefinition(
   });
 }
 
+/**
+ * Onboarding status lives in the session; reload it after each server-side milestone
+ * (cat created, survey submitted/skipped) so RequireOnboarding doesn't act on a stale step.
+ */
+export async function refreshOnboardingSession(): Promise<void> {
+  const user = await loadSession();
+  if (user) useSessionStore.getState().setSession(user);
+}
+
 export function useCreateCat(): UseMutationResult<CreatedCat, Error, CatProfileDraft> {
   return useMutation({
     mutationFn: (draft: CatProfileDraft) =>
@@ -61,6 +71,9 @@ export function useCreateCat(): UseMutationResult<CreatedCat, Error, CatProfileD
           isPrimary: true,
         }),
       }),
+    onSuccess: () => {
+      void refreshOnboardingSession();
+    },
   });
 }
 
@@ -96,6 +109,9 @@ export function useSubmitSurvey(
         method: "POST",
         body: JSON.stringify({ questionnaireVersion: SURVEY_QUESTIONNAIRE_VERSION, answers, skipped }),
       }),
+    onSuccess: () => {
+      void refreshOnboardingSession();
+    },
   });
 }
 
