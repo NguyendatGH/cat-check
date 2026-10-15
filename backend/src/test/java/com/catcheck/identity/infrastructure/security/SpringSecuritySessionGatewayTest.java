@@ -148,6 +148,18 @@ class SpringSecuritySessionGatewayTest {
     }
 
     @Test
+    void pendingMfaSessionIsIndexedSoRevokeAllFindsIt() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        org.springframework.mock.web.MockHttpServletRequest request =
+                (org.springframework.mock.web.MockHttpServletRequest)
+                        ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        assertThat(request.getSession(false)
+                .getAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME))
+                .isEqualTo(USER.toString());
+    }
+
+    @Test
     void pendingMfaDropsAnIdentityAlreadyInTheSession() {
         gateway.establish(UUID.randomUUID(), "other@example.com", Set.of("USER"), true);
 

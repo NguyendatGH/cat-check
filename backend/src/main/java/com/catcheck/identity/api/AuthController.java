@@ -223,6 +223,7 @@ public class AuthController {
                                           HttpServletRequest httpRequest) {
         Optional<UUID> pending = sessionGateway.pendingMfaUserId();
         if (pending.isPresent()) {
+            loginService.requireSessionAllowed(pending.get());
             mfaService.verifyForLogin(pending.get(), request.code(), context(httpRequest));
             sessionGateway.completePendingMfa();
             return Map.of("mfaLevel", "TOTP");
@@ -240,6 +241,9 @@ public class AuthController {
                                             HttpServletRequest httpRequest) {
         Optional<UUID> pending = sessionGateway.pendingMfaUserId();
         UUID userId = pending.isPresent() ? pending.get() : requireUserId(principal);
+        if (pending.isPresent()) {
+            loginService.requireSessionAllowed(userId);
+        }
         MfaService.RecoveryResult result = mfaService.verifyRecovery(
                 userId, request.recoveryCode(), context(httpRequest));
         if (pending.isPresent()) {
@@ -328,7 +332,7 @@ public class AuthController {
         if (!(principal instanceof com.catcheck.identity.application.AuthPrincipal auth)) {
             throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.UNAUTHENTICATED);
         }
-        if (email == null || !email.trim().equalsIgnoreCase(auth.email())) {
+        if (email == null || !email.trim().equalsIgnoreCase(profileService.currentEmail(auth.userId()))) {
             throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.FORBIDDEN);
         }
         return auth.userId();

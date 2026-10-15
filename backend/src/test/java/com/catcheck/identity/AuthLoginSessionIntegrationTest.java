@@ -126,6 +126,65 @@ class AuthLoginSessionIntegrationTest {
                 Integer.class, userId)).isEqualTo(1);
     }
 
+    @Test
+    void failedPasswordAndTotpAttemptsAreCommittedNotRolledBack() throws Exception {
+        UUID userId = UUID.randomUUID();
+        String email = "auth-failcount-" + userId + "@example.test";
+        jdbc.update("""
+                INSERT INTO app_user (id, email, full_name, status, email_verified_at)
+                VALUES (?, ?, 'Auth integration test', 'ACTIVE', now())
+                """, userId, email);
+        jdbc.update("""
+                INSERT INTO user_identity (user_id, provider, provider_user_id,
+                                           provider_email, email_verified, password_hash)
+                VALUES (?, 'LOCAL', ?, ?, true, ?)
+                """, userId, email, email, passwordHasher.hash(PASSWORD));
+        jdbc.update("INSERT INTO user_role (user_id, role) VALUES (?, 'USER')", userId);
+        byte[] encryptedSecret = piiCipher.encrypt(CryptoPurpose.MFA_TOTP,
+                PiiCipher.aad("user_mfa_totp", "secret_enc", userId),
+                TOTP_SECRET.getBytes(StandardCharsets.UTF_8));
+        jdbc.update("""
+                INSERT INTO user_mfa_totp (user_id, secret_enc, status, algorithm,
+                                           digits, period_seconds, activated_at, key_version)
+                VALUES (?, ?, 'ACTIVE', 'SHA1', 6, 30, now(), ?)
+                """, userId, encryptedSecret, piiCipher.currentWriteKeyVersion());
+
+        CookieManager cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+        HttpClient client = HttpClient.newBuilder().cookieHandler(cookies).build();
+        URI base = URI.create("http://localhost:" + port);
+
+        HttpResponse<String> wrongPassword = postJson(client, cookies, base, "/api/v1/auth/login",
+                "{\"email\":\"" + email + "\",\"password\":\"Wrong-Password-1\",\"rememberMe\":true}");
+        assertThat(wrongPassword.statusCode()).isEqualTo(401);
+        assertThat(jdbc.queryForObject("SELECT failed_login_count FROM app_user WHERE id = ?",
+                Integer.class, userId)).isEqualTo(1);
+
+        HttpResponse<String> login = postJson(client, cookies, base, "/api/v1/auth/login",
+                "{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\",\"rememberMe\":true}");
+        assertThat(login.body()).contains("\"mfaRequired\":true");
+
+        String valid = TotpCodeVerifier.now("SHA1", 6, TOTP_SECRET, clock.instant().getEpochSecond() / 30);
+        String wrong = valid.equals("000000") ? "111111" : "000000";
+        HttpResponse<String> wrongTotp = postJson(client, cookies, base, "/api/v1/auth/totp/verify",
+                "{\"code\":\"" + wrong + "\"}");
+        assertThat(wrongTotp.statusCode()).isEqualTo(401);
+        assertThat(jdbc.queryForObject("SELECT failed_count FROM user_mfa_totp WHERE user_id = ?",
+                Integer.class, userId)).isEqualTo(1);
+
+        HttpResponse<String> session = client.send(HttpRequest.newBuilder(base.resolve("/api/v1/auth/session"))
+                .GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(session.body()).contains("\"authenticated\":false");
+    }
+
+    private static HttpResponse<String> postJson(HttpClient client, CookieManager cookies, URI base,
+                                                 String path, String json) throws Exception {
+        return client.send(HttpRequest.newBuilder(base.resolve(path))
+                .header("Content-Type", "application/json")
+                .header("X-XSRF-TOKEN", csrfToken(client, cookies, base))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build(), HttpResponse.BodyHandlers.ofString());
+    }
+
     private static String csrfToken(HttpClient client, CookieManager cookies, URI base) throws Exception {
         HttpResponse<Void> response = client.send(HttpRequest.newBuilder(base.resolve("/api/v1/auth/csrf"))
                 .GET().build(), HttpResponse.BodyHandlers.discarding());

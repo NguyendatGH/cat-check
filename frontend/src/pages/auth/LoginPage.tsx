@@ -120,6 +120,14 @@ export function LoginPage() {
       setMfaStatus("success");
       enterApp();
     } catch (error) {
+      if (isApiError(error) && error.code === "UNAUTHENTICATED") {
+        // Bước chờ TOTP đã hết hạn — quay lại form đăng nhập.
+        setPendingLoginMfaMethods(null);
+        setMfaCode("");
+        setMfaStatus("idle");
+        setLoginError(t("mfa.errors.expired"));
+        return;
+      }
       setMfaStatus("error");
       setMfaErrorSignal((n) => n + 1);
       if (isApiError(error) && error.code === "TOTP_INVALID") {

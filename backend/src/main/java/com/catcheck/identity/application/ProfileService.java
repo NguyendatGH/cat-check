@@ -67,6 +67,13 @@ public class ProfileService {
     }
 
     @Transactional(readOnly = true)
+    /** Email hien tai cua tai khoan (co the da doi sau khi dang nhap). */
+    public String currentEmail(UUID userId) {
+        return accountRepository.findById(userId)
+                .map(account -> account.email().value())
+                .orElseThrow(() -> new NotFoundException(IdentityErrorCode.UNAUTHENTICATED));
+    }
+
     public ProfileView profile(UUID userId) {
         UserAccount account = accountRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(IdentityErrorCode.UNAUTHENTICATED));

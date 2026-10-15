@@ -49,6 +49,7 @@ class AuthControllerTest {
     private MfaService mfaService;
     private OtpService otpService;
     private AuthenticatedSessionGateway gateway;
+    private ProfileService profileService;
     private AuthController controller;
 
     @BeforeEach
@@ -57,12 +58,14 @@ class AuthControllerTest {
         mfaService = mock(MfaService.class);
         otpService = mock(OtpService.class);
         gateway = mock(AuthenticatedSessionGateway.class);
+        profileService = mock(ProfileService.class);
+        when(profileService.currentEmail(USER)).thenReturn("person@example.com");
         when(gateway.pendingMfaUserId()).thenReturn(Optional.empty());
         when(otpService.requestOtp(any(), any(), any(), any()))
                 .thenReturn(new OtpService.OtpRequestResult(NOW.plusSeconds(300), 300));
         controller = new AuthController(mock(RegistrationService.class), otpService, loginService,
                 mock(PasswordResetService.class), mfaService, mock(SessionService.class),
-                mock(ProfileService.class), gateway, Clock.fixed(NOW, ZoneOffset.UTC));
+                profileService, gateway, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     /* ---------- C1 ---------- */
@@ -89,6 +92,30 @@ class AuthControllerTest {
 
         verify(mfaService).verifyForLogin(eq(USER), eq("123456"), any());
         verify(gateway).completePendingMfa();
+    }
+
+    @Test
+    void pendingLoginOfAnAccountLockedMeanwhileIsNotCompleted() {
+        when(gateway.pendingMfaUserId()).thenReturn(Optional.of(USER));
+        org.mockito.Mockito.doThrow(new BusinessRuleException(IdentityErrorCode.ACCOUNT_RESTRICTED))
+                .when(loginService).requireSessionAllowed(USER);
+
+        assertThatThrownBy(() -> controller.verifyTotp(new TotpVerifyRequest("123456"), null,
+                new MockHttpServletRequest())).isInstanceOf(BusinessRuleException.class);
+        verify(gateway, never()).completePendingMfa();
+    }
+
+    @Test
+    void stepUpCodeFollowsTheAccountsCurrentEmailNotTheOneAtLogin() {
+        when(profileService.currentEmail(USER)).thenReturn("changed@example.com");
+
+        assertThatThrownBy(() -> controller.requestOtp(
+                new OtpRequestRequest("person@example.com", "LOGIN_STEPUP", null), principal(),
+                new MockHttpServletRequest())).isInstanceOf(BusinessRuleException.class);
+        controller.requestOtp(new OtpRequestRequest("changed@example.com", "LOGIN_STEPUP", null), principal(),
+                new MockHttpServletRequest());
+
+        verify(otpService).requestOtp(eq("changed@example.com"), eq(OtpPurpose.LOGIN_STEPUP), eq(USER), any());
     }
 
     @Test

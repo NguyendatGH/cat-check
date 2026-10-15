@@ -228,7 +228,8 @@ public class MfaService {
         return new Confirmation(recoveryCodes, now);
     }
 
-    @Transactional
+    // Bo dem sai / khoa TOTP phai commit du phuong thuc nem loi.
+    @Transactional(noRollbackFor = {BusinessRuleException.class, RateLimitedException.class})
     public long verifyForLogin(UUID userId, String code, AuthRequestContext context) {
         requireRateLimit(RateLimitRule.MFA_VERIFY, userId.toString());
 

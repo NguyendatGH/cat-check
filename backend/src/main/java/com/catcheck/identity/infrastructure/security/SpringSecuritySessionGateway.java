@@ -140,8 +140,11 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
             old.invalidate();
         }
         SecurityContextHolder.clearContext();
-        request.getSession(true).setAttribute(PENDING_MFA_ATTRIBUTE, new PendingMfaLogin(
+        HttpSession pendingSession = request.getSession(true);
+        pendingSession.setAttribute(PENDING_MFA_ATTRIBUTE, new PendingMfaLogin(
                 userId, email, Set.copyOf(roles), rememberMe, clock.instant().plus(PENDING_MFA_TTL)));
+        // Index theo userId de revokeAllByUserId (khoa, doi mat khau) xoa ca phien dang cho.
+        pendingSession.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, userId.toString());
     }
 
     @Override

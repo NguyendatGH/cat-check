@@ -63,7 +63,8 @@ public class LoginService {
     public record LoginResult(UUID userId, EmailAddress email, String fullName, Set<String> roles) {
     }
 
-    @Transactional
+    // Bo dem sai / khoa ghi truoc khi nem loi phai duoc commit, khong rollback theo exception.
+    @Transactional(noRollbackFor = BusinessRuleException.class)
     public LoginResult login(String rawEmail, String rawPassword, boolean rememberMe,
                              AuthRequestContext context) {
         EmailAddress email = EmailAddress.parseOrNull(rawEmail);
@@ -111,13 +112,13 @@ public class LoginService {
             throw new BusinessRuleException(IdentityErrorCode.ACCOUNT_RESTRICTED);
         }
 
-        accountRepository.updateLoginState(account.id(), UserStatus.ACTIVE, 0, null, now);
-
         int activeSessions = countActiveSessions(account.id(), now);
         if (activeSessions >= policy.maxConcurrentSessions()) {
             throw new BusinessRuleException(IdentityErrorCode.SESSION_LIMIT_REACHED,
                     policy.maxConcurrentSessions());
         }
+
+        accountRepository.updateLoginState(account.id(), UserStatus.ACTIVE, 0, null, now);
 
         List<UserRole> roles = roleRepository.findByUserId(account.id());
         identityRepository.touchLastUsed(identity.id(), now);
@@ -148,6 +149,18 @@ public class LoginService {
                 .ipAddress(context.ipAddress())
                 .userAgent(context.userAgent())
                 .build());
+    }
+
+    /** Kiem tra lai truoc khi mo phien tu trang thai cho TOTP: tai khoan co the da bi khoa trong luc cho. */
+    @Transactional(readOnly = true)
+    public void requireSessionAllowed(UUID userId) {
+        UserAccount account = accountRepository.findById(userId)
+                .orElseThrow(() -> new BusinessRuleException(IdentityErrorCode.UNAUTHENTICATED));
+        Instant now = clock.instant();
+        if (account.status() != UserStatus.ACTIVE || account.isProcessingRestricted()
+                || (account.lockedUntil() != null && account.lockedUntil().isAfter(now))) {
+            throw new BusinessRuleException(IdentityErrorCode.ACCOUNT_RESTRICTED);
+        }
     }
 
     private int countActiveSessions(UUID userId, Instant now) {
