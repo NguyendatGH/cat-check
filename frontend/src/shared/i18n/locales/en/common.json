@@ -57,7 +57,9 @@
     "yesterday": "Yesterday",
     "yourCats": "Your cats",
     "reminderOverdue": "Overdue since {{time}}",
-    "catScannedAt": "Scanned: {{time}}"
+    "catScannedAt": "Scanned: {{time}}",
+    "scanForCat": "Scan for {{name}}",
+    "reminderOverdueTitle": "Check overdue"
   },
   "forbidden": {
     "description": "Your account doesn't have permission to view this page.",
@@ -236,7 +238,10 @@
     "scheduleScanFor": "{{title}} · {{name}}",
     "loadError": "Couldn't load Home data",
     "loadErrorBody": "Check your connection and try again.",
-    "otherCats": "Other cats"
+    "otherCats": "Other cats",
+    "catSwitcher": "Choose a cat",
+    "zeroTitle": "No cat profiles yet",
+    "zeroBody": "Add your first cat to start tracking litter granule color."
   },
   "healthFlags": {
     "countCta": "{{count}} signs to review",

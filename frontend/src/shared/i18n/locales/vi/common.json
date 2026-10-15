@@ -57,7 +57,9 @@
     "yesterday": "Hôm qua",
     "yourCats": "Mèo của bạn",
     "reminderOverdue": "Đã quá hạn từ {{time}}",
-    "catScannedAt": "Quét: {{time}}"
+    "catScannedAt": "Quét: {{time}}",
+    "scanForCat": "Quét cho {{name}}",
+    "reminderOverdueTitle": "Đã quá hạn kiểm tra"
   },
   "forbidden": {
     "description": "Tài khoản của bạn không có quyền xem trang này.",
@@ -236,7 +238,10 @@
     "scheduleScanFor": "{{title}} · {{name}}",
     "loadError": "Không tải được dữ liệu Trang chủ",
     "loadErrorBody": "Kiểm tra kết nối rồi thử lại.",
-    "otherCats": "Các bé khác"
+    "otherCats": "Các bé khác",
+    "catSwitcher": "Chọn bé mèo",
+    "zeroTitle": "Chưa có hồ sơ mèo nào",
+    "zeroBody": "Thêm bé mèo đầu tiên để bắt đầu theo dõi màu hạt cát."
   },
   "healthFlags": {
     "countCta": "{{count}} dấu hiệu cần xem",

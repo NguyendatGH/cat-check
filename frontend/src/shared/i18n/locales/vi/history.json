@@ -124,5 +124,9 @@
     "clearSearch": "Xoá từ khoá",
     "pickDate": "Chọn ngày",
     "clearDate": "Bỏ lọc ngày"
+  },
+  "search": {
+    "reset": "Xoá bộ lọc",
+    "resultCount": "{{count}} kết quả"
   }
 }

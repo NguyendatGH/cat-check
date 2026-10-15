@@ -53,7 +53,8 @@
     "changeCta": "Change cat",
     "lastScanToday": "Today {{time}}",
     "lastScanYesterday": "Yesterday {{time}}",
-    "lastPh": "pH {{value}}"
+    "lastPh": "pH {{value}}",
+    "loading": "Loading…"
   },
   "capture": {
     "guide": "Take a close-up of the color-changed litter area, with good light and sharp focus.",
@@ -121,7 +122,8 @@
         "acidic": "Acidic",
         "normal": "Normal",
         "alkaline": "Alkaline"
-      }
+      },
+      "neutral": "Neutral"
     },
     "advice": {
       "title": "What should you do?",

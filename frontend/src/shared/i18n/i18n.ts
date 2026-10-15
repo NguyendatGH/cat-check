@@ -19,8 +19,11 @@ void i18n
     backend: {
       loadPath: "/locales/{{lng}}/{{ns}}.json",
     },
+    // Mặc định tiếng Việt; chỉ dùng tiếng Anh khi người dùng tự chọn ở Cài đặt. Không đoán theo
+    // trình duyệt, và dùng khoá mới để bỏ giá trị "en" mà khoá cũ đã tự lưu theo navigator.
     detection: {
-      order: ["localStorage", "navigator"],
+      order: ["localStorage"],
+      lookupLocalStorage: "catcheck.locale",
       caches: ["localStorage"],
     },
     returnNull: false,

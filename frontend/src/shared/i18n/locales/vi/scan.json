@@ -53,7 +53,8 @@
     "changeCta": "Đổi bé mèo",
     "lastScanToday": "Hôm nay {{time}}",
     "lastScanYesterday": "Hôm qua {{time}}",
-    "lastPh": "pH {{value}}"
+    "lastPh": "pH {{value}}",
+    "loading": "Đang tải…"
   },
   "capture": {
     "guide": "Chụp cận cảnh vùng cát đã đổi màu, đủ sáng và lấy nét rõ.",
@@ -121,7 +122,8 @@
         "acidic": "Axit",
         "normal": "Bình thường",
         "alkaline": "Kiềm"
-      }
+      },
+      "neutral": "Trung tính"
     },
     "advice": {
       "title": "Bạn nên làm gì?",

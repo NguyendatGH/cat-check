@@ -124,5 +124,10 @@
     "clearSearch": "Clear keywords",
     "pickDate": "Pick a date",
     "clearDate": "Clear date filter"
+  },
+  "search": {
+    "reset": "Clear filters",
+    "resultCount_one": "{{count}} result",
+    "resultCount_other": "{{count}} results"
   }
 }
