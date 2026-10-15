@@ -44,6 +44,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -133,11 +134,12 @@ public class AuthController {
     @PostMapping("/otp/request")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Map<String, Object> requestOtp(@Valid @RequestBody OtpRequestRequest request,
+                                          @AuthenticationPrincipal Object principal,
                                           HttpServletRequest httpRequest) {
         AuthRequestContext context = context(httpRequest);
         OtpPurpose purpose = OtpPurpose.valueOf(request.purpose());
         OtpService.OtpRequestResult result = otpService.requestOtp(
-                request.email(), purpose, null, context);
+                request.email(), purpose, otpOwner(purpose, request.email(), principal), context);
         return Map.of(
                 "otpExpiresAt", result.expiresAt().toString(),
                 "canResendInSeconds", result.ttlSeconds(),
@@ -169,7 +171,8 @@ public class AuthController {
                 request.rememberMe() == null || request.rememberMe(), context);
 
         if (mfaService.totpEnabled(result.userId())) {
-            sessionGateway.establish(result.userId(), result.email().value(), result.roles(),
+            // Chua mo phien truoc khi qua TOTP — phien that mo o A10/A11.
+            sessionGateway.beginPendingMfa(result.userId(), result.email().value(), result.roles(),
                     request.rememberMe() == null || request.rememberMe());
             mfaService.logCurrentTotpForDev(result.userId(), result.email().value());
             return Map.of(
@@ -218,6 +221,12 @@ public class AuthController {
     public Map<String, Object> verifyTotp(@Valid @RequestBody TotpVerifyRequest request,
                                           @AuthenticationPrincipal Object principal,
                                           HttpServletRequest httpRequest) {
+        Optional<UUID> pending = sessionGateway.pendingMfaUserId();
+        if (pending.isPresent()) {
+            mfaService.verifyForLogin(pending.get(), request.code(), context(httpRequest));
+            sessionGateway.completePendingMfa();
+            return Map.of("mfaLevel", "TOTP");
+        }
         UUID userId = requireUserId(principal);
         mfaService.verifyForLogin(userId, request.code(), context(httpRequest));
         sessionGateway.markMfaTotpVerified();
@@ -229,10 +238,15 @@ public class AuthController {
     public Map<String, Object> totpRecovery(@Valid @RequestBody TotpRecoveryRequest request,
                                             @AuthenticationPrincipal Object principal,
                                             HttpServletRequest httpRequest) {
-        UUID userId = requireUserId(principal);
+        Optional<UUID> pending = sessionGateway.pendingMfaUserId();
+        UUID userId = pending.isPresent() ? pending.get() : requireUserId(principal);
         MfaService.RecoveryResult result = mfaService.verifyRecovery(
                 userId, request.recoveryCode(), context(httpRequest));
-        sessionGateway.markMfaTotpVerified();
+        if (pending.isPresent()) {
+            sessionGateway.completePendingMfa();
+        } else {
+            sessionGateway.markMfaTotpVerified();
+        }
         return Map.of(
                 "mfaLevel", "TOTP",
                 "enrollmentRequired", result.enrollmentRequired(),
@@ -294,6 +308,30 @@ public class AuthController {
         return consents.stream()
                 .map(c -> new RegistrationConsentEvent.ConsentGrant(c.purposeCode(), c.granted()))
                 .toList();
+    }
+
+    private static final Set<OtpPurpose> ANONYMOUS_OTP_PURPOSES =
+            Set.of(OtpPurpose.REGISTER_VERIFY, OtpPurpose.PASSWORD_RESET);
+
+    private static final Set<OtpPurpose> SESSION_OTP_PURPOSES = Set.of(
+            OtpPurpose.LOGIN_STEPUP, OtpPurpose.DSAR_VERIFY,
+            OtpPurpose.ACCOUNT_DELETE_CONFIRM, OtpPurpose.DATA_EXPORT_CONFIRM);
+
+    /** A4 cong khai: chi hai purpose an danh; purpose step-up gan voi user + email cua phien; EMAIL_CHANGE chi qua B7. */
+    private UUID otpOwner(OtpPurpose purpose, String email, Object principal) {
+        if (ANONYMOUS_OTP_PURPOSES.contains(purpose)) {
+            return null;
+        }
+        if (!SESSION_OTP_PURPOSES.contains(purpose)) {
+            throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.VALIDATION_FAILED);
+        }
+        if (!(principal instanceof com.catcheck.identity.application.AuthPrincipal auth)) {
+            throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.UNAUTHENTICATED);
+        }
+        if (email == null || !email.trim().equalsIgnoreCase(auth.email())) {
+            throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.FORBIDDEN);
+        }
+        return auth.userId();
     }
 
     private UUID requireUserId(Object principal) {

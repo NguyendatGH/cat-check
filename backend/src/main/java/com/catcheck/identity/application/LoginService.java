@@ -170,6 +170,12 @@ public class LoginService {
             return;
         }
         Instant now = clock.instant();
+        // Dang bi khoa thi khong dem them, tranh keo dai khoa / day len LOCKED.
+        if ((account.lockedUntil() != null && account.lockedUntil().isAfter(now))
+                || account.status() == UserStatus.LOCKED) {
+            auditDenied(userId, "account_locked", context);
+            return;
+        }
         int failed = account.failedLoginCount() + 1;
         UserStatus nextStatus = account.status();
 

@@ -159,8 +159,11 @@ public class OAuthService {
         return new OAuthResult(account.id(), account.email(), account.fullName(), roles, newlyCreated);
     }
 
-    private static void requireLoginAllowed(UserAccount account) {
+    private void requireLoginAllowed(UserAccount account) {
         if (account.status() != UserStatus.ACTIVE || account.isProcessingRestricted()) {
+            throw new BusinessRuleException(IdentityErrorCode.ACCOUNT_RESTRICTED);
+        }
+        if (account.lockedUntil() != null && account.lockedUntil().isAfter(clock.instant())) {
             throw new BusinessRuleException(IdentityErrorCode.ACCOUNT_RESTRICTED);
         }
     }

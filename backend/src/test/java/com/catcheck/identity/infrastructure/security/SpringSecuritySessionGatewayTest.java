@@ -135,6 +135,78 @@ class SpringSecuritySessionGatewayTest {
                 .isNotEqualTo(inserted.getAllValues().get(1).sessionIdHash());
     }
 
+    /* ---------- C1: TOTP required => no authenticated session before step 2 ---------- */
+
+    @Test
+    void pendingMfaDoesNotAuthenticateTheSession() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        assertThat(gateway.currentUserId()).isEmpty();
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        assertThat(gateway.pendingMfaUserId()).contains(USER);
+        verify(devices, never()).insert(any());
+    }
+
+    @Test
+    void pendingMfaDropsAnIdentityAlreadyInTheSession() {
+        gateway.establish(UUID.randomUUID(), "other@example.com", Set.of("USER"), true);
+
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        assertThat(gateway.currentUserId()).isEmpty();
+        assertThat(currentSession.isInvalid()).isTrue();
+    }
+
+    @Test
+    void completingPendingMfaOpensATotpLevelSession() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        gateway.completePendingMfa();
+
+        assertThat(gateway.currentUserId()).contains(USER);
+        assertThat(((com.catcheck.identity.application.AuthPrincipal) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal()).mfaLevel())
+                .isEqualTo(com.catcheck.shared.security.MfaLevel.TOTP);
+        assertThat(gateway.pendingMfaUserId()).isEmpty();
+    }
+
+    @Test
+    void pendingMfaExpires() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        SpringSecuritySessionGateway later = gatewayAt(NOW.plus(SpringSecuritySessionGateway.PENDING_MFA_TTL));
+
+        assertThat(later.pendingMfaUserId()).isEmpty();
+        later.completePendingMfa();
+        assertThat(later.currentUserId()).isEmpty();
+    }
+
+    /* ---------- H3: step-up window really expires ---------- */
+
+    @Test
+    void reauthWindowExpiresWithTheClock() {
+        gateway.establish(USER, "person@example.com", Set.of("USER"), true);
+        assertThat(gateway.isReauthenticated()).isFalse();
+
+        gateway.markReauthenticated(300);
+
+        assertThat(gateway.isReauthenticated()).isTrue();
+        assertThat(gatewayAt(NOW.plusSeconds(299)).isReauthenticated()).isTrue();
+        assertThat(gatewayAt(NOW.plusSeconds(300)).isReauthenticated()).isFalse();
+    }
+
+    @SuppressWarnings("unchecked")
+    private SpringSecuritySessionGateway gatewayAt(Instant instant) {
+        ObjectProvider<org.springframework.security.web.authentication.session.SessionAuthenticationStrategy>
+                strategies = mock(ObjectProvider.class);
+        ObjectProvider<FindByIndexNameSessionRepository<? extends org.springframework.session.Session>>
+                sessionRepos = mock(ObjectProvider.class);
+        when(sessionRepos.getIfAvailable()).thenReturn((FindByIndexNameSessionRepository) httpSessions);
+        return new SpringSecuritySessionGateway(strategies, sessionRepos, devices,
+                new RequestIpResolver(""), POLICY, mock(AuditLogService.class),
+                Clock.fixed(instant, ZoneOffset.UTC));
+    }
+
     private static Map<String, MapSession> live(String... ids) {
         Map<String, MapSession> sessions = new java.util.LinkedHashMap<>();
         for (String id : ids) {

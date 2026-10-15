@@ -15,6 +15,7 @@ import com.catcheck.identity.domain.UserAccount;
 import com.catcheck.identity.domain.UserRole;
 import com.catcheck.identity.domain.UserStatus;
 import com.catcheck.identity.domain.port.AdminUserQueryPort;
+import com.catcheck.identity.domain.port.AuthenticatedSessionRevoker;
 import com.catcheck.identity.domain.port.DeviceSessionRepository;
 import com.catcheck.identity.domain.port.MfaTotpRepository;
 import com.catcheck.identity.domain.port.UserAccountRepository;
@@ -47,6 +48,7 @@ public class AdminUserService {
     private final UserAccountRepository accountRepository;
     private final UserRoleRepository roleRepository;
     private final DeviceSessionRepository sessionRepository;
+    private final AuthenticatedSessionRevoker sessionRevoker;
     private final MfaTotpRepository totpRepository;
     private final PiiCipher piiCipher;
     private final AuditLogService auditLogService;
@@ -56,6 +58,7 @@ public class AdminUserService {
                             UserAccountRepository accountRepository,
                             UserRoleRepository roleRepository,
                             DeviceSessionRepository sessionRepository,
+                            AuthenticatedSessionRevoker sessionRevoker,
                             MfaTotpRepository totpRepository,
                             PiiCipher piiCipher,
                             AuditLogService auditLogService,
@@ -64,6 +67,7 @@ public class AdminUserService {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
         this.sessionRepository = sessionRepository;
+        this.sessionRevoker = sessionRevoker;
         this.totpRepository = totpRepository;
         this.piiCipher = piiCipher;
         this.auditLogService = auditLogService;
@@ -135,6 +139,8 @@ public class AdminUserService {
         accountRepository.updateLoginState(
                 userId, UserStatus.LOCKED, account.failedLoginCount(), null, account.lastLoginAt());
         int revoked = sessionRepository.revokeAllByUserId(userId, now, SessionRevokeReason.ADMIN_LOCK);
+        // Xoa ca phien that (Spring Session), khong chi ban sao user_device_session.
+        sessionRevoker.revokeAllByUserId(userId);
 
         auditLogService.record(base(context, "ADMIN_LOCK_ACCOUNT", userId)
                 .before(java.util.Map.of("status", account.status().name()))
@@ -181,6 +187,7 @@ public class AdminUserService {
         requireSummary(userId);
         int revoked = sessionRepository.revokeAllByUserId(
                 userId, clock.instant(), SessionRevokeReason.USER_REVOKE_ALL);
+        sessionRevoker.revokeAllByUserId(userId);
         auditLogService.record(base(context, "ADMIN_USER_SESSIONS_REVOKE", userId)
                 .meta("revokedSessions", revoked)
                 .build());

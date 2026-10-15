@@ -123,7 +123,7 @@ class AuthLoginSessionIntegrationTest {
         assertThat(session.statusCode()).isEqualTo(200);
         assertThat(session.body()).contains("\"authenticated\":true", "\"ADMIN_SUPER\"", "\"USER\"");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM user_device_session WHERE user_id = ?",
-                Integer.class, userId)).isEqualTo(2);
+                Integer.class, userId)).isEqualTo(1);
     }
 
     private static String csrfToken(HttpClient client, CookieManager cookies, URI base) throws Exception {

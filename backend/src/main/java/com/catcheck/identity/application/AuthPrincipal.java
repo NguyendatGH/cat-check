@@ -14,7 +14,7 @@ public record AuthPrincipal(
         String email,
         Set<String> roles,
         Instant authenticatedAt,
-        boolean reauthenticated,
+        Instant reauthenticatedUntil,
         MfaLevel mfaLevel) implements Serializable, Principal, SecurityPrincipal {
 
     public AuthPrincipal {
@@ -28,14 +28,18 @@ public record AuthPrincipal(
     }
 
     public static AuthPrincipal of(UUID userId, String email, Set<String> roles, Instant now) {
-        return new AuthPrincipal(userId, email, roles, now, false, MfaLevel.NONE);
+        return new AuthPrincipal(userId, email, roles, now, null, MfaLevel.NONE);
     }
 
-    public AuthPrincipal withReauthenticated(boolean value) {
+    public AuthPrincipal withReauthenticatedUntil(Instant value) {
         return new AuthPrincipal(userId, email, roles, authenticatedAt, value, mfaLevel);
     }
 
+    public boolean isReauthenticatedAt(Instant now) {
+        return reauthenticatedUntil != null && now.isBefore(reauthenticatedUntil);
+    }
+
     public AuthPrincipal withMfaLevel(MfaLevel value) {
-        return new AuthPrincipal(userId, email, roles, authenticatedAt, reauthenticated, value);
+        return new AuthPrincipal(userId, email, roles, authenticatedAt, reauthenticatedUntil, value);
     }
 }

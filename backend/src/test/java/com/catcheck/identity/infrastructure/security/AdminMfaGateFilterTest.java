@@ -150,7 +150,7 @@ class AdminMfaGateFilterTest {
     private static void authenticate(MfaLevel mfaLevel) {
         AuthPrincipal principal = new AuthPrincipal(
                 ADMIN_ID, "admin@catcheck.vn", Set.of("ADMIN_SUPER"),
-                Instant.parse("2026-10-03T07:00:00Z"), false, mfaLevel);
+                Instant.parse("2026-10-03T07:00:00Z"), null, mfaLevel);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null,
                         List.of(new SimpleGrantedAuthority("ROLE_ADMIN_SUPER"))));

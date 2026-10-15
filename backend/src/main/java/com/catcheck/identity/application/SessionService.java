@@ -236,9 +236,8 @@ public class SessionService {
             return false;
         }
         try {
-            return otpService.consumeTicket(rawTicket, OtpPurpose.LOGIN_STEPUP)
-                    .userId()
-                    .equals(userId);
+            // Challenge khong co chu (userId null) khong bao gio thoa step-up.
+            return userId.equals(otpService.consumeTicket(rawTicket, OtpPurpose.LOGIN_STEPUP).userId());
         } catch (BusinessRuleException ex) {
             auditLogService.record(AuditEvent.builder()
                     .subjectUser(userId)

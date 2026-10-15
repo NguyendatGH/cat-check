@@ -49,6 +49,9 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
     private static final Logger log = LoggerFactory.getLogger(SpringSecuritySessionGateway.class);
 
     private static final int DEVICE_LABEL_MAX = 200;
+
+    static final String PENDING_MFA_ATTRIBUTE = "catcheck.pendingMfaLogin";
+    static final java.time.Duration PENDING_MFA_TTL = java.time.Duration.ofMinutes(5);
     private static final int USER_AGENT_MAX = 512;
 
     private final SecurityContextRepository securityContextRepository =
@@ -129,6 +132,53 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
     }
 
     @Override
+    public void beginPendingMfa(UUID userId, String email, Set<String> roles, boolean rememberMe) {
+        HttpServletRequest request = currentRequest();
+        // Bo moi danh tinh con trong phien cu (vd OAuth2AuthenticationToken) truoc khi cho buoc 2.
+        HttpSession old = request.getSession(false);
+        if (old != null) {
+            old.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+        request.getSession(true).setAttribute(PENDING_MFA_ATTRIBUTE, new PendingMfaLogin(
+                userId, email, Set.copyOf(roles), rememberMe, clock.instant().plus(PENDING_MFA_TTL)));
+    }
+
+    @Override
+    public Optional<UUID> pendingMfaUserId() {
+        return pendingMfa().map(PendingMfaLogin::userId);
+    }
+
+    @Override
+    public void completePendingMfa() {
+        Optional<PendingMfaLogin> pending = pendingMfa();
+        if (pending.isEmpty()) {
+            return;
+        }
+        currentRequest().getSession(false).removeAttribute(PENDING_MFA_ATTRIBUTE);
+        PendingMfaLogin login = pending.get();
+        establish(login.userId(), login.email(), login.roles(), login.rememberMe());
+        markMfaTotpVerified();
+    }
+
+    private Optional<PendingMfaLogin> pendingMfa() {
+        HttpSession session = currentRequest().getSession(false);
+        if (session == null
+                || !(session.getAttribute(PENDING_MFA_ATTRIBUTE) instanceof PendingMfaLogin pending)) {
+            return Optional.empty();
+        }
+        if (!clock.instant().isBefore(pending.expiresAt())) {
+            session.removeAttribute(PENDING_MFA_ATTRIBUTE);
+            return Optional.empty();
+        }
+        return Optional.of(pending);
+    }
+
+    record PendingMfaLogin(UUID userId, String email, Set<String> roles, boolean rememberMe,
+                           Instant expiresAt) implements java.io.Serializable {
+    }
+
+    @Override
     public void invalidateCurrent() {
         HttpServletRequest request = currentRequest();
         HttpServletResponse response = currentResponse();
@@ -152,7 +202,8 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
         HttpServletResponse response = currentResponse();
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new UsernamePasswordAuthenticationToken(
-                principal.withReauthenticated(true), null, authentication.getAuthorities()));
+                principal.withReauthenticatedUntil(clock.instant().plusSeconds(windowSeconds)),
+                null, authentication.getAuthorities()));
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
     }
@@ -191,7 +242,8 @@ public class SpringSecuritySessionGateway implements AuthenticatedSessionGateway
 
     @Override
     public boolean isReauthenticated() {
-        return currentPrincipal().map(AuthPrincipal::reauthenticated).orElse(Boolean.FALSE);
+        Instant now = clock.instant();
+        return currentPrincipal().map(principal -> principal.isReauthenticatedAt(now)).orElse(Boolean.FALSE);
     }
 
 

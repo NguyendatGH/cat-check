@@ -6,17 +6,26 @@ import { loadSession, useSessionStore } from "@/entities/user";
 import { playSplash } from "@/shared/lib/motion/splash";
 import { resolveRedirectTarget } from "@/shared/auth/landing";
 import { Button, EmptyState, SkeletonLoader } from "@/shared/ui";
-import { useAuthSessionQuery } from "@/features/auth";
+import { useAuthFlowStore, useAuthSessionQuery } from "@/features/auth";
 
 export function OAuthCompletePage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { data, isLoading, isError } = useAuthSessionQuery(true);
+  // Tài khoản có TOTP: backend chưa tạo phiên, chuyển sang bước 2 của /auth/login.
+  const mfaRequired = searchParams.get("mfa") === "required";
+  const setPendingLoginMfaMethods = useAuthFlowStore((s) => s.setPendingLoginMfaMethods);
+  const { data, isLoading, isError } = useAuthSessionQuery(!mfaRequired);
 
   const queryClient = useQueryClient();
   const setSession = useSessionStore((state) => state.setSession);
   const started = useRef(false);
+
+  useEffect(() => {
+    if (!mfaRequired) return;
+    setPendingLoginMfaMethods(["TOTP"]);
+    void navigate("/auth/login", { replace: true });
+  }, [mfaRequired, navigate, setPendingLoginMfaMethods]);
 
   useEffect(() => {
     if (!data?.authenticated || started.current) return;
@@ -29,7 +38,7 @@ export function OAuthCompletePage() {
     });
   }, [data, navigate, queryClient, searchParams, setSession]);
 
-  if (isLoading) {
+  if (mfaRequired || isLoading) {
     return (
       <div className="flex flex-col items-center gap-4 py-12">
         <SkeletonLoader shape="circle" />

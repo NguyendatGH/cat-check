@@ -1,6 +1,7 @@
 package com.catcheck.identity.infrastructure.security;
 
 import com.catcheck.identity.application.AuthRequestContext;
+import com.catcheck.identity.application.MfaService;
 import com.catcheck.identity.application.OAuthService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -20,11 +21,14 @@ public class MockOAuth2Controller {
 
     private final OAuthService oauthService;
     private final SpringSecuritySessionGateway sessionGateway;
+    private final MfaService mfaService;
 
     public MockOAuth2Controller(OAuthService oauthService,
-                               SpringSecuritySessionGateway sessionGateway) {
+                               SpringSecuritySessionGateway sessionGateway,
+                               MfaService mfaService) {
         this.oauthService = oauthService;
         this.sessionGateway = sessionGateway;
+        this.mfaService = mfaService;
     }
 
     @GetMapping("/oauth2/authorization/google")
@@ -60,6 +64,10 @@ public class MockOAuth2Controller {
         OAuthService.OAuthResult result = oauthService.findOrCreate(claims,
                 AuthRequestContext.UNKNOWN);
 
+        if (mfaService.totpEnabled(result.userId())) {
+            sessionGateway.beginPendingMfa(result.userId(), result.email().value(), result.roles(), true);
+            return new RedirectView("/auth/oauth/complete?mfa=required");
+        }
         sessionGateway.establish(result.userId(), result.email().value(), result.roles(), true);
         return new RedirectView("/");
     }

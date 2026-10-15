@@ -1,6 +1,7 @@
 package com.catcheck.identity.infrastructure.security;
 
 import com.catcheck.identity.application.AuthRequestContext;
+import com.catcheck.identity.application.MfaService;
 import com.catcheck.identity.application.OAuthService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,15 +25,18 @@ public class OAuth2LoginSuccessHandler
     private static final Logger log = LoggerFactory.getLogger(OAuth2LoginSuccessHandler.class);
 
     private final OAuthService oauthService;
+    private final MfaService mfaService;
     private final SpringSecuritySessionGateway sessionGateway;
     private final String frontendSuccessUrl;
 
     public OAuth2LoginSuccessHandler(
             OAuthService oauthService,
+            MfaService mfaService,
             SpringSecuritySessionGateway sessionGateway,
             @Value("${catcheck.oauth2.frontend-success-url:http://localhost:5173/auth/oauth/complete}")
             String frontendSuccessUrl) {
         this.oauthService = oauthService;
+        this.mfaService = mfaService;
         this.sessionGateway = sessionGateway;
         this.frontendSuccessUrl = frontendSuccessUrl;
     }
@@ -56,6 +60,11 @@ public class OAuth2LoginSuccessHandler
 
         try {
             OAuthService.OAuthResult result = oauthService.findOrCreate(oidcUser.getClaims(), context);
+            if (mfaService.totpEnabled(result.userId())) {
+                sessionGateway.beginPendingMfa(result.userId(), result.email().value(), result.roles(), true);
+                response.sendRedirect(withQuery(frontendSuccessUrl, "mfa=required"));
+                return;
+            }
             sessionGateway.establish(result.userId(), result.email().value(), result.roles(), true);
             response.sendRedirect(frontendSuccessUrl);
         } catch (RuntimeException ex) {
@@ -74,7 +83,10 @@ public class OAuth2LoginSuccessHandler
     }
 
     private void redirectWithError(HttpServletResponse response) throws IOException {
-        String separator = frontendSuccessUrl.contains("?") ? "&" : "?";
-        response.sendRedirect(frontendSuccessUrl + separator + "error=oauth_failed");
+        response.sendRedirect(withQuery(frontendSuccessUrl, "error=oauth_failed"));
+    }
+
+    private static String withQuery(String url, String query) {
+        return url + (url.contains("?") ? "&" : "?") + query;
     }
 }
