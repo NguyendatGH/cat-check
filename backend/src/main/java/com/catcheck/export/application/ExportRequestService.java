@@ -16,9 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +29,7 @@ public class ExportRequestService {
 
     private static final Set<String> VALID_SECTIONS = Set.of("TREND", "SCAN_LOG", "NOTES", "PROFILE");
     private static final long MAX_RANGE_DAYS = 366;
+    private static final String DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 
     private final ExportJobRepository jobRepository;
     private final SubjectSnapshotPort subjectSnapshotPort;
@@ -66,7 +68,11 @@ public class ExportRequestService {
                 .filter(c -> c.ownerId().equals(cmd.userId()))
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
 
-        LocalDate today = clock.instant().atZone(ZoneOffset.UTC).toLocalDate();
+        // M23: khoảng ngày là ngày LỊCH theo múi giờ của user, không phải UTC — cùng múi giờ
+        // job lưu lại và ExportGenerationService dùng để gom dữ liệu.
+        String timezone = cmd.timezone() == null ? DEFAULT_TIMEZONE : cmd.timezone();
+        ZoneId zone = resolveZone(timezone);
+        LocalDate today = clock.instant().atZone(zone).toLocalDate();
         var range = resolveRange(cmd, today);
 
         jobRepository.findActiveByUser(cmd.userId())
@@ -74,8 +80,8 @@ public class ExportRequestService {
                     throw new ConflictException(ExportErrorCode.EXPORT_JOB_IN_PROGRESS);
                 });
 
-        Instant fromInstant = range.from().atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant toInstant = range.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant fromInstant = range.from().atStartOfDay(zone).toInstant();
+        Instant toInstant = range.to().plusDays(1).atStartOfDay(zone).toInstant();
         List<ScanHistoryQuery.ExportScanRow> scans = scanHistoryQuery.scansForExport(cat.catId(), fromInstant, toInstant);
         if (scans.isEmpty()) {
             throw new BusinessRuleException(ExportErrorCode.EXPORT_NO_DATA);
@@ -90,7 +96,7 @@ public class ExportRequestService {
         ExportJob job = new ExportJob(uuidV7.generate(), cmd.userId(), cat.catId(), documentCode,
                 range.from(), range.to(), cmd.rangePreset(), sections,
                 cmd.locale() == null ? "vi" : cmd.locale(),
-                cmd.timezone() == null ? "Asia/Ho_Chi_Minh" : cmd.timezone(), now);
+                timezone, now);
         try {
             job = jobRepository.save(job);
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
@@ -100,6 +106,16 @@ public class ExportRequestService {
         dispatcher.dispatchAfterCommit(job.getId());
 
         return job;
+    }
+
+    private static ZoneId resolveZone(String timezone) {
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException ex) {
+            // Múi giờ không hợp lệ thì không tính được ranh giới ngày — từ chối ngay thay vì để
+            // job hỏng lúc sinh nền.
+            throw new BusinessRuleException(ExportErrorCode.EXPORT_RANGE_INVALID);
+        }
     }
 
     private record Range(LocalDate from, LocalDate to) {

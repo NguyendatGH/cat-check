@@ -31,6 +31,10 @@ final class PdfDocumentBuilder {
     private static final String PDF_FOOTER_LINE1 = "CatCheck — dữ liệu theo dõi tại nhà, mang tính "
             + "tham khảo. Không phải kết quả xét nghiệm. Không thay thế bác sĩ thú y.";
 
+    static final String SECTION_TREND = "TREND";
+    static final String SECTION_SCAN_LOG = "SCAN_LOG";
+    static final String SECTION_PROFILE = "PROFILE";
+
     private PdfDocumentBuilder() {
     }
 
@@ -50,8 +54,13 @@ final class PdfDocumentBuilder {
         html.append(buildCover(data));
         html.append(buildDisclaimerBlock());
         html.append(buildSummary(data));
-        html.append(buildChart(data));
-        html.append(buildTable(data));
+        // M22: chỉ các khối tuỳ chọn theo lựa chọn sections; khối bắt buộc luôn có mặt.
+        if (data.includes(SECTION_TREND)) {
+            html.append(buildChart(data));
+        }
+        if (data.includes(SECTION_SCAN_LOG)) {
+            html.append(buildTable(data));
+        }
         html.append(buildFlags(data));
         html.append(buildMethodology(data));
 
@@ -70,21 +79,31 @@ final class PdfDocumentBuilder {
                   <p class="subtitle">(CatCheck)</p>
                   <table class="cover-table">
                     <tr><td class="label">Mèo</td><td>%s</td></tr>
-                    <tr><td class="label">Giống</td><td>%s</td></tr>
-                    <tr><td class="label">Giới tính</td><td>%s</td></tr>
-                    <tr><td class="label">Tuổi</td><td>%s</td></tr>
-                    <tr><td class="label">Cân nặng</td><td>%s</td></tr>
-                    <tr><td class="label">Chủ nuôi</td><td>%s</td></tr>
+                    %s<tr><td class="label">Chủ nuôi</td><td>%s</td></tr>
                     <tr><td class="label">Khoảng thời gian</td><td>%s – %s</td></tr>
                     <tr><td class="label">Ngày xuất báo cáo</td><td>%s (giờ Việt Nam)</td></tr>
                   </table>
                 </section>
                 """.formatted(
-                escape(d.documentCode()), escape(d.catName()), escape(nullToDash(d.breedLabel())),
-                escape(nullToDash(d.sexLabel())), escape(nullToDash(d.ageLabel())),
-                escape(nullToDash(d.weightLabel())), escape(nullToDash(d.ownerName())),
+                escape(d.documentCode()), escape(d.catName()), buildProfileRows(d),
+                escape(nullToDash(d.ownerName())),
                 d.rangeFrom().format(DATE_FMT), d.rangeTo().format(DATE_FMT),
                 d.generatedAtLocal().format(DATETIME_FMT));
+    }
+
+    /** Hàng hồ sơ chi tiết của mèo trên bìa — chỉ khi user chọn khối PROFILE (M22). */
+    private static String buildProfileRows(ExportRenderData d) {
+        if (!d.includes(SECTION_PROFILE)) {
+            return "";
+        }
+        return """
+                <tr><td class="label">Giống</td><td>%s</td></tr>
+                <tr><td class="label">Giới tính</td><td>%s</td></tr>
+                <tr><td class="label">Tuổi</td><td>%s</td></tr>
+                <tr><td class="label">Cân nặng</td><td>%s</td></tr>
+                """.formatted(
+                escape(nullToDash(d.breedLabel())), escape(nullToDash(d.sexLabel())),
+                escape(nullToDash(d.ageLabel())), escape(nullToDash(d.weightLabel())));
     }
 
     private static String buildDisclaimerBlock() {

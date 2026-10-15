@@ -95,8 +95,9 @@ public class ExportGenerationService {
 
     private ExportRenderData gatherData(ExportJob job) {
         ZoneId zone = ZoneId.of(job.getTimezone());
-        Instant fromInstant = job.getRangeFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant toInstant = job.getRangeTo().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        // M23: ranh giới ngày theo múi giờ của job (cùng múi giờ dùng cho nhãn), không phải UTC.
+        Instant fromInstant = job.getRangeFrom().atStartOfDay(zone).toInstant();
+        Instant toInstant = job.getRangeTo().plusDays(1).atStartOfDay(zone).toInstant();
 
         SubjectSnapshotPort.CatProfile cat = subjectSnapshotPort.findCatProfile(job.getCatId()).orElseThrow();
         Optional<SubjectSnapshotPort.OwnerProfile> owner = subjectSnapshotPort.findOwnerProfile(job.getUserId());
@@ -160,7 +161,8 @@ public class ExportGenerationService {
                 anyNonCardCcm,
                 flagRows,
                 chartVersionSnapshot,
-                null);
+                null,
+                job.getSections());
     }
 
     private String symbolFor(String classification) {
