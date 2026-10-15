@@ -44,6 +44,38 @@ public class DueReminderDispatcher {
         this.notifications = notifications;
     }
 
+    /**
+     * RRULE reminders created before RRULE scheduling existed were stored with
+     * {@code next_run_at = NULL} and are never picked up by {@link #findDue}. Unsupported rules
+     * are skipped (they stay NULL until the user edits them).
+     *
+     * @return number of reminders that got a {@code next_run_at}
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int backfillRruleNextRuns(Instant now, int limit) {
+        int scheduled = 0;
+        UUID cursor = null;
+        while (true) {
+            List<Reminder> page = repository.findUnscheduledRrule(cursor, limit);
+            for (Reminder reminder : page) {
+                Instant next;
+                try {
+                    next = NextRunCalculator.nextRun(reminder, now);
+                } catch (RuntimeException unsupported) {
+                    log.debug("Bo qua reminder {}: rrule ngoai tap ho tro.", reminder.id());
+                    continue;
+                }
+                if (next != null && repository.scheduleIfUnscheduled(reminder.id(), next)) {
+                    scheduled++;
+                }
+            }
+            if (page.size() < limit) {
+                return scheduled;
+            }
+            cursor = page.getLast().id();
+        }
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public List<UUID> findDue(Instant now, int limit) {
         return repository.findDueIds(now, limit);

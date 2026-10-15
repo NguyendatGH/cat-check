@@ -110,5 +110,15 @@ class ActiveReminderQueryAdapterTest {
         public void markDispatched(UUID id, Instant sentAt, Instant nextRunAt) {
             throw new UnsupportedOperationException("not used by ActiveReminderQueryAdapter");
         }
+
+        @Override
+        public List<Reminder> findUnscheduledRrule(UUID afterId, int limit) {
+            throw new UnsupportedOperationException("not used by ActiveReminderQueryAdapter");
+        }
+
+        @Override
+        public boolean scheduleIfUnscheduled(UUID id, Instant nextRunAt) {
+            throw new UnsupportedOperationException("not used by ActiveReminderQueryAdapter");
+        }
     }
 }

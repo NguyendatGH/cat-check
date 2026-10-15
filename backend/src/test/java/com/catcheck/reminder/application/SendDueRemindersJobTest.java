@@ -174,6 +174,28 @@ class SendDueRemindersJobTest {
     }
 
 
+    @Test
+    void legacyRruleRemindersWithoutNextRunAreBackfilledAndUnsupportedOnesSkipped() {
+        Reminder legacy = reminders.add(rrule("FREQ=WEEKLY;BYDAY=WE,SU"));
+        Reminder unsupported = reminders.add(rrule("FREQ=MONTHLY;BYMONTHDAY=1"));
+
+        job.run();
+
+        // NOW = thu Bay 03/10 08:00 gio VN => Chu Nhat 04/10 08:00 gio VN.
+        assertEquals(java.time.LocalDate.of(2026, 10, 4).atTime(LocalTime.of(8, 0)).atZone(ICT).toInstant(),
+                reminders.byId(legacy.id()).nextRunAt());
+        assertEquals(null, reminders.byId(unsupported.id()).nextRunAt());
+        assertTrue(gateway.requests.isEmpty(), "backfill chi lap lich, khong gui ngay");
+    }
+
+    private Reminder rrule(String rule) {
+        return new Reminder(
+                null, UUID.randomUUID(), UUID.randomUUID(), ReminderType.SCAN_ROUTINE,
+                ScheduleKind.RRULE, null, rule, LocalTime.of(8, 0), null,
+                ICT.getId(), null, null, null, List.of("PUSH"),
+                ReminderSource.USER, true, NOW, NOW);
+    }
+
     private Reminder scanRoutine(Instant nextRunAt, Instant lastSatisfiedAt) {
         return new Reminder(
                 null, UUID.randomUUID(), UUID.randomUUID(), ReminderType.SCAN_ROUTINE,
@@ -277,6 +299,31 @@ class SendDueRemindersJobTest {
         @Override
         public Optional<UUID> findActiveIdByCatAndType(UUID userId, UUID catId, String type) {
             return Optional.empty();
+        }
+
+        @Override
+        public List<Reminder> findUnscheduledRrule(UUID afterId, int limit) {
+            return rows.values().stream()
+                    .filter(Reminder::active)
+                    .filter(row -> row.scheduleKind() == ScheduleKind.RRULE && row.nextRunAt() == null)
+                    .filter(row -> afterId == null || row.id().compareTo(afterId) > 0)
+                    .sorted((a, b) -> a.id().compareTo(b.id()))
+                    .limit(limit)
+                    .toList();
+        }
+
+        @Override
+        public boolean scheduleIfUnscheduled(UUID id, Instant nextRunAt) {
+            Reminder row = rows.get(id);
+            if (row == null || row.nextRunAt() != null) {
+                return false;
+            }
+            rows.put(id, new Reminder(row.id(), row.userId(), row.catId(), row.type(),
+                    row.scheduleKind(), row.intervalDays(), row.rrule(), row.preferredTimeStart(),
+                    row.preferredTimeEnd(), row.timezone(), nextRunAt, row.lastRunAt(),
+                    row.lastSatisfiedAt(), row.channels(), row.source(), row.active(),
+                    row.createdAt(), row.updatedAt()));
+            return true;
         }
     }
 

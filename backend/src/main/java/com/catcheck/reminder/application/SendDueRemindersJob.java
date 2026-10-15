@@ -55,6 +55,15 @@ public class SendDueRemindersJob {
         int failed = 0;
         String firstError = null;
 
+        try {
+            int backfilled = dispatcher.backfillRruleNextRuns(context.startedAt(), setting.batchSize());
+            if (backfilled > 0) {
+                log.info("Da lap lich next_run_at cho {} reminder RRULE cu", backfilled);
+            }
+        } catch (RuntimeException exception) {
+            log.error("Khong backfill duoc next_run_at cho reminder RRULE", exception);
+        }
+
         while (inspected < setting.maxItemsPerRun()) {
             int limit = Math.min(setting.batchSize(), setting.maxItemsPerRun() - inspected);
             List<UUID> dueIds = dispatcher.findDue(context.startedAt(), limit);

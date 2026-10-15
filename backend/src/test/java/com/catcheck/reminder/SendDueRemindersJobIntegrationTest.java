@@ -133,6 +133,35 @@ class SendDueRemindersJobIntegrationTest {
     }
 
     @Test
+    void legacyRruleRemindersWithoutNextRunAreBackfilled() {
+        UUID userId = insertUser();
+        UUID supported = insertLegacyRrule(userId, insertCat(userId, "Mochi"), "FREQ=WEEKLY;BYDAY=WE,SU");
+        UUID unsupported = insertLegacyRrule(userId, insertCat(userId, "Bong"), "FREQ=MONTHLY;BYMONTHDAY=1");
+
+        runOneCycle();
+
+        assertThat(jdbc.queryForObject("""
+                SELECT to_char(next_run_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'ID HH24:MI')
+                  FROM reminder WHERE id = ?
+                """, String.class, supported))
+                .isIn("3 09:00", "7 09:00");
+        assertThat(jdbc.queryForObject(
+                "SELECT next_run_at FROM reminder WHERE id = ?", java.time.OffsetDateTime.class, unsupported))
+                .isNull();
+    }
+
+    private UUID insertLegacyRrule(UUID userId, UUID catId, String rrule) {
+        return jdbc.queryForObject("""
+                INSERT INTO reminder (user_id, cat_id, type, schedule_kind, rrule,
+                                      preferred_time_start, timezone, next_run_at, channels,
+                                      source, active)
+                VALUES (?, ?, 'SCAN_ROUTINE', 'RRULE', ?, '09:00', 'Asia/Ho_Chi_Minh',
+                        NULL, '["PUSH"]'::jsonb, 'USER', true)
+                RETURNING id
+                """, UUID.class, userId, catId, rrule);
+    }
+
+    @Test
     void creditExpiryRemindersAreLeftToTheCreditJob() {
         UUID userId = insertUser();
         jdbc.update("""

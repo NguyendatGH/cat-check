@@ -83,6 +83,46 @@ class ReminderServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", ReminderErrorCode.REMINDER_SCHEDULE_INVALID);
     }
 
+    @Test
+    void legacyUnsupportedRruleCanStillBeDeactivated() {
+        repository.stored = legacyRrule(true);
+
+        Reminder updated = service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, null, null, null, null, false));
+
+        assertThat(updated.active()).isFalse();
+        assertThat(updated.nextRunAt()).isNull();
+    }
+
+    @Test
+    void legacyUnsupportedRruleIsStillRejectedWhenActiveOrChanged() {
+        repository.stored = legacyRrule(true);
+        assertThatThrownBy(() -> service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, null, null, null, List.of("PUSH"), null)))
+                .isInstanceOf(BusinessRuleException.class);
+
+        repository.stored = legacyRrule(false);
+        assertThatThrownBy(() -> service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, "FREQ=YEARLY", null, null, null, false)))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    void patchingToASupportedRruleSchedulesIt() {
+        repository.stored = legacyRrule(true);
+
+        Reminder updated = service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, "FREQ=WEEKLY;BYDAY=WE,SU", null, null, null, null));
+
+        assertThat(updated.nextRunAt()).isEqualTo(Instant.parse("2026-10-04T02:00:00Z"));
+    }
+
+    private static Reminder legacyRrule(boolean active) {
+        return new Reminder(REMINDER_ID, USER_ID, CAT_ID, ReminderType.SCAN_ROUTINE, ScheduleKind.RRULE,
+                null, "FREQ=MONTHLY;BYMONTHDAY=1", LocalTime.of(9, 0), null, "Asia/Ho_Chi_Minh", null, null,
+                null, List.of("PUSH"), ReminderSource.USER, active, NOW, NOW);
+    }
+
     private static ReminderCommands.Create command() {
         return new ReminderCommands.Create(USER_ID, CAT_ID, ReminderType.SCAN_ROUTINE.name(), "INTERVAL",
                 7, null, LocalTime.of(9, 0), null, "Asia/Ho_Chi_Minh", List.of("PUSH"), "USER");
@@ -120,7 +160,10 @@ class ReminderServiceTest {
 
         @Override
         public Reminder update(Reminder reminder) {
-            throw failure;
+            if (failure != null) {
+                throw failure;
+            }
+            return reminder;
         }
 
         @Override public Optional<Reminder> findByIdForUser(UUID id, UUID userId) {
@@ -134,6 +177,12 @@ class ReminderServiceTest {
         @Override public List<UUID> findDueIds(Instant now, int limit) { return List.of(); }
         @Override public Optional<Reminder> lockDue(UUID id, Instant now) { return Optional.empty(); }
         @Override public void markDispatched(UUID id, Instant sentAt, Instant nextRunAt) {
+            throw new UnsupportedOperationException();
+        }
+        @Override public List<Reminder> findUnscheduledRrule(UUID afterId, int limit) {
+            throw new UnsupportedOperationException();
+        }
+        @Override public boolean scheduleIfUnscheduled(UUID id, Instant nextRunAt) {
             throw new UnsupportedOperationException();
         }
     }

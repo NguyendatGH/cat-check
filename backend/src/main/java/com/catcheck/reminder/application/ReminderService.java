@@ -119,7 +119,10 @@ public class ReminderService {
         List<String> channels = cmd.channels() != null ? validateChannels(cmd.channels()) : current.channels();
         boolean active = cmd.active() != null ? cmd.active() : current.active();
 
-        validateSchedule(kind, intervalDays, rrule);
+        boolean scheduleChanged = cmd.scheduleKind() != null || cmd.intervalDays() != null || cmd.rrule() != null;
+        if (active || scheduleChanged) {
+            validateSchedule(kind, intervalDays, rrule);
+        }
         validateTimeWindow(start, end);
 
         if (active && !current.active() && current.catId() != null) {

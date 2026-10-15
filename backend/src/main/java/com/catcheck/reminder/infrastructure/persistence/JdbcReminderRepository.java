@@ -149,6 +149,29 @@ class JdbcReminderRepository implements ReminderRepository {
                 """, sentAt, nextRunAt, id);
     }
 
+    @Override
+    public List<Reminder> findUnscheduledRrule(UUID afterId, int limit) {
+        return jdbc.query("SELECT " + COLUMNS + """
+                  FROM reminder
+                 WHERE active
+                   AND deleted_at IS NULL
+                   AND schedule_kind = 'RRULE'
+                   AND next_run_at IS NULL
+                   AND (CAST(? AS uuid) IS NULL OR id > ?)
+                 ORDER BY id
+                 LIMIT ?
+                """, (rs, rowNum) -> read(rs), afterId, afterId, limit);
+    }
+
+    @Override
+    public boolean scheduleIfUnscheduled(UUID id, Instant nextRunAt) {
+        return jdbc.update("""
+                UPDATE reminder
+                   SET next_run_at = ?, updated_at = now()
+                 WHERE id = ? AND active AND deleted_at IS NULL AND next_run_at IS NULL
+                """, nextRunAt, id) == 1;
+    }
+
     private Reminder read(ResultSet rs) throws SQLException {
         return new Reminder(
                 rs.getObject("id", UUID.class),

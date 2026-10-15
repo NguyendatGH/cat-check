@@ -27,4 +27,10 @@ public interface ReminderRepository {
     Optional<Reminder> lockDue(UUID id, Instant now);
 
     void markDispatched(UUID id, Instant sentAt, Instant nextRunAt);
+
+    /** Active RRULE reminders still without {@code next_run_at}, keyset by id. */
+    List<Reminder> findUnscheduledRrule(UUID afterId, int limit);
+
+    /** Sets {@code next_run_at} only while it is still NULL; returns whether a row changed. */
+    boolean scheduleIfUnscheduled(UUID id, Instant nextRunAt);
 }
