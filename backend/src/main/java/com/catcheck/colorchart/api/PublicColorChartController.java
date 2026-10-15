@@ -45,6 +45,8 @@ public class PublicColorChartController {
                 .toList();
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic())
+                // Nhãn phụ thuộc Accept-Language: thiếu Vary thì cache trả bản tiếng Anh cho người dùng tiếng Việt.
+                .varyBy(HttpHeaders.ACCEPT_LANGUAGE)
                 .body(bands);
     }
 
