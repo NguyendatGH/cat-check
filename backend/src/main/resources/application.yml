@@ -24,9 +24,9 @@ spring:
               - email
               - profile
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-        provider:
-          google:
-            issuer-uri: https://accounts.google.com
+        # Không đặt provider.google.issuer-uri: khi có, Spring gọi accounts.google.com lúc khởi động
+        # để lấy cấu hình và backend không chạy được khi mất mạng/DNS. Registration id "google" đã dùng
+        # endpoint + issuer cố định của CommonOAuth2Provider.GOOGLE.
   
   jpa:
     open-in-view: false
