@@ -74,7 +74,8 @@ class MigrationNamingTests {
                         "V26__job_run_columns.sql",
                         "V27__community_reaction_multi.sql",
                         "V28__replace_places_with_da_nang.sql",
-                        "V29__community_comment_replies_images.sql");
+                        "V29__community_comment_replies_images.sql",
+                        "V30__color_chart_active_unique_fix.sql");
     }
 
     @Test

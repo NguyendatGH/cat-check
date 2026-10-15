@@ -19,6 +19,10 @@ public enum ColorChartErrorCode implements ErrorCode {
 
     PH_BAND_OVERLAP("ph-band-overlap", HttpStatus.CONFLICT),
 
+    PH_BAND_COVERAGE_GAP("ph-band-coverage-gap", HttpStatus.CONFLICT),
+
+    PH_BAND_REQUIRED("ph-band-required", HttpStatus.CONFLICT),
+
     REASON_REQUIRED("reason-required", HttpStatus.BAD_REQUEST),
 
     ADMIN_ROLE_REQUIRED("admin-role-required", HttpStatus.FORBIDDEN),

@@ -59,6 +59,11 @@ class ChartBackfillServiceTest {
     private final RecordingJobRunPort jobRuns = new RecordingJobRunPort();
 
     private ChartBackfillService service(boolean placeholder) {
+        return service(placeholder, new NoOpTransactionManager());
+    }
+
+    private ChartBackfillService service(boolean placeholder,
+                                         org.springframework.transaction.PlatformTransactionManager txManager) {
         JobRunner runner = new JobRunner(
                 new JobRunRecorder(jobRuns, new UuidV7(CLOCK), CLOCK),
                 jobProperties(),
@@ -73,7 +78,7 @@ class ChartBackfillServiceTest {
                 Runnable::run,
                 new UuidV7(CLOCK),
                 CLOCK,
-                new NoOpTransactionManager());
+                txManager);
     }
 
     @Test
@@ -200,6 +205,23 @@ class ChartBackfillServiceTest {
     }
 
     @Test
+    void applyCommitsOneTransactionPerBatchInsteadOfOneForTheWholeJob() {
+        int rows = ChartBackfill.BATCH_SIZE + 1;
+        for (int i = 0; i < rows; i++) {
+            analysis(5.6, ScanClassification.LOW, new Lab(50.0, -10.0, -20.0));
+        }
+        CountingTransactionManager txManager = new CountingTransactionManager();
+        ChartBackfillService service = service(false, txManager);
+        service.startPreview(CHART_ID, Period.ofDays(90));
+        txManager.commits = 0;
+
+        service.startApply(CHART_ID);
+
+        assertEquals(2, txManager.commits, "501 dong = 2 lo, moi lo mot transaction rieng");
+        assertEquals(rows, analyses.store.values().stream().filter(a -> a.getRecomputeOf() != null).count());
+    }
+
+    @Test
     void impactIsEmptyWhenNoPreviewHasRun() {
         ChartBackfill.BackfillImpact impact = service(false).impact(CHART_ID);
 
@@ -234,6 +256,16 @@ class ChartBackfillServiceTest {
         analyses.store.put(analysis.getId(), analysis);
         analyses.computedAt.put(analysis.getId(), NOW);
         return analysis;
+    }
+
+    private static final class CountingTransactionManager extends NoOpTransactionManager {
+
+        private int commits;
+
+        @Override
+        public void commit(org.springframework.transaction.TransactionStatus status) {
+            commits++;
+        }
     }
 
     private static JobProperties jobProperties() {

@@ -37,9 +37,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -77,6 +80,20 @@ public class ColorPipelineService {
         List<PhBandClassifier.Band> bands = chartCatalog.findGlobalBands();
 
         RawImagePort.DecodedImage decoded = rawImagePort.decode(imageBytes);
+        // Every frame below holds native memory: close all of them when analysis ends, not at GC.
+        Set<VisionEngine.FrameHandle> frames = Collections.newSetFromMap(new IdentityHashMap<>());
+        frames.add(decoded.frame());
+        try {
+            return analyzeDecoded(decoded, roi, cardQuadHint, chart, bands, startedAtMillis, frames);
+        } finally {
+            closeAll(frames);
+        }
+    }
+
+    private PipelineOutcome analyzeDecoded(RawImagePort.DecodedImage decoded, RawImagePort.RoiRect roi,
+                                           VisionEngine.QuadHint cardQuadHint, PhChart chart,
+                                           List<PhBandClassifier.Band> bands, long startedAtMillis,
+                                           Set<VisionEngine.FrameHandle> frames) {
         int longEdge = Math.max(decoded.width(), decoded.height());
         if (longEdge < ScanThresholds.MIN_EDGE_PX) {
             throw new BusinessRuleException(ScanErrorCode.IMAGE_TOO_SMALL, longEdge, ScanThresholds.MIN_EDGE_PX);
@@ -85,8 +102,9 @@ public class ColorPipelineService {
             throw new BusinessRuleException(ScanErrorCode.IMAGE_TOO_LARGE, longEdge, ScanThresholds.MAX_EDGE_PX);
         }
 
-        VisionEngine.FrameHandle roiFrame = rawImagePort.cropToRoi(decoded.frame(), roi);
+        VisionEngine.FrameHandle roiFrame = track(frames, rawImagePort.cropToRoi(decoded.frame(), roi));
         VisionEngine.CardDetectionResult cardResult = visionEngine.detectCard(decoded.frame(), cardQuadHint);
+        track(frames, cardResult.canonicalCard());
         RawImagePort.QualityMetrics quality = rawImagePort.measureQuality(roiFrame);
 
         List<QualityFlag> flags = new ArrayList<>();
@@ -131,8 +149,10 @@ public class ColorPipelineService {
                 .findReferenceLab(ScanThresholds.DEFAULT_PRODUCT_LINE, null)
                 .orElse(null);
         RawImagePort.CalibrationResult calibration = rawImagePort.calibrate(roiFrame, referenceSubstrateLab);
+        track(frames, calibration.xyzFrame());
         if (cardResult.isUsable()) {
             calibration = tryCardCcm(cardResult.canonicalCard(), roiFrame, calibration, flags);
+            track(frames, calibration.xyzFrame());
         }
         if (calibration.method() == CalibrationMethod.NONE) {
             flags.add(new QualityFlag(QualityFlagCode.CALIBRATION_UNAVAILABLE, QualityFlagSeverity.WARN));
@@ -245,6 +265,23 @@ public class ColorPipelineService {
                 processingMs,
                 inconclusive ? null : ColorSpace.labToHex(sampleLab),
                 decoded.width(), decoded.height(), decoded.contentType());
+    }
+
+    private static <F extends VisionEngine.FrameHandle> F track(Set<VisionEngine.FrameHandle> frames, F frame) {
+        if (frame != null) {
+            frames.add(frame);
+        }
+        return frame;
+    }
+
+    private static void closeAll(Set<VisionEngine.FrameHandle> frames) {
+        for (VisionEngine.FrameHandle frame : frames) {
+            try {
+                frame.close();
+            } catch (RuntimeException ex) {
+                log.warn("scan.frame-close-failed type={}", ex.getClass().getSimpleName());
+            }
+        }
     }
 
     private PipelineOutcome inconclusiveOutcome(List<QualityFlag> flags, Map<String, Object> qualityMetricsJson,

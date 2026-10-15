@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -89,14 +90,38 @@ class ColorChartAdminServiceTest {
         assertEquals(3, draft.getVersion());
     }
 
+    @Test
+    void createDraftNormalisesBlankProductionBatchToNull() {
+        ColorChart draft = service.createDraft("CHART-BLANK", "Ban 1", ProductLine.STANDARD,
+                "   ", null, UUID.randomUUID());
+
+        assertNull(draft.getProductionBatch());
+    }
+
+    @Test
+    void createDraftMapsUniqueViolationToConflictInsteadOfFiveHundred() {
+        charts.throwOnNextDraftSave();
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> service.createDraft(
+                "CHART-RACE", "Ban 1", ProductLine.STANDARD, null, null, UUID.randomUUID()));
+
+        assertEquals(ColorChartErrorCode.COLOR_CHART_CODE_TAKEN, ex.errorCode());
+        assertEquals(409, ex.errorCode().status().value());
+    }
+
 
     private static final class FakeChartRepository implements ColorChartRepository {
 
         private final Map<UUID, ColorChart> store = new LinkedHashMap<>();
         private boolean throwOnNextActiveSave;
+        private boolean throwOnNextDraftSave;
 
         void throwOnNextActiveSave() {
             this.throwOnNextActiveSave = true;
+        }
+
+        void throwOnNextDraftSave() {
+            this.throwOnNextDraftSave = true;
         }
 
         UUID add(ChartStatus status, ProductLine productLine, String productionBatch, boolean placeholder) {
@@ -121,6 +146,9 @@ class ColorChartAdminServiceTest {
         public ColorChart save(ColorChart chart) {
             if (throwOnNextActiveSave && chart.getStatus() == ChartStatus.ACTIVE) {
                 throw new DataIntegrityViolationException("uq_color_chart_active_per_batch");
+            }
+            if (throwOnNextDraftSave && chart.getStatus() == ChartStatus.DRAFT) {
+                throw new DataIntegrityViolationException("uq_color_chart_code_version");
             }
             store.put(chart.getId(), chart);
             return chart;

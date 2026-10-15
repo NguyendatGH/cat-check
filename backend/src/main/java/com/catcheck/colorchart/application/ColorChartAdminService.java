@@ -78,7 +78,8 @@ public class ColorChartAdminService {
                 nextVersion,
                 name,
                 productLine,
-                productionBatch,
+                // Same normalisation as updateDraft: '' would miss the null-batch lookups.
+                productionBatch == null || productionBatch.isBlank() ? null : productionBatch,
                 cardLayoutId,
                 ChartStatus.DRAFT,
                 true,
@@ -94,7 +95,12 @@ public class ColorChartAdminService {
                 createdBy,
                 now,
                 now);
-        return colorChartRepository.save(chart);
+        try {
+            return colorChartRepository.save(chart);
+        } catch (DataIntegrityViolationException ex) {
+            // A concurrent create took the same (code, version): 409 instead of a raw 500.
+            throw new ConflictException(ColorChartErrorCode.COLOR_CHART_CODE_TAKEN, ex, code, nextVersion);
+        }
     }
 
 

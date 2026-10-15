@@ -76,9 +76,14 @@ public interface VisionEngine {
     record FrameSize(int width, int height) {
     }
 
-    interface FrameHandle {
+    // Frames may own off-heap (native) buffers: callers close them deterministically.
+    interface FrameHandle extends AutoCloseable {
 
         FrameSize size();
+
+        @Override
+        default void close() {
+        }
     }
 
     interface XyzFrame extends FrameHandle {

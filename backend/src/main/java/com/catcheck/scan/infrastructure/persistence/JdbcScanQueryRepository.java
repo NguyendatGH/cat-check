@@ -140,7 +140,7 @@ class JdbcScanQueryRepository implements ScanQueryRepository {
                    AND s.status = 'ANALYZED'
                    AND s.cat_id = ?
                    AND s.captured_at >= ?
-                 ORDER BY s.captured_at DESC
+                 ORDER BY s.captured_at DESC, s.id DESC
                  LIMIT ?
                 """;
         return jdbc.query(sql, (rs, n) -> new RuleRow(

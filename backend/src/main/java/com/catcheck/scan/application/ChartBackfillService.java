@@ -115,7 +115,9 @@ public class ChartBackfillService implements ChartBackfill {
 
     @Override
     public void startApply(UUID chartId) {
-        launch(APPLY_JOB, context -> runApply(context, chartId));
+        // No outer transaction: runApply commits one transaction per batch.
+        executor.execute(() -> jobRunner.run(APPLY_JOB, JobTriggerType.MANUAL, false,
+                context -> runApply(context, chartId)));
     }
 
 
@@ -169,7 +171,23 @@ public class ChartBackfillService implements ChartBackfill {
         Instant now = clock.instant();
         int processed = 0;
         int failed = 0;
-        for (ScanAnalysisRecompute draft : drafts) {
+        // One transaction per batch: short lock holds, and a bad batch does not undo committed ones.
+        // Re-running is safe: originals already replaced are no longer current and get skipped.
+        for (int from = 0; from < drafts.size(); from += BATCH_SIZE) {
+            List<ScanAnalysisRecompute> batch = drafts.subList(from, Math.min(from + BATCH_SIZE, drafts.size()));
+            int[] counts = transactionTemplate.execute(status -> applyBatch(batch, chart, now));
+            processed += counts[0];
+            failed += counts[1];
+        }
+        log.info("Backfill apply chart={} runId={} apDung={} boQua={}",
+                chartId, context.runId(), processed, failed);
+        return JobOutcome.of(processed, 0, failed, null);
+    }
+
+    private int[] applyBatch(List<ScanAnalysisRecompute> batch, PhChart chart, Instant now) {
+        int processed = 0;
+        int failed = 0;
+        for (ScanAnalysisRecompute draft : batch) {
             ScanAnalysis original = analysisRepository.findById(draft.getScanAnalysisId()).orElse(null);
             if (original == null || !original.isCurrent()) {
                 failed++;
@@ -189,9 +207,7 @@ public class ChartBackfillService implements ChartBackfill {
             }
             processed++;
         }
-        log.info("Backfill apply chart={} runId={} apDung={} boQua={}",
-                chartId, context.runId(), processed, failed);
-        return JobOutcome.of(processed, 0, failed, null);
+        return new int[] {processed, failed};
     }
 
 
