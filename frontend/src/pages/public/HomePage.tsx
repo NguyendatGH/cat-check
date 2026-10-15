@@ -53,12 +53,8 @@ export function HomePage() {
         >
           <img src={welcomeLogo} alt={t("app.name")} className="h-16 w-[96.09px] object-contain" />
           <div className="flex items-center justify-center gap-1 pt-2 opacity-90 lg:justify-start">
-            <span className="text-[11px] font-semibold uppercase leading-[14px] tracking-[0.55px] text-primary-dark">
-              {t("welcome.sloganLeft")}
-            </span>
-            <span className="text-[12px] uppercase leading-4 tracking-[0.55px] text-danger">❤</span>
-            <span className="text-[11px] font-semibold uppercase leading-[14px] tracking-[0.55px] text-primary-dark">
-              {t("welcome.sloganRight")}
+            <span className="text-[11px] font-semibold leading-[14px] tracking-[0.55px] text-primary-dark">
+              {t("welcome.slogan")}
             </span>
           </div>
           <p className="pt-0.5 text-[11px] font-semibold italic leading-[14px] text-text-secondary">

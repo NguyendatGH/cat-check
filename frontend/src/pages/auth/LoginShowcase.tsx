@@ -151,7 +151,7 @@ export function LoginShowcase() {
             </span>
             <span className="flex flex-col">
               <span className="text-[32px] font-extrabold leading-10 tracking-[-0.8px] text-background">CATCHECK</span>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.55px] text-on-primary-subtle">
+              <span className="text-[11px] font-semibold tracking-[0.55px] text-on-primary-subtle">
                 {t("web.signin.brandTagline")}
               </span>
             </span>

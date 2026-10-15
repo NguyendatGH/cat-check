@@ -117,8 +117,7 @@
   },
   "welcome": {
     "disclaimer": "Supports health monitoring • Does not replace a veterinary diagnosis",
-    "sloganLeft": "CHECK WITH CARE",
-    "sloganRight": "ALWAYS THERE",
+    "slogan": "check with care, always there",
     "sloganVi": "Check to understand, care to love",
     "slideTitle": "Smart care starts with daily observation",
     "slideBody": "Track changes in litter granule color and keep a record of your cat's urinary health over time.",
