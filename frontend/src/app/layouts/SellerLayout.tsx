@@ -1,7 +1,11 @@
+import { useCallback, useMemo } from "react";
 import { Outlet, NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { FlaskConical, LayoutDashboard, Lightbulb, Package, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { useSessionStore } from "@/entities/user";
+import { AdminAccessProvider, computeCapabilities, type RoleCheck } from "@/features/admin";
+import { ROLES, hasAnyRole } from "@/shared/auth/roles";
 import { ROUTE_PATTERNS } from "../router/routes";
 import { StaffLogoutButton } from "./shell/StaffLogoutButton";
 
@@ -18,6 +22,10 @@ const focusRing =
 export function SellerLayout() {
   const { t } = useTranslation("seller");
   const { pathname } = useLocation();
+  const roles = useSessionStore((state) => state.user?.roles);
+  const allows = useCallback<RoleCheck>((allowed) => hasAnyRole(roles, allowed), [roles]);
+  // Trang bảng màu / nội dung dùng chung với admin đọc quyền qua AdminAccessContext.
+  const capabilities = useMemo(() => computeCapabilities(ROLES, allows), [allows]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background md:flex-row">
@@ -72,7 +80,9 @@ export function SellerLayout() {
         </ul>
       </nav>
       <main className="min-w-0 flex-1 p-4 md:p-6 lg:p-8 animate-reveal">
-        <Outlet />
+        <AdminAccessProvider capabilities={capabilities}>
+          <Outlet />
+        </AdminAccessProvider>
       </main>
     </div>
   );
