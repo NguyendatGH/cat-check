@@ -21,7 +21,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { useCatList } from "@/features/cat";
-import { formatScanTimestamp, useScanHistory, useScanSummary } from "@/features/history";
+import { formatScanTimestamp, useLatestScanByCat, useScanHistory, useScanSummary } from "@/features/history";
 import { useReminders } from "@/features/reminder";
 import { useScanCaptureStore } from "@/features/scan";
 import { useEntitlement } from "@/features/credit";
@@ -37,7 +37,6 @@ import { useSessionStore } from "@/entities/user";
 import { CatAvatar, useCatStore } from "@/entities/cat";
 import type { Cat } from "@/entities/cat";
 import { displayableScanCount } from "@/entities/scan-result";
-import type { ScanListItem } from "@/entities/scan-result";
 import type { Reminder } from "@/features/reminder";
 import { ErrorState } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -155,13 +154,7 @@ export function DashboardPage() {
   const recentHasColor = recentScans.some((scan) => scan.thumbnailHex != null);
   const latestBand = latestScan ? bands?.find((b) => b.code === latestScan.bandCode) : undefined;
   const scale = buildScale(bands);
-  const latestByCat = useMemo(() => {
-    const map = new Map<string, ScanListItem>();
-    for (const scan of scans) {
-      if (scan.catId != null && !map.has(scan.catId)) map.set(scan.catId, scan);
-    }
-    return map;
-  }, [scans]);
+  const latestByCat = useLatestScanByCat(cats, scans, !isGuest && historyQuery.isSuccess);
   const navigate = useNavigate();
   const setStoreSelectedCat = useScanCaptureStore((s) => s.setSelectedCat);
   const setActiveCat = useCatStore((s) => s.setActiveCat);

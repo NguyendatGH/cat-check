@@ -23,7 +23,7 @@ export type {
 export { ActivityChart, dayKey } from "./ActivityChart";
 export { HistoryToolbar, HISTORY_RANGES, type HistoryRangeKey } from "./HistoryToolbar";
 export type { ActivityChartProps } from "./ActivityChart";
-export { historyKeys, useScanHistory, useScanSummary, useCat } from "./hooks";
+export { historyKeys, useLatestScanByCat, useScanHistory, useScanSummary, useCat } from "./hooks";
 export { apiFetch as historyApiFetch, fetchScanHistory, fetchScanSummary, fetchCat } from "./api";
 export { handlers, worker } from "./mocks";
 export type { HistoryFilterKey, HistoryFilterParams } from "./types";
