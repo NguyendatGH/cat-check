@@ -54,8 +54,14 @@ export function NotificationPreferencesForm({ className }: { className?: string 
   }
 
   const commit = (next: NotificationPreferences) => {
+    const saved = query.data;
     setDraft(next);
-    update.mutate(next);
+    update.mutate(next, {
+      // The save did not persist: put the controls back to the last server state.
+      onError: () => {
+        setDraft(saved);
+      },
+    });
   };
 
   return (

@@ -1,0 +1,283 @@
+{
+  "actions": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "logout": "Log out",
+    "retry": "Try again",
+    "loading": "Loading…"
+  },
+  "app": {
+    "name": "CatCheck",
+    "wordmark": "CATCHECK"
+  },
+  "comingSoon": {
+    "description": "This feature is in development and will open in a later phase.",
+    "title": "Coming soon"
+  },
+  "dashboard": {
+    "addCat": "Add cat",
+    "analyzed": "Analyzed",
+    "careTipLabel": "Daily care habit",
+    "catMeta": "{{age}} yrs • {{sex}}",
+    "catNoScan": "No scans yet",
+    "catsCount": "{{count}} cats registered",
+    "confidence": "Confidence: {{value}}",
+    "disclaimer": "CATCHECK supports daily health monitoring and does not replace a veterinarian's diagnosis.",
+    "guestBanner": {
+      "title": "You're browsing as a guest",
+      "body": "Log in to track your cat's real health profile and save your scan history.",
+      "login": "Log in",
+      "register": "Create account",
+      "shop": "Buy litter"
+    },
+    "guestName": "there",
+    "heroBadge": "pH color indicator",
+    "heroBody": "Photograph the litter tray to record the indicator granule color and your cat's urine pH.",
+    "heroTitle": "Scan Litter Color",
+    "latestMonitoring": "Latest check",
+    "noScanBody": "Scan the litter tray for the first time to see the pH reading and monitoring notes for your cat.",
+    "noScanTitle": "No checks yet",
+    "phReadoutLabel": "Urine pH reading",
+    "primaryCat": "Main cat",
+    "reminderEmpty": "No routine check scheduled",
+    "reminderManage": "Manage",
+    "reminderNext": "Scan reminder for {{name}} · {{when}}",
+    "reminderNextNoCat": "Next reminder · {{when}}",
+    "reminderTitle": "Next scheduled check",
+    "scaleAcid": "Acidic ({{value}})",
+    "scaleAlkaline": "Alkaline ({{value}})",
+    "scaleIdeal": "Reference range ({{min}} – {{max}})",
+    "scanHelp": "How to scan litter",
+    "sessionOf": "{{name}}'s check",
+    "startScan": "Start scan",
+    "today": "Today",
+    "viewAll": "View all",
+    "viewDetail": "View detailed analysis",
+    "yesterday": "Yesterday",
+    "yourCats": "Your cats",
+    "reminderOverdue": "Overdue since {{time}}",
+    "catScannedAt": "Scanned: {{time}}"
+  },
+  "forbidden": {
+    "description": "Your account doesn't have permission to view this page.",
+    "title": "Access denied"
+  },
+  "nav": {
+    "assistant": "AI assistant",
+    "cats": "My cats",
+    "community": "Community",
+    "credits": "Top up credits",
+    "dashboard": "Home",
+    "history": "History",
+    "mainLabel": "Main navigation",
+    "quickLabel": "Shortcuts",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "scan": "Scan",
+    "settings": "Settings",
+    "overview": "Overview",
+    "scanColor": "Scan litter color",
+    "historyAnalytics": "History & Analytics",
+    "catProfile": "Cat Profile",
+    "vetMap": "Vet Map",
+    "shop": "Litter Shop"
+  },
+  "pages": {
+    "accountPrivacy": {
+      "title": "Account privacy"
+    },
+    "dashboard": {
+      "title": "Dashboard"
+    },
+    "historyRedirect": {
+      "title": "History"
+    },
+    "home": {
+      "title": "Home"
+    },
+    "install": {
+      "title": "Install app"
+    },
+    "notFound": {
+      "title": "Page not found"
+    },
+    "offline": {
+      "title": "No network connection"
+    },
+    "sharedTrayLog": {
+      "title": "Shared litter tray log"
+    }
+  },
+  "placeholder": {
+    "todoDescription": "TODO: real content in a later milestone."
+  },
+  "welcome": {
+    "disclaimer": "Supports health monitoring • Does not replace a veterinary diagnosis",
+    "sloganLeft": "CHECK WITH CARE",
+    "sloganRight": "ALWAYS THERE",
+    "sloganVi": "Check to understand, care to love",
+    "slideTitle": "Smart care starts with daily observation",
+    "slideBody": "Track changes in litter granule color and keep a record of your cat's urinary health over time.",
+    "features": {
+      "scan": "Easy scanning",
+      "ph": "Urine pH reading",
+      "journal": "Health journal"
+    },
+    "ctaPrimary": "Get started",
+    "ctaSecondary": "Log in",
+    "ctaShop": "Buy litter",
+    "legalPrefix": "By continuing, you agree to our",
+    "legalTerms": "Terms",
+    "legalAnd": "&",
+    "legalPrivacy": "Privacy Policy",
+    "legalSuffix": ""
+  },
+  "upsell": {
+    "description": "Your current plan doesn't include this feature.",
+    "title": "Plan upgrade required"
+  },
+  "webShell": {
+    "searchPlaceholder": "Search cat profiles, clinics, products…",
+    "switcherWatching": "Monitoring",
+    "promoLabel": "SCANS",
+    "promoTitle": "Out of scans",
+    "promoNote": "Enter the activation code on your litter bag to add more.",
+    "switcherTitle": "{{name}} ({{breed}})",
+    "switcherMeta": "{{age}} yrs • Monitoring",
+    "switcherEmpty": "No cats yet",
+    "switcherEmptyCta": "Add cat profile",
+    "promoCta": "Enter activation code",
+    "searchLabel": "Search",
+    "searchGroupCats": "Cat profiles",
+    "searchGroupPlaces": "Clinics & facilities",
+    "searchGroupProducts": "Products",
+    "searchLoading": "Searching…",
+    "searchError": "Couldn't load search results.",
+    "searchEmpty": "No results for “{{query}}”.",
+    "latestScanLabel": "Latest scan · {{name}}",
+    "latestScanLabelNoCat": "Latest scan",
+    "latestScanValue": "pH {{value}} · {{label}}",
+    "creditsAvailable": "{{count}} scans left",
+    "creditsTrial": "{{count}} trial scans left",
+    "creditsExpiry": "Next batch expires: {{remaining}}"
+  },
+  "dashboardWeb": {
+    "capturedLabel": "Scan time",
+    "catsEmptyBody": "Add your first cat to start tracking litter granule color.",
+    "catsEmptyTitle": "No cat profiles yet",
+    "colAi": "CLASSIFICATION",
+    "colColor": "MEASURED COLOR",
+    "colDetail": "DETAILS",
+    "colPh": "PH",
+    "colTime": "TIME",
+    "colorimetryLabel": "LATEST SCAN",
+    "colorimetryTitle": "Litter granule color & pH level",
+    "ctaAddCat": "Add cat profile",
+    "ctaScan": "Scan litter now",
+    "emptyCell": "—",
+    "extracted": "Extracted result",
+    "greeting": "Hello, {{name}}!",
+    "logEmpty": "No scan records yet.",
+    "logTitle": "Last 5 scans",
+    "logViewAll": "View all {{count}} scans",
+    "monitorBadge": "DAILY MONITORING",
+    "phAxis": "{{value}} pH",
+    "phBig": "pH {{value}}",
+    "phValue": "pH {{value}}",
+    "range30": "30 days",
+    "range7": "7 days",
+    "range90": "90 days",
+    "safeBand": "pH reference range {{min}}–{{max}}",
+    "scaleAcid": "pH {{value}} (Acidic)",
+    "scaleAlkaline": "pH {{value}} (Alkaline)",
+    "scaleSafe": "Reference zone {{min}} - {{max}}",
+    "scanEmptyBody": "Scan the litter tray for the first time to see the color indicator and pH reading here.",
+    "scanEmptyTitle": "No scans yet",
+    "scannedAt": "Scanned: {{time}}",
+    "scheduleCta": "Set up smart reminder frequency",
+    "scheduleEmpty": "No active reminders.",
+    "scheduleEvery": "Routine scan every {{days}} days",
+    "scheduleLabel": "CARE SCHEDULE",
+    "scheduleRepeat": "Rule-based recurring reminder",
+    "scheduleTitle": "Routine check reminders",
+    "scheduleWhen": "{{when}} (Time window {{time}})",
+    "scheduleWhenPlain": "{{when}}",
+    "statAvg": "Average",
+    "statAvgValue": "{{value}} pH",
+    "statDeviation": "Standard deviation",
+    "statDeviationValue": "± {{value}}",
+    "statFrequency": "Scan frequency",
+    "statFrequencyValue": "{{value}} times/day",
+    "syncedAt": "Synced at {{time}}",
+    "today": "Today",
+    "trendEmpty": "Not enough data to show a trend for this period.",
+    "trendTitle": "pH trend over the last {{days}} days ({{name}})",
+    "weightKg": "{{value}} kg",
+    "measuredSwatch": "Measured granule color",
+    "confidenceLabel": "Result confidence",
+    "confidenceHIGH": "High",
+    "confidenceMEDIUM": "Medium",
+    "confidenceLOW": "Low",
+    "shortcutsLabel": "SHORTCUTS",
+    "shortcutsTitle": "Frequent tasks",
+    "shortcutAddCat": "Add a cat profile",
+    "shortcutAddCatNote": "Track each cat in your home separately",
+    "shortcutHistory": "Full scan log",
+    "shortcutHistoryNote": "Review all scans by month",
+    "shortcutExport": "Export PDF record",
+    "shortcutExportNote": "Bring it along to vet visits",
+    "introWish": "Wishing {{names}} a peaceful day.",
+    "introWishNoCat": "Wishing you a peaceful day.",
+    "introLatest": "{{name}}'s latest scan ({{when}}) showed pH {{value}} — {{label}}.",
+    "introLatestNoCat": "The latest scan ({{when}}) showed pH {{value}} — {{label}}.",
+    "introNoScan": "No scans yet — scan the litter tray to start tracking pH.",
+    "scheduleOverdue": "Overdue since {{time}}",
+    "scheduleScanFor": "{{title}} · {{name}}",
+    "loadError": "Couldn't load Home data",
+    "loadErrorBody": "Check your connection and try again.",
+    "otherCats": "Other cats"
+  },
+  "healthFlags": {
+    "countCta": "{{count}} signs to review",
+    "acknowledge": "Got it",
+    "acknowledged": "Acknowledged",
+    "window": "Period: {{from}} – {{to}}",
+    "hasMore": "Older signs are not shown here.",
+    "emptyTitle": "No signs to review",
+    "emptyDescription": "When a series of results moves outside the reference range, CatCheck will flag it here.",
+    "loadError": "Couldn't load monitoring signs",
+    "disclaimer": "Monitoring signs only describe changes in your series of scan results; they are not a diagnosis. Ask a vet if you notice your cat behaving unusually.",
+    "severity": {
+      "INFO": "Info",
+      "ATTENTION": "Needs attention",
+      "URGENT": "Act now"
+    },
+    "rule": {
+      "REPEATED_OUT_OF_RANGE": "Repeatedly outside reference range",
+      "BASELINE_DEVIATION": "Deviation from your cat's own baseline",
+      "MONOTONIC_TREND": "Steady one-directional trend",
+      "LOW_QUALITY_STREAK": "Consecutive low-quality scan photos",
+      "URGENT_CLINICAL_SIGN": "Signs you recorded yourself"
+    },
+    "message": {
+      "rule": {
+        "REPEATED_OUT_OF_RANGE": {
+          "message": "Repeated readings — In the last {{windowHours}} hours, this cat had {{n}} readings outside the 6.3–6.6 reference range, all leaning the same way. One off reading usually means little, but a repeat is worth a closer look. You can check that your cat is drinking enough, whether the food changed recently, and scan 1–2 more times tomorrow. This is an observation from litter color, not a diagnosis. If your cat strains to pee, stops eating or cries when using the litter box, take them to a vet."
+        },
+        "BASELINE_DEVIATION": {
+          "message": "Different from usual — Today's reading for this cat is {{ph}}, which differs by {{delta}} from their usual level ({{baseline}}). Every cat has its own baseline, so a change compared with the same cat is usually more telling than a comparison with the general average. Note whether the food, litter or home changed recently or anything stressed your cat, and scan again in 12–24 hours to see if the reading returns to its usual level. This is an observation from litter color, not a diagnosis."
+        },
+        "MONOTONIC_TREND": {
+          "message": "A trend to watch — This cat's latest scans ({{phSeries}}) are gradually shifting in one direction. A trend usually means more than a single number because it is less affected by the conditions of each photo. Try scanning once a day for the next 3 days to see if the trend continues. If you recently changed food, note down when. This is an observation from litter color, not a diagnosis."
+        },
+        "LOW_QUALITY_STREAK": {
+          "message": "Tips for better scans — {{n}} recent scans had low confidence. Try placing the reference color card inside the frame, holding the camera 15–25 cm from the litter, using white light, and keeping your shadow off the litter."
+        },
+        "URGENT_CLINICAL_SIGN": {
+          "message": "⚠️ Please take your cat to a vet today. You reported signs that should not be monitored at home. In cats, straining to pee or being unable to pee can become dangerous very quickly, within a day. Do this now: call the nearest vet clinic and describe exactly what you observed. Do not wait for the next scan or until tomorrow. CatCheck only helps track litter color and cannot assess this situation. This information does not replace a veterinary examination."
+        }
+      }
+    }
+  }
+}

@@ -47,7 +47,7 @@ export function useCreditLedger(): UseInfiniteQueryResult<InfiniteData<LedgerPag
       return apiFetch<LedgerPage>(`/credits/ledger${qs}`);
     },
     initialPageParam: null,
-    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined),
     staleTime: 2 * 60 * 1000,
   });
 }

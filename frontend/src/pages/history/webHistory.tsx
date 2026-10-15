@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, CheckCircle2, ChevronRight, LineChart } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, HelpCircle, LineChart } from "lucide-react";
 import { CatAvatar } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
@@ -298,7 +298,12 @@ export function WebHistoryScreen({
                             bands.find((b) => b.code === scan.bandCode) ??
                             findBandForPh(bands, scan.phValue ?? Number.NaN);
                           const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
-                          const StatusIcon = band?.severity === "NORMAL" ? CheckCircle2 : AlertTriangle;
+                          const StatusIcon =
+                            band?.severity === "NORMAL"
+                              ? CheckCircle2
+                              : scan.classification === "INCONCLUSIVE" || band?.severity === "NEUTRAL"
+                                ? HelpCircle
+                                : AlertTriangle;
                           return (
                             <li key={scan.scanId} className="relative">
                               <span

@@ -1,0 +1,34 @@
+{
+  "network": {
+    "generic": "Something went wrong. Please try again.",
+    "offline": "No network connection."
+  },
+  "validation": {
+    "generic": "Invalid value.",
+    "required": "This field is required.",
+    "tooBig": "Value is too large.",
+    "tooSmall": "Value is too small."
+  },
+  "notFound": {
+    "lead": "The link you opened doesn't exist, has been renamed, or is an old link that's no longer valid.",
+    "pathLabel": "Path you opened",
+    "homeCta": "Go to home",
+    "backCta": "Back to previous page",
+    "shortcutsTitle": "You might be looking for",
+    "shortcutCats": "Cat profiles",
+    "shortcutHistory": "Tracking history",
+    "shortcutScan": "Scan litter color"
+  },
+  "offlinePage": {
+    "lead": "Your device is offline.",
+    "body": "The CatCheck interface is stored on your device, so it still opens without a connection. But anything from the server — new scans, history, reminders, your cats' profiles — needs a connection to load or send.",
+    "statusOnline": "You're back online. Reload the page to continue.",
+    "statusOffline": "Offline — can't reach the server yet.",
+    "retryCta": "Reload page",
+    "homeCta": "Go to home",
+    "tipsTitle": "While you wait for a connection",
+    "tip1": "Check your Wi-Fi or mobile data, then tap Reload page.",
+    "tip2": "The photo you just took hasn't been sent and CatCheck doesn't keep an offline queue yet — please scan again once you're back online.",
+    "tip3": "If you've added CatCheck to your home screen, reopening it from that icon gives the same result as this page."
+  }
+}

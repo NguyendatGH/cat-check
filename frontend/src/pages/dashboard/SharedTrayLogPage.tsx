@@ -32,7 +32,7 @@ export function SharedTrayLogPage() {
       return historyApiFetch<ScanListPage>(`/scans?${qs.toString()}`);
     },
     initialPageParam: null as string | null,
-    getNextPageParam: (lastPage: ScanListPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
+    getNextPageParam: (lastPage: ScanListPage) => (lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined),
   });
 
   const items: ScanListItem[] = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);

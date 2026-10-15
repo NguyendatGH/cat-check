@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { i18n, TFunction } from "i18next";
 import { AlertTriangle, Bell, Check, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Button, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -19,6 +20,26 @@ function severityStyle(severity: HealthFlagSeverity) {
   return SEVERITY_STYLE[severity] ?? SEVERITY_FALLBACK;
 }
 
+/**
+ * Explanation text for a flag: the client-side `messageKey` translation (looked up under
+ * `common:healthFlags.message.<messageKey>`, interpolated with `messageParams`) when the
+ * ACTIVE language has it; otherwise the server's Vietnamese snapshot `explanationVi`.
+ */
+export function resolveFlagExplanation(
+  flag: Pick<HealthFlagView, "messageKey" | "messageParams" | "explanationVi">,
+  t: TFunction<"common">,
+  i18n: Pick<i18n, "exists" | "resolvedLanguage" | "language">,
+): string | null {
+  if (flag.messageKey) {
+    const key = `healthFlags.message.${flag.messageKey}`;
+    const lng = i18n.resolvedLanguage ?? i18n.language;
+    if (i18n.exists(key, { ns: "common", lng, fallbackLng: false })) {
+      return t(key, { ...flag.messageParams, lng } as never) as unknown as string;
+    }
+  }
+  return flag.explanationVi;
+}
+
 export interface HealthFlagRowProps {
   flag: HealthFlagView;
   onAcknowledge: (flagId: string) => void;
@@ -28,6 +49,7 @@ export interface HealthFlagRowProps {
 export function HealthFlagRow({ flag, onAcknowledge, acknowledging }: HealthFlagRowProps) {
   const { t, i18n } = useTranslation("common");
   const { chip, icon: Icon } = severityStyle(flag.severity);
+  const explanation = resolveFlagExplanation(flag, t, i18n);
 
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-3">
@@ -44,8 +66,8 @@ export function HealthFlagRow({ flag, onAcknowledge, acknowledging }: HealthFlag
         </span>
       </div>
 
-      {flag.explanationVi ? (
-        <p className="text-caption leading-relaxed text-text-secondary">{flag.explanationVi}</p>
+      {explanation ? (
+        <p className="text-caption leading-relaxed text-text-secondary">{explanation}</p>
       ) : null}
 
       <div className="flex items-center justify-between gap-2">

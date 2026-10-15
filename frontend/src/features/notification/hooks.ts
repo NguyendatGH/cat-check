@@ -38,7 +38,7 @@ export function useNotificationInbox(enabled = true): UseInfiniteQueryResult<Inf
     },
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage: NotificationListResponse) =>
-      lastPage.page.hasMore ? lastPage.page.nextCursor : undefined,
+      lastPage.page.hasMore ? (lastPage.page.nextCursor ?? undefined) : undefined,
   });
 }
 

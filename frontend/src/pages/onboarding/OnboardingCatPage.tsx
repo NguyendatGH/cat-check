@@ -39,6 +39,7 @@ import {
 } from "@/features/onboarding";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
 import { isApiError } from "@/shared/api";
+import { localIsoDate } from "@/shared/lib/format/locale";
 
 
 function monthsSinceBirth(birthDate: string): number | null {
@@ -463,7 +464,7 @@ export function OnboardingCatPage() {
             <Input
               id="birthDate"
               type="date"
-              max={new Date().toISOString().slice(0, 10)}
+              max={localIsoDate()}
               leftIcon={<CalendarDays className="size-5" aria-hidden="true" />}
               helperText={t("cat.birthDate.hint")}
               error={errors.birthDate ? t(errors.birthDate.message ?? "") : undefined}

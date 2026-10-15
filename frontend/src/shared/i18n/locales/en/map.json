@@ -1,0 +1,148 @@
+{
+  "page": {
+    "title": "Cat care map",
+    "subtitle": "Find vet clinics and emergency care near you.",
+    "body": "A list of vet clinics, emergency care, labs and stores compiled by CatCheck. Details may change, so call ahead before you go.",
+    "placeCount": "{{count}} places"
+  },
+  "location": {
+    "use": "Use current location",
+    "refresh": "Update location",
+    "requesting": "Getting your current location…",
+    "ready": "Sorting places from nearest to farthest based on your current location (accuracy about ±{{accuracy}} m).",
+    "approximate": "Only an approximate area could be determined (accuracy about ±{{accuracy}} m), so distances are for reference only.",
+    "denied": "Location permission not granted, so all places are shown. Allow location in your browser to see distances.",
+    "unavailable": "Couldn't get your location, so all places are shown. Check your GPS and try again.",
+    "manual": "Allow your browser to share your location to see the distance to each place.",
+    "nearbyLoading": "Looking for vet clinics near you on OpenStreetMap…",
+    "nearbyFound": "Found {{count}} more vet clinics near you from OpenStreetMap.",
+    "nearbyNone": "No additional vet clinics found within {{radius}} km on OpenStreetMap.",
+    "moreOnGoogle": "Find more near you on Google Maps",
+    "nearbyError": "Couldn't look up clinics near you on OpenStreetMap; showing the CatCheck list."
+  },
+  "source": {
+    "osm": "OpenStreetMap",
+    "osmNote": "From OpenStreetMap community data, not verified by CatCheck. Directions and calling only; booking through CatCheck isn't available yet."
+  },
+  "search": {
+    "placeholder": "Enter a ward, district or place name…",
+    "label": "Search by area or place name",
+    "clear": "Clear search"
+  },
+  "filters": {
+    "label": "Filter by place type",
+    "all": "All"
+  },
+  "kind": {
+    "clinic": "Clinic",
+    "emergency": "Emergency",
+    "lab": "Lab",
+    "store": "Store"
+  },
+  "map": {
+    "onMap": "{{count}} places on the map",
+    "nearYou": "Near your location",
+    "currentLocation": "Your current location",
+    "recenter": "Back to current location",
+    "pinLabel": "Select {{name}} on the map",
+    "attribution": "Map uses OpenStreetMap data; pins come from coordinates in CatCheck's place list and from vet clinics near you recorded by the OpenStreetMap community."
+  },
+  "rating": {
+    "empty": "No reviews yet",
+    "count": "({{count}} reviews)"
+  },
+  "distance": {
+    "km": "{{value}} km away",
+    "meters": "{{value}} m away"
+  },
+  "list": {
+    "title": "Places in the list",
+    "otherTitle": "Other places in the list",
+    "selected": "Selected on the map",
+    "specialties": "Specialties listed by the place",
+    "loading": "Loading places…",
+    "loadError": "Couldn't load the list of places.",
+    "empty": "No places match this filter.",
+    "emptyQuery": "No places match \"{{query}}\".",
+    "reset": "Show all places",
+    "dataNote": "Names, addresses, phone numbers and specialties are compiled by CatCheck and have not been confirmed by the places themselves.",
+    "recommendedTitle": "Recommended",
+    "recommendedBadge": "Nearest"
+  },
+  "actions": {
+    "call": "Call place",
+    "callShort": "Call",
+    "directions": "Directions",
+    "directionsNamed": "Directions to {{name}}",
+    "detail": "View details",
+    "book": "Book",
+    "showOnMap": "Show on map",
+    "showOnMapNamed": "Show {{name}} on the map",
+    "mapShort": "Map",
+    "viewMap": "View map",
+    "closeCard": "Close place card",
+    "backToMap": "Vet map"
+  },
+  "clinic": {
+    "breadcrumb": "Breadcrumb",
+    "locationTitle": "Location",
+    "addressLabel": "Address",
+    "areaLabel": "Area",
+    "phoneLabel": "Phone",
+    "specialtiesTitle": "Specialties listed by the place",
+    "dataNotice": "Place details are compiled by CatCheck and have not been confirmed by the place itself. Call to confirm before you go.",
+    "bookCta": "Book a visit",
+    "sharePdfCta": "Export PDF report",
+    "notFoundTitle": "Place not found",
+    "notFound": "This place is no longer listed or the link is incorrect.",
+    "loadErrorTitle": "Couldn't load place details",
+    "loadError": "Check your connection and try again."
+  },
+  "reviews": {
+    "title": "Reviews from cat owners",
+    "loading": "Loading reviews…",
+    "loadError": "Couldn't load reviews.",
+    "retry": "Try again",
+    "empty": "No reviews yet. You could be the first to share.",
+    "anonymous": "Cat owner · Anonymous",
+    "showingLatest": "Showing the {{shown}}/{{total}} latest reviews.",
+    "formTitle": "Share your review",
+    "ratingLabel": "Choose a star rating",
+    "ratingValue": "{{value}}/5 stars",
+    "ratingRequired": "Please choose a star rating before submitting.",
+    "bodyLabel": "Comments (optional)",
+    "bodyPlaceholder": "Share your actual experience at this place…",
+    "submit": "Submit review",
+    "submitting": "Sending…",
+    "upsertNote": "Each account keeps one review per place; submitting again replaces your previous review.",
+    "sent": "Your review has been saved.",
+    "authError": "Your session has expired. Please sign in again and resubmit.",
+    "error": "Couldn't submit your review. Please try again."
+  },
+  "booking": {
+    "title": "Book a visit",
+    "subtitle": "Send a request to the place; they'll contact you to confirm the date and time.",
+    "sheetSubtitle": "Send a request to {{name}}; they'll contact you to confirm the date and time.",
+    "requestDisclaimer": "This is a booking request, not a confirmed appointment.",
+    "serviceLabel": "Requested service",
+    "otherService": "Other service",
+    "dateLabel": "Preferred date",
+    "today": "Today",
+    "timeLabel": "Preferred time",
+    "noteLabel": "Note for the place",
+    "notePlaceholder": "Describe what you've noticed about your cat, or the service you need…",
+    "validation": {
+      "date": "Please choose a preferred date.",
+      "time": "Please enter a preferred time.",
+      "pastTime": "The preferred time must be later than now."
+    },
+    "submit": "Send booking request",
+    "submitting": "Sending request…",
+    "requestSent": "Request sent for {{date}} at {{time}}. The appointment is only valid once the place contacts you to confirm.",
+    "slotTaken": "This time slot already has another request. Please choose a different time.",
+    "authError": "Your session has expired. Please sign in again and resubmit.",
+    "invalidError": "The request details are invalid. Check the date, time and note.",
+    "requestError": "Couldn't send the request. Please try again.",
+    "callClinic": "Call place · {{phone}}"
+  }
+}

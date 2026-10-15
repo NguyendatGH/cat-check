@@ -1,0 +1,340 @@
+{
+  "pages": {
+    "activate": {
+      "title": "Activate plan"
+    },
+    "cat": {
+      "title": "Cat profile"
+    },
+    "disclaimer": {
+      "title": "Medical disclaimer"
+    },
+    "healthSurvey": {
+      "title": "Health survey"
+    },
+    "success": {
+      "title": "Setup complete"
+    }
+  },
+  "stepper": {
+    "label": "Step {{current}} of {{total}}",
+    "steps": {
+      "cat": "Cat profile",
+      "healthSurvey": "Health",
+      "disclaimer": "Disclaimer",
+      "activate": "Activate plan",
+      "success": "Done"
+    }
+  },
+  "cat": {
+    "title": "Cat profile",
+    "subtitle": "This information helps CatCheck calibrate results for your cat's age and breed.",
+    "avatar": {
+      "label": "Profile photo",
+      "add": "Add photo",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "hint": "Take a photo or upload from your library (JPG/PNG, max 5MB).",
+      "invalidType": "Only JPG or PNG images are supported.",
+      "tooLarge": "Images can be at most 5MB."
+    },
+    "name": {
+      "label": "Cat's name",
+      "placeholder": "e.g. Bánh Bao",
+      "required": "Please enter your cat's name.",
+      "tooLong": "Name can be at most 50 characters."
+    },
+    "breed": {
+      "label": "Breed",
+      "placeholder": "Choose a breed",
+      "all": "All breeds",
+      "unknown": "Unknown",
+      "required": "Please choose a breed.",
+      "searchPlaceholder": "Search breeds…",
+      "empty": "No matching breeds found.",
+      "loading": "Loading breeds…",
+      "loadError": "Couldn't load breeds."
+    },
+    "sex": {
+      "label": "Biological sex",
+      "required": "Please choose a sex.",
+      "male": "Male",
+      "female": "Female",
+      "unknown": "Unknown",
+      "maleDesc": "Male cat",
+      "femaleDesc": "Female cat",
+      "unknownDesc": "Not determined"
+    },
+    "neutered": {
+      "label": "Spayed/neutered"
+    },
+    "birthDate": {
+      "label": "Date of birth",
+      "placeholder": "DD/MM/YYYY",
+      "hint": "Leave blank if you only know an approximate age.",
+      "invalid": "Invalid date of birth.",
+      "future": "Date of birth can't be in the future."
+    },
+    "weight": {
+      "label": "Weight",
+      "placeholder": "e.g. 4.2",
+      "invalid": "Weight must be between 0.5 and 15 kg.",
+      "unit": "kg"
+    },
+    "submit": "Next: Health survey",
+    "saving": "Saving profile…",
+    "addAnother": "Add another cat",
+    "addedToast": "New cat added.",
+    "limitError": {
+      "title": "Cat profile limit reached",
+      "description": "Your current plan allows up to {{max}} cat profiles. Activate a higher plan to add another cat."
+    }
+  },
+  "survey": {
+    "title": "Initial health survey",
+    "subtitle": "Helps CatCheck set a baseline and suitable reminders for {{catName}}.",
+    "forCat": "Just for {{catName}}",
+    "yourCat": "your cat",
+    "skip": "Skip for now",
+    "skipConfirm": {
+      "title": "Skip the survey?",
+      "description": "You can complete the survey later in Settings. The cat profile will still be activated as usual.",
+      "confirm": "Skip",
+      "cancel": "Keep answering"
+    },
+    "submit": "Next: Confirm medical disclaimer",
+    "saving": "Saving survey…",
+    "questions": {
+      "litterType": {
+        "label": "Type of litter you use at home",
+        "required": "Please choose a litter type.",
+        "options": {
+          "CATCHECK_SMART": "CatCheck smart litter",
+          "BENTONITE": "Bentonite clay litter",
+          "TOFU_WOOD": "Tofu / organic wood litter",
+          "SILICA": "Silica crystal litter"
+        },
+        "meta": "Choose 1",
+        "recommended": "Recommended",
+        "descriptions": {
+          "CATCHECK_SMART": "Indicator granules change color with urine pH.",
+          "BENTONITE": "Clumps quickly, with its own surface reflectance and stickiness.",
+          "TOFU_WOOD": "Convenient to flush, light-colored base.",
+          "SILICA": "Highly absorbent silica granules."
+        }
+      },
+      "urinaryHistory": {
+        "label": "Does your cat have a history of urinary problems?",
+        "required": "Please choose an answer.",
+        "options": {
+          "NONE": "None / My cat is healthy",
+          "CYSTITIS_OR_STONES": "Has had cystitis or stones",
+          "UNKNOWN": "Not sure / Newly adopted cat"
+        },
+        "notes": {
+          "CYSTITIS_OR_STONES": "Needs closer monitoring",
+          "UNKNOWN": "Set up a baseline"
+        }
+      },
+      "dietType": {
+        "label": "Your cat's main diet",
+        "required": "Please choose a diet.",
+        "options": {
+          "DRY": "Dry kibble",
+          "WET": "Pate / Wet food",
+          "MIXED": "A mix of both",
+          "RAW": "Fresh raw meat"
+        },
+        "meta": "Affects pH",
+        "descriptions": {
+          "DRY": "Standard kibble",
+          "WET": "Provides plenty of water",
+          "MIXED": "Alternating kibble & pate",
+          "RAW": "Fresh raw food"
+        }
+      },
+      "urinationFrequency": {
+        "label": "Average urination frequency per day",
+        "required": "Please choose a frequency.",
+        "options": {
+          "1_2_PER_DAY": "1–2 times/day",
+          "3_4_PER_DAY": "3–4 times/day",
+          "MORE_THAN_5": "More than 5 times/day",
+          "UNKNOWN": "Not sure"
+        }
+      },
+      "symptoms": {
+        "label": "Unusual signs in the past 6 months",
+        "hint": "Choose all that apply",
+        "required": "Please choose at least one answer.",
+        "options": {
+          "NONE": "None / My cat is healthy",
+          "STRAINING": "Straining, sitting in the tray for a long time",
+          "CRYING": "Crying or yowling while urinating",
+          "FREQUENT_LITTER": "Going to the tray often but it stays dry",
+          "BLOOD_VISIBLE": "Blood in urine",
+          "LETHARGY": "Not eating, vomiting, very lethargic"
+        },
+        "exclusiveNone": "Can't be selected together with other signs."
+      }
+    },
+    "definitionError": "Couldn't load the survey questions. Please try again."
+  },
+  "disclaimer": {
+    "title": "Medical disclaimer",
+    "subtitle": "Please read carefully before you start monitoring.",
+    "scrollHint": "Scroll to the end to confirm",
+    "readDone": "All read — please confirm below",
+    "ack": "I have read and understand",
+    "ackRequired": "Please confirm that you have read this.",
+    "continue": "Next: Activate plan",
+    "content": {
+      "heading": "CatCheck helps you monitor, it does not diagnose",
+      "intro": "CatCheck records the color of the indicator granules in the litter tray and tracks changes over time. What you see in the app is observational information for reference only — it is not a lab test result, not a medical diagnosis, and does not replace an examination or testing at a veterinary clinic.",
+      "points": [
+        "Color can be affected by many factors other than your cat's health: room lighting, your phone camera, the shooting angle, food, water, medications, humidity, and how long the litter has been in contact with urine.",
+        "A single result doesn't say much. What matters is the trend — repeated changes compared with your own cat's usual level. When you see an unusual result, a common approach is to keep monitoring for another 24–48 hours, except in the emergencies listed below.",
+        "CatCheck doesn't know which cat just used the tray. If you have several cats, you need to pick the right profile before saving a result. If you're not sure, skip that entry — data assigned to the wrong cat is noisier than no data at all.",
+        "A result within the reference range doesn't mean your cat is completely healthy. Many health problems don't change the characteristics of urine."
+      ],
+      "outro": "Every decision about your cat's health should be made together with a vet. Think of CatCheck as a monitoring journal to bring to vet visits, not something that answers in place of a vet."
+    }
+  },
+  "activate": {
+    "title": "Activate plan",
+    "subtitle": "Enter the code printed on your CatCheck packaging to get scans.",
+    "inputLabel": "Activation code",
+    "inputPlaceholder": "CC-PLUS-XXXXXXXXXX",
+    "formatHint": "Format: CC-<PLAN>-<10 characters>. The code is on the packaging or in your confirmation email.",
+    "invalidFormat": "The code format is incorrect. Check the code printed on the packaging (format CC-PLUS-XXXXXXXXXX).",
+    "required": "Please enter an activation code.",
+    "submit": "Activate",
+    "checking": "Checking…",
+    "skip": "Skip, try it first",
+    "skipHint": "You have {{count}} free trial scans left, no activation needed.",
+    "success": {
+      "title": "Activation successful",
+      "packageLabel": "Plan",
+      "creditsLabel": "Scans",
+      "creditsValue": "{{credits}} scans",
+      "expiresLabel": "Expires",
+      "continue": "Continue"
+    },
+    "errors": {
+      "malformed": "The activation code format is incorrect. Check the code printed on the packaging (format CC-PLUS-XXXXXXXXXX).",
+      "invalid": "Incorrect activation code. Check the code printed on the packaging.",
+      "alreadyUsed": "This code has already been used.",
+      "expired": "This code's activation period has expired."
+    },
+    "skipHintBalance": "You have {{count}} scans available.",
+    "skipHintNone": "You've used all your free trial scans."
+  },
+  "success": {
+    "title": "Setup complete",
+    "badge": "Your account is ready",
+    "welcome": "Welcome!",
+    "subtitle": "{{catName}}'s profile has been created. Your cat is ready to be monitored starting today.",
+    "summary": {
+      "title": "Profile summary",
+      "weight": "{{weight}} kg",
+      "sexLabel": "Sex",
+      "age": "Age",
+      "ageYears": "{{years}} yrs {{months}} mos",
+      "ageMonthsOnly": "{{months}} mos",
+      "sex": {
+        "male": "Male",
+        "female": "Female",
+        "unknown": "Unknown"
+      },
+      "neutered": "Spayed/neutered",
+      "notNeutered": "Not spayed/neutered",
+      "breed": "Breed",
+      "litter": "Litter type",
+      "surveyLabel": "Health survey",
+      "phRange": "pH reference range",
+      "catId": "Profile ID",
+      "surveyDone": "Survey completed",
+      "surveySkipped": "Survey not completed",
+      "unknown": "Unknown"
+    },
+    "credit": {
+      "title": "Scans",
+      "activated": "{{credits}} scans · valid until {{date}}",
+      "trial": "{{count}} free trial scans left",
+      "none": "No scans yet",
+      "available": "{{count}} scans available"
+    },
+    "cta": "Go to home",
+    "ctaScan": "Scan litter now",
+    "footer": "CatCheck supports at-home health monitoring — it does not diagnose illness or replace a vet.",
+    "loadingCat": "Loading cat profile…",
+    "noCat": "No cat profile found. Go back to the Cat profile step to create one.",
+    "noCatCta": "Create cat profile"
+  },
+  "web": {
+    "cat": {
+      "card": {
+        "title": "Cat health profile card",
+        "live": "The card updates live as you type.",
+        "namePlaceholder": "No name yet",
+        "breedPlaceholder": "No breed selected",
+        "unknown": "Unknown",
+        "weight": "{{weight}} kg",
+        "phLabel": "Urine pH reference range",
+        "phLoading": "Loading pH reference range…"
+      },
+      "nextSteps": {
+        "title": "Remaining steps",
+        "subtitle": "Once the profile is done, you'll move on through these steps."
+      }
+    },
+    "survey": {
+      "catCard": {
+        "created": "Profile created"
+      },
+      "phCard": {
+        "title": "pH reference range",
+        "body": "{{catName}}'s scan results will be compared against this range.",
+        "loading": "Loading pH reference range…"
+      },
+      "guide": {
+        "title": "Your first litter color scan",
+        "step1": {
+          "title": "Fill a fresh litter tray",
+          "body": "Make sure it's at least 4cm deep so complete clumps can form."
+        },
+        "step2": {
+          "title": "Wait for your cat to urinate",
+          "body": "Scan within 3–5 minutes after your cat goes, while the litter color is clearest."
+        },
+        "step3": {
+          "title": "Open the CatCheck camera",
+          "body": "Line up the circle on the discolored litter; the system balances the lighting automatically before reading the color."
+        }
+      }
+    },
+    "success": {
+      "roadmap": {
+        "title": "Your next 3 steps",
+        "badge": "Quick & easy",
+        "intro": "Start monitoring {{catName}} from the very next litter tray visit.",
+        "step1": {
+          "title": "Scan the litter color after your cat urinates",
+          "body": "Use the camera to scan the discolored litter in the tray within 1–2 minutes after your cat goes."
+        },
+        "step2": {
+          "title": "See the color analysis & pH reading",
+          "body": "CatCheck balances the lighting automatically, estimates pH, then compares it against the reference range."
+        },
+        "step3": {
+          "title": "Export a record to bring to vet visits",
+          "body": "Scan history is saved and can be exported to PDF for you to share with your vet."
+        }
+      }
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong, please try again.",
+    "network": "No network connection."
+  }
+}

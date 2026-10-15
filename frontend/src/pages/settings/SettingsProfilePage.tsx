@@ -144,6 +144,8 @@ export function SettingsProfilePage() {
       {
         onSuccess: (updated) => {
           queryClient.setQueryData(["auth", "profile"], updated);
+          const current = useSessionStore.getState().user;
+          if (current) setSession({ ...current, displayName: updated.fullName });
           reset({ fullName: updated.fullName, phone: updated.phone ?? "" });
           toast.success(t("profile.saved"));
         },

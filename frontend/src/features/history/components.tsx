@@ -9,6 +9,7 @@ import {
   ChevronRight,
   FileText,
   Flag,
+  HelpCircle,
   ListFilter,
   FileDown,
   ShieldCheck,
@@ -236,7 +237,8 @@ export function ScanTimelineItem({
   const { t } = useTranslation("history");
   const band = bands.find((b) => b.code === scan.bandCode);
   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
-  const isAbnormal = scan.classification !== "IN_RANGE";
+  const StatusIcon =
+    scan.classification === "IN_RANGE" ? CheckCircle : scan.classification === "INCONCLUSIVE" ? HelpCircle : AlertTriangle;
   const phLabel =
     scan.phValue != null
       ? t("item.phSummary", { label: band?.label ?? scan.classification, value: scan.phValue.toFixed(1) })
@@ -264,11 +266,7 @@ export function ScanTimelineItem({
         className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full", style.bg)}
         aria-hidden="true"
       >
-        {isAbnormal ? (
-          <AlertTriangle className={cn("size-4", style.text)} />
-        ) : (
-          <CheckCircle className={cn("size-4", style.text)} />
-        )}
+        <StatusIcon className={cn("size-4", style.text)} />
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col gap-1.5">

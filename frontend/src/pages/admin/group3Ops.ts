@@ -1,19 +1,18 @@
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
-import { hasRole, useSessionStore } from "@/entities/user";
 import { ApiError } from "@/shared/api";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
-import { ADMIN_REASON_MIN_LENGTH } from "@/features/admin";
-import { ROLES } from "@/shared/auth/roles";
+import { ADMIN_REASON_MIN_LENGTH, useAdminCan } from "@/features/admin";
+import type { ROLES } from "@/shared/auth/roles";
 
 export type Group3Capability = Extract<
   keyof typeof ROLES,
   "dashboard" | "jobs" | "jobRun" | "outbox" | "broadcast" | "broadcastIncident" | "auditLog"
 >;
 
+/** Narrowed view of {@link useAdminCan}; stable across renders while capabilities are unchanged. */
 export function useGroup3Can(): (key: Group3Capability) => boolean {
-  const user = useSessionStore((state) => state.user);
-  return (key) => hasRole(user, ROLES[key]);
+  return useAdminCan();
 }
 
 export const BROADCAST_TEMPLATES = ["SYSTEM_MAINTENANCE", "PRIVACY_INCIDENT_NOTICE"] as const;

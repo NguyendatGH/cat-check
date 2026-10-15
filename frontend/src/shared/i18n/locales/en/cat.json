@@ -1,0 +1,479 @@
+{
+  "pages": {
+    "detail": {
+      "title": "Cat profile"
+    },
+    "edit": {
+      "title": "Edit cat profile"
+    },
+    "list": {
+      "title": "Cats"
+    },
+    "new": {
+      "title": "Add a new cat"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "limitReached": "You've reached your plan's cat profile limit ({{max}} cats)."
+  },
+  "list": {
+    "filterActive": "Active",
+    "filterArchived": "Archived",
+    "createCta": "Add a new cat",
+    "emptyActiveTitle": "No cat profiles yet",
+    "emptyActiveDescription": "Add your first profile to start tracking health through the litter box.",
+    "emptyArchivedTitle": "No archived cats",
+    "emptyArchivedDescription": "Archived cats (passed away or rehomed) appear here. Their data and charts remain viewable.",
+    "errorTitle": "Couldn't load your cats",
+    "ariaList": "Cat list"
+  },
+  "form": {
+    "avatarSection": "Profile photo",
+    "name": {
+      "label": "Cat's name",
+      "placeholder": "e.g. Luna, Dumpling...",
+      "required": "Please enter your cat's name.",
+      "tooLong": "Name can be at most 60 characters."
+    },
+    "breed": {
+      "label": "Breed",
+      "placeholder": "Select a breed",
+      "unknown": "Unknown",
+      "searchPlaceholder": "Search breeds...",
+      "loading": "Loading breeds...",
+      "empty": "No matching breed found",
+      "required": "Please select a breed."
+    },
+    "breedOther": {
+      "label": "Other breed (if not listed)",
+      "placeholder": "e.g. Mixed, unknown breed..."
+    },
+    "coatColor": {
+      "label": "Coat color",
+      "placeholder": "e.g. Ginger, calico, black and white..."
+    },
+    "sex": {
+      "label": "Sex",
+      "male": "Male",
+      "female": "Female",
+      "unknown": "Unknown",
+      "required": "Please select a sex."
+    },
+    "neutered": {
+      "label": "Spayed / neutered"
+    },
+    "ageMode": {
+      "label": "How to enter age",
+      "birthDate": "I know the birth date",
+      "approx": "I only know the approximate age"
+    },
+    "birthDate": {
+      "label": "Date of birth",
+      "hint": "Doesn't have to be exact — an estimate is fine.",
+      "required": "Please enter a date of birth.",
+      "invalid": "Invalid date of birth.",
+      "future": "Date of birth can't be in the future."
+    },
+    "approxAgeMonths": {
+      "label": "Approximate age (months)",
+      "placeholder": "e.g. 18",
+      "required": "Please enter an approximate age.",
+      "invalid": "Approximate age must be between 0 and 360 months."
+    },
+    "weight": {
+      "label": "Weight (kg)",
+      "placeholder": "e.g. 4.2",
+      "invalid": "Weight must be between 0 and 30 kg."
+    },
+    "notes": {
+      "label": "General notes",
+      "placeholder": "Anything else about your cat (optional)"
+    },
+    "submit": "Save profile",
+    "saving": "Saving...",
+    "createSuccess": "Created profile for {{name}}.",
+    "updateSuccess": "Updated profile for {{name}}."
+  },
+  "avatar": {
+    "add": "Add profile photo",
+    "change": "Change profile photo",
+    "remove": "Remove profile photo",
+    "hint": "JPEG, PNG or WebP, up to 5MB.",
+    "invalidType": "Only JPEG, PNG or WebP images are accepted.",
+    "tooLarge": "Image is larger than 5MB."
+  },
+  "status": {
+    "active": "Active",
+    "archived": "Archived",
+    "primary": "Default cat"
+  },
+  "detail": {
+    "tabs": {
+      "overview": "Overview",
+      "notes": "Notes",
+      "history": "Health history"
+    },
+    "publicCode": "Profile code: {{code}}",
+    "ageFieldLabel": "Age",
+    "weightLabel": "{{weight}} kg",
+    "weightUpdatedAt": "Weight updated {{date}}",
+    "sexLabel": "Sex",
+    "neuteredLabel": "Spayed/neutered",
+    "neuteredYes": "Spayed/neutered",
+    "neuteredNo": "Not spayed/neutered",
+    "neuteredUnknown": "Spay/neuter status unknown",
+    "breedLabel": "Breed",
+    "coatColorLabel": "Coat color",
+    "notesLabel": "General notes",
+    "notFoundTitle": "Cat profile not found",
+    "notFoundDescription": "The profile may have been deleted or doesn't belong to your account.",
+    "errorTitle": "Couldn't load cat profile",
+    "birthChip": "Born: {{date}}",
+    "codeChip": "Code: {{code}}"
+  },
+  "actions": {
+    "edit": "Edit profile",
+    "setPrimary": "Set as default cat",
+    "archive": "Mark as passed away / rehomed",
+    "unarchive": "Resume tracking",
+    "delete": "Delete profile",
+    "reportSigns": "Report unusual signs",
+    "updateSurvey": "Update survey",
+    "addNote": "Add note",
+    "moreActions": "More actions",
+    "emergencySigns": "Signs that need a vet right away",
+    "emergencySignsHint": "A quick look at situations that shouldn't wait"
+  },
+  "confirm": {
+    "delete": {
+      "title": "Remove {{name}} from your account?",
+      "description": "The profile will be removed from your account's list. Scan history is kept, but this action can't be undone on your own.",
+      "confirm": "Remove from account",
+      "cancel": "Don't delete",
+      "alreadyDeleted": "This profile was already deleted."
+    },
+    "archive": {
+      "title": "Mark {{name}} as passed away / rehomed?",
+      "description": "Their data and charts stay viewable; they're just hidden from the cat picker when scanning. You can resume tracking at any time.",
+      "confirm": "Archive",
+      "cancel": "No, keep tracking"
+    },
+    "unarchive": {
+      "title": "Resume tracking {{name}}?",
+      "description": "This cat will reappear in the cat picker when scanning.",
+      "confirm": "Resume tracking",
+      "cancel": "Later"
+    },
+    "setPrimary": {
+      "title": "Set {{name}} as your default cat?",
+      "description": "The default cat is preselected on the capture screen and dashboard.",
+      "confirm": "Set as default",
+      "cancel": "Later",
+      "alreadyPrimary": "This cat is already the default.",
+      "requiresActive": "Only active cats can be set as default."
+    },
+    "removeAvatar": {
+      "title": "Remove profile photo?",
+      "description": "You can add another photo at any time.",
+      "confirm": "Remove photo",
+      "cancel": "Keep photo"
+    }
+  },
+  "notes": {
+    "emptyTitle": "No notes yet",
+    "emptyDescription": "Record daily observations about your cat — food changes, litter changes, vet visits... to have on hand when needed.",
+    "errorTitle": "Couldn't load notes",
+    "addTitle": "Add note",
+    "editTitle": "Edit note",
+    "deleteTitle": "Delete this note?",
+    "deleteDescription": "The note will be soft-deleted and no longer shown in the log.",
+    "deleteConfirm": "Delete note",
+    "deleteCancel": "Don't delete",
+    "editAction": "Edit",
+    "deleteAction": "Delete",
+    "types": {
+      "GENERAL": "General note",
+      "DIET_CHANGE": "Diet change",
+      "SYMPTOM": "Unusual observation",
+      "VET_VISIT": "Vet visit",
+      "LITTER_CHANGE": "Litter change"
+    },
+    "form": {
+      "noteType": {
+        "label": "Note type",
+        "required": "Please select a note type."
+      },
+      "body": {
+        "label": "Content",
+        "placeholder": "Any behaviors or changes today?",
+        "required": "Please enter the note content.",
+        "tooLong": "Content can be at most 2000 characters."
+      },
+      "occurredOn": {
+        "label": "Date it happened (optional)",
+        "invalid": "Invalid date.",
+        "future": "Date can't be in the future."
+      },
+      "submit": "Save note",
+      "saving": "Saving..."
+    }
+  },
+  "survey": {
+    "title": "Health survey",
+    "subtitle": "Helps personalize alerts and scan reminders for {{catName}}.",
+    "notSubmittedTitle": "No survey yet",
+    "notSubmittedDescription": "Answer 5 short questions to personalize tracking for your cat.",
+    "skippedLabel": "Survey skipped",
+    "lastSubmittedAt": "Last updated: {{date}}",
+    "startCta": "Start survey",
+    "updateCta": "Update survey",
+    "submit": "Save survey",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "errorTitle": "Couldn't load survey",
+    "questions": {
+      "litterType": {
+        "label": "Type of litter used at home",
+        "options": {
+          "CATCHECK_SMART": "CatCheck smart litter",
+          "CLAY": "Clay litter (bentonite)",
+          "TOFU": "Tofu litter",
+          "SILICA": "Silica litter",
+          "OTHER": "Other"
+        }
+      },
+      "urinaryHistory": {
+        "label": "Does your cat have a history of urinary problems?",
+        "options": {
+          "NONE": "Never had urinary problems",
+          "PAST": "Had them before, now stable",
+          "CURRENT": "Currently has urinary problems"
+        }
+      },
+      "dietType": {
+        "label": "Main diet",
+        "hint": "Affects urine pH",
+        "options": {
+          "DRY": "Dry kibble",
+          "WET": "Pate / wet food",
+          "MIXED": "A mix of both",
+          "RAW": "Raw fresh meat"
+        }
+      },
+      "urinationFrequency": {
+        "label": "Litter box visits per day",
+        "options": {
+          "LT_1_PER_DAY": "Less than once a day",
+          "1_2_PER_DAY": "1–2 times a day",
+          "GT_2_PER_DAY": "More than 2 times a day",
+          "UNKNOWN": "Haven't noticed / not sure"
+        }
+      },
+      "symptoms": {
+        "label": "Recent unusual signs (if any)",
+        "hint": "You can choose several — choose \"None\" if your cat is completely normal.",
+        "options": {
+          "NONE": "No unusual signs",
+          "STRAINING": "Straining a lot but passing very little",
+          "NO_URINE": "Visiting the tray repeatedly without passing urine",
+          "CRYING": "Crying in pain when using the litter box",
+          "BLOOD_VISIBLE": "Red or pink color in the urine",
+          "LETHARGY_ANOREXIA": "Not eating, very lethargic",
+          "EXCESSIVE_LICKING": "Unusual licking of the genital area"
+        }
+      }
+    }
+  },
+  "clinicalSigns": {
+    "title": "Report unusual signs",
+    "subtitle": "Log it as soon as you notice anything unusual — no need to wait for the next scan.",
+    "cta": "Report unusual signs",
+    "signs": {
+      "STRAINING": "Straining a lot but passing very little",
+      "NO_URINE": "Visiting the tray repeatedly without passing urine",
+      "CRYING": "Crying in pain",
+      "BLOOD_VISIBLE": "Red or pink color seen",
+      "LETHARGY_ANOREXIA": "Not eating, very lethargic",
+      "EXCESSIVE_LICKING": "Unusual licking"
+    },
+    "form": {
+      "signs": {
+        "label": "Which signs is your cat showing?",
+        "required": "Please select at least one sign."
+      },
+      "note": {
+        "label": "More details (optional)",
+        "placeholder": "e.g. started last night, along with...",
+        "tooLong": "Content can be at most 2000 characters."
+      },
+      "acknowledge": "I have read the warning above",
+      "acknowledgeRequired": "Please confirm you have read the warning before submitting.",
+      "submit": "Submit report",
+      "saving": "Submitting...",
+      "cancel": "Cancel"
+    },
+    "result": {
+      "triggeredTitle": "Recorded — please contact a vet right away",
+      "triggeredDescription": "The signs you selected match the urgent warning group. Don't wait and watch — take your cat to the nearest veterinary clinic.",
+      "okTitle": "Report recorded",
+      "okDescription": "Thanks for logging this. Keep monitoring your cat over the next 24–48 hours.",
+      "close": "Close"
+    }
+  },
+  "disclaimer": {
+    "short": "This is an at-home observation, not a medical diagnosis. If you're worried about your cat, ask a veterinarian.",
+    "emergencyCollapsedTitle": "Signs that need a vet right away — see details",
+    "emergency": {
+      "title": "⚠️ Signs that need a vet RIGHT AWAY — don't wait and watch",
+      "intro": "Take your cat to a veterinary clinic immediately if you notice:",
+      "points": [
+        "Your cat strains a lot but passes no urine, or only a few drops",
+        "Your cat cries, yowls or seems in pain when using the litter box",
+        "Your cat keeps going in and out of the tray but it stays dry",
+        "Blood in the urine",
+        "Your cat stops eating, vomits, is very lethargic, or has a hard, swollen belly"
+      ],
+      "outro": "A urinary blockage is an emergency and can be life-threatening within 24–48 hours. In these cases, don't use CatCheck to keep watching — call the nearest veterinary clinic."
+    }
+  },
+  "web": {
+    "hub": {
+      "eyebrow": "{{count}} profiles being tracked",
+      "title": "Manage your cats' profiles",
+      "intro": "Track each cat's indicator litter color in a multi-cat home, see the latest pH reading, and switch the cat you're tracking.",
+      "quickScan": "Quick-scan the litter tray for the selected cat",
+      "addCat": "+ Add a new cat profile",
+      "selected": "Selected",
+      "standby": "Standby",
+      "weight": "Weight",
+      "lastScan": "Last scan",
+      "scanFor": "Scan litter for {{name}}",
+      "viewRecord": "View scan history",
+      "switchTo": "Switch to tracking {{name}}",
+      "addTitle": "Register a new cat",
+      "addBody": "Welcomed a new family member? Create a separate profile so each cat's scan history doesn't get mixed up.",
+      "addNow": "Add now",
+      "tableTitle": "Quick comparison between cats",
+      "tableIntro": "Compare each cat's latest scan to see which one is drifting outside the reference range.",
+      "exportPdf": "Export PDF profile",
+      "colCat": "Cat",
+      "colAge": "Breed & age",
+      "colBody": "Weight",
+      "colPh": "Last scan",
+      "phShort": "pH",
+      "weightKg": "{{value}} kg",
+      "lastScanNone": "No scans yet",
+      "lastScanAt": "{{date}}",
+      "guideEyebrow": "The N+1 rule",
+      "guideKicker": "Tips for homes with 2 or more cats",
+      "guideTitle": "Separate litter trays & identify which cat just used the tray",
+      "guideIntro": "With several cats, it's hard to tell whose litter changed color. These three setups help every scan land on the right profile:",
+      "guideStep1Title": "One tray per cat",
+      "guideStep1Body": "Place trays in different quiet corners and label each tray with the cat's name. This gives the clearest results when scanning.",
+      "guideStep2Title": "Separate trays temporarily when you see an odd color",
+      "guideStep2Body": "When a scan shows an unusual color, set aside a separate tray for the cat in question for 24 hours so later scans belong to just one cat.",
+      "guideStep3Title": "Quick self-confirmation when scanning",
+      "guideStep3Body": "If you see which cat just left the tray, pick that cat's name when you scan. Not sure? Choose “Unknown / Shared tray” — the result is kept separately and not mixed into any cat's history.",
+      "guideNote": "You're tracking {{count}} cats: set up at least {{trays}} separate litter trays in different quiet corners.",
+      "lastScanLoading": "Loading…",
+      "phUnknown": "—",
+      "phValue": "pH {{value}}",
+      "tableEmptyPh": "Not scanned",
+      "switching": "Switching…",
+      "switchedTo": "Now tracking {{name}}.",
+      "openProfile": "View profile"
+    },
+    "profile": {
+      "exportPdf": "Export PDF profile",
+      "spectrumTitle": "Indicator color and pH scale",
+      "spectrumSub": "Compare the litter color against the current reference pH bands.",
+      "timelineTitle": "Scan and note timeline",
+      "timelineAll": "View full history",
+      "phWithName": "{{name}}: pH {{value}}",
+      "inRange30d": "IN-RANGE RATE (30 DAYS)",
+      "scanCount30d": "{{count}} scans in 30 days",
+      "inRangeNote": "Based on conclusive scans in the last 30 days",
+      "lastScanAt": "Last scan: {{date}}",
+      "lastScanNone": "No scans yet",
+      "phUnknown": "{{name}}: no pH data yet",
+      "sexAndAge": "Sex & age",
+      "weightLabel": "Weight",
+      "bornAt": "Born {{date}}",
+      "weightUpdatedAt": "Updated {{date}}",
+      "timelineAllCount": "View full history ({{count}} records)",
+      "phValueShort": "pH {{value}}",
+      "timelineScanTitle": "Litter indicator scan",
+      "timelineScanSubtitle": "{{label}} • pH {{value}}",
+      "timelineScanSubtitleNoPh": "{{label}}",
+      "timelineEmpty": "No scans or notes in this cat's profile yet.",
+      "timelineNoteFrom": "Owner's note",
+      "confidenceLabel": "Confidence of the last scan",
+      "confidenceValue": "{{value}}%",
+      "confidenceNote": "Returned by the color-reading algorithm for that scan's photo.",
+      "vetFinderLabel": "Vet clinics",
+      "vetFinderTitle": "Find a clinic near you",
+      "vetFinderBody": "When your cat needs a check-up, the CatCheck map lists addresses and phone numbers of veterinary clinics.",
+      "vetFinderCta": "Open vet map",
+      "barLabel": "Pet profiles",
+      "barAria": "Select a cat profile",
+      "barAddCat": "Add a new cat profile",
+      "barCurrent": "Viewing",
+      "infoTitle": "Profile details",
+      "timelineAddNote": "Add note",
+      "timelineOpenScan": "View scan details",
+      "reminderLabel": "Next scan reminder",
+      "timelineScanMeta": "Confidence {{value}}%"
+    }
+  },
+  "overview": {
+    "biomarkerEyebrow": "Latest indicator color",
+    "biomarkerNoDataTitle": "No scans yet",
+    "biomarkerNoDataBody": "Do your first scan so CatCheck can start recording your cat's litter color.",
+    "biomarkerBody": "Based on {{count}} scans in the last 30 days. This is an at-home observation of litter color and doesn't replace a veterinarian's advice.",
+    "biomarkerCurrent": "Current range: pH {{value}}",
+    "bandRange": "{{label}} ({{min}} – {{max}})",
+    "bandBelow": "{{label}} (below {{max}})",
+    "bandAbove": "{{label}} (above {{min}})",
+    "statScanTotal": "Total scans",
+    "statScanTotalUnit": "scans",
+    "statScanTotalFoot": "{{count}} in the last 30 days",
+    "statInRange": "In-range rate",
+    "statInRangeFoot": "Over the last 30 days",
+    "statMedian": "Median pH",
+    "statMedianFoot": "Recorded range: {{min}} – {{max}}",
+    "statMedianFootEmpty": "Not enough scans to calculate a range",
+    "statReminder": "Next reminder",
+    "statReminderNone": "Not set",
+    "statReminderFoot": "Set a schedule so CatCheck reminds you to scan regularly.",
+    "recentTitle": "Recent scans",
+    "recentCount": "{{shown}} / {{total}} scans",
+    "recentAll": "View full history ({{count}} records)",
+    "recentAllShort": "View full history",
+    "recentEmpty": "No scans recorded for this cat yet.",
+    "recentError": "Couldn't load recent scans.",
+    "scanCta": "Start a new scan for {{name}}",
+    "editCta": "Edit profile & health notes",
+    "statReminderCta": "Set a reminder",
+    "statReminderManage": "View reminders",
+    "statReminderToday": "Today",
+    "statReminderInDays": "In {{count}} days",
+    "statReminderAt": "{{date}} at {{time}}",
+    "assessment": {
+      "good": "Good",
+      "attention": "Needs attention",
+      "abnormal": "Unusual"
+    },
+    "assessmentHint": "A reference reading based on the latest scan's pH, not a substitute for a veterinarian's advice."
+  },
+  "age": {
+    "years": "{{count}} yr",
+    "months": "{{count}} mo",
+    "yearsMonths": "{{years}} yr {{months}} mo"
+  },
+  "alertBanner": {
+    "recorded": "A result needing attention was just recorded",
+    "viewDetails": "View details",
+    "dismiss": "Dismiss alert"
+  }
+}

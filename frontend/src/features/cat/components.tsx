@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AlertTriangle, Camera, Check, ChevronDown, ChevronUp, Search, Trash2 } from "lucide-react";
 import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogTitle, Input } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { localIsoDate } from "@/shared/lib/format/locale";
 import { CLINICAL_SIGNS, type CatBreed, type ClinicalSign } from "@/entities/cat";
 import type { CatFormSchemaValues } from "./schemas";
 
@@ -448,7 +449,7 @@ export function CatFormFields({
             <input
               id="cat-birth-date"
               type="date"
-              max={new Date().toISOString().slice(0, 10)}
+              max={localIsoDate()}
               aria-invalid={errors.birthDate ? true : undefined}
               className={cn(
                 "min-h-11 rounded-md border bg-surface px-3 text-body text-text-primary",

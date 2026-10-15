@@ -1,0 +1,97 @@
+{
+  "pages": {
+    "export": {
+      "title": "Export PDF record"
+    },
+    "job": {
+      "title": "Export progress"
+    }
+  },
+  "wizard": {
+    "step1": {
+      "primaryLabel": "Primary cat",
+      "secondaryLabel": "Secondary cat"
+    },
+    "step2": {
+      "fromLabel": "From",
+      "toLabel": "To"
+    },
+    "submitting": "Creating report…"
+  },
+  "range": {
+    "7D": "Last 7 days",
+    "30D": "Last 30 days",
+    "90D": "Last 3 months",
+    "CUSTOM": "Custom dates"
+  },
+  "sections": {
+    "TREND": {
+      "title": "pH trend chart & distribution",
+      "description": "Line chart of pH over time in the selected range, with the reference zone and category distribution."
+    },
+    "SCAN_LOG": {
+      "title": "Litter color observation log",
+      "description": "Date and time, pH, category, confidence and quality warnings for each scan."
+    },
+    "NOTES": {
+      "title": "Owner notes & diet",
+      "description": "Related notes (food changes, litter changes, symptoms…) during the report period."
+    },
+    "PROFILE": {
+      "title": "Cat's basic information",
+      "description": "Breed, age, weight and other relevant profile details."
+    }
+  },
+  "job": {
+    "documentCodeLabel": "Record code",
+    "pageCountLabel": "{{pages}} pages · {{scans}} scans",
+    "download": "Download PDF",
+    "backToList": "View all exports",
+    "status": {
+      "QUEUED": "Queued for processing…",
+      "RUNNING": "Creating report…",
+      "READY": "Report is ready",
+      "FAILED": "Report creation failed",
+      "EXPIRED": "Download link has expired"
+    },
+    "expiresIn": "{{days}} days {{hours}} hours left to download",
+    "expiresInHours": "{{hours}} hours left to download",
+    "failedHint": "Something went wrong creating the report. Please try creating the export again.",
+    "expiredHint": "The file's download period has expired.",
+    "retry": "Try again",
+    "recreate": "Recreate",
+    "backToCat": "Back to cat profile",
+    "progressLabel": "Report creation progress"
+  },
+  "state": {
+    "noDataTitle": "Not enough data",
+    "noDataDescription": "There are no scans in the selected time range.",
+    "conflictTitle": "Another export is in progress",
+    "conflictDescription": "Please wait for the current export to finish before creating a new one.",
+    "loadError": "Couldn't load the information. Please try again.",
+    "sectionsRequired": "Choose at least 1 content section.",
+    "rangeInvalidDescription": "Invalid time range: the start date must be before the end date and not later than today."
+  },
+  "web": {
+    "eyebrow": "At-home tracking PDF report",
+    "title": "Export Health Record",
+    "subtitle": "Choose a cat, a time range and content sections to create a PDF report to bring along to the vet.",
+    "step1": "Choose a cat",
+    "step1Hint": "Profiles being tracked",
+    "step2": "Tracking period",
+    "step3": "Sections included in the report",
+    "recommendedSuffix": "(Recommended)",
+    "selectAll": "Select all ({{count}})",
+    "rangeValue": "{{from}} – {{to}}",
+    "rangeFromFormat": "MMM dd",
+    "rangeToFormat": "MMM dd, yyyy",
+    "previewTitle": "Report preview",
+    "previewFormat": "A4 size",
+    "previewWatermark": "CatCheck",
+    "reportTitle": "URINARY HEALTH TRACKING RECORD",
+    "reportDescription": "Daily pH distribution summary for {{range}}, with {{count}} selected content sections.",
+    "reportDescriptionNamed": "Daily pH distribution summary for {{name}} for {{range}}, with {{count}} selected content sections.",
+    "submit": "Create & download PDF",
+    "submitHint": "Choose a cat to enable the create report button."
+  }
+}

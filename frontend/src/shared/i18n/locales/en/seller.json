@@ -1,0 +1,112 @@
+{
+  "nav": {
+    "label": "Store",
+    "dashboard": "Overview",
+    "products": "Products",
+    "colorChart": "Color chart",
+    "content": "Care tip"
+  },
+  "dashboard": {
+    "title": "Store overview",
+    "description": "Figures calculated from the current product list.",
+    "published": "On sale",
+    "draft": "Draft",
+    "archived": "Hidden",
+    "lowStock": "Low stock",
+    "lowStockHint": "On sale, with {{threshold}} or fewer in stock",
+    "lowStockTitle": "Low-stock products",
+    "lowStockEmpty": "No products are running low.",
+    "stock": "{{count}} left",
+    "orders": "Orders: none yet (order data isn't available to sellers yet).",
+    "manage": "Manage products",
+    "loadError": "Couldn't load store data"
+  },
+  "products": {
+    "title": "Products",
+    "add": "Add product",
+    "search": "Search by name or SKU",
+    "tabs": {
+      "ALL": "All",
+      "PUBLISHED": "On sale",
+      "DRAFT": "Draft",
+      "ARCHIVED": "Hidden"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "On sale",
+      "ARCHIVED": "Hidden"
+    },
+    "columns": {
+      "select": "Select",
+      "name": "Name",
+      "sku": "SKU",
+      "price": "Price",
+      "stock": "Stock",
+      "status": "Status",
+      "updatedAt": "Updated at",
+      "actions": "Actions"
+    },
+    "selectAll": "Select all visible products",
+    "selectRow": "Select {{name}}",
+    "sortBy": "Sort by {{column}}",
+    "edit": "Edit",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "empty": "No products yet",
+    "emptyDescription": "Add your first product to start selling.",
+    "noMatch": "No products match the filter",
+    "loadError": "Couldn't load products",
+    "statusError": "Couldn't change the product status",
+    "bulk": {
+      "selected": "{{count}} products selected",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "clear": "Clear selection",
+      "progress": "Processing {{done}}/{{total}}",
+      "done": "Processed {{done}}/{{total}} products",
+      "failed": "Stopped at {{name}} after processing {{done}}/{{total}}. The remaining products were not changed.",
+      "nothing": "The selected products are already in this status."
+    },
+    "form": {
+      "createTitle": "Add product",
+      "editTitle": "Edit product {{sku}}",
+      "description": "Fill in the product details and save.",
+      "sku": "SKU",
+      "skuHelp": "Uppercase letters, numbers and hyphens, 2 to 64 characters. Can't be changed after creation.",
+      "name": "Product name",
+      "descriptionLabel": "Description",
+      "imageUrl": "Image URL",
+      "price": "Price (₫)",
+      "compareAt": "Original price (₫)",
+      "stock": "Stock",
+      "status": "Status",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Product saved",
+      "duplicateSku": "This SKU already exists.",
+      "conflict": "Someone else just changed this product. Reload the latest version and edit again; your changes have not been saved.",
+      "reload": "Reload latest version",
+      "errors": {
+        "sku": "Invalid SKU",
+        "name": "Enter a name of 1 to 180 characters",
+        "description": "Enter a description of 1 to 4000 characters",
+        "imageUrl": "Image URL must start with http or https",
+        "priceVnd": "Price must be a non-negative whole number",
+        "compareAtPriceVnd": "Original price must be a whole number greater than the sale price",
+        "stockQuantity": "Stock must be a non-negative whole number"
+      }
+    }
+  },
+  "colorChart": {
+    "title": "pH color chart"
+  },
+  "content": {
+    "title": "Care tip",
+    "archiveConfirm": {
+      "body": "This care tip will be taken down and can't be edited or resubmitted for review. Continue?",
+      "confirm": "Confirm takedown",
+      "cancel": "Cancel"
+    }
+  },
+  "loading": "Loading…"
+}

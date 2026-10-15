@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { CatHistoryPage } from "./CatHistoryPage";
 
-const data = vi.hoisted((): { summary?: unknown; history?: unknown } => ({}));
+const data = vi.hoisted((): { summary?: unknown; history?: unknown; summaryArgs?: unknown[] } => ({}));
 
 vi.mock("@/features/history/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("@/features/export/mocks", () => ({ handlers: [], worker: {} }));
@@ -11,7 +11,10 @@ vi.mock("@/features/scan/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("@/features/history", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/history")>()),
   useCat: () => ({ data: { id: "c1", name: "Mướp", sex: "FEMALE" } }),
-  useScanSummary: () => ({ data: data.summary }),
+  useScanSummary: (...args: unknown[]) => {
+    data.summaryArgs = args;
+    return { data: data.summary };
+  },
   useScanHistory: () => ({
     data: data.history,
     isPending: false,
@@ -83,5 +86,23 @@ describe("CatHistoryPage", () => {
     expect(text).not.toContain("item.confidence");
     expect(text).not.toContain("web.confidence");
     expect(text).not.toContain("spectrum.average");
+  });
+
+  it("KPI tóm tắt dùng cùng khoảng thời gian với danh sách (mặc định 3 ngày)", () => {
+    data.summary = undefined;
+    data.history = { pages: [{ items: [], hasMore: false }], pageParams: [null] };
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => {
+      root.render(<CatHistoryPage />);
+    });
+    act(() => {
+      root.unmount();
+    });
+    const expectedFrom = new Date();
+    expectedFrom.setHours(0, 0, 0, 0);
+    expectedFrom.setDate(expectedFrom.getDate() - 2);
+    expect(data.summaryArgs).toEqual(["c1", expectedFrom.toISOString(), undefined]);
   });
 });

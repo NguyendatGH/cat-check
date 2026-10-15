@@ -1,0 +1,243 @@
+{
+  "hero": {
+    "title": "CatCheck Shop",
+    "subtitle": "Color-indicator litter and litter tray accessories",
+    "body": "Indicator granules change color with urine, helping you track your cat's pH trend at home. CatCheck does not diagnose illness and does not replace a vet.",
+    "savingBadge": "Up to {{percent}}% off",
+    "priceFrom": "From {{price}}",
+    "productCount": "{{count}} products on sale",
+    "ctaPrimary": "View products"
+  },
+  "phScale": {
+    "title": "pH reference range",
+    "body": "The thresholds and labels below are configured by the CatCheck system and are exactly the labels the app uses when reading indicator granule color.",
+    "loading": "Loading pH reference range…",
+    "error": "Couldn't load the pH reference range.",
+    "rangeBetween": "pH {{min}} – {{max}}",
+    "rangeBelow": "Below pH {{max}}",
+    "rangeAbove": "pH {{min}} and above"
+  },
+  "filters": {
+    "legend": "Filter products",
+    "all": "All",
+    "subscription": "Subscriptions",
+    "single": "Single purchase",
+    "sortPriceAsc": "Price: low to high",
+    "sortPriceDesc": "Price: high to low",
+    "empty": "No products in this group."
+  },
+  "product": {
+    "error": "Couldn't load products.",
+    "empty": "The shop has no products yet.",
+    "addToCart": "Add",
+    "addToCartLong": "Add to cart",
+    "buyNow": "Buy now",
+    "inStock": "{{count}} in stock",
+    "outOfStock": "Out of stock",
+    "discount": "-{{percent}}%",
+    "skuLabel": "SKU {{sku}}"
+  },
+  "careNote": {
+    "title": "CatCheck tracks pH trends, it does not diagnose illness",
+    "body": "Indicator granule color is only an at-home observation. If you notice anything unusual about your cat, ask a vet.",
+    "cta": "Open the litter color scanner"
+  },
+  "buying": {
+    "title": "Buying on CatCheck",
+    "subtitle": "What the shop system can do today, stated as it is.",
+    "items": {
+      "shipping": {
+        "title": "Shipping fees calculated by the system",
+        "body": "The cart and orders show the exact amount the system returns based on order value, not an estimate in the interface."
+      },
+      "payment": {
+        "title": "No online payment gateway yet",
+        "body": "You choose a method and complete payment with the shop. Your order is still recorded with an order code for lookup."
+      },
+      "tracking": {
+        "title": "Order status tracking",
+        "body": "After you order, the order page shows the latest processing status from the system."
+      }
+    }
+  },
+  "payment": {
+    "methods": {
+      "COD": {
+        "name": "Cash on delivery (COD)",
+        "note": "Pay the courier when you receive the package."
+      },
+      "MOMO": {
+        "name": "MoMo wallet",
+        "note": "Payment gateway not connected yet; you complete this payment with the shop."
+      },
+      "BANK_TRANSFER": {
+        "name": "Bank transfer",
+        "note": "Payment gateway not connected yet; you complete this payment with the shop."
+      }
+    }
+  },
+  "cartPanel": {
+    "title": "Your cart",
+    "count": "{{count}} items",
+    "empty": "Your cart is empty.",
+    "error": "Couldn't load your cart.",
+    "subtotalLabel": "Items total:",
+    "shippingLabel": "Shipping:",
+    "freeShipping": "Free",
+    "totalLabel": "Subtotal:",
+    "checkout": "Proceed to checkout",
+    "reviewCart": "Review cart",
+    "onlyLeft": "Only {{count}} left",
+    "removeItem": "Remove {{name}} from cart",
+    "increase": "Increase quantity",
+    "decrease": "Decrease quantity"
+  },
+  "cartShortcut": {
+    "title": "Cart: {{count}} items",
+    "total": "Total {{total}}",
+    "cta": "View cart"
+  },
+  "toast": {
+    "added": "Added {{name}} to cart",
+    "cappedToStock": "Cart quantity has been limited to {{count}} based on stock.",
+    "viewCart": "View cart",
+    "maxReached": "Your cart already has the maximum of {{count}} of this product.",
+    "addError": "Couldn't add to cart. Please try again.",
+    "updateError": "Couldn't update the cart. Reloaded the cart from the system."
+  },
+  "detail": {
+    "breadcrumb": "Breadcrumb",
+    "backToShop": "Shop",
+    "backToShopCta": "Back to shop",
+    "error": "Couldn't load this product.",
+    "notFound": "Product not found",
+    "notFoundBody": "This product doesn't exist or is no longer sold.",
+    "addToCart": "Add to cart",
+    "buyNowWithPrice": "Buy now • {{price}}",
+    "priceNote": "Shipping and total are calculated by the system in the cart.",
+    "maxQuantity": "You can order at most {{count}} of this product."
+  },
+  "compare": {
+    "title": "Compare shop products",
+    "subtitle": "Current price and stock for each product.",
+    "attribute": "Details",
+    "viewing": "Viewing",
+    "stockValue": "{{count}} left",
+    "rows": {
+      "price": "Price",
+      "compareAt": "Original price",
+      "discount": "Discount",
+      "stock": "Stock"
+    }
+  },
+  "cartPage": {
+    "title": "Cart",
+    "continueShopping": "Continue shopping",
+    "emptyCta": "Explore the shop",
+    "count": "{{count}} items",
+    "clearAll": "Remove all",
+    "clearConfirmTitle": "Empty the whole cart?",
+    "clearConfirmBody": "All products in the cart will be removed. You can add them again from the shop.",
+    "clearCancel": "Keep",
+    "clearConfirm": "Remove all",
+    "empty": "Your cart is empty",
+    "emptyBody": "Add products from the shop to start an order.",
+    "error": "Couldn't load your cart.",
+    "addressTitle": "Shipping address",
+    "addressBody": "You'll enter the recipient's name, phone number, and address at checkout. CatCheck doesn't pre-save any address for this order.",
+    "paymentTitle": "Payment method",
+    "summaryTitle": "Payment summary",
+    "subtotalLine": "Subtotal ({{count}} items)",
+    "shippingLine": "Shipping",
+    "savingsLine": "You save {{amount}} off the original price",
+    "totalLabel": "Total",
+    "proceed": "Proceed to checkout",
+    "unitPrice": "{{sku}} · {{price}}/item",
+    "onlyLeft": "Only {{count}} left — reduce the quantity to order",
+    "outOfStockLine": "Out of stock — remove from cart to order",
+    "stockIssue": "Some products exceed current stock. Adjust the quantity or remove them to continue."
+  },
+  "checkout": {
+    "title": "Checkout",
+    "summaryTitle": "Order summary",
+    "placeOrder": "Place order",
+    "qtyPrice": "x{{count}} · {{price}}",
+    "back": "Back to cart",
+    "mockNotice": "Your order will be recorded in the system. Online payment is not integrated yet; please only choose a method you can complete with the shop.",
+    "placing": "Placing order…",
+    "error": "Couldn't place the order. Please try again.",
+    "addressLabel": "Deliver to",
+    "receiverName": "Recipient name",
+    "receiverPhone": "Phone number",
+    "phonePlaceholder": "e.g. 0901 234 567",
+    "shippingAddress": "Shipping address",
+    "addressPlaceholder": "House number, street, ward/commune, district, province/city",
+    "addressHint": "Include house number, street, ward/commune, district, and province/city.",
+    "paymentMethodLabel": "Pay with",
+    "edit": "Edit",
+    "totalLabel": "Total",
+    "emptyTitle": "Nothing to check out",
+    "emptyBody": "Your cart is empty. Add products from the shop, then come back to this step.",
+    "errors": {
+      "nameRequired": "Enter the recipient's name.",
+      "nameTooLong": "Recipient name can be at most 120 characters.",
+      "phoneRequired": "Enter the recipient's phone number.",
+      "phoneInvalid": "Invalid phone number (e.g. 0901234567 or +84901234567).",
+      "addressRequired": "Enter a shipping address.",
+      "addressTooShort": "Address is too short — include house number, street, ward/commune, district, and province/city.",
+      "addressTooLong": "Address can be at most 500 characters.",
+      "fixFields": "Check the shipping details above.",
+      "stock": "Some products no longer have enough stock. Check the quantities in your cart.",
+      "cartEmpty": "Your cart is empty, so the order can't be placed.",
+      "session": "Your session has expired. Please log in again.",
+      "validation": "Order details are invalid. Check them and try again."
+    }
+  },
+  "order": {
+    "successTitle": "Order placed!",
+    "successBody": "Thank you for ordering from CatCheck. Order processing status is updated below.",
+    "cancelledTitle": "Order cancelled",
+    "cancelledBody": "This order has been cancelled in the system.",
+    "cancelledNote": "This order is cancelled and will no longer be processed.",
+    "continueShopping": "Continue shopping",
+    "backHome": "Back to home",
+    "codeLabel": "Order code",
+    "copyCode": "Copy order code",
+    "codeCopied": "Order code copied",
+    "placedLabel": "Order time",
+    "methodLabel": "Method",
+    "statusLabel": "Status",
+    "status": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "PACKING": "Preparing order",
+      "SHIPPING": "Shipping",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled",
+      "UNKNOWN": "Unknown status"
+    },
+    "paymentUnknown": "Other method",
+    "paymentNote": {
+      "COD": "Pay the courier when you receive the package.",
+      "MOMO": "Online payment gateway not connected yet; complete this payment with the shop.",
+      "BANK_TRANSFER": "Online payment gateway not connected yet; complete this payment with the shop."
+    },
+    "trackingTitle": "Order processing status",
+    "trackingDisclaimer": "Status is updated by the shop in the system, and this page refreshes automatically. There's no live courier or delivery location data yet.",
+    "currentStage": "Current",
+    "itemsTitle": "Package details ({{count}} items)",
+    "lineMeta": "{{sku}} · x{{count}} · {{price}}/item",
+    "subtotalLabel": "Subtotal",
+    "discountLabel": "Discount",
+    "shippingLabel": "Shipping",
+    "totalLabel": "Order total",
+    "recipientTitle": "Delivery details",
+    "recipientLabel": "Recipient",
+    "phoneLabel": "Phone number",
+    "addressLabel": "Shipping address",
+    "paymentTitle": "Payment",
+    "notFound": "Order not found",
+    "notFoundBody": "This order doesn't exist or doesn't belong to your account.",
+    "error": "Couldn't load the order."
+  }
+}

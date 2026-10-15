@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { AlertTriangle, ArrowRight, Camera, ChevronRight, ImageOff, Info, Lock, ScanLine } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import type { ScanListItem, ScanResult } from "@/entities/scan-result";
 import { PhGaugeCircular, QualityFlagList, TriggeredFlagList, useRecentCatScans } from "@/features/scan";
@@ -454,7 +455,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 }
 
 export function formatScanTime(iso: string): string {
-  return new Date(iso).toLocaleString("vi-VN", {
+  return new Date(iso).toLocaleString(intlLocale(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

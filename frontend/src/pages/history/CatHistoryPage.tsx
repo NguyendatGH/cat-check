@@ -44,7 +44,6 @@ export function CatHistoryPage() {
 
   const { data: cat } = useCat(catId);
   const { data: bands } = usePhBands();
-  const { data: summary } = useScanSummary(catId);
   const formatAge = useFormatCatAge();
   const {
     data: history,
@@ -64,6 +63,18 @@ export function CatHistoryPage() {
     start.setDate(start.getDate() - (Number(range) - 1));
     return start;
   }, [range]);
+
+  // Summary KPIs follow the same window as the list: the selected day, otherwise the range.
+  const summaryWindow = useMemo<{ from?: string; to?: string }>(() => {
+    if (selectedDay) {
+      const [y, m, d] = selectedDay.split("-").map(Number);
+      const start = new Date(y, m - 1, d);
+      const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+      return { from: start.toISOString(), to: end.toISOString() };
+    }
+    return rangeStart ? { from: rangeStart.toISOString() } : {};
+  }, [selectedDay, rangeStart]);
+  const { data: summary } = useScanSummary(catId, summaryWindow.from, summaryWindow.to);
 
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase();

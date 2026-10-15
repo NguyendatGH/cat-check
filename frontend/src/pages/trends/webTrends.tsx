@@ -14,6 +14,7 @@ import {
   ScanLine,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { PhBadge, PhGaugeBar, findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import { PhTrendChart, type CatTrendPoint, type CatTrendsResponse, type TrendRange } from "@/features/trends";
 
@@ -55,7 +56,7 @@ function buildWeekdayBars(points: CatTrendPoint[]): { day: number; count: number
 
 function weekdayLabel(day: number): string {
   const offset = WEEKDAY_ORDER.indexOf(day);
-  return new Intl.DateTimeFormat("vi-VN", { weekday: "short", timeZone: "UTC" }).format(
+  return new Intl.DateTimeFormat(intlLocale(), { weekday: "short", timeZone: "UTC" }).format(
     new Date(WEEK_REF_UTC + offset * DAY_MS),
   );
 }
@@ -494,7 +495,7 @@ export function WebTrendsScreen({
                     >
                       <td className="px-3 py-3">
                         <p className="text-caption font-bold text-text-primary">
-                          {new Intl.DateTimeFormat("vi-VN", {
+                          {new Intl.DateTimeFormat(intlLocale(), {
                             day: "2-digit",
                             month: "2-digit",
                             hour: "2-digit",

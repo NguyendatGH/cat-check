@@ -32,7 +32,7 @@ export function useScanHistory(
     queryFn: ({ pageParam }: { pageParam: string | null }) =>
       fetchScanHistory({ catId, filter, cursor: pageParam, limit: HISTORY_PAGE_SIZE }),
     initialPageParam: null as string | null,
-    getNextPageParam: (lastPage: ScanListPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
+    getNextPageParam: (lastPage: ScanListPage) => (lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined),
   });
 }
 
@@ -46,6 +46,9 @@ export function useScanSummary(
     enabled,
     queryKey: historyKeys.summary(catId, from, to),
     queryFn: () => fetchScanSummary({ catId, from, to }),
+    // Keep the previous window's numbers while a new range loads, but never another cat's.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[2] === (catId ?? "any") ? previous : undefined,
   });
 }
 

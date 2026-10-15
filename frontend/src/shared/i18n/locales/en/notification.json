@@ -1,0 +1,117 @@
+{
+  "pages": {
+    "list": {
+      "title": "Notifications"
+    }
+  },
+  "inbox": {
+    "lead": "Everything CatCheck has notified you about in the app, in one place.",
+    "tabAll": "All",
+    "tabUnread": "Unread",
+    "unreadBadge": "Unread",
+    "groupToday": "Today",
+    "groupYesterday": "Yesterday",
+    "markAllRead": "Mark all as read",
+    "hide": "Hide this notification",
+    "loadMore": "Load more",
+    "emptyTitle": "No notifications yet",
+    "emptyBody": "When CatCheck has something to tell you — a scan is due, scans are about to expire, a PDF record is ready — it will show up here.",
+    "emptyUnreadTitle": "You're all caught up",
+    "emptyUnreadBody": "No unread notifications among those loaded. Switch to the “All” tab to review them.",
+    "errorTitle": "Couldn't load your inbox",
+    "errorBody": "The network or server is having trouble. Try again in a moment.",
+    "kindsTitle": "Notifications you'll get here",
+    "kindsLead": "These four groups are the in-app notifications CatCheck plans to send.",
+    "kinds": {
+      "healthFlag": {
+        "title": "Results worth a look",
+        "body": "When a cat's results repeatedly fall outside the reference range."
+      },
+      "reminder": {
+        "title": "Scan due",
+        "body": "When a tracking schedule you set for a cat comes due."
+      },
+      "credit": {
+        "title": "Scans expiring soon",
+        "body": "When the remaining scans in your package are about to expire."
+      },
+      "export": {
+        "title": "PDF report ready",
+        "body": "When a record you asked to export is ready to download."
+      }
+    },
+    "settingsCta": "Notification settings",
+    "remindersCta": "View reminders",
+    "pagination": {
+      "nav": "Notification pagination",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {{page}}",
+      "range": "{{from}}–{{to}} of {{total}}",
+      "rangeMore": "{{from}}–{{to}} of {{total}}+"
+    }
+  },
+  "badge": {
+    "unreadAria": "{{count}} unread notifications"
+  },
+  "push": {
+    "title": "Push notifications",
+    "lead": "Get notified even when CatCheck isn't open. In-app notifications still work normally if you leave this off.",
+    "saved": "Push notifications enabled on this device.",
+    "toggle": {
+      "title": "Receive push notifications on this device",
+      "body": "Your browser will ask for permission to show notifications."
+    },
+    "blocked": {
+      "MISSING_VAPID_KEY": {
+        "title": "Push notifications aren't enabled for CatCheck",
+        "body": "The push sending key hasn't been configured yet. You'll still get all notifications in the app and by email."
+      },
+      "MISSING_FIREBASE_CONFIG": {
+        "title": "Push notifications aren't fully configured",
+        "body": "The sending key is set, but push service connection details are missing. You'll still get all notifications in the app and by email."
+      },
+      "IOS_NEEDS_INSTALL": {
+        "title": "iPhone and iPad need CatCheck installed first",
+        "body": "On iOS, push notifications only work after you add CatCheck to your Home Screen and open it again from that icon.",
+        "cta": "See how to add to Home Screen"
+      },
+      "UNSUPPORTED_BROWSER": {
+        "title": "This browser doesn't support push notifications",
+        "body": "Try a recent version of Chrome, Edge or Safari. In-app notifications still work normally."
+      },
+      "PERMISSION_DENIED": {
+        "title": "You've blocked CatCheck notifications",
+        "body": "Browsers only ask for permission once. To turn it back on, open this site's permission settings in your browser and reload."
+      }
+    },
+    "clientErrors": {
+      "PERMISSION_DENIED": "You denied notification permission, so this couldn't be turned on. Open this site's permission settings in your browser to change it.",
+      "PERMISSION_DISMISSED": "The permission prompt was closed. Turn the switch on again if you want to retry.",
+      "SDK_UNSUPPORTED": "This device can't register for push. In-app notifications still work normally.",
+      "TIMEOUT": "The push service took too long to respond. Check your connection and try again."
+    },
+    "errors": {
+      "PUSH_SUBSCRIPTION_LIMIT": "You've already registered {{max}} devices. Remove a device from the list and try again.",
+      "CONSENT_REQUIRED": "First turn on consent for “Health reminders via push notifications” in the Privacy Center.",
+      "PUSH_SUBSCRIPTION_INVALID": "Couldn't get a device identifier. Reload the page and try again.",
+      "GENERIC": "Couldn't save changes. Try again in a moment."
+    },
+    "platforms": {
+      "WEB": "Browser",
+      "ANDROID_PWA": "Installed app (Android)",
+      "IOS_PWA": "Installed app (iOS)"
+    },
+    "devices": {
+      "legend": "Receiving devices",
+      "loading": "Loading devices…",
+      "loadFailed": "Couldn't load the device list.",
+      "empty": "No devices are registered for push notifications yet.",
+      "unnamed": "Unnamed device",
+      "thisDevice": "This device",
+      "lastSeen": "Last active {{date}}",
+      "revoke": "Remove this device",
+      "limitNote": "Up to {{max}} devices per account."
+    }
+  }
+}

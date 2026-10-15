@@ -6,7 +6,8 @@ import i18next from "i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionStore, type SessionUser } from "@/entities/user";
 import type { PhBand } from "@/entities/ph-bands";
-import type { ColorChartDetail, ColorChartSummary } from "@/features/admin";
+import { AdminAccessProvider, computeCapabilities, type ColorChartDetail, type ColorChartSummary } from "@/features/admin";
+import { hasAnyRole, ROLES } from "@/shared/auth/roles";
 import adminVi from "@/shared/i18n/locales/vi/admin.json";
 import { AdminPhColorChartPage } from "./AdminPhColorChartPage";
 import { BandsSection } from "./phBandsSection";
@@ -147,7 +148,9 @@ function render(node: React.ReactElement): void {
   act(() => {
     root.render(
       <QueryClientProvider client={new QueryClient()}>
-        <MemoryRouter>{node}</MemoryRouter>
+        <AdminAccessProvider capabilities={computeCapabilities(ROLES, (allowed) => hasAnyRole(["ADMIN_SUPER"], allowed))}>
+          <MemoryRouter>{node}</MemoryRouter>
+        </AdminAccessProvider>
       </QueryClientProvider>,
     );
   });

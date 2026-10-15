@@ -23,6 +23,7 @@ import {
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
+import { localIsoDate } from "@/shared/lib/format/locale";
 import { isApiError } from "@/shared/api";
 import {
   useFormatCatAge,
@@ -1186,7 +1187,7 @@ function NoteFormDialog({
             <input
               id="note-occurred-on"
               type="date"
-              max={new Date().toISOString().slice(0, 10)}
+              max={localIsoDate()}
               className={cn(
                 "min-h-11 rounded-md border bg-surface px-3 text-body text-text-primary",
                 "focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]",
