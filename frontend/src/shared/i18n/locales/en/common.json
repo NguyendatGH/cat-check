@@ -59,7 +59,8 @@
     "reminderOverdue": "Overdue since {{time}}",
     "catScannedAt": "Scanned: {{time}}",
     "scanForCat": "Scan for {{name}}",
-    "reminderOverdueTitle": "Check overdue"
+    "reminderOverdueTitle": "Check overdue",
+    "openCatProfile": "View profile"
   },
   "forbidden": {
     "description": "Your account doesn't have permission to view this page.",

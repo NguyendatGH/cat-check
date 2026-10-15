@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useNavigate } from "react-router";
 import { isToday } from "date-fns";
@@ -176,6 +176,20 @@ export function DashboardPage() {
     setSelectedCatId(id);
     setActiveCat(id);
   };
+  // Bấm một lần vào card chỉ chọn bé để hiện kết quả lên dashboard; mở hồ sơ bằng nút riêng.
+  const catCardProps = (cat: Cat) => ({
+    role: "button" as const,
+    tabIndex: 0,
+    "aria-pressed": selectedCat?.id === cat.id,
+    onClick: () => {
+      selectCat(cat.id);
+    },
+    onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+      if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+      event.preventDefault();
+      selectCat(cat.id);
+    },
+  });
   const startScan = () => {
     if (selectedCat) {
       setStoreSelectedCat({ id: selectedCat.id, name: selectedCat.name });
@@ -384,7 +398,7 @@ export function DashboardPage() {
               <CatSwitcher
                 cats={cats}
                 selectedId={selectedCat?.id}
-                onSelect={setSelectedCatId}
+                onSelect={selectCat}
                 label={t("dashboardWeb.catSwitcher", { ns: "common" })}
               />
             </div>
@@ -555,11 +569,14 @@ export function DashboardPage() {
                     const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
                     const scannedAt = catScannedAt(cat);
                     return (
-                      <Link
+                      <div
                         key={cat.id}
-                        to={`/cats/${cat.id}`}
+                        {...catCardProps(cat)}
                         data-reveal-item
-                        className="motion-card flex w-[180px] shrink-0 snap-start flex-col gap-2.5 rounded-2xl bg-surface p-3 shadow-brand-md sm:w-[220px] sm:gap-3 sm:p-3.5"
+                        className={cn(
+                          "motion-card flex w-[180px] shrink-0 cursor-pointer snap-start flex-col gap-2.5 rounded-2xl bg-surface p-3 shadow-brand-md sm:w-[220px] sm:gap-3 sm:p-3.5",
+                          selectedCat?.id === cat.id && "outline outline-2 outline-primary-dark",
+                        )}
                       >
                         <div className="flex items-center gap-2.5 sm:gap-3">
                           <div className="relative size-12 shrink-0 sm:size-14">
@@ -619,7 +636,17 @@ export function DashboardPage() {
                             </span>
                           ) : null}
                         </div>
-                      </Link>
+                        <Link
+                          to={`/cats/${cat.id}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                          }}
+                          className="inline-flex min-h-9 items-center justify-center gap-1 self-start rounded-lg px-2 text-[12px] font-semibold text-primary-dark hover:bg-chip-bg sm:text-[13px]"
+                        >
+                          {t("dashboard.openCatProfile", { ns: "common" })}
+                          <ChevronRight size={14} aria-hidden="true" />
+                        </Link>
+                      </div>
                     );
                   })}
               {!catsLoading ? (
@@ -754,13 +781,13 @@ export function DashboardPage() {
                   const scan = latestByCat.get(cat.id);
                   const scannedAt = catScannedAt(cat);
                   return (
-                    <Link
+                    <div
                       key={cat.id}
-                      to={`/cats/${cat.id}`}
+                      {...catCardProps(cat)}
                       data-reveal-item
                       className={cn(
-                        "motion-card flex flex-col rounded-2xl bg-surface p-4 shadow-xs",
-                        cat.isPrimary && "outline outline-2 outline-primary-dark",
+                        "motion-card flex cursor-pointer flex-col rounded-2xl bg-surface p-4 shadow-xs",
+                        selectedCat?.id === cat.id && "outline outline-2 outline-primary-dark",
                       )}
                     >
                       <div className="mb-3 flex items-start gap-3">
@@ -821,7 +848,17 @@ export function DashboardPage() {
                           </span>
                         ) : null}
                       </div>
-                    </Link>
+                      <Link
+                        to={`/cats/${cat.id}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                        }}
+                        className="mt-3 inline-flex min-h-9 items-center justify-center gap-1 self-end rounded-lg px-3 text-[13px] font-semibold text-primary-dark hover:bg-chip-bg"
+                      >
+                        {t("dashboard.openCatProfile", { ns: "common" })}
+                        <ChevronRight size={15} aria-hidden="true" />
+                      </Link>
+                    </div>
                   );
                 })}
               </div>
@@ -848,28 +885,28 @@ export function DashboardPage() {
 
               {scansLoading ? (
                 <div aria-hidden="true" className="h-[250px] animate-pulse rounded-xl bg-chip-bg/60" />
-              ) : latestScan ? (
-                <div className="content-enter flex flex-col gap-6 lg:flex-row lg:items-start">
+              ) : selectedCatScan ? (
+                <div key={selectedCatScan.scanId} className="content-enter flex flex-col gap-6 lg:flex-row lg:items-start">
                   <div className="flex-1">
                     <DashboardPhCard
-                      scan={latestScan}
-                      band={latestBand}
+                      scan={selectedCatScan}
+                      band={selectedCatBand}
                       bands={bands ?? []}
-                      catName={latestScan.catName}
+                      catName={selectedCatScan.catName}
                     />
                   </div>
-                  {latestScan.thumbnailHex != null ? (
+                  {selectedCatScan.thumbnailHex != null ? (
                     <div className="flex flex-col items-center gap-2 lg:items-end">
                       <p className="text-[12px] text-text-secondary">
                         {t("dashboardWeb.measuredSwatch", { ns: "common" })}
                       </p>
                       <div
                         className="h-[140px] w-[140px] shrink-0 overflow-hidden rounded-md border border-border"
-                        style={{ backgroundColor: latestScan.thumbnailHex }}
+                        style={{ backgroundColor: selectedCatScan.thumbnailHex }}
                         aria-hidden="true"
                       />
                       <p className="text-[12px] font-semibold text-text-primary">
-                        {latestScan.thumbnailHex}
+                        {selectedCatScan.thumbnailHex}
                       </p>
                     </div>
                   ) : null}

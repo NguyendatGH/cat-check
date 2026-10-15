@@ -59,7 +59,8 @@
     "reminderOverdue": "Đã quá hạn từ {{time}}",
     "catScannedAt": "Quét: {{time}}",
     "scanForCat": "Quét cho {{name}}",
-    "reminderOverdueTitle": "Đã quá hạn kiểm tra"
+    "reminderOverdueTitle": "Đã quá hạn kiểm tra",
+    "openCatProfile": "Xem hồ sơ"
   },
   "forbidden": {
     "description": "Tài khoản của bạn không có quyền xem trang này.",

@@ -18,7 +18,7 @@ const INTERACTIVE =
     ".motion-card",
   ].join(", ");
 
-const TWEEN = { duration: 0.32, ease: "sine.out", overwrite: "auto" as const };
+const TWEEN = { duration: 0.2, ease: "sine.out", overwrite: "auto" as const };
 const PRESS_TWEEN = { duration: 0.1, ease: "power1.out", overwrite: "auto" as const };
 
 type MotionKind = "card" | "row" | "control";
