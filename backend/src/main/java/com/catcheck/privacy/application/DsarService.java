@@ -163,10 +163,15 @@ public class DsarService {
         return dsarPort.findByUser(userId, before, beforeId, limit);
     }
 
+    /**
+     * C7/C15 — chi tiết theo {@code publicRef}; không thuộc user ⇒ 404 (p8 §8.2.5).
+     * DSAR không có chủ ({@code user_id} NULL, ví dụ DPO tiếp nhận thay qua kênh ngoài) cũng
+     * ⇒ 404: chứa email liên hệ, không được để bất kỳ người dùng nào đọc chỉ nhờ biết publicRef.
+     */
     public DsarRequest getByPublicRef(UUID userId, String publicRef) {
         DsarRequest request = dsarPort.findByPublicRef(publicRef)
                 .orElseThrow(() -> new BusinessRuleException(PrivacyErrorCode.DSAR_NOT_FOUND));
-        if (request.userId() != null && !request.userId().equals(userId)) {
+        if (request.userId() == null || !request.userId().equals(userId)) {
             throw new BusinessRuleException(PrivacyErrorCode.DSAR_NOT_FOUND);
         }
         return request;

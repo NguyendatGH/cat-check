@@ -116,7 +116,10 @@ public class LocalImageStorage implements ImageStorage {
     }
 
     public Optional<StoredMedia> openSigned(StorageKey key, long expiresEpochSecond, String signature) {
-        if (signature == null || signature.isBlank()
+        // Fail closed: khoá rỗng ⇒ ai cũng tự tính được HMAC, mà endpoint media không xác thực.
+        // presignedUrl cũng từ chối phát URL trong trường hợp này.
+        if (properties.urlSigningKey() == null || properties.urlSigningKey().isBlank()
+                || signature == null || signature.isBlank()
                 || expiresEpochSecond < clock.instant().getEpochSecond()) {
             return Optional.empty();
         }
@@ -227,17 +230,22 @@ public class LocalImageStorage implements ImageStorage {
         InputStream content = verifiedContent(upload);
         Path target = resolve(key);
         Path temporary = null;
+        boolean moved = false;
         try {
             Files.createDirectories(target.getParent());
             temporary = Files.createTempFile(target.getParent(), ".upload-", ".part");
             long written = copyBounded(content, temporary);
             move(temporary, target);
+            moved = true;
             return new StoredImage(key, PROVIDER, written, upload.contentType());
         } catch (IOException ex) {
-            if (temporary != null) {
+            throw new UncheckedIOException("Không ghi được ảnh vào storage: " + key.value(), ex);
+        } finally {
+            // Mọi lỗi (kể cả BusinessRuleException quá cỡ/rỗng từ copyBounded) đều phải dọn .part,
+            // không chỉ IOException — nếu không tệp tạm nằm lại vĩnh viễn trong thư mục đích.
+            if (temporary != null && !moved) {
                 deleteQuietly(temporary);
             }
-            throw new UncheckedIOException("Không ghi được ảnh vào storage: " + key.value(), ex);
         }
     }
 

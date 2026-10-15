@@ -14,6 +14,7 @@ import com.catcheck.credit.domain.port.UserEntitlementPort;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.id.UuidV7;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -146,6 +147,67 @@ class FefoCreditConsumptionServiceTest {
         assertEquals(CreditLedgerType.REFUND, ledger.entries.getLast().type());
     }
 
+    /** Dựng một lô + một dòng CONSUME trừ 2 credit; trả id dòng CONSUME. */
+    private UUID consumedEntry(UUID userId, UUID batchId) {
+        ledger.batches.add(batch(batchId, NOW.plusSeconds(3_600), 3, 10));
+        entitlements.row.put(userId, writeAccess(userId));
+        UUID consumeEntryId = UUID.randomUUID();
+        ledger.entries.add(new LedgerEntry(consumeEntryId, userId, batchId,
+                CreditLedgerType.CONSUME, -2, 3, CreditLedgerRefType.SCAN, UUID.randomUUID(),
+                "key-c", null, NOW));
+        return consumeEntryId;
+    }
+
+    @Test
+    void secondRefundOfSameEntryIsRejected() {
+        UUID userId = UUID.randomUUID();
+        UUID batchId = UUID.randomUUID();
+        UUID consumeEntryId = consumedEntry(userId, batchId);
+
+        service().refund(userId, new CreditRefundCommand(consumeEntryId, "refund-a", null));
+
+        assertThrows(BusinessRuleException.class, () -> service().refund(userId,
+                new CreditRefundCommand(consumeEntryId, "refund-b", null)));
+        assertEquals(5, ledger.remaining.get(batchId));
+    }
+
+    /** H8: lần hoàn khác commit TRONG LÚC chờ khoá lô — kiểm tra phải chạy sau khi giữ khoá. */
+    @Test
+    void refundCommittedWhileWaitingForBatchLockIsDetected() {
+        UUID userId = UUID.randomUUID();
+        UUID batchId = UUID.randomUUID();
+        UUID consumeEntryId = consumedEntry(userId, batchId);
+        ledger.whileWaitingForRefundLock = () -> ledger.entries.add(new LedgerEntry(
+                UUID.randomUUID(), userId, batchId, CreditLedgerType.REFUND, 2, 5, null,
+                consumeEntryId, "refund-other", null, NOW));
+
+        assertThrows(BusinessRuleException.class, () -> service().refund(userId,
+                new CreditRefundCommand(consumeEntryId, "refund-mine", null)));
+        assertTrue(ledger.remaining.isEmpty());
+    }
+
+    @Test
+    void refundRefUniqueViolationMapsToRefundRejected() {
+        UUID userId = UUID.randomUUID();
+        UUID consumeEntryId = consumedEntry(userId, UUID.randomUUID());
+        ledger.appendFailure = new DuplicateKeyException("duplicate key value violates unique constraint \""
+                + FefoCreditConsumptionService.REFUND_REF_UNIQUE_INDEX + "\"");
+
+        assertThrows(BusinessRuleException.class, () -> service().refund(userId,
+                new CreditRefundCommand(consumeEntryId, "refund-x", null)));
+    }
+
+    @Test
+    void otherUniqueViolationOnRefundIsNotSwallowed() {
+        UUID userId = UUID.randomUUID();
+        UUID consumeEntryId = consumedEntry(userId, UUID.randomUUID());
+        ledger.appendFailure = new DuplicateKeyException(
+                "duplicate key value violates unique constraint \"credit_ledger_idempotency_key_key\"");
+
+        assertThrows(DuplicateKeyException.class, () -> service().refund(userId,
+                new CreditRefundCommand(consumeEntryId, "refund-y", null)));
+    }
+
     @Test
     void trialScanDoesNotTouchBatchesOrLedger() {
         UUID userId = UUID.randomUUID();
@@ -176,8 +238,14 @@ class FefoCreditConsumptionServiceTest {
                     .toList();
         }
 
+        /** Chạy khi đang "chờ" khoá lô — mô phỏng transaction khác commit trong lúc đó. */
+        Runnable whileWaitingForRefundLock = () -> { };
+        /** Lỗi ném ra từ append — mô phỏng va chạm UNIQUE ở tầng DB. */
+        RuntimeException appendFailure;
+
         @Override
         public Optional<CreditBatchSnapshot> lockBatchForRefund(UUID batchId) {
+            whileWaitingForRefundLock.run();
             return batches.stream().filter(b -> b.id().equals(batchId)).findFirst();
         }
 
@@ -220,6 +288,9 @@ class FefoCreditConsumptionServiceTest {
 
         @Override
         public void append(LedgerEntry entry) {
+            if (appendFailure != null) {
+                throw appendFailure;
+            }
             entries.add(entry);
         }
 

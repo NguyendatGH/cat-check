@@ -9,6 +9,7 @@ import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.id.UuidV7;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,9 @@ public class FefoCreditConsumptionService implements com.catcheck.credit.api.Cre
     public static final int TRIAL_SCAN_LIMIT = 3;
 
     private static final Logger log = LoggerFactory.getLogger(FefoCreditConsumptionService.class);
+
+    /** Index partial một-lần-hoàn-mỗi-dòng-trừ (V31). */
+    static final String REFUND_REF_UNIQUE_INDEX = "uq_credit_ledger_refund_ref";
 
     private final CreditLedgerPort creditLedgerPort;
     private final UserEntitlementPort userEntitlementPort;
@@ -118,13 +122,14 @@ public class FefoCreditConsumptionService implements com.catcheck.credit.api.Cre
         if (!original.userId().equals(userId) || !original.isRefundable()) {
             throw refundRejected();
         }
-        if (creditLedgerPort.existsRefundReferencing(original.id())) {
-            throw refundRejected();
-        }
-
         Instant now = clock.instant();
         CreditBatchSnapshot target = creditLedgerPort.lockBatchForRefund(original.batchId())
                 .orElseThrow(() -> refundRejected());
+
+        // Kiểm tra sau khi giữ khoá lô để hai lần hoàn đồng thời không cùng lọt; V31 là lưới ở DB.
+        if (creditLedgerPort.existsRefundReferencing(original.id())) {
+            throw refundRejected();
+        }
 
         int refunded = -original.amount();
         if (!target.canRefund(refunded)) {
@@ -147,7 +152,14 @@ public class FefoCreditConsumptionService implements com.catcheck.credit.api.Cre
                 command.idempotencyKey(),
                 command.note(),
                 now);
-        creditLedgerPort.append(refundEntry);
+        try {
+            creditLedgerPort.append(refundEntry);
+        } catch (DuplicateKeyException ex) {
+            if (isRefundRefViolation(ex)) {
+                throw refundRejected();
+            }
+            throw ex;
+        }
 
         return new com.catcheck.credit.api.CreditConsumption.CreditRefund(
                 target.id(), refundEntry.id(), refunded, balanceAfter);
@@ -156,6 +168,12 @@ public class FefoCreditConsumptionService implements com.catcheck.credit.api.Cre
     private BusinessRuleException refundRejected() {
         return new BusinessRuleException(
                 com.catcheck.credit.api.CreditErrorCode.CREDIT_INSUFFICIENT, 0, 0);
+    }
+
+    /** Chỉ va chạm của {@code uq_credit_ledger_refund_ref} (V31) là "đã hoàn rồi"; va chạm khác giữ nguyên. */
+    private static boolean isRefundRefViolation(DuplicateKeyException ex) {
+        String message = ex.getMostSpecificCause().getMessage();
+        return message != null && message.contains(REFUND_REF_UNIQUE_INDEX);
     }
 
     @Override

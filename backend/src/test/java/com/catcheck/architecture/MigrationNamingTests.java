@@ -75,7 +75,9 @@ class MigrationNamingTests {
                         "V27__community_reaction_multi.sql",
                         "V28__replace_places_with_da_nang.sql",
                         "V29__community_comment_replies_images.sql",
-                        "V30__color_chart_active_unique_fix.sql");
+                        "V30__color_chart_active_unique_fix.sql",
+                        "V31__credit_refund_unique_ref.sql",
+                        "V32__place_booking_active_slot_unique.sql");
     }
 
     @Test
