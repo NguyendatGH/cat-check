@@ -12,6 +12,13 @@ public final class NextRunCalculator {
     }
 
     public static Instant nextRun(Reminder reminder, Instant from) {
+        if (reminder.scheduleKind() == ScheduleKind.RRULE) {
+            if (reminder.rrule() == null || reminder.rrule().isBlank()) {
+                return null;
+            }
+            return RecurrenceRule.parse(reminder.rrule()).nextAfter(
+                    from, reminder.createdAt(), ZoneId.of(reminder.timezone()), reminder.preferredTimeStart());
+        }
         if (reminder.scheduleKind() != ScheduleKind.INTERVAL || reminder.intervalDays() == null) {
             return null;
         }

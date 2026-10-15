@@ -77,6 +77,33 @@ class SystemBroadcastServiceTest {
     }
 
     @Test
+    @DisplayName("Hai lan phat KHAC noi dung trong cung mot phut khong bi gop lam mot")
+    void distinctBroadcastsInTheSameMinuteAreNotDeduplicated() {
+        recipients.seed(3);
+
+        SystemBroadcastGateway.BroadcastResult first = service.broadcast(
+                "SYSTEM_MAINTENANCE", "Bao tri", "Tu 01:00 den 02:00", Map.of(), false);
+        SystemBroadcastGateway.BroadcastResult second = service.broadcast(
+                "SYSTEM_MAINTENANCE", "Bao tri", "Doi lich: tu 03:00 den 04:00", Map.of(), false);
+
+        assertThat(second.dedupeKeyPrefix()).isNotEqualTo(first.dedupeKeyPrefix());
+        assertThat(second.notificationsQueued()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("Bam doi cung noi dung: dedupe chan va queued chi dem dong thuc su ghi")
+    void doubleSubmitIsDeduplicatedAndQueuedCountsOnlyRealInserts() {
+        recipients.seed(3);
+
+        service.broadcast("SYSTEM_MAINTENANCE", "Bao tri", "Tu 01:00 den 02:00", Map.of("a", 1), false);
+        SystemBroadcastGateway.BroadcastResult again = service.broadcast(
+                "SYSTEM_MAINTENANCE", "Bao tri", "Tu 01:00 den 02:00", Map.of("a", 1), false);
+
+        assertThat(again.recipientsMatched()).isEqualTo(3);
+        assertThat(again.notificationsQueued()).isZero();
+    }
+
+    @Test
     @DisplayName("PRIVACY_INCIDENT_NOTICE co trong registry template, bat buoc gui, khong quiet hours")
     void privacyIncidentNoticeIsRegisteredAsMandatoryWithoutQuietHours() {
         NotificationTemplate template = NotificationTemplate.fromCode("PRIVACY_INCIDENT_NOTICE")
@@ -107,9 +134,13 @@ class SystemBroadcastServiceTest {
 
         private final List<NotificationRequest> enqueued = new ArrayList<>();
 
+        /** dedupeKey da ghi — mo phong uq_notification_dedupe. */
+        private final java.util.Set<String> keys = new java.util.HashSet<>();
+
         @Override
-        public void enqueue(NotificationRequest request) {
+        public boolean enqueue(NotificationRequest request) {
             enqueued.add(request);
+            return keys.add(request.dedupeKey());
         }
 
         @Override

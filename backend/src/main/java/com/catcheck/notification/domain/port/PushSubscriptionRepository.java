@@ -22,6 +22,8 @@ public interface PushSubscriptionRepository {
 
     int revokeInstallationIdOwnedByOtherUser(String installationId, UUID newOwnerId, Instant now);
 
+    int revokeLegacyTokenOwnedByOtherUser(String legacyToken, UUID newOwnerId, Instant now);
+
     boolean revoke(UUID subscriptionId, UUID userId, PushRevokeReason reason, Instant now);
 
     void revokeById(UUID subscriptionId, PushRevokeReason reason, Instant now);

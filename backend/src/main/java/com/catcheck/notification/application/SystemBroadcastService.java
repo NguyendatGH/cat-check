@@ -11,10 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 @Service
@@ -48,7 +53,8 @@ public class SystemBroadcastService implements SystemBroadcastGateway {
                         NotificationErrorCode.NOTIFICATION_TEMPLATE_UNKNOWN, templateCode));
 
         Instant startedAt = clock.instant();
-        String dedupePrefix = template.code() + ":BROADCAST:" + startedAt.getEpochSecond() / 60;
+        String dedupePrefix = template.code() + ":BROADCAST:" + startedAt.getEpochSecond() / 60
+                + ':' + fingerprint(title, body, payload);
 
         int matched = 0;
         int queued = 0;
@@ -61,10 +67,11 @@ public class SystemBroadcastService implements SystemBroadcastGateway {
             matched += page.size();
             if (!dryRun) {
                 for (UUID userId : page) {
-                    notifications.enqueue(new NotificationRequest(
+                    if (notifications.enqueue(new NotificationRequest(
                             userId, template.code(), payload, title, body,
-                            null, null, dedupePrefix + ':' + userId));
-                    queued++;
+                            null, null, dedupePrefix + ':' + userId))) {
+                        queued++;
+                    }
                 }
             }
             cursor = page.getLast();
@@ -76,5 +83,18 @@ public class SystemBroadcastService implements SystemBroadcastGateway {
         log.info("Broadcast {} dryRun={} matched={} queued={}",
                 template.code(), dryRun, matched, queued);
         return new BroadcastResult(matched, queued, dedupePrefix);
+    }
+
+    /** Hai thong bao khac noi dung trong cung mot phut khong duoc gop lam mot. */
+    static String fingerprint(String title, String body, Map<String, Object> payload) {
+        String canonical = String.valueOf(title) + '\0' + body + '\0'
+                + (payload == null ? "" : new TreeMap<>(payload).toString());
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 8);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 khong kha dung", ex);
+        }
     }
 }

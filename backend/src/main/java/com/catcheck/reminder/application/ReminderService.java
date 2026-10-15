@@ -4,6 +4,7 @@ import com.catcheck.reminder.api.ReminderErrorCode;
 import com.catcheck.reminder.application.spi.CatOwnershipPort;
 import com.catcheck.reminder.application.spi.ReminderFeaturePort;
 import com.catcheck.reminder.domain.NextRunCalculator;
+import com.catcheck.reminder.domain.RecurrenceRule;
 import com.catcheck.reminder.domain.Reminder;
 import com.catcheck.reminder.domain.ReminderSource;
 import com.catcheck.reminder.domain.ReminderType;
@@ -136,7 +137,8 @@ public class ReminderService {
                 current.id(), current.userId(), current.catId(), current.type(), kind, intervalDays, rrule,
                 start, end, current.timezone(), current.nextRunAt(), current.lastRunAt(),
                 current.lastSatisfiedAt(), channels, current.source(), active, current.createdAt(), now);
-        Instant from = updated.lastSatisfiedAt() != null ? updated.lastSatisfiedAt() : now;
+        Instant from = kind != ScheduleKind.RRULE && updated.lastSatisfiedAt() != null
+                ? updated.lastSatisfiedAt() : now;
         try {
             return repository.update(active ? withNextRun(updated, from) : withNextRun(updated, from, true));
         } catch (DuplicateKeyException ex) {
@@ -204,8 +206,12 @@ public class ReminderService {
             if (intervalDays == null || intervalDays < 1 || intervalDays > 90) {
                 throw new BusinessRuleException(ReminderErrorCode.REMINDER_SCHEDULE_INVALID, "intervalDays");
             }
-        } else if (rrule == null || rrule.isBlank()) {
-            throw new BusinessRuleException(ReminderErrorCode.REMINDER_SCHEDULE_INVALID, "rrule");
+        } else {
+            try {
+                RecurrenceRule.parse(rrule);
+            } catch (IllegalArgumentException ex) {
+                throw new BusinessRuleException(ReminderErrorCode.REMINDER_SCHEDULE_INVALID, "rrule");
+            }
         }
     }
 

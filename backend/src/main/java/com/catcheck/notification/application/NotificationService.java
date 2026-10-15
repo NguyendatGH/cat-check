@@ -79,7 +79,7 @@ public class NotificationService implements NotificationGateway {
 
     @Override
     @Transactional
-    public void enqueue(NotificationRequest request) {
+    public boolean enqueue(NotificationRequest request) {
         NotificationTemplate template = NotificationTemplate.fromCode(request.templateCode())
                 .orElseThrow(() -> new BusinessRuleException(
                         NotificationErrorCode.NOTIFICATION_TEMPLATE_UNKNOWN, request.templateCode()));
@@ -87,7 +87,7 @@ public class NotificationService implements NotificationGateway {
         Optional<NotificationRecipient> found = recipients.findById(request.userId());
         if (found.isEmpty()) {
             log.warn("Bỏ qua thông báo {}: không còn tài khoản tương ứng.", template.code());
-            return;
+            return false;
         }
         NotificationRecipient recipient = found.get();
         UserNotificationPreference preference = preferences.findByUserIdOrDefaults(request.userId());
@@ -95,15 +95,17 @@ public class NotificationService implements NotificationGateway {
         PreferenceGate gate = template.preferenceGate();
         boolean typeEnabled = template.mandatory() || preference.allows(gate);
 
+        boolean inserted = false;
         if (template.writesInAppRecord()) {
-            writeInApp(request, template, typeEnabled, now);
+            inserted |= writeInApp(request, template, typeEnabled, now);
         }
         if (template.supportsPush()) {
-            enqueuePush(request, template, preference, recipient, typeEnabled, now);
+            inserted |= enqueuePush(request, template, preference, recipient, typeEnabled, now);
         }
         if (template.supportsEmail()) {
-            enqueueEmail(request, template, preference, recipient, typeEnabled, now);
+            inserted |= enqueueEmail(request, template, preference, recipient, typeEnabled, now);
         }
+        return inserted;
     }
 
     @Override
@@ -131,79 +133,76 @@ public class NotificationService implements NotificationGateway {
     }
 
 
-    private void writeInApp(NotificationRequest request, NotificationTemplate template,
-                            boolean typeEnabled, Instant now) {
+    private boolean writeInApp(NotificationRequest request, NotificationTemplate template,
+                               boolean typeEnabled, Instant now) {
         NotificationStatus status = typeEnabled ? NotificationStatus.SENT : NotificationStatus.SUPPRESSED;
         Map<String, Object> payload = typeEnabled
                 ? request.payload()
                 : withReason(request.payload(), REASON_PREFERENCE_OFF);
-        notifications.insertIfAbsent(row(request, template, NotificationChannel.IN_APP, status, payload,
-                null, typeEnabled ? now : null, now));
+        return notifications.insertIfAbsent(row(request, template, NotificationChannel.IN_APP, status, payload,
+                null, typeEnabled ? now : null, now)).isPresent();
     }
 
 
-    private void enqueuePush(NotificationRequest request, NotificationTemplate template,
-                             UserNotificationPreference preference, NotificationRecipient recipient,
+    private boolean enqueuePush(NotificationRequest request, NotificationTemplate template,
+                                UserNotificationPreference preference, NotificationRecipient recipient,
                              boolean typeEnabled, Instant now) {
         PreferenceGate gate = template.preferenceGate();
         boolean pushAllowedByPreference = gate == PreferenceGate.ATTENTION_CHANNEL
                 ? preference.allowsPushFor(gate)
                 : typeEnabled;
         if (!pushAllowedByPreference) {
-            suppress(request, template, NotificationChannel.PUSH, REASON_PREFERENCE_OFF, now);
-            return;
+            return suppress(request, template, NotificationChannel.PUSH, REASON_PREFERENCE_OFF, now);
         }
         boolean consented = template.pushConsentPurpose()
                 .map(purpose -> consentGate.isGranted(request.userId(), purpose))
                 .orElse(false);
         if (!consented) {
-            suppress(request, template, NotificationChannel.PUSH, REASON_CONSENT_MISSING, now);
-            return;
+            return suppress(request, template, NotificationChannel.PUSH, REASON_CONSENT_MISSING, now);
         }
         List<PushSubscription> targets = subscriptions.findActiveByUser(request.userId()).stream()
                 .limit(properties.push().maxDevicesPerUser())
                 .toList();
         if (targets.isEmpty()) {
-            suppress(request, template, NotificationChannel.PUSH, REASON_NO_ACTIVE_DEVICE, now);
-            return;
+            return suppress(request, template, NotificationChannel.PUSH, REASON_NO_ACTIVE_DEVICE, now);
         }
         Instant deliverAt = deliveryTime(template, preference, recipient, now);
         Optional<Notification> created = notifications.insertIfAbsent(
                 row(request, template, NotificationChannel.PUSH, NotificationStatus.QUEUED,
                         request.payload(), deliverAt.equals(now) ? null : deliverAt, null, now));
         if (created.isEmpty()) {
-            return;
+            return false;
         }
         UUID notificationId = created.get().id();
         for (PushSubscription target : targets) {
             pushOutbox.insertIfAbsent(notificationId, target.id(), deliverAt);
         }
+        return true;
     }
 
 
-    private void enqueueEmail(NotificationRequest request, NotificationTemplate template,
-                              UserNotificationPreference preference, NotificationRecipient recipient,
+    private boolean enqueueEmail(NotificationRequest request, NotificationTemplate template,
+                                 UserNotificationPreference preference, NotificationRecipient recipient,
                               boolean typeEnabled, Instant now) {
         if (!typeEnabled) {
-            suppress(request, template, NotificationChannel.EMAIL, REASON_PREFERENCE_OFF, now);
-            return;
+            return suppress(request, template, NotificationChannel.EMAIL, REASON_PREFERENCE_OFF, now);
         }
         Optional<String> purpose = template.emailConsentPurpose();
         if (purpose.isPresent() && !consentGate.isGranted(request.userId(), purpose.get())) {
-            suppress(request, template, NotificationChannel.EMAIL, REASON_CONSENT_MISSING, now);
-            return;
+            return suppress(request, template, NotificationChannel.EMAIL, REASON_CONSENT_MISSING, now);
         }
         Instant deliverAt = deliveryTime(template, preference, recipient, now);
         Optional<Notification> created = notifications.insertIfAbsent(
                 row(request, template, NotificationChannel.EMAIL, NotificationStatus.QUEUED,
                         request.payload(), deliverAt.equals(now) ? null : deliverAt, null, now));
         if (created.isEmpty()) {
-            return;
+            return false;
         }
         emailOutbox.insertIfAbsent(new EmailOutboxMessage(
                 null, recipient.emailAddress(), template.code(), recipient.locale(),
                 request.payload(), OutboxStatus.PENDING, 0, deliverAt, null,
                 channelDedupeKey(request.dedupeKey(), NotificationChannel.EMAIL), null, null));
+        return true;
     }
 
 
@@ -262,10 +261,10 @@ public class NotificationService implements NotificationGateway {
         return preference.quietHours().nextAllowedAfter(now, recipient.timezone());
     }
 
-    private void suppress(NotificationRequest request, NotificationTemplate template,
-                          NotificationChannel channel, String reason, Instant now) {
-        notifications.insertIfAbsent(row(request, template, channel, NotificationStatus.SUPPRESSED,
-                withReason(request.payload(), reason), null, null, now));
+    private boolean suppress(NotificationRequest request, NotificationTemplate template,
+                             NotificationChannel channel, String reason, Instant now) {
+        return notifications.insertIfAbsent(row(request, template, channel, NotificationStatus.SUPPRESSED,
+                withReason(request.payload(), reason), null, null, now)).isPresent();
     }
 
     private Notification row(NotificationRequest request, NotificationTemplate template,

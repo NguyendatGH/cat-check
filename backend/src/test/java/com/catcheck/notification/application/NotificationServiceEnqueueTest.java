@@ -236,6 +236,15 @@ class NotificationServiceEnqueueTest {
     }
 
     @Test
+    void enqueueReportsWhetherAnythingWasActuallyInserted() {
+        NotificationService service = service(DAYTIME);
+
+        assertThat(service.enqueue(request(NotificationTemplate.CREDIT_EXPIRING_T48H))).isTrue();
+        // Cùng dedupe_key lần hai: mọi kênh va uq_notification_dedupe ⇒ không ghi gì mới.
+        assertThat(service.enqueue(request(NotificationTemplate.CREDIT_EXPIRING_T48H))).isFalse();
+    }
+
+    @Test
     void unknownTemplateCodeIsRejected() {
         assertThatThrownBy(() -> service(DAYTIME).enqueue(new NotificationRequest(
                 USER, "NOT_A_TEMPLATE", Map.of(), null, null, null, null, null)))
@@ -248,7 +257,7 @@ class NotificationServiceEnqueueTest {
     void missingRecipientIsSkippedWithoutThrowing() {
         recipients.recipient = null;
 
-        service(DAYTIME).enqueue(request(NotificationTemplate.CREDIT_EXPIRING_T48H));
+        assertThat(service(DAYTIME).enqueue(request(NotificationTemplate.CREDIT_EXPIRING_T48H))).isFalse();
 
         assertThat(notifications.rows).isEmpty();
     }

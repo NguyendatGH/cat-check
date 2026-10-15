@@ -7,6 +7,7 @@ import com.catcheck.reminder.domain.ReminderSource;
 import com.catcheck.reminder.domain.ReminderType;
 import com.catcheck.reminder.domain.ScheduleKind;
 import com.catcheck.reminder.domain.port.ReminderRepository;
+import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ReminderServiceTest {
@@ -62,6 +64,25 @@ class ReminderServiceTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    void rruleReminderIsCreatedWithANextRun() {
+        Reminder created = service.create(new ReminderCommands.Create(USER_ID, CAT_ID,
+                ReminderType.SCAN_ROUTINE.name(), "RRULE", null, "FREQ=WEEKLY;BYDAY=WE,SU",
+                LocalTime.of(9, 0), null, "Asia/Ho_Chi_Minh", List.of("PUSH"), "USER"));
+
+        // NOW = thứ Bảy 03/10 11:00 giờ VN ⇒ Chủ Nhật 04/10 09:00 giờ VN.
+        assertThat(created.nextRunAt()).isEqualTo(Instant.parse("2026-10-04T02:00:00Z"));
+    }
+
+    @Test
+    void unsupportedRruleIsRejectedInsteadOfSilentlyNeverFiring() {
+        assertThatThrownBy(() -> service.create(new ReminderCommands.Create(USER_ID, CAT_ID,
+                ReminderType.SCAN_ROUTINE.name(), "RRULE", null, "FREQ=MONTHLY;BYMONTHDAY=1",
+                null, null, "Asia/Ho_Chi_Minh", List.of("PUSH"), "USER")))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ReminderErrorCode.REMINDER_SCHEDULE_INVALID);
+    }
+
     private static ReminderCommands.Create command() {
         return new ReminderCommands.Create(USER_ID, CAT_ID, ReminderType.SCAN_ROUTINE.name(), "INTERVAL",
                 7, null, LocalTime.of(9, 0), null, "Asia/Ho_Chi_Minh", List.of("PUSH"), "USER");
@@ -91,7 +112,10 @@ class ReminderServiceTest {
 
         @Override
         public Reminder insert(Reminder reminder) {
-            throw failure;
+            if (failure != null) {
+                throw failure;
+            }
+            return reminder;
         }
 
         @Override

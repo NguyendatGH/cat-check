@@ -301,11 +301,11 @@ class SendDueRemindersJobTest {
         UUID failFor;
 
         @Override
-        public void enqueue(NotificationRequest request) {
+        public boolean enqueue(NotificationRequest request) {
             if (failFor != null && failFor.equals(request.refId())) {
                 throw new IllegalStateException("gia lap loi mot thong bao");
             }
-            requests.add(request);
+            return requests.add(request);
         }
 
         @Override

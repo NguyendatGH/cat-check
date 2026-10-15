@@ -4,7 +4,8 @@ import java.util.UUID;
 
 public interface NotificationGateway {
 
-    void enqueue(NotificationRequest request);
+    /** @return {@code true} khi đã ghi ít nhất một dòng {@code notification} mới. */
+    boolean enqueue(NotificationRequest request);
 
     void enqueueTransactionalEmail(TransactionalEmailRequest request);
 

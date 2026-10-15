@@ -64,6 +64,9 @@ public class PushSubscriptionService {
         if (installationId != null) {
             repository.revokeInstallationIdOwnedByOtherUser(installationId, command.userId(), now);
         }
+        if (legacyToken != null) {
+            repository.revokeLegacyTokenOwnedByOtherUser(legacyToken, command.userId(), now);
+        }
         return repository.upsert(new PushSubscription(
                 null, command.userId(), installationId, legacyToken,
                 platform(command.platform()), command.deviceLabel(), command.userAgent(),

@@ -63,6 +63,13 @@ class QuietHoursTest {
     }
 
     @Test
+    void exactEndOfWindowIsNotDeferredToTheNextDay() {
+        // 07:00 giờ VN đúng phút hết im lặng ⇒ gửi ngay, không dời sang 07:00 hôm sau.
+        Instant end = Instant.parse("2026-10-04T00:00:00Z");
+        assertThat(QuietHours.defaults().nextAllowedAfter(end, SAIGON)).isEqualTo(end);
+    }
+
+    @Test
     void outsideTheWindowTheMomentIsReturnedUnchanged() {
         Instant daytime = Instant.parse("2026-10-03T10:00:00Z");
         assertThat(QuietHours.defaults().nextAllowedAfter(daytime, SAIGON)).isEqualTo(daytime);

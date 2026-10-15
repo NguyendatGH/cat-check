@@ -101,6 +101,16 @@ class JdbcPushSubscriptionRepository implements PushSubscriptionRepository {
     }
 
     @Override
+    public int revokeLegacyTokenOwnedByOtherUser(String legacyToken, UUID newOwnerId, Instant now) {
+        return jdbc.update("""
+                UPDATE push_subscription
+                   SET revoked_at = ?, revoke_reason = ?
+                 WHERE legacy_token = ? AND user_id <> ? AND revoked_at IS NULL
+                """, NotificationRowReaders.offset(now), PushRevokeReason.USER_DISABLED.name(),
+                legacyToken, newOwnerId);
+    }
+
+    @Override
     public boolean revoke(UUID subscriptionId, UUID userId, PushRevokeReason reason, Instant now) {
         return jdbc.update("""
                 UPDATE push_subscription

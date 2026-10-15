@@ -262,7 +262,23 @@ final class NotificationTestDoubles {
 
         @Override
         public int revokeInstallationIdOwnedByOtherUser(String installationId, UUID newOwnerId, Instant now) {
-            return 0;
+            return revokeOwnedByOther(row -> installationId.equals(row.installationId()), newOwnerId);
+        }
+
+        @Override
+        public int revokeLegacyTokenOwnedByOtherUser(String legacyToken, UUID newOwnerId, Instant now) {
+            return revokeOwnedByOther(row -> legacyToken.equals(row.legacyToken()), newOwnerId);
+        }
+
+        private int revokeOwnedByOther(java.util.function.Predicate<PushSubscription> device, UUID newOwnerId) {
+            List<PushSubscription> hits = active.stream()
+                    .filter(row -> device.test(row) && !row.userId().equals(newOwnerId))
+                    .toList();
+            hits.forEach(row -> {
+                active.remove(row);
+                revoked.put(row.id(), PushRevokeReason.USER_DISABLED);
+            });
+            return hits.size();
         }
 
         @Override
