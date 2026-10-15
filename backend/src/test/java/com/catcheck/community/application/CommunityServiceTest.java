@@ -50,9 +50,56 @@ class CommunityServiceTest {
                 CommunityErrorCode.POST_RATE_LIMITED).retryAfterSeconds()).isEqualTo(12L);
         assertThat(assertRateLimited(() -> service.createComment(USER_ID, UUID.randomUUID(), "Body"),
                 CommunityErrorCode.COMMENT_RATE_LIMITED).retryAfterSeconds()).isEqualTo(12L);
-        assertThat(assertRateLimited(() -> service.report(USER_ID, UUID.randomUUID(), null, "SPAM", null),
-                CommunityErrorCode.REPORT_RATE_LIMITED).retryAfterSeconds()).isEqualTo(12L);
         verifyNoInteractions(repository);
+
+        UUID postId = UUID.randomUUID();
+        when(repository.findReportTargetAuthor(postId, null)).thenReturn(java.util.Optional.of(UUID.randomUUID()));
+        assertThat(assertRateLimited(() -> service.report(USER_ID, postId, null, "SPAM", null),
+                CommunityErrorCode.REPORT_RATE_LIMITED).retryAfterSeconds()).isEqualTo(12L);
+        verify(repository, never()).report(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void invalidReportsDoNotConsumeTheReportQuota() {
+        CommunityRepository repository = mock(CommunityRepository.class);
+        UUID ownPost = UUID.randomUUID();
+        when(repository.findReportTargetAuthor(ownPost, null)).thenReturn(java.util.Optional.of(USER_ID));
+        java.util.concurrent.atomic.AtomicInteger consumed = new java.util.concurrent.atomic.AtomicInteger();
+        CommunityRateLimiter countingLimiter = new CommunityRateLimiter() {
+            @Override public boolean tryConsume(CommunityRateLimitRule rule, String subject) { consumed.incrementAndGet(); return true; }
+            @Override public long secondsUntilRefill(CommunityRateLimitRule rule, String subject) { return 0; }
+        };
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, countingLimiter);
+
+        assertThatThrownBy(() -> service.report(USER_ID, null, null, "SPAM", null)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.report(USER_ID, UUID.randomUUID(), null, "SPAM", null))
+                .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+        assertThatThrownBy(() -> service.report(USER_ID, ownPost, null, "SPAM", null)).isInstanceOf(BusinessRuleException.class);
+
+        assertThat(consumed).hasValue(0);
+    }
+
+    @Test
+    void commentOnAPostHiddenDuringInsertIsNotFound() {
+        UUID postId = UUID.randomUUID();
+        CommunityRepository repository = mock(CommunityRepository.class);
+        when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
+        when(repository.insertComment(any(), any(), any(), any(), any(), any())).thenReturn(java.util.Optional.empty());
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        assertThatThrownBy(() -> service.createComment(USER_ID, postId, null, "Hi", null))
+                .isInstanceOfSatisfying(com.catcheck.shared.error.NotFoundException.class,
+                        ex -> assertThat(ex.errorCode()).isEqualTo(CommunityErrorCode.POST_NOT_FOUND));
+    }
+
+    @Test
+    void hugePageNumberDoesNotOverflowTheOffset() {
+        CommunityRepository repository = mock(CommunityRepository.class);
+        CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
+
+        service.list(USER_ID, null, Integer.MAX_VALUE, 50);
+
+        verify(repository).findPosts(USER_ID, null, Integer.MAX_VALUE, 50);
     }
 
     @Test
@@ -141,6 +188,7 @@ class CommunityServiceTest {
         when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
         when(repository.findComment(replyId)).thenReturn(java.util.Optional.of(
                 new com.catcheck.community.domain.CommunityCommentRef(replyId, postId, replyAuthor, rootId, null)));
+        stubInsertedComment(repository);
         CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
 
         service.createComment(USER_ID, postId, replyId, "  Dong y  ", null);
@@ -156,6 +204,7 @@ class CommunityServiceTest {
         when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
         when(repository.findComment(rootId)).thenReturn(java.util.Optional.of(
                 new com.catcheck.community.domain.CommunityCommentRef(rootId, postId, UUID.randomUUID(), null, null)));
+        stubInsertedComment(repository);
         CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
 
         service.createComment(USER_ID, postId, rootId, "Hi", null);
@@ -188,6 +237,7 @@ class CommunityServiceTest {
         UUID postId = UUID.randomUUID();
         CommunityRepository repository = mock(CommunityRepository.class);
         when(repository.findPost(USER_ID, postId)).thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityPost.class)));
+        stubInsertedComment(repository);
         CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
 
         for (String body : java.util.Arrays.asList("", "   ", null, "x".repeat(4001))) {
@@ -212,6 +262,11 @@ class CommunityServiceTest {
                 .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
         assertThatThrownBy(() -> service.replies(UUID.randomUUID(), UUID.randomUUID(), 0, 20))
                 .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+    }
+
+    private static void stubInsertedComment(CommunityRepository repository) {
+        when(repository.insertComment(any(), any(), any(), any(), any(), any()))
+                .thenReturn(java.util.Optional.of(mock(com.catcheck.community.domain.CommunityComment.class)));
     }
 
     private static CommunityService service(

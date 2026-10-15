@@ -47,7 +47,8 @@ public class CommunityService {
                 ? null : category.toUpperCase();
         int safePage = Math.max(page, 0);
         int safeSize = Math.clamp(size, 1, 50);
-        List<CommunityPost> items = repository.findPosts(viewerId, normalized, safePage * safeSize, safeSize);
+        int offset = (int) Math.min((long) safePage * safeSize, Integer.MAX_VALUE);
+        List<CommunityPost> items = repository.findPosts(viewerId, normalized, offset, safeSize);
         long total = repository.countPosts(normalized);
         return new Page(items, safePage, safeSize, total);
     }
@@ -114,7 +115,9 @@ public class CommunityService {
                 replyToUserId = parent.authorUserId();
             }
         }
-        return repository.insertComment(authorId, postId, rootId, replyToUserId, text, imageRef);
+        // Bài có thể bị ẩn giữa lần kiểm tra ở trên và lệnh INSERT có điều kiện.
+        return repository.insertComment(authorId, postId, rootId, replyToUserId, text, imageRef)
+                .orElseThrow(() -> new NotFoundException(CommunityErrorCode.POST_NOT_FOUND));
     }
 
     @Transactional
@@ -133,7 +136,6 @@ public class CommunityService {
             // GlobalExceptionHandler map sang VALIDATION_FAILED (400); không tiêu hao hạn mức báo cáo.
             throw new IllegalArgumentException("community report reason không hợp lệ");
         }
-        requireRateLimit(CommunityRateLimitRule.REPORT_CREATE_BY_USER, CommunityErrorCode.REPORT_RATE_LIMITED, userId);
         if ((postId == null) == (commentId == null)) {
             throw new com.catcheck.shared.error.BusinessRuleException(CommunityErrorCode.REPORT_TARGET_REQUIRED);
         }
@@ -143,6 +145,8 @@ public class CommunityService {
         if (authorId.equals(userId)) {
             throw new com.catcheck.shared.error.BusinessRuleException(CommunityErrorCode.REPORT_OWN_CONTENT);
         }
+        // Hạn mức chỉ tính cho báo cáo hợp lệ: kiểm tra đối tượng/tự báo cáo trước.
+        requireRateLimit(CommunityRateLimitRule.REPORT_CREATE_BY_USER, CommunityErrorCode.REPORT_RATE_LIMITED, userId);
         if (!repository.report(userId, postId, commentId, reason, details)) {
             throw new com.catcheck.shared.error.ConflictException(CommunityErrorCode.REPORT_DUPLICATE);
         }

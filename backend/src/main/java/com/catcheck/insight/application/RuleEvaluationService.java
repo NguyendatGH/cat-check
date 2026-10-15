@@ -72,6 +72,10 @@ public class RuleEvaluationService {
         long lowCount = scans.stream().filter(s -> isLowSide(s.classification())).count();
         long highCount = scans.stream().filter(s -> isHighSide(s.classification())).count();
 
+        // Cả hai phía cùng đạt ngưỡng thì không có MỘT hướng để báo "đều thiên về" — không phát R1.
+        if (lowCount >= minCount && highCount >= minCount) {
+            return;
+        }
         String direction = null;
         long matched = 0;
         if (lowCount >= minCount) {

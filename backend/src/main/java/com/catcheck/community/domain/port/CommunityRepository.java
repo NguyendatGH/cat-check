@@ -33,12 +33,17 @@ public interface CommunityRepository {
 
     void updatePostImage(UUID postId, String imageRef);
 
-    CommunityComment insertComment(UUID authorId, UUID postId, UUID parentCommentId, UUID replyToUserId,
-                                   String body, String imageRef);
+    /** Empty when the post is no longer published at insert time (e.g. hidden concurrently). */
+    Optional<CommunityComment> insertComment(UUID authorId, UUID postId, UUID parentCommentId, UUID replyToUserId,
+                                             String body, String imageRef);
 
+    /** @return the reaction's resulting state ({@code true} = present) after the call. */
     boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active);
 
     Optional<UUID> findReportTargetAuthor(UUID postId, UUID commentId);
+
+    /** Author of the post/comment whatever its moderation status (unlike {@link #findReportTargetAuthor}). */
+    Optional<UUID> findContentAuthor(UUID postId, UUID commentId);
 
     boolean report(UUID userId, UUID postId, UUID commentId, String reason, String details);
 
@@ -47,6 +52,9 @@ public interface CommunityRepository {
     long countReports(String status);
 
     java.util.Optional<CommunityReport> findReport(UUID reportId);
+
+    /** Like {@link #findReport} but row-locks the report until the transaction ends. */
+    Optional<CommunityReport> findReportForUpdate(UUID reportId);
 
     void moderateReport(UUID reportId, String action);
 }

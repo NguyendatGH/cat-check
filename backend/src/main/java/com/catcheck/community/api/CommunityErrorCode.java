@@ -17,6 +17,7 @@ public enum CommunityErrorCode implements ErrorCode {
     REPORT_NOT_FOUND("community/report-not-found", HttpStatus.NOT_FOUND),
     REPORT_OWN_CONTENT("community/report-own-content", HttpStatus.UNPROCESSABLE_ENTITY),
     MODERATION_ACTION_INVALID("community/moderation-action-invalid", HttpStatus.BAD_REQUEST),
+    MODERATION_SELF_FORBIDDEN("community/moderation-self-forbidden", HttpStatus.CONFLICT),
     ACCOUNT_RESTRICTED("common/account-restricted", HttpStatus.FORBIDDEN),
     POST_RATE_LIMITED("community/post-rate-limited", HttpStatus.TOO_MANY_REQUESTS),
     COMMENT_RATE_LIMITED("community/comment-rate-limited", HttpStatus.TOO_MANY_REQUESTS),

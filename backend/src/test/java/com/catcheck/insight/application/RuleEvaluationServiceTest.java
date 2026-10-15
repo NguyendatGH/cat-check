@@ -65,6 +65,32 @@ class RuleEvaluationServiceTest {
 
 
     @Test
+    void repeatedOutOfRangeDoesNotClaimOneDirectionWhenBothSidesReachTheThreshold() {
+        scans.add(T0.minusSeconds(3 * 3600), "LOW", "5.8", "0.80", "CARD_CCM");
+        scans.add(T0.minusSeconds(2 * 3600), "HIGH", "7.2", "0.80", "CARD_CCM");
+        scans.add(T0.minusSeconds(3600), "SLIGHTLY_LOW", "6.1", "0.80", "CARD_CCM");
+        ScanHistoryQuery.RecentScan trigger = scans.add(T0, "SLIGHTLY_HIGH", "6.8", "0.80", "CARD_CCM");
+
+        service(repeatedRule(), T0).onScanSaved(event(trigger));
+
+        assertThat(flags.saved).isEmpty();
+    }
+
+    @Test
+    void repeatedOutOfRangeReportsTheDirectionWhenOnlyOneSideReachesTheThreshold() {
+        scans.add(T0.minusSeconds(2 * 3600), "LOW", "5.8", "0.80", "CARD_CCM");
+        scans.add(T0.minusSeconds(3600), "HIGH", "7.2", "0.80", "CARD_CCM");
+        ScanHistoryQuery.RecentScan trigger = scans.add(T0, "SLIGHTLY_LOW", "6.1", "0.80", "CARD_CCM");
+
+        service(repeatedRule(), T0).onScanSaved(event(trigger));
+
+        assertThat(flags.saved).singleElement().satisfies(flag -> {
+            assertThat(flag.getRuleCode()).isEqualTo(MonitoringRuleCode.REPEATED_OUT_OF_RANGE.name());
+            assertThat(flag.getMessageParams()).containsEntry("direction", "axit");
+        });
+    }
+
+    @Test
     void baselineDeviationIgnoresALowConfidenceTriggerScan() {
         seedBaseline();
         ScanHistoryQuery.RecentScan trigger = scans.add(T0, "HIGH", "7.2", "0.40", "CARD_CCM");
@@ -119,6 +145,12 @@ class RuleEvaluationServiceTest {
         scans.add(T0.minus(Duration.ofDays(6)), "NORMAL", "6.3", "0.80", "CARD_CCM");
         scans.add(T0.minus(Duration.ofDays(5)), "NORMAL", "6.5", "0.80", "CARD_CCM");
         scans.add(T0.minus(Duration.ofDays(4)), "SLIGHTLY_HIGH", "6.7", "0.80", "CARD_CCM");
+    }
+
+    private static MonitoringRule repeatedRule() {
+        return MonitoringRuleFixtures.rule(MonitoringRuleCode.REPEATED_OUT_OF_RANGE.name(),
+                Map.of("windowHours", 48, "minCount", 2, "minConfidence", 0.55),
+                HealthFlagSeverity.ATTENTION, 24, "rule.REPEATED_OUT_OF_RANGE.message", T0);
     }
 
     private static MonitoringRule baselineRule() {

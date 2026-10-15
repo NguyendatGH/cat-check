@@ -154,27 +154,34 @@ public class JdbcCommunityRepository implements CommunityRepository {
     }
 
     @Override
-    public CommunityComment insertComment(UUID authorId, UUID postId, UUID parentCommentId, UUID replyToUserId,
-                                          String body, String imageRef) {
-        UUID id = jdbc.queryForObject("""
+    public java.util.Optional<CommunityComment> insertComment(UUID authorId, UUID postId, UUID parentCommentId,
+                                                              UUID replyToUserId, String body, String imageRef) {
+        List<UUID> inserted = jdbc.queryForList("""
                 INSERT INTO community_comment (post_id, author_user_id, parent_comment_id, reply_to_user_id, body, image_url)
                 SELECT ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM community_post WHERE id = ? AND status = 'PUBLISHED')
                 RETURNING id
                 """, UUID.class,
                 postId, authorId, parentCommentId, replyToUserId, body, imageRef, postId);
-        return jdbc.queryForObject(COMMENT_COLUMNS + """
+        if (inserted.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        UUID id = inserted.getFirst();
+        return java.util.Optional.of(jdbc.queryForObject(COMMENT_COLUMNS + """
                        0 AS reply_count
                 """ + COMMENT_JOINS + """
                  WHERE c.id = ?
-                """, (rs, row) -> comment(rs), id);
+                """, (rs, row) -> comment(rs), id));
     }
 
     @Override
     public boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active) {
+        // Idempotent set: after the INSERT (or a no-op conflict) the reaction exists; after the DELETE it does not.
         if (active) {
-            return jdbc.update("INSERT INTO community_reaction (post_id, user_id, reaction) VALUES (?, ?, ?) ON CONFLICT (post_id, user_id, reaction) DO NOTHING", postId, userId, reaction) >= 0;
+            jdbc.update("INSERT INTO community_reaction (post_id, user_id, reaction) VALUES (?, ?, ?) ON CONFLICT (post_id, user_id, reaction) DO NOTHING", postId, userId, reaction);
+        } else {
+            jdbc.update("DELETE FROM community_reaction WHERE post_id = ? AND user_id = ? AND reaction = ?", postId, userId, reaction);
         }
-        return jdbc.update("DELETE FROM community_reaction WHERE post_id = ? AND user_id = ? AND reaction = ?", postId, userId, reaction) == 1;
+        return active;
     }
 
     @Override
@@ -186,6 +193,16 @@ public class JdbcCommunityRepository implements CommunityRepository {
         }
         return jdbc.queryForList(
                 "SELECT author_user_id FROM community_comment WHERE id = ? AND status = 'PUBLISHED'", UUID.class, commentId)
+                .stream().findFirst();
+    }
+
+    @Override
+    public java.util.Optional<UUID> findContentAuthor(UUID postId, UUID commentId) {
+        if (postId != null) {
+            return jdbc.queryForList("SELECT author_user_id FROM community_post WHERE id = ?", UUID.class, postId)
+                    .stream().findFirst();
+        }
+        return jdbc.queryForList("SELECT author_user_id FROM community_comment WHERE id = ?", UUID.class, commentId)
                 .stream().findFirst();
     }
 
@@ -209,6 +226,12 @@ public class JdbcCommunityRepository implements CommunityRepository {
     @Override
     public java.util.Optional<CommunityReport> findReport(UUID reportId) {
         return jdbc.query(reportSql("WHERE r.id = ?"), (rs, row) -> report(rs), reportId).stream().findFirst();
+    }
+
+    @Override
+    public java.util.Optional<CommunityReport> findReportForUpdate(UUID reportId) {
+        return jdbc.query(reportSql("WHERE r.id = ? FOR UPDATE OF r"), (rs, row) -> report(rs), reportId)
+                .stream().findFirst();
     }
 
     @Override

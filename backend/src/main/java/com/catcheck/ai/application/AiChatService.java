@@ -12,7 +12,8 @@ import com.catcheck.shared.i18n.MessageResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -47,6 +48,7 @@ public class AiChatService {
     private final UserAccountPort userAccountPort;
     private final MessageResolver messageResolver;
     private final Clock clock;
+    private final TransactionTemplate transactionTemplate;
 
     public AiChatService(
             AiKnowledgePort repository,
@@ -56,7 +58,8 @@ public class AiChatService {
             AiChatRateLimiter rateLimiter,
             UserAccountPort userAccountPort,
             MessageResolver messageResolver,
-            Clock clock) {
+            Clock clock,
+            PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.provider = provider;
         this.config = config;
@@ -65,6 +68,7 @@ public class AiChatService {
         this.userAccountPort = userAccountPort;
         this.messageResolver = messageResolver;
         this.clock = clock;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     public record Citation(String title, String sourceUrl, int rank) {
@@ -74,8 +78,26 @@ public class AiChatService {
                              List<Citation> citations, Instant createdAt) {
     }
 
-    @Transactional
+    /**
+     * Provider LLM được gọi NGOÀI transaction: một provider treo không được giữ kết nối DB. Pha
+     * chuẩn bị và pha ghi là hai transaction riêng; USER và ASSISTANT vẫn ghi chung một
+     * transaction để giữ cùng {@code created_at} (thứ tự trong {@code history}).
+     */
     public ChatResult chat(UUID userId, UUID conversationId, UUID catId, String message, String locale) {
+        Prepared prepared = transactionTemplate.execute(status -> prepare(userId, conversationId, catId, message, locale));
+        if (prepared.emergency() != null) {
+            return prepared.emergency();
+        }
+        Optional<String> generated = prepared.chunks().isEmpty() ? Optional.empty() : provider.complete(prepared.prompt());
+        return transactionTemplate.execute(status -> persistTurn(prepared, generated));
+    }
+
+    private record Prepared(AiKnowledgePort.Conversation conversation, String redactedQuestion,
+                            List<AiKnowledgePort.RetrievedChunk> chunks, List<Map<String, String>> prompt,
+                            ChatResult emergency) {
+    }
+
+    private Prepared prepare(UUID userId, UUID conversationId, UUID catId, String message, String locale) {
         requireWriteAllowed(userId);
         requireRateLimit(userId);
 
@@ -96,7 +118,8 @@ public class AiChatService {
 
         if (catContext.isPresent() && CatContextPresenter.hasUrgentFlag(catContext.get())
                 || AiEmergencySigns.mentionsEmergencySign(normalized)) {
-            return emergencyResult(conversation, normalized, catContext.orElse(null));
+            return new Prepared(conversation, null, List.of(), List.of(),
+                    emergencyResult(conversation, normalized, catContext.orElse(null)));
         }
 
         String requestedLocale = locale == null || locale.isBlank() ? "vi" : locale;
@@ -123,8 +146,13 @@ public class AiChatService {
         prompt.add(Map.of("role", "user",
                 "content", buildPrompt(AiPromptRedactor.redact(normalized), chunks, catContextBlock)));
 
-        repository.saveMessage(conversation.id(), "USER", AiPromptRedactor.redact(normalized), "user");
-        var generated = chunks.isEmpty() ? java.util.Optional.<String>empty() : provider.complete(prompt);
+        return new Prepared(conversation, AiPromptRedactor.redact(normalized), chunks, prompt, null);
+    }
+
+    private ChatResult persistTurn(Prepared prepared, Optional<String> generated) {
+        AiKnowledgePort.Conversation conversation = prepared.conversation();
+        List<AiKnowledgePort.RetrievedChunk> chunks = prepared.chunks();
+        repository.saveMessage(conversation.id(), "USER", prepared.redactedQuestion(), "user");
         String answer;
         String providerName;
         if (generated.isPresent()) {

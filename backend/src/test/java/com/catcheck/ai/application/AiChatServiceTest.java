@@ -9,10 +9,13 @@ import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.i18n.MessageResolver;
+import com.catcheck.shared.testing.NoOpTransactionManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -192,6 +195,54 @@ class AiChatServiceTest {
 
         assertThat(result.provider()).isNotEqualTo("emergency-template");
         assertThat(knowledge.searchedLocales).containsExactly("vi");
+    }
+
+    /** M6: provider LLM bên ngoài phải được gọi NGOÀI mọi transaction DB. */
+    @Test
+    void providerIsCalledOutsideAnyDatabaseTransaction() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay cát hằng ngày", "/care-tips/ve-sinh", "Dọn cát bẩn hằng ngày.", 1));
+        TrackingTransactionManager txManager = new TrackingTransactionManager();
+        List<Integer> openTransactionsAtProviderCall = new ArrayList<>();
+        AiProviderPort provider = messages -> {
+            openTransactionsAtProviderCall.add(txManager.open);
+            return Optional.of("Dọn khay mỗi ngày [1].");
+        };
+        AiChatService service = new AiChatService(knowledge, provider, new AiRuntimeConfig(6, 8),
+                new FakeCatContextPort(), new FakeAiChatRateLimiter(), userId -> AccountStatus.ACTIVE,
+                realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC), txManager);
+
+        AiChatService.ChatResult result = service.chat(USER_ID, null, null, "Cách vệ sinh khay cát thế nào?", "vi");
+
+        assertThat(result.provider()).isEqualTo("openai-compatible");
+        assertThat(openTransactionsAtProviderCall).containsExactly(0);
+        assertThat(txManager.begun).isEqualTo(2);
+        assertThat(txManager.open).isZero();
+        assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
+    }
+
+    private static final class TrackingTransactionManager extends NoOpTransactionManager {
+        int open;
+        int begun;
+
+        @Override
+        public TransactionStatus getTransaction(TransactionDefinition definition) {
+            open++;
+            begun++;
+            return super.getTransaction(definition);
+        }
+
+        @Override
+        public void commit(TransactionStatus status) {
+            open--;
+        }
+
+        @Override
+        public void rollback(TransactionStatus status) {
+            open--;
+        }
     }
 
     private static final class CountingProvider implements AiProviderPort {
@@ -438,7 +489,7 @@ class AiChatServiceTest {
             FakeCatContextPort catContextPort, FakeAiChatRateLimiter rateLimiter,
             UserAccountPort userAccountPort) {
         return new AiChatService(knowledge, provider, new AiRuntimeConfig(6, 8), catContextPort, rateLimiter,
-                userAccountPort, realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC));
+                userAccountPort, realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC), new NoOpTransactionManager());
     }
 
     private static MessageResolver realMessageResolver() {

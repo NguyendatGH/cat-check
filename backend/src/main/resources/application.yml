@@ -106,6 +106,9 @@ catcheck:
     max-context-chunks: 6
     max-history-messages: 8
     max-tokens: 700
+    # Timeout HTTP tới provider LLM — provider treo không được giữ luồng request vô hạn.
+    connect-timeout: ${CATCHECK_AI_CONNECT_TIMEOUT:5s}
+    read-timeout: ${CATCHECK_AI_READ_TIMEOUT:30s}
   jobs:
     enabled: true
     zone: Asia/Ho_Chi_Minh
