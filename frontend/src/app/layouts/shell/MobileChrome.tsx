@@ -30,8 +30,13 @@ const MOBILE_NAV_ITEMS = [
 const ICON_BTN =
   "relative flex size-11 shrink-0 items-center justify-center rounded-full text-text-primary transition-colors duration-200 hover:bg-background-alt active:bg-primary/10";
 
+// Room the page must keep scrolling after the row collapses, so collapsing never makes it fit the viewport.
+const COLLAPSE_MIN_SCROLL = 160;
+
 // Collapse the shortcut row once the user scrolls down; bring it back on scroll up.
-function useHeaderCollapsed() {
+// Collapsing shortens the page; near the bottom the browser then clamps scrollY upward. That
+// clamp is not a user scroll-up, so it is ignored — otherwise the header flickers open/closed.
+export function useHeaderCollapsed() {
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     let lastY = window.scrollY;
@@ -42,7 +47,14 @@ function useHeaderCollapsed() {
         frame = 0;
         const y = window.scrollY;
         if (Math.abs(y - lastY) < 8) return;
-        setCollapsed(y > 64 && y > lastY);
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        const atBottom = y >= maxScroll - 2;
+        if (y < lastY && atBottom) {
+          lastY = y;
+          return;
+        }
+        const scrollingDown = y > 64 && y > lastY;
+        setCollapsed((prev) => scrollingDown && (prev || maxScroll > COLLAPSE_MIN_SCROLL));
         lastY = y;
       });
     };
