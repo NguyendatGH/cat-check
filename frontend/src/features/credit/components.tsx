@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { ArrowDownCircle, ArrowUpCircle, Check, Clock, X } from "lucide-react";
-import { Badge, Card, Input, type InputProps } from "@/shared/ui";
+import { ArrowDown, ArrowUp, Check, X } from "lucide-react";
+import { Badge, Input, type InputProps } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { formatActivationCode } from "./schemas";
 import { usePackageCatalog } from "./hooks";
@@ -22,48 +22,6 @@ export function formatRemainingSeconds(seconds: number, t: TFunction<"credit">):
 }
 
 
-export interface CreditBalanceSummaryProps {
-  availableBalance: number;
-  trialScansRemaining: number;
-  nearestExpiringBatch?: CreditBatch;
-  className?: string;
-}
-
-export function CreditBalanceSummary({
-  availableBalance,
-  trialScansRemaining,
-  nearestExpiringBatch,
-  className,
-}: CreditBalanceSummaryProps) {
-  const { t } = useTranslation("credit");
-  return (
-    <Card elevated className={cn("flex flex-col gap-4", className)}>
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-caption text-text-secondary">{t("balance.availableLabel")}</p>
-          <p className="text-display font-bold text-text-primary">{availableBalance}</p>
-          <p className="text-caption text-text-tertiary">{t("balance.unit")}</p>
-        </div>
-        {trialScansRemaining > 0 ? (
-          <Badge tone="brand">{t("balance.trialRemaining", { count: trialScansRemaining })}</Badge>
-        ) : null}
-      </div>
-      {nearestExpiringBatch ? (
-        <div className="flex items-center gap-2 rounded-lg bg-background-alt p-3">
-          <Clock className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
-          <p className="text-caption text-text-secondary">
-            {t("balance.nearestExpiring", {
-              amount: nearestExpiringBatch.remainingAmount,
-              remaining: formatRemainingSeconds(nearestExpiringBatch.remainingSeconds, t),
-            })}
-          </p>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
-
 export interface CreditBatchCardProps {
   batch: CreditBatch;
   className?: string;
@@ -76,34 +34,41 @@ export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
   const expired = batch.remainingSeconds <= 0;
 
   return (
-    <Card className={cn("flex flex-col gap-3", className)}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-body font-semibold text-text-primary">
-          {isWelcomeBatch(batch)
-            ? t("welcome.batchName")
-            : (plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode)}
-        </p>
-        <Badge tone={expired ? "neutral" : "brand"}>
+    <div
+      data-plan={batch.packageCode}
+      className={cn("flex flex-col gap-3 rounded-2xl bg-surface p-4 ring-1 ring-border/60", className)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <p className="truncate text-body font-bold text-text-primary">
+            {isWelcomeBatch(batch)
+              ? t("welcome.batchName")
+              : (plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode)}
+          </p>
+          <p className="text-small text-text-tertiary">
+            {t("batch.activatedAt", { date: new Date(batch.activatedAt).toLocaleDateString("vi-VN") })}
+          </p>
+        </div>
+        <Badge tone={expired ? "neutral" : "brand"} className="shrink-0">
           {expired ? t("batch.expired") : formatRemainingSeconds(batch.remainingSeconds, t)}
         </Badge>
       </div>
 
-      <div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-chip-bg" role="img" aria-hidden="true">
+      <div className="flex items-center gap-3">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-chip-bg" aria-hidden="true">
           <div
-            className="h-full rounded-full bg-primary"
+            className={cn(
+              "batch-bar-fill h-full rounded-full",
+              expired ? "bg-border-strong" : "bg-[var(--plan-accent,var(--color-primary))]",
+            )}
             style={{ width: `${String(Math.max(0, Math.min(100, percent)))}%` }}
           />
         </div>
-        <p className="mt-1.5 text-caption text-text-secondary">
+        <p className="shrink-0 text-caption font-semibold text-text-secondary tabular-nums">
           {t("batch.remainingOfTotal", { remaining: batch.remainingAmount, total: batch.initialAmount })}
         </p>
       </div>
-
-      <p className="text-small text-text-tertiary">
-        {t("batch.activatedAt", { date: new Date(batch.activatedAt).toLocaleDateString("vi-VN") })}
-      </p>
-    </Card>
+    </div>
   );
 }
 
@@ -119,7 +84,7 @@ const LEDGER_TONE: Record<CreditLedgerType, "positive" | "negative" | "neutral">
 export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; className?: string }) {
   const { t } = useTranslation("credit");
   const tone = LEDGER_TONE[entry.type];
-  const Icon = entry.amount >= 0 ? ArrowUpCircle : ArrowDownCircle;
+  const Icon = entry.amount >= 0 ? ArrowUp : ArrowDown;
   const { data: plans } = usePackageCatalog();
   const batchPlanName = entry.packageCode
     ? entry.packageCode === WELCOME_PACKAGE_CODE
@@ -128,16 +93,23 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
     : null;
 
   return (
-    <div className={cn("flex items-center gap-3 rounded-lg border border-border bg-surface p-3", className)}>
-      <Icon
+    <div className={cn("flex items-center gap-3 px-3 py-3", className)}>
+      <span
         className={cn(
-          "size-5 shrink-0",
-          tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-tertiary",
+          "flex size-9 shrink-0 items-center justify-center rounded-full",
+          tone === "positive" ? "bg-success-bg" : tone === "negative" ? "bg-danger-bg" : "bg-chip-bg",
         )}
-        aria-hidden="true"
-      />
+      >
+        <Icon
+          className={cn(
+            "size-4",
+            tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-tertiary",
+          )}
+          aria-hidden="true"
+        />
+      </span>
       <div className="flex min-w-0 flex-1 flex-col">
-        <p className="truncate text-body font-medium text-text-primary">{t(`ledger.types.${entry.type}`)}</p>
+        <p className="truncate text-caption font-semibold text-text-primary">{t(`ledger.types.${entry.type}`)}</p>
         <p className="text-small text-text-tertiary">
           {new Date(entry.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
           {" · "}
@@ -154,7 +126,7 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
       </div>
       <p
         className={cn(
-          "text-body font-semibold",
+          "text-body font-bold tabular-nums",
           tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-primary",
         )}
       >

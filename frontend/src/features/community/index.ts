@@ -32,6 +32,7 @@ export {
   communityKeys,
   useCommunityFeed,
   useCommunityPost,
+  useCommunityCommentLike,
   useCommunityReaction,
   useCommunityReplies,
   useCreateCommunityComment,

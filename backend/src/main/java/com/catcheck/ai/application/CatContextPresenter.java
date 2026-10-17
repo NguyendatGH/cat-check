@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 final class CatContextPresenter {
@@ -17,6 +18,10 @@ final class CatContextPresenter {
             "BASELINE_DEVIATION", "khác mức thường ngày",
             "MONOTONIC_TREND", "xu hướng pH thay đổi",
             "LOW_QUALITY_STREAK", "chất lượng ảnh quét");
+
+    // Đáp án khảo sát là Map tự do: chỉ nhận mã kiểu CATCHECK_SMART / 1_2_PER_DAY (questionnaire/health-survey-v1.json).
+    // Bắt buộc có chữ cái để số điện thoại toàn chữ số không lọt qua.
+    private static final Pattern SURVEY_CODE = Pattern.compile("(?=.*[A-Z])[A-Z0-9_]{1,40}");
 
     private CatContextPresenter() {
     }
@@ -33,16 +38,17 @@ final class CatContextPresenter {
                 .collect(Collectors.joining(" "));
     }
 
+    /**
+     * Khối này đi sang provider bên ngoài: chỉ gồm mã/số có cấu trúc. Tên mèo và chữ người dùng tự gõ
+     * (giống "khác") không bao giờ được đưa vào (docs/AI_HYBRID_RAG_PLAN.md mục 1, 6).
+     */
     static String renderContext(CatContextPort.CatContext context) {
         List<String> lines = new ArrayList<>();
-        if (notBlank(context.name())) {
-            lines.add("- Tên: " + context.name());
-        }
         if (context.ageMonths() != null) {
             lines.add("- Tuổi: " + context.ageMonths() + " tháng");
         }
         if (notBlank(context.breedCode()) || notBlank(context.breedOther())) {
-            lines.add("- Giống: " + (notBlank(context.breedOther()) ? context.breedOther() : context.breedCode()));
+            lines.add("- Giống: " + (notBlank(context.breedCode()) ? context.breedCode() : "khác"));
         }
         if (notBlank(context.sex())) {
             lines.add("- Giới tính: " + context.sex());
@@ -95,12 +101,13 @@ final class CatContextPresenter {
         CatContextPort.SurveySummary survey = context.survey();
         if (survey != null) {
             StringBuilder line = new StringBuilder("- Khảo sát sức khoẻ: loại cát=")
-                    .append(dashIfBlank(survey.litterType()))
-                    .append(", tiền sử tiết niệu=").append(dashIfBlank(survey.urinaryHistory()))
-                    .append(", chế độ ăn=").append(dashIfBlank(survey.dietType()))
-                    .append(", tần suất đi vệ sinh=").append(dashIfBlank(survey.urinationFrequency()));
-            if (!survey.symptoms().isEmpty()) {
-                line.append(", triệu chứng=").append(String.join(",", survey.symptoms()));
+                    .append(surveyCode(survey.litterType()))
+                    .append(", tiền sử tiết niệu=").append(surveyCode(survey.urinaryHistory()))
+                    .append(", chế độ ăn=").append(surveyCode(survey.dietType()))
+                    .append(", tần suất đi vệ sinh=").append(surveyCode(survey.urinationFrequency()));
+            List<String> symptoms = survey.symptoms().stream().filter(CatContextPresenter::isSurveyCode).toList();
+            if (!symptoms.isEmpty()) {
+                line.append(", triệu chứng=").append(String.join(",", symptoms));
             }
             lines.add(line.toString());
         }
@@ -128,8 +135,12 @@ final class CatContextPresenter {
         return value != null && !value.isBlank();
     }
 
-    private static String dashIfBlank(String value) {
-        return notBlank(value) ? value : "-";
+    private static boolean isSurveyCode(String value) {
+        return value != null && SURVEY_CODE.matcher(value).matches();
+    }
+
+    private static String surveyCode(String value) {
+        return isSurveyCode(value) ? value : "-";
     }
 
     private static String yesNo(boolean value) {

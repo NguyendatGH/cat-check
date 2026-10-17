@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { message } from "antd";
 import { loadSession, useSessionStore } from "@/entities/user";
 import { playSplash } from "@/shared/lib/motion/splash";
 import { ArrowLeft, AtSign, ArrowRight, Check, ExternalLink, KeyRound, ShieldCheck } from "lucide-react";
@@ -30,7 +31,18 @@ import {
   type OtpStatus,
 } from "@/features/auth";
 
+// The holder lives above the login/MFA view switch so a toast survives it.
 export function LoginPage() {
+  const [messageApi, contextHolder] = message.useMessage();
+  return (
+    <>
+      {contextHolder}
+      <LoginView messageApi={messageApi} />
+    </>
+  );
+}
+
+function LoginView({ messageApi }: { messageApi: ReturnType<typeof message.useMessage>[0] }) {
   const { t } = useTranslation(["auth", "common"]);
   const [searchParams] = useSearchParams();
   const setPendingLoginMfaMethods = useAuthFlowStore((s) => s.setPendingLoginMfaMethods);
@@ -41,7 +53,6 @@ export function LoginPage() {
   const verifyTotp = useVerifyLoginTotp();
   const verifyRecovery = useVerifyLoginRecoveryCode();
 
-  const [loginError, setLoginError] = useState<string | null>(null);
   const [oauthCancelled, setOauthCancelled] = useState(false);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
@@ -81,8 +92,11 @@ export function LoginPage() {
     });
   };
 
+  const showLoginError = (content: string) => {
+    void messageApi.open({ type: "error", content, key: "login-error" });
+  };
+
   const onSubmit = async (values: LoginFieldValues) => {
-    setLoginError(null);
     try {
       const result = await login.mutateAsync(values);
       if (isMfaChallenge(result)) {
@@ -93,17 +107,17 @@ export function LoginPage() {
     } catch (error) {
       const code = isApiError(error) ? error.code : undefined;
       if (code === "ACCOUNT_LOCKED") {
-        setLoginError(t("login.errors.accountLocked"));
+        showLoginError(t("login.errors.accountLocked"));
       } else if (code === "ACCOUNT_NOT_VERIFIED") {
-        setLoginError(t("login.errors.accountNotVerified"));
+        showLoginError(t("login.errors.accountNotVerified"));
       } else if (code === "RATE_LIMITED") {
-        setLoginError(t("errors.rateLimited"));
+        showLoginError(t("errors.rateLimited"));
       } else if (code === "SESSION_LIMIT_REACHED") {
-        setLoginError(t("login.errors.sessionLimitReached"));
+        showLoginError(t("login.errors.sessionLimitReached"));
       } else if (code === "INVALID_CREDENTIALS" || (isApiError(error) && error.status === 401)) {
-        setLoginError(t("login.errors.invalidCredentials"));
+        showLoginError(t("login.errors.invalidCredentials"));
       } else {
-        setLoginError(t("errors.generic"));
+        showLoginError(t("errors.generic"));
       }
     }
   };
@@ -125,7 +139,7 @@ export function LoginPage() {
         setPendingLoginMfaMethods(null);
         setMfaCode("");
         setMfaStatus("idle");
-        setLoginError(t("mfa.errors.expired"));
+        showLoginError(t("mfa.errors.expired"));
         return;
       }
       setMfaStatus("error");
@@ -371,8 +385,6 @@ export function LoginPage() {
               </div>
             )}
           />
-
-          {loginError ? <InlineAlert>{loginError}</InlineAlert> : null}
 
           <Button type="submit" size="lg" loading={login.isPending} disabled={login.isPending} className="gap-2">
             {t("login.submit")}

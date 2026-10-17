@@ -1,5 +1,6 @@
 package com.catcheck.architecture;
 
+import com.catcheck.shared.testing.TestPostgres;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,10 +23,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Testcontainers
 class SchemaInvariantTests {
 
-    private static final int EXPECTED_TABLE_COUNT = 78;
+    // +1 for community_comment_reaction (V33).
+    private static final int EXPECTED_TABLE_COUNT = 79;
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     private static MigrateResult migrateResult;
 
@@ -43,7 +45,7 @@ class SchemaInvariantTests {
         assertThat(migrateResult.success).as("Flyway migrate phải thành công").isTrue();
         assertThat(migrateResult.migrationsExecuted)
                 .as("số migration áp dụng trên DB rỗng")
-                .isEqualTo(39);
+                .isEqualTo(42);
     }
 
     @Test

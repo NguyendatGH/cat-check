@@ -1,3 +1,4 @@
+import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { ApiError } from "@/shared/api/errors";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 
@@ -23,6 +24,7 @@ function readCsrfToken(): string | null {
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
+  headers.set("Accept-Language", currentAcceptLanguage());
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json; charset=utf-8");
   }
@@ -45,6 +47,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Non-JSON error body: fall back to the HTTP status below.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

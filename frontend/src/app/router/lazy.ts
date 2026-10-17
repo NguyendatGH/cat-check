@@ -75,6 +75,10 @@ export const LazyPages = {
   export: lazy(() => import("@/pages/export/ExportPage").then((m) => ({ default: m.ExportPage }))),
   exportJob: lazy(() => import("@/pages/export/ExportJobPage").then((m) => ({ default: m.ExportJobPage }))),
   credits: lazy(() => import("@/pages/credit/CreditsPage").then((m) => ({ default: m.CreditsPage }))),
+  careTip: lazy(() => import("@/pages/legal/CareTipPage").then((m) => ({ default: m.CareTipPage }))),
+  creditsPlans: lazy(() =>
+    import("@/pages/credit/CreditPlansPage").then((m) => ({ default: m.CreditPlansPage })),
+  ),
   creditsActivate: lazy(() =>
     import("@/pages/credit/CreditsActivatePage").then((m) => ({ default: m.CreditsActivatePage })),
   ),

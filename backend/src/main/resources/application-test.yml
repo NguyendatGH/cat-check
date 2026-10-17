@@ -21,3 +21,8 @@ spring:
 logging:
   level:
     com.catcheck: DEBUG
+
+catcheck:
+  ai:
+    # Index nền lúc khởi động có thể còn giữ kết nối khi test đã tắt Postgres → JVM treo lúc thoát.
+    index-on-startup: false

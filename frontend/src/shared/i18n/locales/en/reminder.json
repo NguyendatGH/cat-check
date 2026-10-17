@@ -101,11 +101,11 @@
     "intervalLabel": "Days between scans",
     "intervalHelper": "From {{min}} to {{max}} days.",
     "intervalRange": "Days must be between {{min}}–{{max}}.",
-    "advancedTitle": "Advanced schedule (RRULE)",
-    "advancedHint": "For users familiar with RFC 5545, e.g. FREQ=WEEKLY;BYDAY=MO,TH.",
-    "advancedToggle": "Use an RRULE string instead of a day interval",
-    "rruleLabel": "RRULE string",
-    "rruleRequired": "Enter an RRULE string or switch back to day interval mode.",
+    "advancedTitle": "Fixed days of the week",
+    "advancedHint": "Example: pick Wed and Sun to be reminded every Wednesday and Sunday.",
+    "advancedToggle": "Remind on fixed days of the week (instead of counting days)",
+    "rruleLabel": "Pick reminder days",
+    "rruleRequired": "Pick at least one day of the week, or turn this option off.",
     "timeTitle": "Preferred time window",
     "timeHint": "CatCheck will remind you within this time window.",
     "timeStartLabel": "Start",
@@ -126,7 +126,8 @@
     "timezoneNote": "Time zone: {{zone}}",
     "timeSummaryTitle": "Selected time window",
     "timeSummaryRange": "{{from}} – {{to}} for each reminder",
-    "submitPlan": "Save reminder"
+    "submitPlan": "Save reminder",
+    "rruleCustomNote": "This reminder uses a custom rule. Pick days below to replace it:"
   },
   "channel": {
     "PUSH": "Phone push notification",
@@ -150,7 +151,8 @@
     "intervalDaily": "Every day",
     "intervalWeekly": "Weekly",
     "rrule": "Custom schedule",
-    "unknown": "No schedule set"
+    "unknown": "No schedule set",
+    "weekdays": "Weekly: {{days}}"
   },
   "status": {
     "active": "Active",

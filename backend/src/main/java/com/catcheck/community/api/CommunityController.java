@@ -130,10 +130,11 @@ public class CommunityController {
 
     @GetMapping("/posts/{postId}/comments/{commentId}/replies")
     @Operation(operationId = "listCommunityCommentReplies", summary = "Cac phan hoi cua mot binh luan, phan trang")
-    public CommunityCommentRepliesResponse replies(@PathVariable UUID postId, @PathVariable UUID commentId,
+    public CommunityCommentRepliesResponse replies(@CurrentUser SecurityPrincipal user,
+                                                   @PathVariable UUID postId, @PathVariable UUID commentId,
                                                    @RequestParam(defaultValue = "0") int offset,
                                                    @RequestParam(defaultValue = "20") int limit) {
-        var result = service.replies(postId, commentId, offset, limit);
+        var result = service.replies(user == null ? null : user.userId(), postId, commentId, offset, limit);
         return new CommunityCommentRepliesResponse(result.items().stream().map(CommunityCommentResponse::from).toList(),
                 result.offset(), result.limit(), result.totalElements(), result.hasMore());
     }
@@ -146,6 +147,20 @@ public class CommunityController {
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(10)).cachePublic())
                 .contentType(MediaType.parseMediaType(image.contentType()))
                 .body(new InputStreamResource(image.content()));
+    }
+
+    @PostMapping("/posts/{postId}/comments/{commentId}/like")
+    @Operation(operationId = "likeCommunityComment")
+    public ReactionResponse likeComment(@CurrentUser SecurityPrincipal user, @PathVariable UUID postId,
+                                        @PathVariable UUID commentId) {
+        return new ReactionResponse("LIKE", service.likeComment(user.userId(), postId, commentId, true));
+    }
+
+    @DeleteMapping("/posts/{postId}/comments/{commentId}/like")
+    @Operation(operationId = "unlikeCommunityComment")
+    public ReactionResponse unlikeComment(@CurrentUser SecurityPrincipal user, @PathVariable UUID postId,
+                                          @PathVariable UUID commentId) {
+        return new ReactionResponse("LIKE", service.likeComment(user.userId(), postId, commentId, false));
     }
 
     @PostMapping("/posts/{postId}/reactions")

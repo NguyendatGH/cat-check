@@ -1,12 +1,11 @@
 export {
   ActivationCodeField,
-  CreditBalanceSummary,
   CreditBatchCard,
   EntitlementFeatureList,
   LedgerEntryRow,
   formatRemainingSeconds,
 } from "./components";
-export type { ActivationCodeFieldProps, CreditBalanceSummaryProps, CreditBatchCardProps } from "./components";
+export type { ActivationCodeFieldProps, CreditBatchCardProps } from "./components";
 export {
   creditKeys,
   entitlementKey,

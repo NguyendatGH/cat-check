@@ -1,5 +1,6 @@
 package com.catcheck.privacy;
 
+import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.privacy.spi.GlobalSessionPurgePort;
 import com.catcheck.shared.i18n.I18nProperties;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GlobalSessionPurgeIntegrationTest {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {

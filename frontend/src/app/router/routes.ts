@@ -44,6 +44,8 @@ export const ROUTE_PATTERNS = {
   exportJob: "/export/:jobId",
   credits: "/credits",
   creditsActivate: "/credits/activate",
+  creditsPlans: "/credits/plans",
+  careTip: "/care-tips/:slug",
   notifications: "/notifications",
   settings: "/settings",
   settingsProfile: "/settings/profile",

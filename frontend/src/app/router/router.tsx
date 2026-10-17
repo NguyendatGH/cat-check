@@ -140,6 +140,14 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: "/care-tips/:slug",
+        element: (
+          <PageSuspense>
+            <LazyPages.careTip />
+          </PageSuspense>
+        ),
+      },
+      {
         path: "/legal/:policyCode/versions",
         element: (
           <PageSuspense>
@@ -408,6 +416,14 @@ export const routes: RouteObject[] = [
                 element: (
                   <PageSuspense>
                     <LazyPages.credits />
+                  </PageSuspense>
+                ),
+              },
+              {
+                path: "/credits/plans",
+                element: (
+                  <PageSuspense>
+                    <LazyPages.creditsPlans />
                   </PageSuspense>
                 ),
               },

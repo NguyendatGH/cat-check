@@ -281,10 +281,7 @@ public class AdminColorChartController {
             @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, defaultValue = "vi") String acceptLanguage,
             @Valid @RequestBody UpdatePhBandRequest request) {
         roleGuard.requireChartAdmin(principal);
-        PhClassificationBand band = phBandAdminService.listBands().stream()
-                .filter(b -> b.getCode().equals(code))
-                .findFirst()
-                .orElseThrow();
+        PhClassificationBand band = phBandAdminService.getBand(code);
         ETag.requireMatch(ifMatch, band);
         PhBandAdminService.BandUpdate update = new PhBandAdminService.BandUpdate(
                 request.minPh(), request.maxPh(), request.minInclusive(), request.maxInclusive(),

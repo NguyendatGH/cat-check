@@ -1,5 +1,6 @@
 package com.catcheck.identity;
 
+import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.identity.api.CryptoPurpose;
 import com.catcheck.identity.api.PiiCipher;
 import com.catcheck.identity.domain.TotpCodeVerifier;
@@ -41,7 +42,7 @@ class AuthLoginSessionIntegrationTest {
     private static final String TOTP_SECRET = "JBSWY3DPEHPK3PXP";
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {

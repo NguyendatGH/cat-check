@@ -90,7 +90,8 @@
       "imageSize": "Image exceeds {{max}} MB.",
       "rateLimited": "You're commenting too quickly. Please try again later.",
       "generic": "Couldn't post your comment. Please try again."
-    }
+    },
+    "likeComment": "Like comment"
   },
   "report": {
     "action": "Report",

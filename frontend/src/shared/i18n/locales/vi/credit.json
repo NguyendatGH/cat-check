@@ -5,6 +5,9 @@
     },
     "credits": {
       "title": "Credit của bạn"
+    },
+    "plans": {
+      "title": "Các gói"
     }
   },
   "errors": {
@@ -140,5 +143,19 @@
     "title": "Chào mừng bạn đến với CatCheck!",
     "message": "Quà chào mừng: {{credits}} lượt quét, dùng trong {{days}} ngày",
     "batchName": "Quà chào mừng"
+  },
+  "wallet": {
+    "plansCta": "So sánh các gói",
+    "creditHint": "1 credit = 1 lần lưu kết quả quét"
+  },
+  "plans": {
+    "eyebrow": "Bảng gói",
+    "title": "Mỗi túi cát CatCheck mở khóa một gói",
+    "subtitle": "Mua túi cát CatCheck rồi nhập mã in trên bao. Credit và tính năng của gói được kích hoạt ngay.",
+    "perksLabel": "Tính năng có thể mở khóa",
+    "listLabel": "Các gói hiện có",
+    "cta": "Kích hoạt {{name}}",
+    "notIncluded": "không bao gồm",
+    "showPlan": "Xem {{name}}"
   }
 }

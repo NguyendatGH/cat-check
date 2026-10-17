@@ -38,10 +38,16 @@ public class PhBandAdminService {
     }
 
 
+    /** Mọi trạng thái, kể cả dải đã tắt (để bật lại được). */
+    @Transactional(readOnly = true)
+    public PhClassificationBand getBand(String code) {
+        return bandRepository.findByCode(code)
+                .orElseThrow(() -> new NotFoundException(ColorChartErrorCode.PH_BAND_NOT_FOUND, code));
+    }
+
     @Transactional
     public PhClassificationBand updateBand(String code, BandUpdate update) {
-        PhClassificationBand band = bandRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException(ColorChartErrorCode.PH_BAND_NOT_FOUND, code));
+        PhClassificationBand band = getBand(code);
 
         if (update.minPh() != null) {
             band.setMinPh(update.minPh());

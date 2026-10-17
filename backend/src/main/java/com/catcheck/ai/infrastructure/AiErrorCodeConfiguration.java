@@ -27,4 +27,9 @@ public class AiErrorCodeConfiguration {
     ErrorCode aiChatRateLimited() {
         return AiErrorCode.AI_CHAT_RATE_LIMITED;
     }
+
+    @Bean
+    ErrorCode aiRequestInProgress() {
+        return AiErrorCode.AI_REQUEST_IN_PROGRESS;
+    }
 }

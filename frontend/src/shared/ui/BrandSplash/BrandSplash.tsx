@@ -1,5 +1,6 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Spin } from "antd";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
 import { useSplashStore, type SplashPhase } from "@/shared/lib/motion/splash";
@@ -14,9 +15,6 @@ import letterHSrc from "@/shared/assets/images/splash/l-h.png";
 import letterESrc from "@/shared/assets/images/splash/l-e.png";
 import letterC3Src from "@/shared/assets/images/splash/l-c3.png";
 import letterKSrc from "@/shared/assets/images/splash/l-k.png";
-import tagLeftSrc from "@/shared/assets/images/splash/tag-left.png";
-import heartSrc from "@/shared/assets/images/splash/heart.png";
-import tagRightSrc from "@/shared/assets/images/splash/tag-right.png";
 
 gsap.registerPlugin(useGSAP);
 
@@ -49,12 +47,6 @@ const LETTER_LAYERS: Layer[] = [
   { src: letterKSrc, x: 400, y: 202, w: 59, h: 67, part: "letter" },
 ];
 
-const TAGLINE_LAYERS: Layer[] = [
-  { src: tagLeftSrc, x: 21, y: 283, w: 196, h: 15, part: "tagline" },
-  { src: heartSrc, x: 230, y: 280, w: 20, h: 20, part: "heart" },
-  { src: tagRightSrc, x: 263, y: 283, w: 174, h: 14, part: "tagline" },
-];
-
 const pct = (value: number, total: number) => `${String((value / total) * 100)}%`;
 
 function LayerImage({ layer }: { layer: Layer }) {
@@ -75,6 +67,7 @@ function LayerImage({ layer }: { layer: Layer }) {
   );
 }
 const HANDOFF_TIMEOUT_MS = 8000;
+const SPIN_DELAY_MS = 250;
 
 function canAnimate() {
   return (
@@ -95,6 +88,7 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
   const { t } = useTranslation("common");
   const rootRef = useRef<HTMLDivElement>(null);
   const breatheRef = useRef<gsap.core.Tween | null>(null);
+  const [showLoading, setShowLoading] = useState(false);
 
   useGSAP(
     () => {
@@ -108,7 +102,6 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
       const check = q("[data-splash='check']");
       const letters = q("[data-splash='letter']");
       const tagline = q("[data-splash='tagline']");
-      const heart = q("[data-splash='heart']");
       const motion = canAnimate();
       const store = useSplashStore.getState();
 
@@ -123,7 +116,7 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
         gsap.set(ears, { autoAlpha: 1, scale: 1, transformOrigin: "50% 100%" });
         gsap.set(check, { autoAlpha: 1, clipPath: "inset(0% 0% 0% 0%)" });
         gsap.set(letters, { autoAlpha: 1, y: 0, rotation: 0 });
-        gsap.set([tagline, heart], { autoAlpha: 1, y: 0, scale: 1 });
+        gsap.set(tagline, { autoAlpha: 1, y: 0 });
       };
       const squash = {
         keyframes: [
@@ -172,15 +165,28 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
 
       stopBreathing();
       let cancelled = false;
+      let loadingTimer: number | undefined;
+      let handoffTimer: number | undefined;
+      const cancelHandOff = () => {
+        cancelled = true;
+        window.clearTimeout(loadingTimer);
+        window.clearTimeout(handoffTimer);
+      };
       const handOff = () => {
         const pending = useSplashStore.getState().pending ?? Promise.resolve(() => undefined);
+        loadingTimer = window.setTimeout(() => {
+          if (!cancelled) setShowLoading(true);
+        }, SPIN_DELAY_MS);
         const timeout = new Promise<() => void>((resolve) => {
-          window.setTimeout(() => {
+          handoffTimer = window.setTimeout(() => {
             resolve(() => undefined);
           }, HANDOFF_TIMEOUT_MS);
         });
         void Promise.race([pending, timeout]).then((reveal) => {
+          window.clearTimeout(loadingTimer);
+          window.clearTimeout(handoffTimer);
           if (cancelled || useSplashStore.getState().runId !== runId) return;
+          setShowLoading(false);
           reveal();
           // Let the next route commit under the overlay before fading out.
           requestAnimationFrame(() => {
@@ -195,9 +201,7 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
         showStatic();
         gsap.set(root, { autoAlpha: 1 });
         handOff();
-        return () => {
-          cancelled = true;
-        };
+        return cancelHandOff;
       }
 
       const fromVisible = Number(gsap.getProperty(root, "opacity")) > 0.5;
@@ -218,7 +222,7 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
             },
             "<",
           )
-          .fromTo(heart, { scale: 1 }, { scale: 1.3, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" }, "<0.2");
+          .fromTo(tagline, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: "power1.out" }, "<0.2");
       } else {
         gsap.set(content, { autoAlpha: 1, y: 0, scale: 1 });
         gsap.set(mark, { scale: 1, rotation: 0 });
@@ -250,18 +254,11 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
             0.86,
           )
           .fromTo(tagline, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: "power1.out" }, 1.2)
-          .fromTo(
-            heart,
-            { autoAlpha: 0, scale: 0 },
-            { autoAlpha: 1, scale: 1, duration: 0.36, ease: "back.out(3)" },
-            1.28,
-          )
-          .to(heart, { scale: 1.25, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" }, ">")
-          .to({}, { duration: 0.08 });
+          .to({}, { duration: 0.45 });
       }
 
       return () => {
-        cancelled = true;
+        cancelHandOff();
         tl.kill();
       };
     },
@@ -296,9 +293,18 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
         {LETTER_LAYERS.map((layer) => (
           <LayerImage key={layer.src} layer={layer} />
         ))}
-        {TAGLINE_LAYERS.map((layer) => (
-          <LayerImage key={layer.src} layer={layer} />
-        ))}
+        <span
+          data-splash="tagline"
+          className="absolute inset-x-0 block whitespace-nowrap text-center text-[clamp(9px,2.6vw,12px)] font-bold leading-none tracking-[0.12em] text-text-tertiary will-change-transform"
+          style={{ top: pct(283, FRAME.h) }}
+        >
+          {t("welcome.slogan")}
+        </span>
+        {showLoading && phase === "intro" && (
+          <span className="absolute inset-x-0 top-full mt-8 flex justify-center" aria-hidden="true">
+            <Spin size="default" />
+          </span>
+        )}
       </div>
     </div>
   );

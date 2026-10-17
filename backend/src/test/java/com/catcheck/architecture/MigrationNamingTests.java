@@ -77,7 +77,10 @@ class MigrationNamingTests {
                         "V29__community_comment_replies_images.sql",
                         "V30__color_chart_active_unique_fix.sql",
                         "V31__credit_refund_unique_ref.sql",
-                        "V32__place_booking_active_slot_unique.sql");
+                        "V32__place_booking_active_slot_unique.sql",
+                        "V33__community_comment_reaction.sql",
+                        "V34__ai_rag_hybrid.sql",
+                        "V35__ai_chunk_embedding.sql");
     }
 
     @Test

@@ -29,8 +29,6 @@ import {
 } from "@/features/reminder";
 import vetFollowupPhoto from "@/shared/assets/images/web-reminder/vet-followup.jpg";
 
-
-
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
@@ -76,10 +74,34 @@ export function dueState(nextRunAt: string | undefined, now: number = Date.now()
   return { kind: "days", days: Math.round(delta / DAY_MS) };
 }
 
+// RRULE codes in display order; web.weekday1..7 hold the short labels (Mon..Sun).
+const WEEKDAY_CODES = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
+const WEEKLY_RULE = /^FREQ=WEEKLY;BYDAY=([A-Z]{2}(?:,[A-Z]{2})*)$/;
+
+/** Days picked in a simple "FREQ=WEEKLY;BYDAY=.." rule, or null when the rule is anything else. */
+export function weekdaysOf(rrule: string): string[] | null {
+  const match = WEEKLY_RULE.exec(rrule.trim());
+  if (!match?.[1]) return null;
+  const days = match[1].split(",");
+  return days.every((day) => (WEEKDAY_CODES as readonly string[]).includes(day)) ? days : null;
+}
+
+export function weeklyRule(days: readonly string[]): string {
+  const ordered = WEEKDAY_CODES.filter((code) => days.includes(code));
+  return ordered.length === 0 ? "" : `FREQ=WEEKLY;BYDAY=${ordered.join(",")}`;
+}
+
 export function useScheduleLabel(): (reminder: Reminder) => string {
   const { t } = useTranslation("reminder");
   return (reminder) => {
-    if (reminder.scheduleKind === "RRULE") return t("schedule.rrule");
+    if (reminder.scheduleKind === "RRULE") {
+      const days = weekdaysOf(reminder.rrule ?? "");
+      if (!days) return t("schedule.rrule");
+      const labels = days.map((day) =>
+        t(`web.weekday${String((WEEKDAY_CODES as readonly string[]).indexOf(day) + 1)}`),
+      );
+      return t("schedule.weekdays", { days: labels.join(", ") });
+    }
     const days = reminder.intervalDays;
     if (days === undefined) return t("schedule.unknown");
     if (days === 1) return t("schedule.intervalDaily");
@@ -93,7 +115,6 @@ export function timeWindow(reminder: Reminder): { from: string; to: string } | n
   if (preferredTimeStart === undefined || preferredTimeEnd === undefined) return null;
   return { from: preferredTimeStart.slice(0, 5), to: preferredTimeEnd.slice(0, 5) };
 }
-
 
 export function StatusChip({ reminder, due }: { reminder: Reminder; due: DueState }) {
   const { t } = useTranslation("reminder");
@@ -190,7 +211,6 @@ export function ReminderStatusLine({
   );
 }
 
-
 export function FeatureLockedCard() {
   const { t } = useTranslation(["reminder", "common"]);
   return (
@@ -250,7 +270,6 @@ export function GenericSaveError({ message }: { message?: string }) {
   );
 }
 
-
 export function EducationCard({ withPhoto = false }: { withPhoto?: boolean }) {
   const { t } = useTranslation("reminder");
   return (
@@ -272,7 +291,6 @@ export function EducationCard({ withPhoto = false }: { withPhoto?: boolean }) {
     </section>
   );
 }
-
 
 const channelEnum = z.enum(REMINDER_CHANNELS);
 
@@ -386,7 +404,6 @@ export function firstFieldErrors(error: z.ZodError): Record<string, string> {
   return result;
 }
 
-
 const LEGEND_CLASS = "float-left flex w-full flex-wrap items-center justify-between gap-2";
 
 function FieldError({ messageKey }: { messageKey?: string }) {
@@ -426,6 +443,7 @@ export function FrequencyPicker({
   const customId = useId();
   const rruleId = useId();
   const advancedId = useId();
+  const pickedDays = weekdaysOf(rrule);
 
   const numeric = Number(intervalDays);
   const isPreset = PRESET_INTERVALS.some((value) => value === numeric);
@@ -555,20 +573,39 @@ export function FrequencyPicker({
           <span className="text-caption font-semibold text-text-primary">{t("form.advancedToggle")}</span>
         </label>
         {scheduleMode === "RRULE" ? (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor={rruleId} className="text-caption font-semibold text-text-secondary">
+          <div className="flex flex-col gap-2" role="group" aria-labelledby={rruleId}>
+            <p id={rruleId} className="text-caption font-semibold text-text-secondary">
               {t("form.rruleLabel")}
-            </label>
-            <input
-              id={rruleId}
-              type="text"
-              value={rrule}
-              onChange={(event) => {
-                onRruleChange(event.target.value);
-              }}
-              aria-invalid={errorKeyRrule === undefined ? undefined : true}
-              className="h-12 w-full rounded-xl bg-surface px-4 font-mono text-caption text-text-primary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
-            />
+            </p>
+            {rrule.trim() !== "" && pickedDays === null ? (
+              <p className="text-small text-text-tertiary">
+                {t("form.rruleCustomNote")} <code className="font-mono">{rrule}</code>
+              </p>
+            ) : null}
+            <div className="grid grid-cols-7 gap-1.5">
+              {WEEKDAY_CODES.map((code, index) => {
+                const on = pickedDays?.includes(code) ?? false;
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      const current = pickedDays ?? [];
+                      onRruleChange(weeklyRule(on ? current.filter((day) => day !== code) : [...current, code]));
+                    }}
+                    className={cn(
+                      "flex h-11 items-center justify-center rounded-xl text-caption font-bold transition-colors",
+                      on
+                        ? "bg-primary-dark text-white shadow-brand-lg"
+                        : "bg-surface text-text-primary hover:bg-chip-bg",
+                    )}
+                  >
+                    {t(`web.weekday${String(index + 1)}`)}
+                  </button>
+                );
+              })}
+            </div>
             <p className="text-small text-text-tertiary">{t("form.advancedHint")}</p>
             <FieldError messageKey={errorKeyRrule} />
           </div>

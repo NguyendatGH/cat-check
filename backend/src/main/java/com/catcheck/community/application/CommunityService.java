@@ -60,19 +60,24 @@ public class CommunityService {
         List<UUID> withReplies = comments.stream().filter(c -> c.replyCount() > 0).map(CommunityComment::id).toList();
         Map<UUID, List<CommunityComment>> previews = repository.findReplyPreviews(withReplies, REPLY_PREVIEW_SIZE)
                 .stream().collect(Collectors.groupingBy(CommunityComment::parentCommentId, LinkedHashMap::new, Collectors.toList()));
+        java.util.Set<UUID> liked = repository.findLikedCommentIds(viewerId, java.util.stream.Stream.concat(
+                comments.stream(), previews.values().stream().flatMap(List::stream)).map(CommunityComment::id).toList());
         return new Detail(post, comments.stream()
-                .map(c -> new Thread(c, previews.getOrDefault(c.id(), List.of())))
+                .map(c -> new Thread(c.withLiked(liked.contains(c.id())), previews.getOrDefault(c.id(), List.of())
+                        .stream().map(r -> r.withLiked(liked.contains(r.id()))).toList()))
                 .toList());
     }
 
     /** Pages the replies of one top-level comment (the first {@link #REPLY_PREVIEW_SIZE} arrive with the post detail). */
-    public Replies replies(UUID postId, UUID commentId, int offset, int limit) {
+    public Replies replies(UUID viewerId, UUID postId, UUID commentId, int offset, int limit) {
         CommunityCommentRef parent = repository.findComment(commentId)
                 .filter(ref -> ref.postId().equals(postId) && ref.parentCommentId() == null)
                 .orElseThrow(() -> new NotFoundException(CommunityErrorCode.COMMENT_NOT_FOUND));
         int safeOffset = Math.max(offset, 0);
         int safeLimit = Math.clamp(limit, 1, 50);
-        return new Replies(repository.findReplies(parent.id(), safeOffset, safeLimit), safeOffset, safeLimit,
+        List<CommunityComment> items = repository.findReplies(parent.id(), safeOffset, safeLimit);
+        java.util.Set<UUID> liked = repository.findLikedCommentIds(viewerId, items.stream().map(CommunityComment::id).toList());
+        return new Replies(items.stream().map(r -> r.withLiked(liked.contains(r.id()))).toList(), safeOffset, safeLimit,
                 repository.countReplies(parent.id()));
     }
 
@@ -127,6 +132,16 @@ public class CommunityService {
             throw new NotFoundException(CommunityErrorCode.POST_NOT_FOUND);
         }
         return repository.toggleReaction(userId, postId, reaction.toUpperCase(), active);
+    }
+
+    /** Likes or unlikes a published comment of the given post. @return the like's resulting state. */
+    @Transactional
+    public boolean likeComment(UUID userId, UUID postId, UUID commentId, boolean active) {
+        requireWriteAllowed(userId);
+        repository.findComment(commentId)
+                .filter(ref -> ref.postId().equals(postId))
+                .orElseThrow(() -> new NotFoundException(CommunityErrorCode.COMMENT_NOT_FOUND));
+        return repository.setCommentLike(userId, commentId, active);
     }
 
     @Transactional

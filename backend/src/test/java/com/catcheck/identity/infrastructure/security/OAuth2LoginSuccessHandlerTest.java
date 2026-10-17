@@ -66,6 +66,17 @@ class OAuth2LoginSuccessHandlerTest {
         assertThat(response.getRedirectedUrl()).isEqualTo(SUCCESS_URL);
     }
 
+    @Test
+    void googleLoginThroughATunnelStaysOnThePublicHost() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServerName("cat-demo.trycloudflare.com");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationSuccess(request, response, oidcAuthentication());
+
+        assertThat(response.getRedirectedUrl()).isEqualTo("/auth/oauth/complete");
+    }
+
     private static TestingAuthenticationToken oidcAuthentication() {
         OidcUser user = mock(OidcUser.class);
         when(user.getClaims()).thenReturn(Map.of("sub", "google-sub"));

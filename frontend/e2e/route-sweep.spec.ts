@@ -48,6 +48,7 @@ const AUTHED = [
   "/cart",
   "/checkout",
   "/credits",
+  "/credits/plans",
   "/settings",
   "/settings/profile",
   "/settings/security",

@@ -72,6 +72,7 @@ public class JdbcCommunityRepository implements CommunityRepository {
     private static final String COMMENT_COLUMNS = """
             SELECT c.id, c.post_id, c.author_user_id, u.full_name, c.body, c.created_at,
                    c.parent_comment_id, reply_to.full_name AS reply_to_name, c.image_url,
+                   (SELECT count(*) FROM community_comment_reaction cr WHERE cr.comment_id = c.id) AS like_count,
             """;
 
     private static final String COMMENT_JOINS = """
@@ -174,6 +175,27 @@ public class JdbcCommunityRepository implements CommunityRepository {
     }
 
     @Override
+    public java.util.Set<UUID> findLikedCommentIds(UUID viewerId, List<UUID> commentIds) {
+        if (viewerId == null || commentIds.isEmpty()) return java.util.Set.of();
+        return new java.util.HashSet<>(jdbc.queryForList("""
+                SELECT comment_id FROM community_comment_reaction
+                 WHERE user_id = ? AND comment_id = ANY (?::uuid[])
+                """, UUID.class, viewerId,
+                "{" + String.join(",", commentIds.stream().map(UUID::toString).toList()) + "}"));
+    }
+
+    @Override
+    public boolean setCommentLike(UUID userId, UUID commentId, boolean active) {
+        if (active) {
+            jdbc.update("INSERT INTO community_comment_reaction (comment_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                    commentId, userId);
+        } else {
+            jdbc.update("DELETE FROM community_comment_reaction WHERE comment_id = ? AND user_id = ?", commentId, userId);
+        }
+        return active;
+    }
+
+    @Override
     public boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active) {
         // Idempotent set: after the INSERT (or a no-op conflict) the reaction exists; after the DELETE it does not.
         if (active) {
@@ -268,7 +290,8 @@ public class JdbcCommunityRepository implements CommunityRepository {
         return new CommunityComment(rs.getObject("id", UUID.class), rs.getObject("post_id", UUID.class),
                 rs.getObject("author_user_id", UUID.class), rs.getString("full_name"), rs.getString("body"),
                 instant(rs, "created_at"), rs.getObject("parent_comment_id", UUID.class),
-                rs.getString("reply_to_name"), rs.getString("image_url"), rs.getInt("reply_count"));
+                rs.getString("reply_to_name"), rs.getString("image_url"), rs.getInt("reply_count"),
+                rs.getInt("like_count"), false);
     }
 
     private CommunityPost post(ResultSet rs) throws SQLException {

@@ -21,7 +21,7 @@ const COMPOSER_MAX_HEIGHT = 140;
 const BOTTOM_THRESHOLD = 80;
 
 type Turn =
-  | { id: string; kind: "user"; text: string; sentAt: string; error?: string }
+  | { id: string; kind: "user"; text: string; sentAt: string; requestKey: string; error?: string }
   | { id: string; kind: "assistant"; response: AiChatResponse }
   | { id: string; kind: "divider"; label: string };
 
@@ -102,19 +102,22 @@ export function AssistantPage() {
   async function send(text: string, retryTurnId?: string) {
     if (pending) return;
     let userTurnId = retryTurnId;
+    // A retry reuses the question's key so an answer the server already produced is replayed, not re-asked.
+    const retried = turns.find((turn) => turn.id === retryTurnId && turn.kind === "user");
+    const requestKey = retried?.kind === "user" ? retried.requestKey : crypto.randomUUID();
     if (retryTurnId) {
       setTurns((current) =>
         current.map((turn) => (turn.id === retryTurnId && turn.kind === "user" ? { ...turn, error: undefined } : turn)),
       );
     } else {
       userTurnId = nextId();
-      const turn: Turn = { id: userTurnId, kind: "user", text, sentAt: new Date().toISOString() };
+      const turn: Turn = { id: userTurnId, kind: "user", text, sentAt: new Date().toISOString(), requestKey };
       setTurns((current) => [...current, turn]);
     }
     atBottomRef.current = true;
     setPending(true);
     try {
-      const response = await chatWithAssistant(text, conversationId, selectedCatId || undefined);
+      const response = await chatWithAssistant(text, conversationId, selectedCatId || undefined, requestKey);
       setConversationId(response.conversationId);
       setTurns((current) => [...current, { id: nextId(), kind: "assistant", response }]);
     } catch (cause) {
@@ -163,7 +166,10 @@ export function AssistantPage() {
         <div className="flex items-center gap-3">
           <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-xs">
             <Bot size={20} aria-hidden="true" />
-            <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-surface bg-success" aria-hidden="true" />
+            <span
+              className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-surface bg-success"
+              aria-hidden="true"
+            />
           </span>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-h3 font-bold text-text-primary">{t("title")}</h1>
@@ -206,7 +212,10 @@ export function AssistantPage() {
               }}
               className={chipClass(selectedCatId === "")}
             >
-              <span className="flex size-7 items-center justify-center rounded-full bg-chip-bg text-primary" aria-hidden="true">
+              <span
+                className="flex size-7 items-center justify-center rounded-full bg-chip-bg text-primary"
+                aria-hidden="true"
+              >
                 <Users size={14} />
               </span>
               {t("selectCat.generalOption")}
@@ -313,7 +322,12 @@ export function AssistantPage() {
         <div className="flex items-start justify-between gap-3 px-2 pt-1.5">
           <p className="text-[11px] leading-4 text-text-tertiary">{t("disclaimer")}</p>
           {message.length >= COUNTER_FROM ? (
-            <span className={cn("shrink-0 text-[11px] tabular-nums", message.length >= MAX_LENGTH ? "text-danger-text" : "text-text-tertiary")}>
+            <span
+              className={cn(
+                "shrink-0 text-[11px] tabular-nums",
+                message.length >= MAX_LENGTH ? "text-danger-text" : "text-text-tertiary",
+              )}
+            >
               {t("charCount", { count: message.length, max: MAX_LENGTH })}
             </span>
           ) : null}

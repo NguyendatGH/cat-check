@@ -90,7 +90,8 @@
       "imageSize": "Ảnh vượt quá {{max}} MB.",
       "rateLimited": "Bình luận được gửi quá nhanh. Vui lòng thử lại sau.",
       "generic": "Không gửi được bình luận. Vui lòng thử lại."
-    }
+    },
+    "likeComment": "Thích bình luận"
   },
   "report": {
     "action": "Báo cáo vi phạm",

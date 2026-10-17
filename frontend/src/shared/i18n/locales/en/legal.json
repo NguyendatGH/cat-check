@@ -478,5 +478,12 @@
       "empty": "No access has been recorded yet.",
       "pendingNote": "The server has opened the log-reading path but hasn't connected it to the audit store yet, so the list is currently always empty. Empty here really means empty — there are no sample rows."
     }
+  },
+  "careTip": {
+    "notFoundTitle": "Article not found",
+    "notFound": "This care article is no longer published or the link is incorrect.",
+    "reviewedAt": "Reviewed on {{date}}",
+    "sourceLabel": "Reference:",
+    "disclaimer": "For reference only; it does not replace a veterinarian's diagnosis."
   }
 }

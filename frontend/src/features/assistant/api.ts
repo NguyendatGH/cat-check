@@ -22,16 +22,21 @@ function csrfToken(): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
+/**
+ * `requestKey` identifies one question: retrying with the same key returns the stored answer
+ * instead of asking the provider again (server-side idempotency).
+ */
 export async function chatWithAssistant(
   message: string,
   conversationId?: string,
   catId?: string,
+  requestKey: string = crypto.randomUUID(),
 ): Promise<AiChatResponse> {
   const headers = new Headers({
     Accept: "application/json",
     "Content-Type": "application/json",
     "Accept-Language": currentAcceptLanguage(),
-    [IDEMPOTENCY_HEADER_NAME]: crypto.randomUUID(),
+    [IDEMPOTENCY_HEADER_NAME]: requestKey,
   });
   const csrf = csrfToken();
   if (csrf !== null) headers.set(CSRF_HEADER_NAME, csrf);
@@ -46,6 +51,7 @@ export async function chatWithAssistant(
     try {
       detail = (await response.json()) as { detail?: string; errorCode?: string };
     } catch {
+      // Non-JSON error body: fall back to the HTTP status below.
     }
     throw new ApiError(
       detail?.detail ?? `Request failed with status ${String(response.status)}`,

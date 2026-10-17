@@ -37,6 +37,12 @@ public interface CommunityRepository {
     Optional<CommunityComment> insertComment(UUID authorId, UUID postId, UUID parentCommentId, UUID replyToUserId,
                                              String body, String imageRef);
 
+    /** Which of {@code commentIds} the viewer has liked. */
+    java.util.Set<UUID> findLikedCommentIds(UUID viewerId, List<UUID> commentIds);
+
+    /** Idempotent like/unlike of a comment. @return the like's resulting state. */
+    boolean setCommentLike(UUID userId, UUID commentId, boolean active);
+
     /** @return the reaction's resulting state ({@code true} = present) after the call. */
     boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active);
 

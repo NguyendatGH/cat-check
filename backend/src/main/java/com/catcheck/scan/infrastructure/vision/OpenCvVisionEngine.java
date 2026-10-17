@@ -81,8 +81,7 @@ public class OpenCvVisionEngine implements VisionEngine {
     }
 
     private double[][] detectAruco(Mat image) {
-        try {
-            Dictionary dictionary = createArucoDictionary();
+        try (Dictionary dictionary = createArucoDictionary()) {
             if (dictionary == null) {
                 return null;
             }

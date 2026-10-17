@@ -1,5 +1,6 @@
 package com.catcheck.privacy.infrastructure.persistence;
 
+import com.catcheck.shared.testing.TestPostgres;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class JdbcDsarExportSnapshotAdapterTest {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     private static JdbcTemplate jdbc;
     private static JdbcDsarExportSnapshotAdapter adapter;

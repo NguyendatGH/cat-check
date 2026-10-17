@@ -11,6 +11,8 @@ public enum AiErrorCode implements ErrorCode {
     AI_PROVIDER_FAILED("ai-provider-failed", HttpStatus.BAD_GATEWAY),
 
     AI_CHAT_RATE_LIMITED("ai-chat-rate-limited", HttpStatus.TOO_MANY_REQUESTS),
+    /** Request cùng Idempotency-Key đang được xử lý — không gọi provider lần hai. */
+    AI_REQUEST_IN_PROGRESS("ai-request-in-progress", HttpStatus.CONFLICT),
 
     ACCOUNT_RESTRICTED("common/account-restricted", HttpStatus.FORBIDDEN);
 

@@ -1,6 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import { Heart, ImagePlus, Loader2, Send, X } from "lucide-react";
+import { useGSAP } from "@gsap/react";
+import { gsap } from "gsap";
 import { cn } from "@/shared/lib/cn";
 import { formatNumber } from "@/shared/lib/format/formatNumber";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
@@ -10,6 +12,7 @@ import {
   COMMUNITY_IMAGE,
   COMMUNITY_LIMITS,
   communityCommentErrorKey,
+  useCommunityCommentLike,
   useCommunityReplies,
   useCreateCommunityComment,
   type CommunityCommentApi,
@@ -77,7 +80,14 @@ function useImageAttachment() {
     setFile(candidate);
   };
 
-  return { file, previewUrl, pick, clear: () => { setFile(null); } };
+  return {
+    file,
+    previewUrl,
+    pick,
+    clear: () => {
+      setFile(null);
+    },
+  };
 }
 
 function AttachButton({ onPick, disabled }: { onPick: (file: File | undefined) => void; disabled: boolean }) {
@@ -159,7 +169,11 @@ export function CommentComposer({ postId, variant, parentCommentId, replyToName,
   };
 
   const message = tooLong ? t("detail.commentTooLong", { max }) : null;
-  const sendLabel = create.isPending ? t("detail.commentSending") : inline ? t("detail.replySend") : t("detail.commentSend");
+  const sendLabel = create.isPending
+    ? t("detail.commentSending")
+    : inline
+      ? t("detail.replySend")
+      : t("detail.commentSend");
   const placeholder = inline
     ? t("detail.replyPlaceholder")
     : isDesktop
@@ -291,6 +305,58 @@ export function CommentComposer({ postId, variant, parentCommentId, replyToName,
   );
 }
 
+function CommentLikeButton({ comment }: { comment: CommunityCommentApi }) {
+  const { t } = useTranslation("community");
+  const like = useCommunityCommentLike(comment.postId);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const { contextSafe } = useGSAP({ scope: buttonRef });
+  // Optimistic state until the refetched comment arrives.
+  const [pending, setPending] = useState<{ liked: boolean; count: number } | null>(null);
+  const liked = pending?.liked ?? comment.likedByCurrentUser ?? false;
+  const count = pending?.count ?? comment.likeCount ?? 0;
+
+  const pop = contextSafe(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    gsap.fromTo(
+      "[data-like-heart]",
+      { scale: 0.55, rotation: -18 },
+      { scale: 1, rotation: 0, duration: 0.55, ease: "back.out(3)", overwrite: "auto" },
+    );
+  });
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      aria-pressed={liked}
+      aria-label={t("detail.likeComment")}
+      onClick={() => {
+        const next = !liked;
+        setPending({ liked: next, count: Math.max(0, count + (next ? 1 : -1)) });
+        if (next) pop();
+        like.mutate(
+          { commentId: comment.id, active: next },
+          {
+            onError: () => {
+              toast.error(t("post.reactionError"));
+            },
+            onSettled: () => {
+              setPending(null);
+            },
+          },
+        );
+      }}
+      className={cn(
+        "flex min-h-9 items-center gap-1 rounded-lg px-2 text-[12px] font-semibold transition-colors",
+        liked ? "text-danger" : "text-text-secondary hover:text-danger",
+      )}
+    >
+      <Heart data-like-heart size={15} fill={liked ? "currentColor" : "none"} aria-hidden="true" />
+      {count > 0 ? <span className="tabular-nums">{formatNumber(count)}</span> : null}
+    </button>
+  );
+}
+
 function CommentBody({
   comment,
   compact,
@@ -333,13 +399,16 @@ function CommentBody({
           </p>
         ) : null}
         {comment.imageUrl ? <CommentImage src={comment.imageUrl} authorName={comment.authorName} /> : null}
-        <button
-          type="button"
-          onClick={onReply}
-          className="-ml-2 mt-1 min-h-9 rounded-lg px-2 text-[12px] font-semibold text-text-secondary hover:text-primary-dark"
-        >
-          {t("detail.reply")}
-        </button>
+        <div className="-ml-2 mt-1 flex items-center gap-1">
+          <CommentLikeButton comment={comment} />
+          <button
+            type="button"
+            onClick={onReply}
+            className="min-h-9 rounded-lg px-2 text-[12px] font-semibold text-text-secondary hover:text-primary-dark"
+          >
+            {t("detail.reply")}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -366,7 +435,10 @@ function CommentThread({
   const [mine, setMine] = useState<CommunityCommentApi[]>([]);
   const more = useCommunityReplies(postId, comment.id, preview.length, expanded);
 
-  const loaded = useMemo(() => (expanded ? (more.data?.pages.flatMap((page) => page.items) ?? []) : []), [expanded, more.data]);
+  const loaded = useMemo(
+    () => (expanded ? (more.data?.pages.flatMap((page) => page.items) ?? []) : []),
+    [expanded, more.data],
+  );
   const replies = useMemo(() => {
     const seen = new Map<string, CommunityCommentApi>();
     for (const item of [...preview, ...loaded, ...mine]) seen.set(item.id, item);

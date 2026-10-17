@@ -1,5 +1,6 @@
 package com.catcheck.content.application;
 
+import com.catcheck.content.api.CareTipChangedEvent;
 import com.catcheck.content.api.ContentErrorCode;
 import com.catcheck.content.domain.CareTip;
 import com.catcheck.content.domain.CareTipCategory;
@@ -11,6 +12,7 @@ import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.error.NotFoundException;
 import com.catcheck.shared.id.UuidV7;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +30,14 @@ public class CareTipAdminService {
     private final CareTipRepository careTipRepository;
     private final UuidV7 uuidV7;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
-    public CareTipAdminService(CareTipRepository careTipRepository, UuidV7 uuidV7, Clock clock) {
+    public CareTipAdminService(CareTipRepository careTipRepository, UuidV7 uuidV7, Clock clock,
+                               ApplicationEventPublisher events) {
         this.careTipRepository = careTipRepository;
         this.uuidV7 = uuidV7;
         this.clock = clock;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -88,13 +93,17 @@ public class CareTipAdminService {
             throw new BusinessRuleException(ContentErrorCode.CONTENT_SOURCE_REQUIRED, tip.getClaimType().name());
         }
         tip.publish(reviewerId, reason, clock.instant());
-        return careTipRepository.save(tip);
+        CareTip saved = careTipRepository.save(tip);
+        events.publishEvent(new CareTipChangedEvent(saved.getId()));
+        return saved;
     }
 
     public CareTip archive(UUID tipId) {
         CareTip tip = require(tipId);
         tip.archive(clock.instant());
-        return careTipRepository.save(tip);
+        CareTip saved = careTipRepository.save(tip);
+        events.publishEvent(new CareTipChangedEvent(saved.getId()));
+        return saved;
     }
 
     private CareTip require(UUID tipId) {

@@ -68,3 +68,14 @@ export type DsarRequestType =
   | "WITHDRAW_CONSENT"
   | "PROTECTION_MEASURE"
   | "COMPLAINT";
+
+/** Public care tip (GET /care-tips/{slug}) — the source page an assistant citation links to. */
+export interface CareTipView {
+  slug: string;
+  title: string;
+  summary: string | null;
+  bodyMd: string | null;
+  sourceReference: string | null;
+  reviewedAt: string | null;
+  publishedAt: string | null;
+}

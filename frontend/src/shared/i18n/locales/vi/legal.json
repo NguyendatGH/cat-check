@@ -478,5 +478,12 @@
       "empty": "Chưa có lượt truy cập nào được ghi nhận.",
       "pendingNote": "Máy chủ đã mở đường đọc nhật ký nhưng chưa nối vào kho audit, nên danh sách hiện luôn trống. Trống ở đây là trống thật — không có dòng mẫu nào."
     }
+  },
+  "careTip": {
+    "notFoundTitle": "Không tìm thấy bài viết",
+    "notFound": "Bài chăm sóc này không còn được công bố hoặc đường dẫn không đúng.",
+    "reviewedAt": "Rà soát ngày {{date}}",
+    "sourceLabel": "Nguồn tham khảo:",
+    "disclaimer": "Thông tin tham khảo, không thay thế chẩn đoán của bác sĩ thú y."
   }
 }

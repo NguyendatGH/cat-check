@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -145,7 +146,7 @@ class CommunityControllerTest {
         UUID rootId = UUID.randomUUID();
         var reply = new CommunityComment(UUID.randomUUID(), postId, UUID.randomUUID(), "B", "R4",
                 Instant.parse("2026-10-14T10:00:00Z"), rootId, null, null, 0);
-        Mockito.when(service.replies(postId, rootId, 3, 20))
+        Mockito.when(service.replies(any(), eq(postId), eq(rootId), eq(3), eq(20)))
                 .thenReturn(new CommunityService.Replies(List.of(reply), 3, 20, 5));
 
         mvc.perform(get("/api/v1/community/posts/{postId}/comments/{commentId}/replies", postId, rootId)
@@ -154,5 +155,22 @@ class CommunityControllerTest {
                 .andExpect(jsonPath("$.items[0].body").value("R4"))
                 .andExpect(jsonPath("$.totalElements").value(5))
                 .andExpect(jsonPath("$.hasMore").value(true));
+    }
+
+    @Test
+    void likeAndUnlikeCommentGoThroughTheService() throws Exception {
+        TestPrincipal user = TestPrincipal.withRoles("USER");
+        UUID postId = UUID.randomUUID();
+        UUID commentId = UUID.randomUUID();
+        AdminApiMockMvc.authenticate(user);
+        Mockito.when(service.likeComment(user.userId(), postId, commentId, true)).thenReturn(true);
+        Mockito.when(service.likeComment(user.userId(), postId, commentId, false)).thenReturn(false);
+
+        mvc.perform(post("/api/v1/community/posts/{postId}/comments/{commentId}/like", postId, commentId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true));
+        mvc.perform(delete("/api/v1/community/posts/{postId}/comments/{commentId}/like", postId, commentId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
     }
 }

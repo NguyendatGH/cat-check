@@ -169,7 +169,7 @@ export function AssistantBubble({ text, createdAt, citations, messageId }: Assis
                 {citations.map((citation) => (
                   <li key={`${messageId}-${String(citation.rank)}`} className="min-w-0 max-w-full">
                     <a
-                      href={`/api/v1${citation.sourceUrl}`}
+                      href={citation.sourceUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-full bg-chip-bg px-2.5 py-1 text-small font-medium text-primary-dark transition-colors hover:bg-primary hover:text-white"

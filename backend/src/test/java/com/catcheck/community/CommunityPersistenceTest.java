@@ -1,5 +1,6 @@
 package com.catcheck.community;
 
+import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.community.api.CommunityErrorCode;
 import com.catcheck.community.application.CommunityService;
 import com.catcheck.community.application.spi.AccountStatus;
@@ -32,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CommunityPersistenceTest {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     private static JdbcTemplate jdbc;
     private static CommunityService community;
@@ -151,7 +152,7 @@ class CommunityPersistenceTest {
         assertThat(thread.comment().replyCount()).isEqualTo(5);
         assertThat(thread.replies()).extracting(c -> c.body()).containsExactly("R1", "", "R3");
 
-        var rest = community.replies(post.id(), root.id(), 3, 20);
+        var rest = community.replies(null, post.id(), root.id(), 3, 20);
         assertThat(rest.items()).extracting(c -> c.body()).containsExactly("R4", "R5");
         assertThat(rest.totalElements()).isEqualTo(5);
         assertThat(rest.hasMore()).isFalse();
@@ -166,6 +167,30 @@ class CommunityPersistenceTest {
         assertThat(community.detail(user, post.id()).comments()).isEmpty();
         assertThat(community.detail(user, post.id()).post().commentCount()).isZero();
         assertThatThrownBy(() -> community.createComment(user, post.id(), r1.id(), "x", null))
+                .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Thich binh luan: idempotent, dem dung, chi danh dau cho nguoi da thich")
+    void commentLikes() {
+        var post = community.createPost(other, "QA", "Tieu de", "Noi dung", List.of());
+        var root = community.createComment(other, post.id(), "Goc");
+        var reply = community.createComment(other, post.id(), root.id(), "R1", null);
+
+        assertThat(community.likeComment(user, post.id(), root.id(), true)).isTrue();
+        community.likeComment(user, post.id(), root.id(), true);
+        community.likeComment(other, post.id(), root.id(), true);
+        community.likeComment(user, post.id(), reply.id(), true);
+
+        var thread = community.detail(user, post.id()).comments().getFirst();
+        assertThat(thread.comment().likeCount()).isEqualTo(2);
+        assertThat(thread.comment().likedByCurrentUser()).isTrue();
+        assertThat(thread.replies().getFirst().likedByCurrentUser()).isTrue();
+        assertThat(community.detail(null, post.id()).comments().getFirst().comment().likedByCurrentUser()).isFalse();
+
+        assertThat(community.likeComment(user, post.id(), root.id(), false)).isFalse();
+        assertThat(community.detail(user, post.id()).comments().getFirst().comment().likeCount()).isEqualTo(1);
+        assertThatThrownBy(() -> community.likeComment(user, UUID.randomUUID(), root.id(), true))
                 .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
     }
 

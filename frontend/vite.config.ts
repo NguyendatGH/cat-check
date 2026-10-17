@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type ProxyOptions } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
@@ -19,7 +19,9 @@ function syncLocalesToPublic(): void {
   const dest = join(rootDir, "public/locales");
   if (!existsSync(src)) return;
   mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, { recursive: true });
+  // Editors save atomically via `x.json.tmp.<pid>.<hex>` + rename; the watcher fires on that temp file
+  // and cpSync never prunes dest, so skip temp files or they linger in public/locales forever.
+  cpSync(src, dest, { recursive: true, filter: (path) => !path.includes(".json.tmp.") });
 }
 
 syncLocalesToPublic();
@@ -69,7 +71,24 @@ function localeSyncPlugin() {
 
 // M0: injectManifest strategy — src/sw.ts owns precache + (future) FCM background
 // handler. See src/sw.ts for the Workbox setup.
-const BACKEND_PROXY = { target: "http://localhost:8080", changeOrigin: true };
+const BACKEND_PROXY: ProxyOptions = {
+  target: "http://localhost:8080",
+  changeOrigin: true,
+  // Qua tunnel (vd *.trycloudflare.com), changeOrigin doi Host thanh localhost:8080 nen backend
+  // dung redirect_uri OAuth + redirect sau dang nhap ve localhost. Gui host goc qua
+  // X-Forwarded-Host (cloudflared tu gui X-Forwarded-Proto; backend dung
+  // forward-headers-strategy=native). Truy cap localhost giu nguyen luong cu.
+  configure: (proxy) => {
+    proxy.on("proxyReq", (proxyReq, req) => {
+      const host = req.headers.host ?? "";
+      if (!host || /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host)) return;
+      proxyReq.setHeader("X-Forwarded-Host", host);
+    });
+  },
+};
+
+// Cloudflare quick tunnel doi subdomain moi lan chay; ".x" = cho phep moi subdomain cua x.
+const TUNNEL_HOSTS = [".trycloudflare.com"];
 
 const API_PROXY = {
  "/api": BACKEND_PROXY,
@@ -140,6 +159,6 @@ export default defineConfig({
   // Bug that da sua: proxy truoc day chi khai o `server`, nen `vite preview` (cong 4173 —
   // dung cho `npm run e2e`, xem playwright.config.ts) KHONG chuyen tiep `/api` sang backend.
   // Hau qua: moi e2e buoc phai mock API, khong the kiem duoc luong that.
-  server: { proxy: API_PROXY },
-  preview: { proxy: API_PROXY },
+  server: { proxy: API_PROXY, allowedHosts: TUNNEL_HOSTS },
+  preview: { proxy: API_PROXY, allowedHosts: TUNNEL_HOSTS },
 });

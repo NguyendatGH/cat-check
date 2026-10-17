@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   BadgeCheck,
@@ -60,10 +61,12 @@ function SuccessRoadmap({ catName }: { catName: string }) {
 export function OnboardingSuccessPage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { createdCat, activation, surveySkipped } = useOnboardingStore();
   // Refresh the session first so RequireOnboarding sees onboarding as finished.
   const leaveOnboarding = async (path: string) => {
     await refreshOnboardingSession();
+    queryClient.removeQueries({ queryKey: ["cat", "list"] });
     await navigate(path);
   };
   const { data: bands } = usePhBands();

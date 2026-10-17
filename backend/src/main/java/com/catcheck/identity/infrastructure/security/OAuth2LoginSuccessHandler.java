@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URI;
 
 @Component
 public class OAuth2LoginSuccessHandler
@@ -49,7 +50,7 @@ public class OAuth2LoginSuccessHandler
         if (!(authentication.getPrincipal() instanceof OidcUser oidcUser)) {
             log.warn("Google OAuth authenticated with an unexpected principal type: {}",
                     authentication.getPrincipal().getClass().getName());
-            redirectWithError(response);
+            redirectWithError(request, response);
             return;
         }
 
@@ -62,14 +63,14 @@ public class OAuth2LoginSuccessHandler
             OAuthService.OAuthResult result = oauthService.findOrCreate(oidcUser.getClaims(), context);
             if (mfaService.totpEnabled(result.userId())) {
                 sessionGateway.beginPendingMfa(result.userId(), result.email().value(), result.roles(), true);
-                response.sendRedirect(withQuery(frontendSuccessUrl, "mfa=required"));
+                response.sendRedirect(withQuery(successUrl(request), "mfa=required"));
                 return;
             }
             sessionGateway.establish(result.userId(), result.email().value(), result.roles(), true);
-            response.sendRedirect(frontendSuccessUrl);
+            response.sendRedirect(successUrl(request));
         } catch (RuntimeException ex) {
             log.warn("Google OAuth account mapping failed", ex);
-            redirectWithError(response);
+            redirectWithError(request, response);
         }
     }
 
@@ -79,11 +80,36 @@ public class OAuth2LoginSuccessHandler
             HttpServletResponse response,
             AuthenticationException exception) throws IOException {
         log.warn("Google OAuth authentication failed: {}", exception.getMessage());
-        redirectWithError(response);
+        redirectWithError(request, response);
     }
 
-    private void redirectWithError(HttpServletResponse response) throws IOException {
-        response.sendRedirect(withQuery(frontendSuccessUrl, "error=oauth_failed"));
+    private void redirectWithError(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.sendRedirect(withQuery(successUrl(request), "error=oauth_failed"));
+    }
+
+    /**
+     * A loopback frontend URL only makes sense to a loopback client. When the login came in
+     * through a public host (e.g. a Cloudflare tunnel, resolved from X-Forwarded-Host), keep
+     * the path and let the container resolve it against that host instead of localhost.
+     */
+    private String successUrl(HttpServletRequest request) {
+        URI configured = URI.create(frontendSuccessUrl);
+        if (configured.getHost() == null
+                || !isLoopback(configured.getHost())
+                || isLoopback(request.getServerName())) {
+            return frontendSuccessUrl;
+        }
+        String path = configured.getRawPath() == null || configured.getRawPath().isEmpty()
+                ? "/" : configured.getRawPath();
+        return configured.getRawQuery() == null ? path : path + "?" + configured.getRawQuery();
+    }
+
+    private static boolean isLoopback(String host) {
+        return "localhost".equalsIgnoreCase(host)
+                || host.startsWith("127.")
+                || "[::1]".equals(host)
+                || "::1".equals(host);
     }
 
     private static String withQuery(String url, String query) {

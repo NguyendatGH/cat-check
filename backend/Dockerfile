@@ -5,6 +5,12 @@ WORKDIR /workspace
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 RUN ./mvnw -B dependency:go-offline
+# Model embedding cục bộ cho trợ lý RAG (~135MB): revision + SHA-256 ghim trong script; layer riêng,
+# đặt trước COPY src để không tải lại mỗi lần đổi code.
+COPY tools/fetch-embedding-model.sh tools/
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && tools/fetch-embedding-model.sh /workspace/models/multilingual-e5-small
 COPY src ./src
 RUN ./mvnw -B -DskipTests -Djavacpp.platform=linux-x86_64 package
 
@@ -19,13 +25,17 @@ FROM eclipse-temurin:25-jre-noble
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r -g 1001 catcheck && useradd -r -g catcheck -u 1001 catcheck \
-    && mkdir -p /var/lib/catcheck/storage /tmp/javacpp \
-    && chown -R catcheck:catcheck /var/lib/catcheck /tmp/javacpp \
+    && mkdir -p /var/lib/catcheck/storage /tmp/javacpp /tmp/djl \
+    && chown -R catcheck:catcheck /var/lib/catcheck /tmp/javacpp /tmp/djl \
     && chmod 700 /var/lib/catcheck/storage
 WORKDIR /app
 COPY --from=build /workspace/target/catcheck-*.jar app.jar
+COPY --from=build /workspace/models /app/models
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 --enable-native-access=ALL-UNNAMED"
 ENV org.bytedeco.javacpp.cachedir=/tmp/javacpp
+# User catcheck không có home ghi được: DJL giải nén native tokenizer vào thư mục này.
+ENV DJL_CACHE_DIR=/tmp/djl ENGINE_CACHE_DIR=/tmp/djl \
+    CATCHECK_AI_EMBEDDING_MODEL_DIR=/app/models/multilingual-e5-small
 USER catcheck
 EXPOSE 8080 9090
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \

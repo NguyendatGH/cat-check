@@ -258,9 +258,9 @@ class CommunityServiceTest {
                 new com.catcheck.community.domain.CommunityCommentRef(replyId, postId, UUID.randomUUID(), UUID.randomUUID(), null)));
         CommunityService service = service(repository, id -> AccountStatus.ACTIVE, allowingLimiter());
 
-        assertThatThrownBy(() -> service.replies(postId, replyId, 0, 20))
+        assertThatThrownBy(() -> service.replies(null, postId, replyId, 0, 20))
                 .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
-        assertThatThrownBy(() -> service.replies(UUID.randomUUID(), UUID.randomUUID(), 0, 20))
+        assertThatThrownBy(() -> service.replies(null, UUID.randomUUID(), UUID.randomUUID(), 0, 20))
                 .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
     }
 

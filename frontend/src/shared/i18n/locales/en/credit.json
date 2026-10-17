@@ -5,6 +5,9 @@
     },
     "credits": {
       "title": "Your credits"
+    },
+    "plans": {
+      "title": "Plans"
     }
   },
   "errors": {
@@ -140,5 +143,19 @@
     "title": "Welcome to CatCheck!",
     "message": "Welcome gift: {{credits}} scans, valid for {{days}} days",
     "batchName": "Welcome gift"
+  },
+  "wallet": {
+    "plansCta": "Compare plans",
+    "creditHint": "1 credit = 1 saved scan result"
+  },
+  "plans": {
+    "eyebrow": "Plans",
+    "title": "Every CatCheck litter bag unlocks a plan",
+    "subtitle": "Buy a CatCheck litter bag, then enter the code printed on it. The plan's credits and features start right away.",
+    "perksLabel": "Features you can unlock",
+    "listLabel": "Available plans",
+    "cta": "Activate {{name}}",
+    "notIncluded": "not included",
+    "showPlan": "Show {{name}}"
   }
 }

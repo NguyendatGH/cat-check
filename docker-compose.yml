@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:18.6-trixie
+    # Postgres 18 + pgvector: nhánh vector của RAG cần extension vector (V35).
+    image: pgvector/pgvector:0.8.7-pg18-trixie
     environment:
       POSTGRES_DB: catcheck
       POSTGRES_USER: catcheck

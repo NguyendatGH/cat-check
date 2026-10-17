@@ -14,6 +14,7 @@ import {
   getCommunityPost,
   listCommunityPosts,
   reportCommunityContent,
+  setCommunityCommentLike,
   setCommunityReaction,
   type CommunityCategory,
   type CommunityPageApi,
@@ -159,6 +160,17 @@ export function useCommunityReaction() {
   });
 }
 
+/** Likes/unlikes a comment; the caller shows the change optimistically until the refetch lands. */
+export function useCommunityCommentLike(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { commentId: string; active: boolean }) =>
+      setCommunityCommentLike(postId, vars.commentId, vars.active),
+    // Replies queries live under the detail key, so this refreshes both.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: communityKeys.detail(postId) }),
+  });
+}
+
 export function useReportCommunityContent() {
   return useMutation({ mutationFn: reportCommunityContent });
 }
@@ -166,7 +178,9 @@ export function useReportCommunityContent() {
 export function useCommunityTagSuggestions(limit = 12): string[] {
   const queryClient = useQueryClient();
   const counts = new Map<string, number>();
-  for (const [, data] of queryClient.getQueriesData<InfiniteData<CommunityPageApi>>({ queryKey: communityKeys.feeds() })) {
+  for (const [, data] of queryClient.getQueriesData<InfiniteData<CommunityPageApi>>({
+    queryKey: communityKeys.feeds(),
+  })) {
     data?.pages.forEach((page) => {
       page.items.forEach((post) => {
         post.tags.forEach((tag) => {

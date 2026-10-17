@@ -1,6 +1,7 @@
 import { useMutation, useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack/react-query";
 import { apiFetch } from "./api";
 import type {
+  CareTipView,
   DsarRequestType,
   DsarRequestView,
   PageView,
@@ -16,6 +17,16 @@ export function usePolicyCurrent(policyCode: PolicyCode, locale: "vi" | "en" = "
   return useQuery({
     queryKey: ["legal", "policy", policyCode, locale],
     queryFn: () => apiFetch<PolicyView>(`/policies/${policyCode}?locale=${locale}`),
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCareTip(slug: string): UseQueryResult<CareTipView> {
+  return useQuery({
+    queryKey: ["legal", "care-tip", slug],
+    queryFn: () => apiFetch<CareTipView>(`/care-tips/${encodeURIComponent(slug)}`),
+    enabled: slug !== "",
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

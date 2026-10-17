@@ -1,5 +1,6 @@
 package com.catcheck.shared.job.infrastructure.persistence;
 
+import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.shared.job.JobOutcome;
 import com.catcheck.shared.job.JobRunStatus;
 import com.catcheck.shared.job.JobTriggerType;
@@ -24,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JdbcJobRunAdapterSchemaTest {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     private static JdbcTemplate jdbc;
     private static JdbcJobRunAdapter adapter;

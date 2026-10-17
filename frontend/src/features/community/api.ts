@@ -29,7 +29,8 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
   headers.set("Accept-Language", currentAcceptLanguage());
-  if (options.body !== undefined && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
+  if (options.body !== undefined && !(options.body instanceof FormData))
+    headers.set("Content-Type", "application/json");
   const token = csrf();
   if (token) headers.set(CSRF_HEADER_NAME, token);
   if (method !== "GET") headers.set(IDEMPOTENCY_HEADER_NAME, crypto.randomUUID());
@@ -109,6 +110,9 @@ export interface CommunityCommentApi {
   replyCount?: number;
   /** First few replies of a top-level comment (see COMMUNITY_REPLY_PREVIEW); the rest are paged. */
   replies?: CommunityCommentApi[];
+  likeCount?: number;
+  /** Always false for signed-out readers. */
+  likedByCurrentUser?: boolean;
   createdAt: string;
 }
 
@@ -187,6 +191,13 @@ export function listCommunityCommentReplies(postId: string, commentId: string, o
   const query = new URLSearchParams({ offset: String(offset), limit: String(limit) });
   return apiFetch<CommunityCommentRepliesApi>(
     `/community/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}/replies?${query.toString()}`,
+  );
+}
+
+export function setCommunityCommentLike(postId: string, commentId: string, active: boolean) {
+  return apiFetch<{ reaction: string; active: boolean }>(
+    `/community/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}/like`,
+    { method: active ? "POST" : "DELETE" },
   );
 }
 

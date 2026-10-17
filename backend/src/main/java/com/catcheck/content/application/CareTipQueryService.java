@@ -15,6 +15,8 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class CareTipQueryService {
 
+    private static final String FALLBACK_LOCALE = "vi";
+
     private final CareTipRepository careTipRepository;
 
     public CareTipQueryService(CareTipRepository careTipRepository) {
@@ -25,9 +27,11 @@ public class CareTipQueryService {
         return careTipRepository.findPublished(locale, category, kind, limit);
     }
 
+    /** Trợ lý AI trích dẫn tài liệu "vi" khi locale được hỏi không có: link trích dẫn phải mở được. */
     public CareTip getPublishedBySlug(String slug, String locale) {
         return careTipRepository.findBySlugAndLocale(slug, locale)
                 .filter(CareTip::isPublished)
+                .or(() -> careTipRepository.findBySlugAndLocale(slug, FALLBACK_LOCALE).filter(CareTip::isPublished))
                 .orElseThrow(() -> new NotFoundException(ContentErrorCode.CONTENT_NOT_FOUND));
     }
 }
