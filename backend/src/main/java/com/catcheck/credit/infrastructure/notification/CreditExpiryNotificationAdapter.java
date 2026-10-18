@@ -4,9 +4,11 @@ import com.catcheck.credit.application.spi.CreditExpiryNotificationPort;
 import com.catcheck.credit.domain.ExpiryReminderMilestone;
 import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.notification.api.NotificationRequest;
+import com.catcheck.shared.i18n.MessageResolver;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -17,10 +19,16 @@ class CreditExpiryNotificationAdapter implements CreditExpiryNotificationPort {
 
     private static final String DEEP_LINK = "/credits";
 
-    private final NotificationGateway notifications;
+    static final String KEY_T48H = "notif.credit.expiring_48h";
 
-    CreditExpiryNotificationAdapter(NotificationGateway notifications) {
+    static final String KEY_T6H = "notif.credit.expiring_6h";
+
+    private final NotificationGateway notifications;
+    private final MessageResolver messages;
+
+    CreditExpiryNotificationAdapter(NotificationGateway notifications, MessageResolver messages) {
         this.notifications = notifications;
+        this.messages = messages;
     }
 
     @Override
@@ -32,6 +40,8 @@ class CreditExpiryNotificationAdapter implements CreditExpiryNotificationPort {
             int remainingAmount) {
 
         String templateCode = milestone.templateCode();
+        String messageKey = milestone == ExpiryReminderMilestone.T48H ? KEY_T48H : KEY_T6H;
+        Locale locale = notifications.recipientLocale(userId);
         notifications.enqueue(new NotificationRequest(
                 userId,
                 templateCode,
@@ -41,23 +51,11 @@ class CreditExpiryNotificationAdapter implements CreditExpiryNotificationPort {
                         "expiresAt", expiresAt.toString(),
                         "milestone", milestone.name(),
                         "deepLink", DEEP_LINK),
-                title(milestone),
-                body(milestone, remainingAmount),
+                messages.resolve(messageKey + ".title", locale),
+                messages.resolve(messageKey + ".body", new Object[]{remainingAmount}, locale),
                 REF_TYPE_CREDIT,
                 batchId,
                 templateCode + ":CREDIT:" + batchId + ':' + milestone.name()));
     }
 
-    private static String title(ExpiryReminderMilestone milestone) {
-        return milestone == ExpiryReminderMilestone.T48H
-                ? "Credit sắp hết hạn"
-                : "Credit sắp hết hạn — còn 6 giờ";
-    }
-
-    private static String body(ExpiryReminderMilestone milestone, int remainingAmount) {
-        return milestone == ExpiryReminderMilestone.T48H
-                ? "Bạn còn " + remainingAmount + " credit sắp hết hạn trong 2 ngày. "
-                        + "Dùng ngay để không bị mất."
-                : "Chỉ còn 6 giờ trước khi " + remainingAmount + " credit hết hạn.";
-    }
 }

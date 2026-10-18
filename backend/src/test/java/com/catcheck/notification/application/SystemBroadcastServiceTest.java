@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -146,6 +147,11 @@ class SystemBroadcastServiceTest {
         @Override
         public void enqueueTransactionalEmail(TransactionalEmailRequest request) {
             throw new AssertionError("L72 khong gui email giao dich truc tiep");
+        }
+
+        @Override
+        public Locale recipientLocale(UUID userId) {
+            throw new AssertionError("broadcast la van ban tu do cua admin, khong dich theo locale");
         }
 
         @Override

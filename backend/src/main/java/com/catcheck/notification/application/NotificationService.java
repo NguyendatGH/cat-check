@@ -34,6 +34,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -117,6 +118,11 @@ public class NotificationService implements NotificationGateway {
         emailOutbox.insertIfAbsent(new EmailOutboxMessage(
                 null, request.toAddress(), template.code(), request.locale(), request.payload(),
                 OutboxStatus.PENDING, 0, clock.instant(), null, request.dedupeKey(), null, null));
+    }
+
+    @Override
+    public Locale recipientLocale(UUID userId) {
+        return Locale.forLanguageTag(recipients.findById(userId).map(NotificationRecipient::locale).orElse("vi"));
     }
 
     @Override

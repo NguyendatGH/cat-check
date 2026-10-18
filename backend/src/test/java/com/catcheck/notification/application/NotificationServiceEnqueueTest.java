@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -72,6 +73,14 @@ class NotificationServiceEnqueueTest {
                 Map.of("deepLink", "/credits"), "Tiêu đề", "Nội dung", "CREDIT", null, "k-1");
     }
 
+    @Test
+    void recipientLocaleIsTheStoredLocaleAndDefaultsToVietnamese() {
+        recipients.recipient = new NotificationRecipient(USER, "owner@example.com", "en", SAIGON);
+        assertThat(service(DAYTIME).recipientLocale(USER)).isEqualTo(Locale.ENGLISH);
+
+        recipients.recipient = null;
+        assertThat(service(DAYTIME).recipientLocale(USER).getLanguage()).isEqualTo("vi");
+    }
 
     @Test
     void writesInAppRecordEvenWhenPushIsBlocked() {

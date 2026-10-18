@@ -6,6 +6,7 @@ import com.catcheck.reminder.application.spi.CatOwnershipPort;
 import com.catcheck.reminder.domain.NextRunCalculator;
 import com.catcheck.reminder.domain.Reminder;
 import com.catcheck.reminder.domain.port.ReminderRepository;
+import com.catcheck.shared.i18n.MessageResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,18 +32,25 @@ public class DueReminderDispatcher {
 
     static final String TEMPLATE_OVERDUE = "REMINDER_OVERDUE";
 
+    static final String KEY_SCAN_DUE = "notif.reminder.scan_due";
+
+    static final String KEY_OVERDUE = "notif.reminder.overdue";
+
     private static final String REF_TYPE_REMINDER = "REMINDER";
 
     private final ReminderRepository repository;
     private final CatOwnershipPort cats;
     private final NotificationGateway notifications;
+    private final MessageResolver messages;
 
     public DueReminderDispatcher(ReminderRepository repository,
                                  CatOwnershipPort cats,
-                                 NotificationGateway notifications) {
+                                 NotificationGateway notifications,
+                                 MessageResolver messages) {
         this.repository = repository;
         this.cats = cats;
         this.notifications = notifications;
+        this.messages = messages;
     }
 
     /**
@@ -99,12 +108,14 @@ public class DueReminderDispatcher {
 
         boolean overdue = isOverdue(reminder, now);
         String template = overdue ? TEMPLATE_OVERDUE : TEMPLATE_SCAN_DUE;
+        String messageKey = overdue ? KEY_OVERDUE : KEY_SCAN_DUE;
+        Locale locale = notifications.recipientLocale(reminder.userId());
         notifications.enqueue(new NotificationRequest(
                 reminder.userId(),
                 template,
                 payload(reminder, catName.get()),
-                title(overdue),
-                body(overdue, catName.get()),
+                messages.resolve(messageKey + ".title", locale),
+                messages.resolve(messageKey + ".body", new Object[]{catName.get()}, locale),
                 REF_TYPE_REMINDER,
                 reminder.id(),
                 dedupeKey(template, reminder)));
@@ -121,16 +132,6 @@ public class DueReminderDispatcher {
         }
         Instant satisfied = reminder.lastSatisfiedAt();
         return satisfied == null || satisfied.isBefore(due);
-    }
-
-    private static String title(boolean overdue) {
-        return overdue ? "Đã quá hạn theo dõi" : "Đến lịch quét định kỳ";
-    }
-
-    private static String body(boolean overdue, String catName) {
-        return overdue
-                ? catName + " chưa được quét theo lịch. Quét ngay để không bỏ lỡ thay đổi."
-                : "Đến lịch quét cho " + catName + " hôm nay.";
     }
 
     private static Map<String, Object> payload(Reminder reminder, String catName) {
