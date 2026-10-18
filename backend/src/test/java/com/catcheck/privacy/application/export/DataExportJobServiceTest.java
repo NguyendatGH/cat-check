@@ -7,7 +7,9 @@ import com.catcheck.privacy.domain.DsarRequestType;
 import com.catcheck.privacy.domain.DsarStatus;
 import com.catcheck.privacy.domain.port.DsarRequestPort;
 import com.catcheck.privacy.application.RequestEvidence;
+import com.catcheck.shared.i18n.MessageResolver;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -18,8 +20,9 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.ZipInputStream;
@@ -50,7 +53,7 @@ class DataExportJobServiceTest {
         DataExportJobService service = new DataExportJobService(jobs, mock(DsarExportSnapshotPort.class),
                 mock(DsarExportStorage.class), requests, mock(org.springframework.core.task.TaskExecutor.class),
                 Clock.fixed(NOW, ZoneOffset.UTC), mock(JdbcTemplate.class), mock(AuditLogService.class),
-                mock(com.catcheck.notification.api.NotificationGateway.class), "http://localhost:5173", transactionManager());
+                mock(com.catcheck.notification.api.NotificationGateway.class), messages(), "http://localhost:5173", transactionManager());
 
         String rawToken = service.enqueue(requestId, RequestEvidence.system());
         String expectedHash = java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
@@ -94,28 +97,72 @@ class DataExportJobServiceTest {
 
         DataExportJobService service = new DataExportJobService(jobs, snapshots, storage, requests,
                 mock(org.springframework.core.task.TaskExecutor.class), Clock.fixed(NOW, ZoneOffset.UTC), jdbc,
-                mock(AuditLogService.class), notifications, "http://localhost:5173", transactionManager());
+                mock(AuditLogService.class), notifications, messages(), "http://localhost:5173", transactionManager());
         service.generate(requestId);
 
         assertTrue(archive[0] != null && archive[0].length > 0);
-        List<String> names = new ArrayList<>();
-        String aiEntry = null;
-        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive[0]))) {
-            for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
-                names.add(entry.getName());
-                if (entry.getName().equals("ai_conversations.json")) {
-                    aiEntry = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
-                }
-            }
-        }
+        Map<String, String> entries = zipEntries(archive[0]);
         assertEquals(List.of("profile.json", "cats.json", "scans.json", "scans.csv", "credits.csv",
-                "consents.json", "notifications.json", "orders.json", "ai_conversations.json", "README.vi.md"), names);
-        assertEquals("[" + aiMessage + "]", aiEntry);
+                "consents.json", "notifications.json", "orders.json", "ai_conversations.json", "README.en.md"),
+                List.copyOf(entries.keySet()));
+        assertEquals("[" + aiMessage + "]", entries.get("ai_conversations.json"));
+        assertTrue(entries.get("README.en.md").startsWith("# CatCheck personal data package\n"));
         verify(requests).update(any(DsarRequest.class));
         // Email "gói dữ liệu sẵn sàng" đi theo ngôn ngữ của chủ tài khoản, không cố định vi.
-        verify(notifications).enqueueTransactionalEmail(
-                org.mockito.ArgumentMatchers.argThat(email -> "en".equals(email.locale())));
+        verify(notifications).enqueueTransactionalEmail(org.mockito.ArgumentMatchers.argThat(
+                email -> "en".equals(email.locale()) && "No attachments.".equals(email.payload().get("attachments"))));
         verify(jobs, org.mockito.Mockito.never()).fail(any(UUID.class), anyString());
+    }
+
+    @Test
+    void generateFallsBackToVietnameseWhenUserHasNoLocale() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        DsarRequest request = new DsarRequest(requestId, "DSAR-2026-000003", userId, "user@example.test",
+                DsarRequestType.ACCESS_EXPORT, DsarChannel.SELF_SERVICE, DsarStatus.IN_PROGRESS,
+                NOW, "SESSION", NOW, NOW.plusSeconds(86_400), null, NOW.plusSeconds(864_000),
+                null, null, false, null, null, null, null, null, null, null, NOW);
+        DsarExportJobPort jobs = mock(DsarExportJobPort.class);
+        DsarRequestPort requests = mock(DsarRequestPort.class);
+        DsarExportSnapshotPort snapshots = mock(DsarExportSnapshotPort.class);
+        DsarExportStorage storage = mock(DsarExportStorage.class);
+        var notifications = mock(com.catcheck.notification.api.NotificationGateway.class);
+        when(jobs.claim(requestId)).thenReturn(true);
+        when(requests.findById(requestId)).thenReturn(Optional.of(request));
+        when(snapshots.profile(userId)).thenReturn("{}");
+        final byte[][] archive = new byte[1][];
+        when(storage.put(eq(request.publicRef()), any(byte[].class))).thenAnswer(invocation -> {
+            archive[0] = invocation.getArgument(1);
+            return "2026/10/DSAR-2026-000003.zip";
+        });
+
+        new DataExportJobService(jobs, snapshots, storage, requests,
+                mock(org.springframework.core.task.TaskExecutor.class), Clock.fixed(NOW, ZoneOffset.UTC),
+                mock(JdbcTemplate.class), mock(AuditLogService.class), notifications, messages(),
+                "http://localhost:5173", transactionManager()).generate(requestId);
+
+        assertTrue(zipEntries(archive[0]).get("README.vi.md").startsWith("# Gói dữ liệu cá nhân CatCheck\n"));
+        verify(notifications).enqueueTransactionalEmail(org.mockito.ArgumentMatchers.argThat(
+                email -> "vi".equals(email.locale()) && "Không có tệp đính kèm.".equals(email.payload().get("attachments"))));
+        verify(jobs, org.mockito.Mockito.never()).fail(any(UUID.class), anyString());
+    }
+
+    private static Map<String, String> zipEntries(byte[] archive) throws Exception {
+        Map<String, String> entries = new LinkedHashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive))) {
+            for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+                entries.put(entry.getName(), new String(zip.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        }
+        return entries;
+    }
+
+    private static MessageResolver messages() {
+        ReloadableResourceBundleMessageSource source = new ReloadableResourceBundleMessageSource();
+        source.setBasenames("classpath:messages/privacy");
+        source.setDefaultEncoding("UTF-8");
+        source.setUseCodeAsDefaultMessage(true);
+        return new MessageResolver(source);
     }
 
     private static PlatformTransactionManager transactionManager() {
