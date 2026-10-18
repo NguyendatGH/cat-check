@@ -5,6 +5,7 @@ import {
   type ColorChartPointInput,
   type ColorChartSummary,
 } from "@/features/admin";
+import { formatNumber } from "@/shared/lib/format/formatNumber";
 
 /**
  * Máy quét hiện luôn hỏi bảng ACTIVE của dòng STANDARD, không gắn lô
@@ -47,7 +48,7 @@ export function sortedPoints<T extends Pick<ColorChartPoint, "sortOrder">>(point
 }
 
 export function formatPhShort(value: number): string {
-  return new Intl.NumberFormat("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(value);
+  return formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 }
 
 export type PublishCheckKey = "minPoints" | "has63" | "has66" | "ascending";

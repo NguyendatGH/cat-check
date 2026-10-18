@@ -1,6 +1,14 @@
-import { describe, expect, it } from "vitest";
+import i18next from "i18next";
+import { afterEach, describe, expect, it } from "vitest";
 import type { AdminProduct } from "./types";
-import { adminProductEtag, emptyProductForm, formToPayload, productToForm, validateProductForm } from "./productForm";
+import {
+  adminProductEtag,
+  emptyProductForm,
+  formatProductVnd,
+  formToPayload,
+  productToForm,
+  validateProductForm,
+} from "./productForm";
 
 const valid = {
   ...emptyProductForm(),
@@ -55,5 +63,17 @@ describe("adminProductEtag", () => {
       `W/"${String(Date.UTC(2026, 9, 1, 3, 4, 5, 678))}-p1"`,
     );
     expect(adminProductEtag({ id: "p2", updatedAt: "1970-01-01T00:00:00Z" })).toBe('W/"0-p2"');
+  });
+});
+
+describe("formatProductVnd", () => {
+  afterEach(async () => {
+    await i18next.changeLanguage("vi");
+  });
+
+  it("giữ đơn vị đ, chỉ dấu phân cách đổi theo ngôn ngữ", async () => {
+    expect(formatProductVnd(1234567)).toBe("1.234.567đ");
+    await i18next.init({ lng: "en", resources: {}, supportedLngs: ["vi", "en"] });
+    expect(formatProductVnd(1234567)).toBe("1,234,567đ");
   });
 });
