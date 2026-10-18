@@ -28,6 +28,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -262,6 +263,8 @@ public class AdminColorChartController {
                 .toList();
         return ResponseEntity.ok()
                 .eTag(ETag.ofBands(phBandAdminService.listBands()))
+                // ETag chỉ băm id + updatedAt, còn nhãn đổi theo Accept-Language.
+                .varyBy(HttpHeaders.ACCEPT_LANGUAGE)
                 .body(bands);
     }
 

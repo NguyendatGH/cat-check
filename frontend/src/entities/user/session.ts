@@ -1,4 +1,4 @@
-import i18n from "@/shared/i18n/i18n";
+import i18n, { getStoredLocale } from "@/shared/i18n/i18n";
 import type { SessionUser } from "./model";
 
 interface RawSessionUser {
@@ -51,7 +51,7 @@ export async function loadSession(): Promise<SessionUser | null> {
     // Thiết bị mới chưa có lựa chọn trong localStorage: lấy ngôn ngữ từ hồ sơ trên server.
     // Trang Cài đặt ngôn ngữ không gọi hàm này nên không vòng lặp với PATCH hồ sơ của nó.
     const locale = raw.user?.locale;
-    if (locale && locale !== i18n.resolvedLanguage) void i18n.changeLanguage(locale);
+    if (locale && !getStoredLocale() && locale !== i18n.resolvedLanguage) void i18n.changeLanguage(locale);
     return toSessionUser(raw);
   } catch {
     return null;

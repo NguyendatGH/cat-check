@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, Languages } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { SUPPORTED_LOCALES } from "@/shared/config/constants";
+import { setStoredLocale } from "@/shared/i18n/i18n";
 import { useProfile, useUpdateProfile } from "@/features/auth";
 
 export function SettingsLanguagePage() {
@@ -14,7 +15,9 @@ export function SettingsLanguagePage() {
   const active = i18n.resolvedLanguage ?? profile?.locale ?? SUPPORTED_LOCALES[0];
 
   const choose = (locale: string) => {
-    void i18n.changeLanguage(locale);
+    setStoredLocale(locale);
+    // `i18n.language` (nguồn của Accept-Language) chỉ đổi sau khi tải xong bản dịch, nên làm mới dữ liệu sau đó.
+    void i18n.changeLanguage(locale).then(() => queryClient.invalidateQueries());
     updateProfile.mutate(
       { locale },
       {
