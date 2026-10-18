@@ -5,6 +5,11 @@ import HttpBackend from "i18next-http-backend";
 import { NAMESPACES } from "./namespaces";
 import { DEFAULT_LOCALE } from "@/shared/config/constants";
 
+// `index.html` cố định lang="vi"; `languageChanged` phát cả lúc init xong lẫn khi đổi ngôn ngữ.
+i18n.on("languageChanged", (lng) => {
+  document.documentElement.lang = lng;
+});
+
 void i18n
   .use(HttpBackend)
   .use(LanguageDetector)
