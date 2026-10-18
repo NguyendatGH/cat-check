@@ -86,8 +86,21 @@ class RuleEvaluationServiceTest {
 
         assertThat(flags.saved).singleElement().satisfies(flag -> {
             assertThat(flag.getRuleCode()).isEqualTo(MonitoringRuleCode.REPEATED_OUT_OF_RANGE.name());
-            assertThat(flag.getMessageParams()).containsEntry("direction", "axit");
+            assertThat(flag.getMessageParams()).containsEntry("direction", "axit").containsKeys("n", "windowHours");
         });
+    }
+
+    // Tên param là hợp đồng với mẫu healthFlags.message.rule.* ở frontend (common.json).
+    @Test
+    void lowQualityStreakEmitsTheParamsTheFrontendTemplateUses() {
+        MonitoringRule r4 = MonitoringRuleFixtures.lowQualityStreak(2, 0.50, T0);
+        scans.add(T0.minusSeconds(600), "NORMAL", "6.4", "0.40", "CARD_CCM");
+        ScanHistoryQuery.RecentScan second = scans.add(T0, "NORMAL", "6.4", "0.40", "CARD_CCM");
+
+        service(r4, T0).onScanSaved(event(second));
+
+        assertThat(flags.saved).singleElement()
+                .satisfies(flag -> assertThat(flag.getMessageParams()).containsEntry("n", 2));
     }
 
     @Test
@@ -109,6 +122,7 @@ class RuleEvaluationServiceTest {
 
         assertThat(flags.saved).extracting(HealthFlag::getRuleCode)
                 .containsExactly(MonitoringRuleCode.BASELINE_DEVIATION.name());
+        assertThat(flags.saved.getFirst().getMessageParams()).containsKeys("ph", "baseline", "delta");
     }
 
 
@@ -132,6 +146,7 @@ class RuleEvaluationServiceTest {
 
         assertThat(flags.saved).extracting(HealthFlag::getRuleCode)
                 .containsExactly(MonitoringRuleCode.MONOTONIC_TREND.name());
+        assertThat(flags.saved.getFirst().getMessageParams()).containsKeys("direction", "phSeries");
     }
 
 
