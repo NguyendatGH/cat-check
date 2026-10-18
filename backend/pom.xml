@@ -40,7 +40,7 @@
         <batik.version>1.19</batik.version>
         <springdoc-openapi.version>3.1.1</springdoc-openapi.version>
         <bucket4j.version>8.20.0</bucket4j.version>
-        <caffeine.version>3.3.0</caffeine.version>
+        <caffeine.version>3.3.1</caffeine.version>
         <opencv.version>4.14.0-1.5.14</opencv.version>
         <javacpp.version>1.5.14</javacpp.version>
         <!-- openblas la dependency bac cau cua opencv (khong co artifact rieng trong BOM) —
