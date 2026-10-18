@@ -30,7 +30,7 @@ describe("useRequestOtp", () => {
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const container = document.createElement("div");
     const root = createRoot(container);
-    await act(async () => {
+    act(() => {
       root.render(
         <QueryClientProvider client={client}>
           <Probe />

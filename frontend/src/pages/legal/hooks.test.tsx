@@ -126,7 +126,7 @@ describe("usePolicyCurrent", () => {
     await hook.rerender();
     await waitUntil(() => fetchMock.mock.calls.length === 2, "query en");
 
-    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+    expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
       "/api/v1/policies/TERMS?locale=vi",
       "/api/v1/policies/TERMS?locale=en",
     ]);
@@ -140,7 +140,7 @@ describe("usePolicyCurrent", () => {
     const hook = await renderHook(() => usePolicyCurrent("TERMS"), newClient());
     await waitUntil(() => hook.current.isSuccess, "query thành công");
 
-    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+    expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
       "/api/v1/policies/TERMS?locale=en",
       "/api/v1/policies/TERMS?locale=vi",
     ]);
