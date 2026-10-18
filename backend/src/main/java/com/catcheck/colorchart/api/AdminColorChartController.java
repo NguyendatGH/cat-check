@@ -28,7 +28,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -256,10 +255,8 @@ public class AdminColorChartController {
             description = "L36. 6 dải toàn cục (đủ cả hai locale) + ETag.")
     @GetMapping("/ph-classification-bands")
     public ResponseEntity<List<PhBandResponse>> listBands(
-            @CurrentUser SecurityPrincipal principal,
-            @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, defaultValue = "vi") String acceptLanguage) {
+            @CurrentUser SecurityPrincipal principal, Locale locale) {
         roleGuard.requireChartAdmin(principal);
-        Locale locale = Locale.forLanguageTag(acceptLanguage);
         List<PhBandResponse> bands = phBandAdminService.listBands().stream()
                 .map(band -> PhBandResponse.from(band, locale.getLanguage()))
                 .toList();
@@ -278,7 +275,7 @@ public class AdminColorChartController {
             @CurrentUser SecurityPrincipal principal,
             @PathVariable String code,
             @RequestHeader(name = "If-Match", required = false) String ifMatch,
-            @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, defaultValue = "vi") String acceptLanguage,
+            Locale locale,
             @Valid @RequestBody UpdatePhBandRequest request) {
         roleGuard.requireChartAdmin(principal);
         PhClassificationBand band = phBandAdminService.getBand(code);
@@ -289,7 +286,6 @@ public class AdminColorChartController {
                 request.severity(), request.colorToken(), request.iconName(),
                 request.triggersAlert(), request.sortOrder(), request.active());
         PhClassificationBand updated = phBandAdminService.updateBand(code, update);
-        Locale locale = Locale.forLanguageTag(acceptLanguage);
         return ResponseEntity.ok()
                 .eTag(ETag.of(updated))
                 .body(PhBandResponse.from(updated, locale.getLanguage()));
