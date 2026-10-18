@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import {
   Area,
   CartesianGrid,
@@ -13,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/shared/lib/cn";
+import { formatDate } from "@/shared/lib/format/formatDate";
 import type { PhBand } from "@/entities/ph-bands";
 import { phTokenStyle } from "@/entities/ph-bands";
 import type { DistributionBucket, TrendRange } from "./types";
@@ -185,7 +185,7 @@ export function PhTrendChart({
             scale="time"
             domain={xDomain}
             ticks={xTicks}
-            tickFormatter={(value: number) => (value === last.x ? todayLabel : format(new Date(value), dateFormat))}
+            tickFormatter={(value: number) => (value === last.x ? todayLabel : formatDate(value, dateFormat))}
             tickLine={false}
             axisLine={{ stroke: "var(--color-border)" }}
             stroke="var(--color-text-tertiary)"
@@ -205,7 +205,7 @@ export function PhTrendChart({
             width={34}
           />
           <Tooltip
-            labelFormatter={(value) => format(new Date(value as number), tooltipDateFormat)}
+            labelFormatter={(value) => formatDate(value as number, tooltipDateFormat)}
             formatter={(value) => [Number(value).toFixed(2), phLabel]}
             contentStyle={{
               borderRadius: 12,
