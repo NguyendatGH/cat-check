@@ -74,7 +74,7 @@ public class OtpService {
 
     @Transactional
     public OtpRequestResult requestOtp(String email, OtpPurpose purpose, UUID userId,
-                                       AuthRequestContext context) {
+                                       String requestedLocale, AuthRequestContext context) {
         Instant now = clock.instant();
         String subject = email + '|' + purpose.name();
 
@@ -107,7 +107,7 @@ public class OtpService {
                 null,
                 now));
 
-        deliver(email, purpose, code, challengeId, userId);
+        deliver(email, purpose, code, challengeId, userId, requestedLocale);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(userId)
@@ -183,14 +183,15 @@ public class OtpService {
         return challenge;
     }
 
-    private void deliver(String email, OtpPurpose purpose, String code, UUID challengeId, UUID userId) {
+    private void deliver(String email, OtpPurpose purpose, String code, UUID challengeId, UUID userId,
+                         String requestedLocale) {
         if (devConsoleEnabled) {
             log.warn("[DEV-OTP] purpose={} email={} code={}", purpose, maskEmail(email), code);
         }
         notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
                 email,
                 templateCodeFor(purpose),
-                localeOf(email, userId),
+                localeOf(email, userId, requestedLocale),
                 Map.of(
                         "code", code,
                         "purpose", purpose.name(),
@@ -199,12 +200,13 @@ public class OtpService {
     }
 
     // app_user.locale của người nhận; gửi lại OTP không có userId thì tra theo email. Chưa có tài
-    // khoản (OTP trước khi đăng ký) trả null, TransactionalEmailRequest hạ về vi.
-    private String localeOf(String email, UUID userId) {
+    // khoản (OTP trước khi đăng ký) dùng ngôn ngữ client gửi, sai hoặc thiếu thì về vi.
+    private String localeOf(String email, UUID userId, String requestedLocale) {
         Optional<UserAccount> account = userId != null
                 ? accountRepository.findById(userId)
                 : Optional.ofNullable(EmailAddress.parseOrNull(email)).flatMap(accountRepository::findByEmail);
-        return account.map(UserAccount::locale).map(AppLocale::code).orElse(null);
+        return account.map(UserAccount::locale)
+                .orElseGet(() -> AppLocale.fromCodeOrDefault(requestedLocale)).code();
     }
 
     private static String maskEmail(String email) {

@@ -23,4 +23,12 @@ public enum AppLocale {
         }
         throw new IllegalArgumentException("Locale khong ho tro: " + value);
     }
+
+    public static AppLocale fromCodeOrDefault(String value) {
+        try {
+            return fromCode(value);
+        } catch (IllegalArgumentException ex) {
+            return VI;
+        }
+    }
 }

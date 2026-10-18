@@ -133,13 +133,13 @@ class IdentitySecurityLogicReviewTest {
         OtpService service = new OtpService(mock(EmailOtpRepository.class), mock(UserAccountRepository.class), hasher,
                 new OtpCodeGenerator(), policy(), limiter, mock(NotificationGateway.class), audit(), CLOCK, false);
 
-        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
 
         verify(limiter).rejectIfLimited(RateLimitRule.OTP_REQUEST_BY_IP, CONTEXT.ipAddress());
     }
 
     @Test
-    void otpEmailIsQueuedInTheRecipientsLocaleAndFallsBackToDefaultWhenUnknown() {
+    void otpEmailUsesTheStoredLocaleThenTheRequestedOneThenTheDefault() {
         OtpCodeHasher hasher = mock(OtpCodeHasher.class);
         when(hasher.currentPepperVersion()).thenReturn(1);
         when(hasher.hash(any(Integer.class), any(), any(), any())).thenReturn("hash");
@@ -151,14 +151,17 @@ class IdentitySecurityLogicReviewTest {
         OtpService service = new OtpService(mock(EmailOtpRepository.class), accounts, hasher,
                 new OtpCodeGenerator(), policy(), allowingLimiter(), gateway, audit(), CLOCK, false);
 
-        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, USER_A, CONTEXT);
-        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, CONTEXT);
-        service.requestOtp("nobody@example.com", OtpPurpose.REGISTER_VERIFY, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, USER_A, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
+        service.requestOtp("nobody@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, USER_A, "vi", CONTEXT);
+        service.requestOtp("nobody@example.com", OtpPurpose.REGISTER_VERIFY, null, "en", CONTEXT);
+        service.requestOtp("nobody@example.com", OtpPurpose.REGISTER_VERIFY, null, "fr", CONTEXT);
 
         ArgumentCaptor<TransactionalEmailRequest> sent = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
-        verify(gateway, times(3)).enqueueTransactionalEmail(sent.capture());
+        verify(gateway, times(6)).enqueueTransactionalEmail(sent.capture());
         assertThat(sent.getAllValues()).extracting(TransactionalEmailRequest::locale)
-                .containsExactly("en", "en", "vi");
+                .containsExactly("en", "en", "vi", "en", "en", "vi");
     }
 
     @Test

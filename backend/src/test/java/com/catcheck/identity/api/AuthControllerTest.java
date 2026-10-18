@@ -61,7 +61,7 @@ class AuthControllerTest {
         profileService = mock(ProfileService.class);
         when(profileService.currentEmail(USER)).thenReturn("person@example.com");
         when(gateway.pendingMfaUserId()).thenReturn(Optional.empty());
-        when(otpService.requestOtp(any(), any(), any(), any()))
+        when(otpService.requestOtp(any(), any(), any(), any(), any()))
                 .thenReturn(new OtpService.OtpRequestResult(NOW.plusSeconds(300), 300));
         controller = new AuthController(mock(RegistrationService.class), otpService, loginService,
                 mock(PasswordResetService.class), mfaService, mock(SessionService.class),
@@ -110,12 +110,12 @@ class AuthControllerTest {
         when(profileService.currentEmail(USER)).thenReturn("changed@example.com");
 
         assertThatThrownBy(() -> controller.requestOtp(
-                new OtpRequestRequest("person@example.com", "LOGIN_STEPUP", null), principal(),
+                new OtpRequestRequest("person@example.com", "LOGIN_STEPUP", null, null), principal(),
                 new MockHttpServletRequest())).isInstanceOf(BusinessRuleException.class);
-        controller.requestOtp(new OtpRequestRequest("changed@example.com", "LOGIN_STEPUP", null), principal(),
+        controller.requestOtp(new OtpRequestRequest("changed@example.com", "LOGIN_STEPUP", null, null), principal(),
                 new MockHttpServletRequest());
 
-        verify(otpService).requestOtp(eq("changed@example.com"), eq(OtpPurpose.LOGIN_STEPUP), eq(USER), any());
+        verify(otpService).requestOtp(eq("changed@example.com"), eq(OtpPurpose.LOGIN_STEPUP), eq(USER), any(), any());
     }
 
     @Test
@@ -143,49 +143,49 @@ class AuthControllerTest {
 
     @Test
     void anonymousCallerCanStillRequestRegistrationAndResetCodes() {
-        controller.requestOtp(new OtpRequestRequest("a@example.com", "REGISTER_VERIFY", null), null,
+        controller.requestOtp(new OtpRequestRequest("a@example.com", "REGISTER_VERIFY", null, "en"), null,
                 new MockHttpServletRequest());
-        controller.requestOtp(new OtpRequestRequest("a@example.com", "PASSWORD_RESET", null), null,
+        controller.requestOtp(new OtpRequestRequest("a@example.com", "PASSWORD_RESET", null, null), null,
                 new MockHttpServletRequest());
 
-        verify(otpService).requestOtp(eq("a@example.com"), eq(OtpPurpose.REGISTER_VERIFY), isNull(), any());
-        verify(otpService).requestOtp(eq("a@example.com"), eq(OtpPurpose.PASSWORD_RESET), isNull(), any());
+        verify(otpService).requestOtp(eq("a@example.com"), eq(OtpPurpose.REGISTER_VERIFY), isNull(), eq("en"), any());
+        verify(otpService).requestOtp(eq("a@example.com"), eq(OtpPurpose.PASSWORD_RESET), isNull(), any(), any());
     }
 
     @Test
     void anonymousCallerCannotRequestStepUpCodes() {
-        assertThatThrownBy(() -> controller.requestOtp(new OtpRequestRequest("victim@example.com", "LOGIN_STEPUP", null),
+        assertThatThrownBy(() -> controller.requestOtp(new OtpRequestRequest("victim@example.com", "LOGIN_STEPUP", null, null),
                 null, new MockHttpServletRequest()))
                 .isInstanceOf(BusinessRuleException.class)
                 .extracting(error -> ((BusinessRuleException) error).errorCode())
                 .isEqualTo(IdentityErrorCode.UNAUTHENTICATED);
-        verify(otpService, never()).requestOtp(any(), any(), any(), any());
+        verify(otpService, never()).requestOtp(any(), any(), any(), any(), any());
     }
 
     @Test
     void emailChangeCodesOnlyGoThroughTheAccountEndpoint() {
-        assertThatThrownBy(() -> controller.requestOtp(new OtpRequestRequest("new@example.com", "EMAIL_CHANGE", null),
+        assertThatThrownBy(() -> controller.requestOtp(new OtpRequestRequest("new@example.com", "EMAIL_CHANGE", null, null),
                 principal(), new MockHttpServletRequest()))
                 .isInstanceOf(BusinessRuleException.class);
-        verify(otpService, never()).requestOtp(any(), any(), any(), any());
+        verify(otpService, never()).requestOtp(any(), any(), any(), any(), any());
     }
 
     @Test
     void stepUpCodeIsBoundToTheSignedInUser() {
-        controller.requestOtp(new OtpRequestRequest("Person@Example.com", "LOGIN_STEPUP", null), principal(),
+        controller.requestOtp(new OtpRequestRequest("Person@Example.com", "LOGIN_STEPUP", null, null), principal(),
                 new MockHttpServletRequest());
 
-        verify(otpService).requestOtp(eq("Person@Example.com"), eq(OtpPurpose.LOGIN_STEPUP), eq(USER), any());
+        verify(otpService).requestOtp(eq("Person@Example.com"), eq(OtpPurpose.LOGIN_STEPUP), eq(USER), any(), any());
     }
 
     @Test
     void stepUpCodeCannotBeSentToSomeoneElsesEmail() {
-        assertThatThrownBy(() -> controller.requestOtp(new OtpRequestRequest("victim@example.com", "LOGIN_STEPUP", null),
+        assertThatThrownBy(() -> controller.requestOtp(new OtpRequestRequest("victim@example.com", "LOGIN_STEPUP", null, null),
                 principal(), new MockHttpServletRequest()))
                 .isInstanceOf(BusinessRuleException.class)
                 .extracting(error -> ((BusinessRuleException) error).errorCode())
                 .isEqualTo(IdentityErrorCode.FORBIDDEN);
-        verify(otpService, never()).requestOtp(any(), any(), any(), any());
+        verify(otpService, never()).requestOtp(any(), any(), any(), any(), any());
     }
 
     private static AuthPrincipal principal() {

@@ -59,7 +59,7 @@ export function useRequestOtp(): UseMutationResult<OtpRequestResponse, Error, { 
     mutationFn: ({ email, purpose }) =>
       apiFetch<OtpRequestResponse>("/auth/otp/request", {
         method: "POST",
-        body: JSON.stringify({ email, purpose }),
+        body: JSON.stringify({ email, purpose, locale: currentAcceptLanguage() }),
       }),
   });
 }

@@ -103,7 +103,7 @@ public class RegistrationService {
         UUID userId = UUID.randomUUID();
         accountRepository.insert(new UserAccount(
                 userId, email, null, fullName, null, null, null, null,
-                parseLocale(locale), "Asia/Ho_Chi_Minh",
+                AppLocale.fromCodeOrDefault(locale), "Asia/Ho_Chi_Minh",
                 UserStatus.PENDING_VERIFICATION, OnboardingStatus.ACCOUNT_ONLY,
                 0, null, null, null, null, null, null, null, null, null, null,
                 now, now));
@@ -114,11 +114,11 @@ public class RegistrationService {
 
         if (consents != null && !consents.isEmpty()) {
             eventPublisher.publishEvent(new RegistrationConsentEvent(
-                    userId, consents, parseLocale(locale).code(), context.ipAddress(),
+                    userId, consents, AppLocale.fromCodeOrDefault(locale).code(), context.ipAddress(),
                     context.userAgent(), context.requestId(), now));
         }
 
-        otpService.requestOtp(email.value(), OtpPurpose.REGISTER_VERIFY, userId, context);
+        otpService.requestOtp(email.value(), OtpPurpose.REGISTER_VERIFY, userId, null, context);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(userId)
@@ -212,16 +212,5 @@ public class RegistrationService {
             case REPEATED_CHARS, SEQUENTIAL_CHARS, BLOCKED ->
                     new BusinessRuleException(IdentityErrorCode.PASSWORD_BREACHED);
         };
-    }
-
-    private static AppLocale parseLocale(String locale) {
-        if (locale == null || locale.isBlank()) {
-            return AppLocale.VI;
-        }
-        try {
-            return AppLocale.fromCode(locale);
-        } catch (IllegalArgumentException ex) {
-            return AppLocale.VI;
-        }
     }
 }

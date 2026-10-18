@@ -60,7 +60,7 @@ public class EmailChangeService {
         }
 
         OtpService.OtpRequestResult result =
-                otpService.requestOtp(newEmail.value(), OtpPurpose.EMAIL_CHANGE, userId, context);
+                otpService.requestOtp(newEmail.value(), OtpPurpose.EMAIL_CHANGE, userId, null, context);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(userId)
