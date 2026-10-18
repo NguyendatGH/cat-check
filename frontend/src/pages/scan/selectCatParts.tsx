@@ -7,14 +7,15 @@ import type { PhBand } from "@/entities/ph-bands";
 import { phTokenStyle } from "@/entities/ph-bands";
 import type { ScanListItem } from "@/entities/scan-result";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 
 const isNum = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
 function useRelativeScanTime() {
-  const { t, i18n } = useTranslation("scan");
+  const { t } = useTranslation("scan");
   return (iso: string) => {
     const date = new Date(iso);
-    const locale = i18n.language || "vi";
+    const locale = intlLocale();
     const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(date);
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);

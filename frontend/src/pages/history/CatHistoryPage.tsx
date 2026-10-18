@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import { Camera } from "lucide-react";
 import { Skeleton as AntSkeleton } from "antd";
 import { Button, EmptyState, ErrorState } from "@/shared/ui";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { CatAvatar, useFormatCatAge } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { findBandForPh, usePhBands } from "@/entities/ph-bands";
@@ -91,7 +92,7 @@ export function CatHistoryPage() {
         item.phValue?.toFixed(1),
         bandLabel.get(item.bandCode),
         item.catName?.toLowerCase(),
-        captured.toLocaleDateString(i18n.language || "vi"),
+        captured.toLocaleDateString(intlLocale()),
       ];
       return haystack.some((value) => value?.includes(query));
     });
