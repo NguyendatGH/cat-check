@@ -68,6 +68,7 @@ export async function apiSubmitScan(metadata: SubmitScanMetadata, file: File): P
   formData.append("image", file);
 
   const headers = new Headers({ [IDEMPOTENCY_HEADER_NAME]: metadata.scanRequestId });
+  headers.set("Accept-Language", currentAcceptLanguage());
   const csrf = readCsrfToken();
   if (csrf) {
     headers.set(CSRF_HEADER_NAME, csrf);

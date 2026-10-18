@@ -63,6 +63,7 @@ export async function apiUploadAvatar(path: string, file: File): Promise<{ avata
   formData.append("file", file);
 
   const headers = new Headers();
+  headers.set("Accept-Language", currentAcceptLanguage());
   const csrf = readCsrfToken();
   if (csrf) {
     headers.set(CSRF_HEADER_NAME, csrf);
