@@ -26,7 +26,7 @@ export const DialogContent = forwardRef<
   ComponentRef<typeof RadixDialog.Content>,
   ComponentPropsWithoutRef<typeof RadixDialog.Content> & { hideCloseButton?: boolean }
 >(({ className, children, hideCloseButton, ...props }, ref) => {
-  const { t } = useTranslation("admin");
+  const { t } = useTranslation("common");
   return (
   <RadixDialog.Portal>
     <DialogOverlay />
