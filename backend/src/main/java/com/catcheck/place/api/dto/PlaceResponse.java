@@ -9,5 +9,5 @@ public record PlaceResponse(String id, String name, String kind, String address,
                             double latitude, double longitude, String phone, List<String> specialties,
                             List<String> badges, double rating, long reviewCount, String source) {
     public static PlaceResponse from(Place p) { return new PlaceResponse(p.id().toString(), p.name(), p.kind(), p.address(), p.area(), p.latitude(), p.longitude(), p.phone(), p.specialties(), p.badges(), p.rating(), p.reviewCount(), "CATCHECK"); }
-    public static PlaceResponse from(ExternalPlace p) { return new PlaceResponse(p.id(), p.name(), p.kind(), p.address(), p.area(), p.latitude(), p.longitude(), p.phone(), List.of(), p.badges(), 0, 0, "OSM"); }
+    public static PlaceResponse from(ExternalPlace p, String unnamed) { return new PlaceResponse(p.id(), p.name() != null ? p.name() : unnamed, p.kind(), p.address(), p.area(), p.latitude(), p.longitude(), p.phone(), List.of(), p.badges(), 0, 0, "OSM"); }
 }

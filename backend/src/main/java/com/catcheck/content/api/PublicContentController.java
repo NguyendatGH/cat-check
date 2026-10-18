@@ -45,8 +45,7 @@ public class PublicContentController {
             Locale locale) {
 
         if (limit < 1 || limit > MAX_LIMIT) {
-            throw new BusinessRuleException(
-                    ContentErrorCode.VALIDATION_FAILED, "limit phải nằm trong 1.." + MAX_LIMIT);
+            throw new BusinessRuleException(ContentErrorCode.VALIDATION_FAILED, "limit");
         }
         CareTipCategory categoryFilter = EnumParam.parse(CareTipCategory.class, category, "category");
         CareTipKind kindFilter = EnumParam.parse(CareTipKind.class, kind, "kind");
