@@ -45,7 +45,7 @@ public class AiChatService {
     private static final String ANSWER_LANGUAGE_EN =
             " Always answer in English, even if CONTEXT is in Vietnamese, and keep the [1], [2] citation markers.";
 
-    // Mẫu khẩn cấp do thú y duyệt chỉ có bản tiếng Việt, không dịch máy (tools/check-message-key-parity.py).
+    // Mẫu khẩn cấp do thú y duyệt chỉ có bản tiếng Việt, không dịch máy (MessageBundleParityTest).
     private static final Locale EMERGENCY_LOCALE = Locale.forLanguageTag("vi");
 
     // Tối đa 3 chữ số: không bao giờ có hơn 12 nguồn, và parseInt không tràn với output bất thường.
