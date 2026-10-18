@@ -47,6 +47,7 @@ class ExportTimezoneWindowTest {
                 return new com.catcheck.export.domain.port.PdfRenderer.Result(new byte[16], 1);
             },
             new ExportTestDoubles.InMemoryReportStorage(),
+            ExportTestDoubles.messages(),
             clock);
 
     private final ExportRequestService requestService = new ExportRequestService(
@@ -97,6 +98,83 @@ class ExportTimezoneWindowTest {
                 .contains("Biểu đồ pH theo thời gian")
                 .doesNotContain("Bảng chi tiết từng lần đo")
                 .contains("disclaimer-block"));
+    }
+
+    @Test
+    @DisplayName("i18n — request: locale của command được lưu vào job")
+    void requestStoresTheCommandLocale() {
+        ExportJob job = requestService.request(new ExportRequestCommand(USER_ID, CAT_ID,
+                LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 3), "CUSTOM", List.of("TREND"), "en",
+                "Asia/Ho_Chi_Minh"));
+
+        assertThat(job.getLocale()).isEqualTo("en");
+    }
+
+    @Test
+    @DisplayName("i18n — request: không gửi locale thì dùng ngôn ngữ đã lưu của user")
+    void requestFallsBackToTheProfileLocale() {
+        ExportRequestService englishProfile = new ExportRequestService(repository,
+                ExportTestDoubles.catOwnedBy(CAT_ID, USER_ID, "en"), scanQuery,
+                new DocumentCodeGenerator(repository, clock),
+                new ExportJobDispatcher(command -> { }, generationService, clock),
+                userId -> true, new UuidV7(clock), clock);
+
+        ExportJob job = englishProfile.request(new ExportRequestCommand(USER_ID, CAT_ID,
+                LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 3), "CUSTOM", List.of("TREND"), null,
+                "Asia/Ho_Chi_Minh"));
+
+        assertThat(job.getLocale()).isEqualTo("en");
+    }
+
+    @Test
+    @DisplayName("i18n — generate: job en render PDF tiếng Anh theo locale của job")
+    void englishJobRendersAnEnglishPdf() {
+        ExportJob job = repository.save(new ExportJob(UUID.randomUUID(), USER_ID, CAT_ID, "CC-EXP-2026-000002",
+                LocalDate.of(2026, 9, 4), LocalDate.of(2026, 10, 3), "30D", List.of("SCAN_LOG", "PROFILE"), "en",
+                "Asia/Ho_Chi_Minh", NOW));
+
+        generationService.generate(job.getId());
+
+        assertThat(renderedHtml).singleElement().satisfies(html -> assertThat(html)
+                .contains("Detailed table of each measurement")
+                .contains("<td>Female cat</td>")
+                .contains("<td>3 years 0 months (estimated)</td>")
+                .contains("<td>04 Oct 2026 02:00</td>")
+                .contains("● Within reference range")
+                .contains("<td>High</td>")
+                .doesNotContain("Bảng chi tiết từng lần đo")
+                .doesNotContain("Mèo cái")
+                .doesNotContain("Trong khoảng tham chiếu"));
+    }
+
+    @Test
+    @DisplayName("i18n — generate: job vi giữ nguyên nhãn tiếng Việt")
+    void vietnameseJobKeepsTheVietnamesePdf() {
+        ExportJob job = repository.save(new ExportJob(UUID.randomUUID(), USER_ID, CAT_ID, "CC-EXP-2026-000003",
+                LocalDate.of(2026, 9, 4), LocalDate.of(2026, 10, 3), "30D", List.of("SCAN_LOG", "PROFILE"), "vi",
+                "Asia/Ho_Chi_Minh", NOW));
+
+        generationService.generate(job.getId());
+
+        assertThat(renderedHtml).singleElement().satisfies(html -> assertThat(html)
+                .contains("<td>Mèo cái</td>")
+                .contains("<td>3 tuổi 0 tháng (ước lượng)</td>")
+                .contains("<td>04/10/2026 02:00</td>")
+                .contains("● Trong khoảng tham chiếu")
+                .contains("<td>Cao</td>"));
+    }
+
+    @Test
+    @DisplayName("i18n — job bị từ chối vì quá tải ghi lý do theo locale của job")
+    void rejectedJobReasonFollowsTheJobLocale() {
+        ExportJob english = repository.save(new ExportJob(UUID.randomUUID(), USER_ID, CAT_ID, "CC-EXP-2026-000004",
+                LocalDate.of(2026, 9, 4), LocalDate.of(2026, 10, 3), "30D", List.of("TREND"), "en",
+                "Asia/Ho_Chi_Minh", NOW));
+
+        generationService.markRejected(english.getId(), NOW);
+
+        assertThat(repository.findById(english.getId()).orElseThrow().getFailureReason())
+                .isEqualTo("The system is busy. Please try creating the export again in a few minutes.");
     }
 
     private static final class RecordingScanQuery implements ScanHistoryQuery {

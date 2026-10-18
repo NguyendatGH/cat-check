@@ -95,7 +95,7 @@ public class ExportRequestService {
         Instant now = clock.instant();
         ExportJob job = new ExportJob(uuidV7.generate(), cmd.userId(), cat.catId(), documentCode,
                 range.from(), range.to(), cmd.rangePreset(), sections,
-                cmd.locale() == null ? "vi" : cmd.locale(),
+                resolveLocale(cmd),
                 timezone, now);
         try {
             job = jobRepository.save(job);
@@ -106,6 +106,16 @@ public class ExportRequestService {
         dispatcher.dispatchAfterCommit(job.getId());
 
         return job;
+    }
+
+    /** Ngôn ngữ PDF: lấy từ request, không có thì theo ngôn ngữ đã lưu của user, cuối cùng là vi. */
+    private String resolveLocale(ExportRequestCommand cmd) {
+        if (cmd.locale() != null && !cmd.locale().isBlank()) {
+            return cmd.locale();
+        }
+        return subjectSnapshotPort.findOwnerProfile(cmd.userId())
+                .map(SubjectSnapshotPort.OwnerProfile::locale)
+                .orElse("vi");
     }
 
     private static ZoneId resolveZone(String timezone) {

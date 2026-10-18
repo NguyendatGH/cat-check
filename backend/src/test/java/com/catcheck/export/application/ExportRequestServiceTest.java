@@ -48,6 +48,7 @@ class ExportRequestServiceTest {
             ExportTestDoubles.noFlags(),
             ExportTestDoubles.pdfOf(2048, 3),
             new ExportTestDoubles.InMemoryReportStorage(),
+            ExportTestDoubles.messages(),
             clock);
 
     private final ExportRequestService requestService = new ExportRequestService(
