@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, Bot, Check, Copy, ExternalLink, RotateCcw, Sparkles } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import type { AiCitation } from "./api";
 import "./assistant.css";
 
@@ -76,8 +77,8 @@ export function AssistantAvatar({ className }: { className?: string }) {
 }
 
 function useTimeLabel(iso: string) {
-  const { i18n } = useTranslation();
-  return new Date(iso).toLocaleTimeString(i18n.language || "vi", { hour: "2-digit", minute: "2-digit" });
+  useTranslation(); // subscribe so the label re-renders on language change
+  return new Date(iso).toLocaleTimeString(intlLocale(), { hour: "2-digit", minute: "2-digit" });
 }
 
 export interface UserBubbleProps {

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import type { ScanListItem } from "@/entities/scan-result";
 
 const WEEKS = 18;
@@ -33,8 +34,8 @@ export interface ActivityChartProps {
 }
 
 export function ActivityChart({ items, selectedDay, onSelectDay, className }: ActivityChartProps) {
-  const { t, i18n } = useTranslation("history");
-  const locale = i18n.language || "vi";
+  const { t } = useTranslation("history");
+  const locale = intlLocale();
 
   const { columns, total, activeDays } = useMemo(() => {
     const counts = new Map<string, number>();

@@ -11,6 +11,7 @@ import { Check, Copy, Eye, EyeOff, Lock, Clock } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { GoogleGlyph } from "@/shared/assets/icons/GoogleGlyph";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { estimatePasswordStrength, type PasswordStrength } from "./schemas";
 import type { ConsentPurposeOption, SessionItem } from "./types";
 
@@ -267,7 +268,7 @@ export function SessionRow({ session, onRevoke, revoking }: SessionRowProps) {
         </span>
         <span className="text-caption text-text-tertiary">
           {session.ipMasked ? `${session.ipMasked} • ` : ""}
-          {t("sessions.lastSeen", { date: new Date(session.lastSeenAt).toLocaleString("vi-VN") })}
+          {t("sessions.lastSeen", { date: new Date(session.lastSeenAt).toLocaleString(intlLocale()) })}
         </span>
       </div>
       {!session.current && onRevoke ? (

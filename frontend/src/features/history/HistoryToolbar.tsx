@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CalendarDays, Search, X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { dayKey } from "./ActivityChart";
 
 export type HistoryRangeKey = "3" | "7" | "30" | "all";
@@ -26,7 +27,7 @@ export function HistoryToolbar({
   onSelectDay,
   className,
 }: HistoryToolbarProps) {
-  const { t, i18n } = useTranslation("history");
+  const { t } = useTranslation("history");
   const [searchOpen, setSearchOpen] = useState(search.length > 0);
   const dateRef = useRef<HTMLInputElement>(null);
   const showSearch = searchOpen || search.length > 0;
@@ -42,7 +43,7 @@ export function HistoryToolbar({
   };
 
   const dayLabel = selectedDay
-    ? new Date(`${selectedDay}T00:00:00`).toLocaleDateString(i18n.language || "vi", { day: "numeric", month: "numeric" })
+    ? new Date(`${selectedDay}T00:00:00`).toLocaleDateString(intlLocale(), { day: "numeric", month: "numeric" })
     : null;
 
   return (

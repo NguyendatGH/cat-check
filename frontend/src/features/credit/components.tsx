@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 import { ArrowDown, ArrowUp, Check, X } from "lucide-react";
 import { Badge, Input, type InputProps } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { formatActivationCode } from "./schemas";
 import { usePackageCatalog } from "./hooks";
 import type { CreditBatch, CreditLedgerType, Entitlement, LedgerEntry } from "./types";
@@ -46,7 +47,7 @@ export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
               : (plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode)}
           </p>
           <p className="text-small text-text-tertiary">
-            {t("batch.activatedAt", { date: new Date(batch.activatedAt).toLocaleDateString("vi-VN") })}
+            {t("batch.activatedAt", { date: new Date(batch.activatedAt).toLocaleDateString(intlLocale()) })}
           </p>
         </div>
         <Badge tone={expired ? "neutral" : "brand"} className="shrink-0">
@@ -111,7 +112,7 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-caption font-semibold text-text-primary">{t(`ledger.types.${entry.type}`)}</p>
         <p className="text-small text-text-tertiary">
-          {new Date(entry.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
+          {new Date(entry.createdAt).toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" })}
           {" · "}
           {t("ledger.balanceAfter", { count: entry.balanceAfter })}
         </p>
@@ -119,7 +120,7 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
           <p className="truncate text-small text-text-tertiary">
             {t("ledger.batchInfo", {
               name: batchPlanName,
-              date: new Date(entry.expiresAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+              date: new Date(entry.expiresAt).toLocaleDateString(intlLocale(), { day: "2-digit", month: "2-digit" }),
             })}
           </p>
         ) : null}
