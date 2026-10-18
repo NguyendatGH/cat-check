@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 public record PatchNoteRequest(
         String noteType,
-        @Size(max = 2000, message = "Ghi chú tối đa 2000 ký tự")
+        @Size(max = 2000, message = "{validation.cat.note.max}")
         String body,
         LocalDate occurredOn
 ) {

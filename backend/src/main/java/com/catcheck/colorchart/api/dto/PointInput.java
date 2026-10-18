@@ -30,11 +30,11 @@ public record PointInput(
         @DecimalMin("0.01")
         BigDecimal toleranceDeltaE,
 
-        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "hexSrgb phải là #RRGGBB")
+        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "{validation.colorchart.hexSrgb.format}")
         String hexSrgb,
 
         @NotBlank
-        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "displayHex phải là #RRGGBB")
+        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "{validation.colorchart.displayHex.format}")
         String displayHex,
 
         @NotBlank

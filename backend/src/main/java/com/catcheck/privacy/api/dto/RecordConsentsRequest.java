@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
 public record RecordConsentsRequest(
-        @NotEmpty(message = "consents không được rỗng")
+        @NotEmpty(message = "{validation.privacy.consents.required}")
         @Valid
         List<ConsentGrantRequest> consents
 ) {
