@@ -50,7 +50,7 @@ public class SmtpEmailSender implements EmailSender, EmailTransport {
 
     @Override
     public void deliver(OutgoingEmail email) {
-        Optional<RenderedEmail> html = renderer.render(email.templateCode(), email.variables());
+        Optional<RenderedEmail> html = renderer.render(email.templateCode(), email.locale(), email.variables());
         if (html.isPresent()) {
             deliverHtml(email, html.get());
             return;

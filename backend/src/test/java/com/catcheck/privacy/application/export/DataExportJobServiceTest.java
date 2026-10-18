@@ -74,6 +74,7 @@ class DataExportJobServiceTest {
         DsarExportStorage storage = mock(DsarExportStorage.class);
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         var notifications = mock(com.catcheck.notification.api.NotificationGateway.class);
+        when(jdbc.queryForList(anyString(), eq(String.class), eq(userId))).thenReturn(List.of("en"));
         when(jobs.claim(requestId)).thenReturn(true);
         when(requests.findById(requestId)).thenReturn(Optional.of(request));
         when(snapshots.profile(userId)).thenReturn("{\"email\":\"user@example.test\"}");
@@ -111,7 +112,9 @@ class DataExportJobServiceTest {
                 "consents.json", "notifications.json", "orders.json", "ai_conversations.json", "README.vi.md"), names);
         assertEquals("[" + aiMessage + "]", aiEntry);
         verify(requests).update(any(DsarRequest.class));
-        verify(notifications).enqueueTransactionalEmail(any());
+        // Email "gói dữ liệu sẵn sàng" đi theo ngôn ngữ của chủ tài khoản, không cố định vi.
+        verify(notifications).enqueueTransactionalEmail(
+                org.mockito.ArgumentMatchers.argThat(email -> "en".equals(email.locale())));
         verify(jobs, org.mockito.Mockito.never()).fail(any(UUID.class), anyString());
     }
 

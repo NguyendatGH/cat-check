@@ -147,6 +147,9 @@ public class DataExportJobService {
             DsarRequest request = requests.findById(requestId)
                     .filter(r -> r.requestType() == DsarRequestType.ACCESS_EXPORT && r.userId() != null)
                     .orElseThrow();
+            // Null (không có dòng) để TransactionalEmailRequest hạ về mặc định vi.
+            String locale = jdbc.queryForList("SELECT locale FROM app_user WHERE id=?", String.class,
+                    request.userId()).stream().findFirst().orElse(null);
             byte[] zip = archive(request.userId());
             String key = storage.put(request.publicRef(), zip);
             storedKey = key;
@@ -162,7 +165,7 @@ public class DataExportJobService {
                 jdbc.update("UPDATE dsar_export_job SET status='COMPLETED', storage_key=?, expires_at=?, email_download_token_hash=?, last_error_code=NULL WHERE dsar_request_id=? AND status='RUNNING'", key, expiresAt, sha256(emailToken), requestId);
                 requests.update(completed);
                 notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
-                        request.contactEmail(), "PRIVACY_EXPORT_READY", "vi",
+                        request.contactEmail(), "PRIVACY_EXPORT_READY", locale,
                         java.util.Map.of("publicRef", request.publicRef(), "downloadUrl", downloadLink,
                                 "expiresAt", expiresAt.toString(), "attachments", "Không có tệp đính kèm."),
                         "PRIVACY_EXPORT_READY:" + request.id()));

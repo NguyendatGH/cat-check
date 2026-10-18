@@ -3,15 +3,19 @@ package com.catcheck.identity.application;
 import com.catcheck.audit.api.AuditEvent;
 import com.catcheck.audit.api.AuditLogService;
 import com.catcheck.identity.api.IdentityErrorCode;
+import com.catcheck.identity.domain.AppLocale;
 import com.catcheck.identity.domain.AuthPolicy;
+import com.catcheck.identity.domain.EmailAddress;
 import com.catcheck.identity.domain.EmailOtpChallenge;
 import com.catcheck.identity.domain.OtpCodeGenerator;
 import com.catcheck.identity.domain.OtpPurpose;
 import com.catcheck.identity.domain.OtpTicket;
 import com.catcheck.identity.domain.RateLimitRule;
+import com.catcheck.identity.domain.UserAccount;
 import com.catcheck.identity.domain.port.EmailOtpRepository;
 import com.catcheck.identity.domain.port.OtpCodeHasher;
 import com.catcheck.identity.domain.port.RateLimiter;
+import com.catcheck.identity.domain.port.UserAccountRepository;
 import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
@@ -27,6 +31,7 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -35,6 +40,7 @@ public class OtpService {
     private static final Logger log = LoggerFactory.getLogger(OtpService.class);
 
     private final EmailOtpRepository otpRepository;
+    private final UserAccountRepository accountRepository;
     private final OtpCodeHasher codeHasher;
     private final OtpCodeGenerator codeGenerator;
     private final AuthPolicy policy;
@@ -45,6 +51,7 @@ public class OtpService {
     private final boolean devConsoleEnabled;
 
     public OtpService(EmailOtpRepository otpRepository,
+                      UserAccountRepository accountRepository,
                       OtpCodeHasher codeHasher,
                       OtpCodeGenerator codeGenerator,
                       AuthPolicy policy,
@@ -54,6 +61,7 @@ public class OtpService {
                       Clock clock,
                       @Value("${catcheck.dev.log-otp:false}") boolean devConsoleEnabled) {
         this.otpRepository = otpRepository;
+        this.accountRepository = accountRepository;
         this.codeHasher = codeHasher;
         this.codeGenerator = codeGenerator;
         this.policy = policy;
@@ -99,7 +107,7 @@ public class OtpService {
                 null,
                 now));
 
-        deliver(email, purpose, code, challengeId);
+        deliver(email, purpose, code, challengeId, userId);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(userId)
@@ -175,19 +183,28 @@ public class OtpService {
         return challenge;
     }
 
-    private void deliver(String email, OtpPurpose purpose, String code, UUID challengeId) {
+    private void deliver(String email, OtpPurpose purpose, String code, UUID challengeId, UUID userId) {
         if (devConsoleEnabled) {
             log.warn("[DEV-OTP] purpose={} email={} code={}", purpose, maskEmail(email), code);
         }
         notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
                 email,
                 templateCodeFor(purpose),
-                "vi",
+                localeOf(email, userId),
                 Map.of(
                         "code", code,
                         "purpose", purpose.name(),
                         "expiresInMinutes", String.valueOf(policy.otpTtl().toMinutes())),
                 "AUTH_OTP:" + challengeId));
+    }
+
+    // app_user.locale của người nhận; gửi lại OTP không có userId thì tra theo email. Chưa có tài
+    // khoản (OTP trước khi đăng ký) trả null, TransactionalEmailRequest hạ về vi.
+    private String localeOf(String email, UUID userId) {
+        Optional<UserAccount> account = userId != null
+                ? accountRepository.findById(userId)
+                : Optional.ofNullable(EmailAddress.parseOrNull(email)).flatMap(accountRepository::findByEmail);
+        return account.map(UserAccount::locale).map(AppLocale::code).orElse(null);
     }
 
     private static String maskEmail(String email) {
