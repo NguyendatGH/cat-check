@@ -126,6 +126,8 @@
     "clearDate": "Clear date filter"
   },
   "search": {
+    "placeholder": "Search by pH, result, cat name or date",
+    "clear": "Clear keywords",
     "reset": "Clear filters",
     "resultCount_one": "{{count}} result",
     "resultCount_other": "{{count}} results"

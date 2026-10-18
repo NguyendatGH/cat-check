@@ -126,6 +126,8 @@
     "clearDate": "Bỏ lọc ngày"
   },
   "search": {
+    "placeholder": "Tìm theo pH, kết quả, tên bé hoặc ngày",
+    "clear": "Xoá từ khoá",
     "reset": "Xoá bộ lọc",
     "resultCount": "{{count}} kết quả"
   }
