@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, SkeletonLoader } from "@/shared/ui";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   OnboardingShell,
   PhBandBar,
@@ -287,7 +288,7 @@ export function OnboardingSuccessPage() {
             {activation
               ? t("success.credit.activated", {
                   credits: activation.balanceAfter,
-                  date: new Date(activation.expiresAt).toLocaleDateString("vi-VN"),
+                  date: new Date(activation.expiresAt).toLocaleDateString(intlLocale()),
                 })
               : (balance?.availableBalance ?? 0) > 0
                 ? t("success.credit.available", { count: balance?.availableBalance })

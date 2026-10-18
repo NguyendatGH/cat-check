@@ -38,6 +38,7 @@ import {
 } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { useSessionStore } from "@/entities/user";
 import {
   DELETION_GRACE_DAYS,
@@ -79,11 +80,11 @@ const ASIDE_CARD = "flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-
 const OPEN_DSAR_STATUSES = new Set(["RECEIVED", "IDENTITY_PENDING", "IN_PROGRESS", "EXTENDED"]);
 
 function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  return new Date(value).toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" });
 }
 
 function formatDate(value: Date): string {
-  return value.toLocaleString("vi-VN", { dateStyle: "long", timeStyle: "short" });
+  return value.toLocaleString(intlLocale(), { dateStyle: "long", timeStyle: "short" });
 }
 
 function daysUntil(deadline: Date): number {

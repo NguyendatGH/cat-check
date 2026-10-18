@@ -17,6 +17,7 @@ import {
   Sun,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   INTERVAL_DAYS_MAX,
   INTERVAL_DAYS_MIN,
@@ -35,7 +36,7 @@ const DAY_MS = 24 * HOUR_MS;
 export const PRESET_INTERVALS = [1, 3, 7] as const;
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("vi-VN", {
+  return new Date(iso).toLocaleString(intlLocale(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -56,7 +57,7 @@ export function reminderAction(reminder: Pick<Reminder, "type" | "id">): { to: s
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  return new Date(iso).toLocaleDateString(intlLocale(), { day: "2-digit", month: "2-digit" });
 }
 
 export type DueState =

@@ -42,17 +42,17 @@ type LocationStatus = "idle" | "requesting" | "ready" | "denied" | "unavailable"
 
 const NEARBY_RADIUS_KM = 25;
 
-function googleMapsSearchUrl(location: UserLocation): string {
+function googleMapsSearchUrl(location: UserLocation, query: string): string {
   const lat = location.latitude.toFixed(3);
   const lng = location.longitude.toFixed(3);
-  return `https://www.google.com/maps/search/${encodeURIComponent("phòng khám thú y")}/@${lat},${lng},14z`;
+  return `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${lat},${lng},14z`;
 }
 
 function MoreOnGoogleMaps({ location }: { location: UserLocation }) {
   const { t } = useTranslation("map");
   return (
     <a
-      href={googleMapsSearchUrl(location)}
+      href={googleMapsSearchUrl(location, t("location.googleSearchQuery"))}
       target="_blank"
       rel="noreferrer"
       className="inline-flex items-center gap-1 pt-0.5 font-semibold text-primary-dark underline-offset-2 hover:underline"

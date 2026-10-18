@@ -23,7 +23,7 @@ import {
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
-import { localIsoDate } from "@/shared/lib/format/locale";
+import { intlLocale, localIsoDate } from "@/shared/lib/format/locale";
 import { isApiError } from "@/shared/api";
 import {
   useFormatCatAge,
@@ -775,7 +775,7 @@ function NotesTab({
                 </div>
                 <p className="whitespace-pre-wrap text-body text-text-primary">{note.body}</p>
                 <p className="text-small text-text-tertiary">
-                  {new Date(note.occurredOn ?? note.createdAt).toLocaleDateString("vi-VN")}
+                  {new Date(note.occurredOn ?? note.createdAt).toLocaleDateString(intlLocale())}
                 </p>
               </Card>
             </li>
