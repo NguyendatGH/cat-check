@@ -271,6 +271,25 @@ class AiChatServiceTest {
     }
 
     @Test
+    void systemPromptTellsTheModelToAnswerInTheRequestLanguage() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Theo dõi pH", "/care-tips/ph", "Đo dưới ánh sáng ổn định.", 1));
+        List<String> systemPrompts = new ArrayList<>();
+        AiProviderPort provider = messages -> {
+            systemPrompts.add(messages.getFirst().get("content"));
+            return Optional.of("Câu trả lời [1]");
+        };
+
+        service(knowledge, provider).chat(USER_ID, null, null, "Cách đo pH?", "vi");
+        service(knowledge, provider).chat(USER_ID, null, null, "How do I measure pH?", "en");
+
+        assertThat(systemPrompts).hasSize(2);
+        assertThat(systemPrompts.get(0)).contains("tiếng Việt").doesNotContain("English");
+        assertThat(systemPrompts.get(1)).contains("Always answer in English").doesNotContain("Luôn trả lời");
+    }
+
+    @Test
     void rejectsConversationOwnedByAnotherUser() {
         FakeKnowledge knowledge = new FakeKnowledge();
         knowledge.conversation = new AiKnowledgePort.Conversation(CONVERSATION_ID, UUID.randomUUID());
