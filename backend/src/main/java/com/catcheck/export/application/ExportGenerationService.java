@@ -136,7 +136,8 @@ public class ExportGenerationService {
                         s.phValue().doubleValue(),
                         !"IN_RANGE".equals(s.classification()) && !s.nearBoundary()))
                 .toList();
-        String svgChart = SvgTrendChartBuilder.build(points);
+        String svgChart = SvgTrendChartBuilder.build(points,
+                DateTimeFormatter.ofPattern(messages.resolve("export.pdf.chart.date_pattern", locale), locale));
 
         List<ExportRenderData.FlagRow> flagRows = flags.stream()
                 .map(f -> new ExportRenderData.FlagRow(f.ruleCode(), f.severity(), f.explanationVi(), f.triggeredAt()))

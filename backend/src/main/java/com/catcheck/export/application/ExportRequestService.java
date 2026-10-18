@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -110,9 +111,10 @@ public class ExportRequestService {
 
     /** Ngôn ngữ PDF: lấy từ request, không có thì theo ngôn ngữ đã lưu của user, cuối cùng là vi. */
     private String resolveLocale(ExportRequestCommand cmd) {
-        if (cmd.locale() != null && !cmd.locale().isBlank()) {
-            return cmd.locale();
-        }
+        // Chỉ nhận vi/en: giá trị tuỳ ý sẽ vượt VARCHAR(8) hoặc ra locale không có bundle.
+        String requested = cmd.locale() == null ? "" : cmd.locale().trim().toLowerCase(Locale.ROOT);
+        if (requested.startsWith("en")) return "en";
+        if (requested.startsWith("vi")) return "vi";
         return subjectSnapshotPort.findOwnerProfile(cmd.userId())
                 .map(SubjectSnapshotPort.OwnerProfile::locale)
                 .orElse("vi");

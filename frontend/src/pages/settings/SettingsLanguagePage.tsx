@@ -17,7 +17,10 @@ export function SettingsLanguagePage() {
   const choose = (locale: string) => {
     setStoredLocale(locale);
     // `i18n.language` (nguồn của Accept-Language) chỉ đổi sau khi tải xong bản dịch, nên làm mới dữ liệu sau đó.
-    void i18n.changeLanguage(locale).then(() => queryClient.invalidateQueries());
+    // Bỏ nhóm "auth": làm mới hồ sơ lúc PATCH đang chạy có thể ghi đè locale mới bằng giá trị cũ.
+    void i18n
+      .changeLanguage(locale)
+      .then(() => queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "auth" }));
     updateProfile.mutate(
       { locale },
       {

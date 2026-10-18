@@ -26,7 +26,7 @@ class ReportPdfTimeoutJobTest {
 
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final FakeExportJobRepository repository = new FakeExportJobRepository();
-    private final ExportTimeoutSweepService sweepService = new ExportTimeoutSweepService(repository);
+    private final ExportTimeoutSweepService sweepService = new ExportTimeoutSweepService(repository, ExportTestDoubles.messages());
 
     @Test
     @DisplayName("Job QUEUED quá 15 phút (p13 §13.6.1) chuyển sang FAILED kèm lý do đọc được")
@@ -39,7 +39,6 @@ class ReportPdfTimeoutJobTest {
         assertThat(outcome.itemsProcessed()).isEqualTo(1);
         ExportJob closed = repository.findById(stuck).orElseThrow();
         assertThat(closed.getStatus()).isEqualTo(ExportStatus.FAILED);
-        assertThat(closed.getFailureReason()).isEqualTo(ExportTimeoutSweepService.TIMEOUT_REASON);
         assertThat(closed.getFailureReason())
                 .isEqualTo("Quá thời gian xử lý cho phép. Bạn thử tạo lại bản xuất nhé.");
         assertThat(closed.getCompletedAt()).isEqualTo(NOW);
