@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { AlertTriangle, ArrowLeft, Banknote, Info, Loader2, Lock, MapPin, QrCode, ShoppingCart } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Banknote, Loader2, Lock, MapPin, QrCode, ShoppingCart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
@@ -169,11 +169,6 @@ export function CheckoutPage() {
       className="flex flex-col gap-4 lg:gap-5"
     >
       {header}
-
-      <p className="flex items-start gap-2 rounded-xl bg-info px-3.5 py-2.5 text-[12px] leading-relaxed text-info-text">
-        <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-        {t("checkout.mockNotice")}
-      </p>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">

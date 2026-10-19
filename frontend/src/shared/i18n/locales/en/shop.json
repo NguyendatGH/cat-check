@@ -51,8 +51,8 @@
         "body": "The cart and orders show the exact amount the system returns based on order value, not an estimate in the interface."
       },
       "payment": {
-        "title": "No online payment gateway yet",
-        "body": "You choose a method and complete payment with the shop. Your order is still recorded with an order code for lookup."
+        "title": "Pay on delivery or via PayOS",
+        "body": "Pay cash on delivery (COD) or scan a VietQR code via PayOS with your banking or e-wallet app."
       },
       "tracking": {
         "title": "Order status tracking",
@@ -167,7 +167,6 @@
     "placeOrder": "Place order",
     "qtyPrice": "x{{count}} · {{price}}",
     "back": "Back to cart",
-    "mockNotice": "Your order will be recorded in the system. Online payment is not integrated yet; please only choose a method you can complete with the shop.",
     "placing": "Placing order…",
     "error": "Couldn't place the order. Please try again.",
     "addressLabel": "Deliver to",

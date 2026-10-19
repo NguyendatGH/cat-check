@@ -51,8 +51,8 @@
         "body": "Giỏ hàng và đơn hàng hiển thị đúng con số hệ thống trả về theo giá trị đơn, không phải mức phí ước lượng ở giao diện."
       },
       "payment": {
-        "title": "Chưa tích hợp cổng thanh toán trực tuyến",
-        "body": "Bạn chọn phương thức rồi hoàn tất với cửa hàng. Đơn vẫn được ghi nhận kèm mã đơn để tra cứu."
+        "title": "Thanh toán khi nhận hàng hoặc qua PayOS",
+        "body": "Trả tiền mặt khi nhận hàng (COD) hoặc quét mã QR VietQR qua PayOS bằng app ngân hàng hoặc ví điện tử."
       },
       "tracking": {
         "title": "Theo dõi trạng thái đơn",
@@ -167,7 +167,6 @@
     "placeOrder": "Đặt hàng",
     "qtyPrice": "x{{count}} · {{price}}",
     "back": "Quay lại giỏ hàng",
-    "mockNotice": "Đơn hàng sẽ được ghi nhận trên hệ thống. Thanh toán trực tuyến chưa được tích hợp; vui lòng chỉ chọn phương thức bạn có thể hoàn tất với cửa hàng.",
     "placing": "Đang tạo đơn…",
     "error": "Không thể tạo đơn hàng. Vui lòng thử lại.",
     "addressLabel": "Giao tới",
