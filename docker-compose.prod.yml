@@ -49,6 +49,8 @@ services:
       CATCHECK_PRIVACY_EXPORT_WEBBASEURL: https://${DOMAIN}
       # Container path of the mounted file above (a host path from .env would not exist in the container).
       FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account.json
+      # The model baked into the image; a local path from .env would silently turn vector retrieval off.
+      CATCHECK_AI_EMBEDDING_MODEL_DIR: /app/models/multilingual-e5-small
       # PayOS return/cancel links back to the shop order page; defaults to http://localhost:5173.
       CATCHECK_SHOP_WEBBASEURL: https://${DOMAIN}
     depends_on:
