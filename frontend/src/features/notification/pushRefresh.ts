@@ -28,6 +28,7 @@ export function usePushSubscriptionRefresh(signedIn: boolean): void {
         });
         if (refreshed.id !== localId) writeLocalSubscriptionId(refreshed.id);
       } catch {
+        // Làm mới nền: lỗi thì giữ đăng ký cũ, lần tải sau sẽ thử lại.
       }
     })();
   }, [signedIn, mutateAsync]);

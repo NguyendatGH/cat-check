@@ -15,6 +15,7 @@ export const errorMiddleware: Middleware = {
         code = body.errorCode;
       }
     } catch {
+      // Body không phải JSON: lỗi không kèm errorCode.
     }
 
     throw new ApiError(`Request failed with status ${String(response.status)}`, response.status, code);

@@ -173,6 +173,7 @@ export function PushDevicesCard({ className }: { className?: string }) {
           setLocalId(null);
         }
       } catch {
+        // Lỗi thu hồi hiển thị qua revoke.error (mutationError) bên dưới.
       } finally {
         setBusy(false);
       }

@@ -46,6 +46,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -82,6 +83,7 @@ export async function apiUploadAvatar(path: string, file: File): Promise<{ avata
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
     }
     throw new ApiError(
       problem?.detail ?? `Upload failed with status ${String(response.status)}`,

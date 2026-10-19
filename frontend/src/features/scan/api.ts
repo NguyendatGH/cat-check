@@ -30,6 +30,7 @@ async function toApiError(response: Response, fallback: string): Promise<ApiErro
   try {
     problem = (await response.json()) as ProblemDetail;
   } catch {
+    // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
   }
   return new ApiError(problem?.detail ?? fallback, response.status, problem?.errorCode);
 }

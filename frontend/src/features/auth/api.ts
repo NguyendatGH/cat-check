@@ -37,6 +37,7 @@ async function ensureCsrfCookie(): Promise<void> {
   try {
     await fetch(`${BASE_URL}/auth/csrf`, { credentials: "include" });
   } catch {
+    // Không lấy được cookie CSRF: request kế tiếp sẽ tự trả lỗi của nó.
   }
 }
 
