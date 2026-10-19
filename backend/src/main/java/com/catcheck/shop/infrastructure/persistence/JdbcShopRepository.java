@@ -150,7 +150,7 @@ public class JdbcShopRepository implements ShopRepository {
     public boolean cancelAndRestock(UUID orderId, String expectedStatus, String cancelReason, Instant at) {
         String status = jdbc.query("SELECT status FROM shop_order WHERE id = ? FOR UPDATE", (rs, row) -> rs.getString("status"), orderId).stream().findFirst().orElse(null);
         if (!expectedStatus.equals(status)) return false;
-        jdbc.update("UPDATE shop_order SET status = 'CANCELLED', cancelled_at = ?, cancel_reason = ? WHERE id = ?", at, cancelReason, orderId);
+        jdbc.update("UPDATE shop_order SET status = 'CANCELLED', cancelled_at = ?, cancel_reason = ?, refund_needed = (paid_at IS NOT NULL) WHERE id = ?", at, cancelReason, orderId);
         // Lock products in id order, like createOrder, so a cancel and a checkout over the same products cannot deadlock.
         jdbc.query("SELECT id FROM shop_product WHERE id IN (SELECT product_id FROM shop_order_line WHERE order_id = ?) ORDER BY id FOR UPDATE", (rs, row) -> 0, orderId);
         jdbc.update("""

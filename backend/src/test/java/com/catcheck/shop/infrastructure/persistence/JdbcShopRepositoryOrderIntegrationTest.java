@@ -165,6 +165,25 @@ class JdbcShopRepositoryOrderIntegrationTest {
     }
 
     @Test
+    @DisplayName("Huy don da tra tien (admin) => refundNeeded; huy don chua tra => khong")
+    void cancelFlagsRefundOnlyWhenPaid() {
+        UUID user = newUser();
+        UUID product = newProduct();
+        Order unpaid = placePayos(user, product);
+        Order paid = placePayos(user, product);
+        pay(paid.payosOrderCode(), paid.totalVnd(), "REF");
+
+        assertThat(cancel(unpaid.id(), "PENDING_PAYMENT")).isTrue();
+        assertThat(reload(user, unpaid.id()).refundNeeded()).isFalse();
+
+        assertThat(cancel(paid.id(), "PAID")).isTrue();
+        Order cancelled = reload(user, paid.id());
+        assertThat(cancelled.status()).isEqualTo("CANCELLED");
+        assertThat(cancelled.refundNeeded()).isTrue();
+        assertThat(stock(product)).as("ca hai don duoc tra kho").isEqualTo(5);
+    }
+
+    @Test
     @DisplayName("Hai lan huy dong thoi => dung mot lan tra kho")
     void concurrentCancelRestocksOnce() throws Exception {
         UUID user = newUser();
