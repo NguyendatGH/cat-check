@@ -7,6 +7,7 @@ import com.catcheck.audit.api.AuditOutcome;
 import com.catcheck.audit.api.AuditSubjectType;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.NotFoundException;
+import com.catcheck.shared.security.AdminGuard;
 import com.catcheck.shop.api.ShopErrorCode;
 import com.catcheck.shop.domain.Order;
 import com.catcheck.shop.domain.OrderStatusPolicy;
@@ -20,7 +21,6 @@ import java.util.UUID;
 @Service
 public class AdminOrderService {
     private static final int PAGE_SIZE = 20;
-    private static final int MIN_REASON_LENGTH = 5;
 
     private final ShopRepository repository;
     private final AuditLogService auditLog;
@@ -42,24 +42,25 @@ public class AdminOrderService {
         return repository.adminOrder(id).orElseThrow(() -> new NotFoundException(ShopErrorCode.ORDER_NOT_FOUND));
     }
 
-    /** The free-text cancel reason is only validated, never logged or audited: staff may type buyer details into it. */
+    /** The cancel reason lives only in the audit event (the audit writer redacts PII); {@code shop_order.cancel_reason} just says ADMIN. */
     public Order move(UUID id, String target, String reason, UUID adminId, String role) {
         Order order = get(id);
         String from = order.status();
         if (!OrderStatusPolicy.adminNextStatuses(order.paymentMethod(), from).contains(target)) throw invalid(from, target);
         boolean cancel = "CANCELLED".equals(target);
-        if (cancel && (reason == null || reason.strip().length() < MIN_REASON_LENGTH)) throw new BusinessRuleException(ShopErrorCode.CANCEL_REASON_REQUIRED);
+        String cancelReason = cancel ? AdminGuard.requireReason(reason) : null;
         boolean moved = cancel ? repository.cancelAndRestock(id, from, "ADMIN", clock.instant()) : repository.transition(id, from, target);
         if (!moved) throw invalid(from, target); // someone else changed the order between our read and the compare-and-set
-        auditLog.record(AuditEvent.builder()
+        AuditEvent.Builder event = AuditEvent.builder()
                 .actor(AuditActor.admin(adminId, role))
                 .subject(AuditSubjectType.SYSTEM, null)
                 .action(cancel ? "SHOP_ORDER_CANCELLED" : "SHOP_ORDER_STATUS_CHANGED")
                 .outcome(AuditOutcome.SUCCESS)
                 .meta("orderId", id.toString())
                 .meta("from", from)
-                .meta("to", target)
-                .build());
+                .meta("to", target);
+        if (cancel) event.meta("reason", cancelReason);
+        auditLog.record(event.build());
         return get(id);
     }
 

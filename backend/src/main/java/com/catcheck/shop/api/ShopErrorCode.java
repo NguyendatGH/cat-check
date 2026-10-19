@@ -13,7 +13,6 @@ public enum ShopErrorCode implements ErrorCode {
     ORDER_LIMIT_REACHED("shop/order-limit-reached", HttpStatus.CONFLICT),
     ORDER_NOT_CANCELLABLE("shop/order-not-cancellable", HttpStatus.CONFLICT),
     ORDER_TRANSITION_INVALID("shop/order-transition-invalid", HttpStatus.CONFLICT),
-    CANCEL_REASON_REQUIRED("shop/cancel-reason-required", HttpStatus.BAD_REQUEST),
     PAYMENT_UNAVAILABLE("shop/payment-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     PRODUCT_SKU_DUPLICATE("shop/product-sku-duplicate", HttpStatus.CONFLICT),
     PRODUCT_INVALID("shop/product-invalid", HttpStatus.BAD_REQUEST),

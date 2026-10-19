@@ -144,13 +144,13 @@ class AdminOrderControllerTest {
     }
 
     @Test
-    @DisplayName("Huy khong co ly do (thieu hoac < 5 ky tu sau khi trim) ⇒ 400, khong huy, khong tra kho")
+    @DisplayName("Huy khong co ly do (thieu hoac < 10 ky tu sau khi trim) ⇒ 400 REASON_REQUIRED, khong huy, khong tra kho")
     void cancelWithoutReasonIs400() throws Exception {
         Order o = order("COD");
 
-        for (String reason : new String[]{null, "", "  ab  "}) {
+        for (String reason : new String[]{null, "", "  Khach huy  "}) {
             move(o, "CANCELLED", reason).andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.errorCode").value("CANCEL_REASON_REQUIRED"));
+                    .andExpect(jsonPath("$.errorCode").value("REASON_REQUIRED"));
         }
 
         assertThat(dbStatus(o)).isEqualTo("PENDING_PAYMENT");
@@ -184,8 +184,8 @@ class AdminOrderControllerTest {
                 .andExpect(jsonPath("$.paymentReference").value("REF1"))
                 .andExpect(jsonPath("$.refundNeeded").value(false))
                 .andExpect(jsonPath("$.allowedNextStatuses[0]").value("PACKING"));
-        move(paid, "CANCELLED", "Het hang that su").andExpect(status().isOk());
-        move(cod, "CANCELLED", "Khach doi y").andExpect(status().isOk());
+        move(paid, "CANCELLED", "Het hang that su, hoan tien").andExpect(status().isOk());
+        move(cod, "CANCELLED", "Khach doi y khong mua nua").andExpect(status().isOk());
 
         mvc.perform(get("/api/v1/admin/shop/orders/{id}", paid.id()))
                 .andExpect(jsonPath("$.refundNeeded").value(true));
@@ -194,12 +194,12 @@ class AdminOrderControllerTest {
     }
 
     @Test
-    @DisplayName("Ghi audit: doi trang thai va huy, meta chi co orderId/from/to, khong co ly do tu do")
+    @DisplayName("Ghi audit: doi trang thai chi co orderId/from/to; huy them reason (da trim)")
     void auditEventWritten() throws Exception {
         Order o = order("COD");
 
         move(o, "PACKING", null).andExpect(status().isOk());
-        move(o, "CANCELLED", "Khach Tran Van B huy").andExpect(status().isOk());
+        move(o, "CANCELLED", "  Khach goi bao huy don  ").andExpect(status().isOk());
 
         ArgumentCaptor<AuditEvent> events = ArgumentCaptor.forClass(AuditEvent.class);
         Mockito.verify(audit, Mockito.times(2)).record(events.capture());
@@ -216,7 +216,8 @@ class AdminOrderControllerTest {
         assertThat(cancelled.metadata()).containsOnly(
                 java.util.Map.entry("orderId", o.id().toString()),
                 java.util.Map.entry("from", "PACKING"),
-                java.util.Map.entry("to", "CANCELLED"));
+                java.util.Map.entry("to", "CANCELLED"),
+                java.util.Map.entry("reason", "Khach goi bao huy don"));
     }
 
     @Test
