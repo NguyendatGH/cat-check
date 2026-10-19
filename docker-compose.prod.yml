@@ -43,6 +43,8 @@ services:
       # Links in emails (reminders, data-export ready); both default to http://localhost:5173.
       CATCHECK_NOTIFICATION_APPURL: https://${DOMAIN}
       CATCHECK_PRIVACY_EXPORT_WEBBASEURL: https://${DOMAIN}
+      # PayOS return/cancel links back to the shop order page; defaults to http://localhost:5173.
+      CATCHECK_SHOP_WEBBASEURL: https://${DOMAIN}
     depends_on:
       postgres:
         condition: service_healthy

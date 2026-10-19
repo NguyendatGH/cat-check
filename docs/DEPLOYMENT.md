@@ -21,6 +21,8 @@ CatCheck runs as one Docker container per part, defined in `docker-compose.prod.
 
 Only the frontend is reachable from outside. The backend and database are on the private Compose network.
 
+Setting up a fresh Ubuntu VPS (Docker, firewall, `/opt/prod`) and GitHub Actions CI/CD: see [VPS_SETUP.md](VPS_SETUP.md).
+
 ## 1. Server requirements
 
 - A Linux **x86_64** server. The backend image bundles OpenCV for `linux-x86_64` only, so ARM servers do not work.
@@ -75,6 +77,28 @@ An empty value is not the same as an unset one.
   build time, so they do not belong in `.env`. Put them in `frontend/.env.production` (git-ignored) before you
   build the frontend image. Leave out any variable you do not use. An empty `VITE_MAP_TILES_URL` breaks the app
   on load.
+
+### PayOS (online payment for shop orders)
+
+Without PayOS, the shop only offers cash on delivery (COD). To turn on online payment:
+
+1. Create a payment channel on [my.payos.vn](https://my.payos.vn) and link your bank account to it.
+2. Copy the channel's **Client ID**, **API Key** and **Checksum Key** into `.env` as `PAYOS_CLIENT_ID`,
+   `PAYOS_API_KEY` and `PAYOS_CHECKSUM_KEY` (uncomment them). Set all three: if any one is missing, PayOS stays off.
+3. Restart the backend: `docker compose up -d backend`.
+4. In the PayOS dashboard, set the channel's webhook URL to `https://<DOMAIN>/api/v1/payments/payos/webhook`.
+   PayOS sends a test request when you save it, and the endpoint answers 200. The endpoint is public and Caddy
+   already proxies `/api/*`, so nothing else needs opening. Requests with a bad signature get 400.
+5. Place a real order for a small amount and check that it moves to `PAID` (My orders, or the admin order list).
+
+Good to know:
+
+- `CATCHECK_SHOP_WEBBASEURL` is already set to `https://${DOMAIN}` in `docker-compose.prod.yml`. PayOS sends the
+  buyer back to `https://<DOMAIN>/orders/<id>`, so do not override it with another host.
+- An online order that is still unpaid after 5 minutes is cancelled automatically. COD orders are never cancelled
+  this way.
+- If PayOS is down or the keys are not set, choosing online payment at checkout fails with 503
+  `PAYMENT_UNAVAILABLE`. COD keeps working.
 
 ## 3. First start
 
