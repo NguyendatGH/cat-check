@@ -85,6 +85,9 @@ export function listShopProducts() {
 export function getShopProduct(productId: string) {
   return request<ShopProductApi>(`/shop/products/${productId}`);
 }
+export function listShopPaymentMethods() {
+  return request<string[]>("/shop/payment-methods");
+}
 export function getShopCart() {
   return request<CartApi>("/cart");
 }

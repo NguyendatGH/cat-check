@@ -41,6 +41,10 @@ public class ShopController {
     @Operation(operationId = "getShopProduct")
     public ProductResponse product(@PathVariable UUID productId) { return ProductResponse.from(service.product(productId)); }
 
+    @GetMapping("/shop/payment-methods")
+    @Operation(operationId = "listShopPaymentMethods", description = "Phương thức thanh toán đang mở: luôn có COD; PAYOS chỉ khi đã cấu hình khoá PayOS.")
+    public List<String> paymentMethods() { return service.paymentMethods(); }
+
     @GetMapping("/cart")
     @Operation(operationId = "getCart")
     public CartResponse cart(@CurrentUser SecurityPrincipal user) { return CartResponse.from(service.cart(user.userId())); }

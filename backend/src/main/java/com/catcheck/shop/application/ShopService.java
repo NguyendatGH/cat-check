@@ -48,6 +48,7 @@ public class ShopService {
     public List<Product> products(String query, int limit) { return repository.products(query, limit); }
     public Product product(UUID id) { return repository.product(id).orElseThrow(() -> new NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND)); }
     public List<CartLine> cart(UUID userId) { return repository.cart(userId); }
+    public List<String> paymentMethods() { return gateway.enabled() ? List.of("COD", "PAYOS") : List.of("COD"); }
     public void setLine(UUID userId, UUID productId, int quantity) { if (quantity < 1 || quantity > 99) throw new IllegalArgumentException("quantity"); repository.setCartLine(userId, productId, quantity); }
     public void removeLine(UUID userId, UUID productId) { repository.removeCartLine(userId, productId); }
     public void clearCart(UUID userId) { repository.clearCart(userId); }

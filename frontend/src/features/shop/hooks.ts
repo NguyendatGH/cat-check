@@ -8,6 +8,7 @@ import {
   getShopProduct,
   isShopId,
   listMyOrders,
+  listShopPaymentMethods,
   listShopProducts,
   removeShopCartLine,
   setShopCartLine,
@@ -20,6 +21,7 @@ export const shopKeys = {
   products: () => ["shop", "products"] as const,
   product: (productId: string) => ["shop", "product", productId] as const,
   cart: () => ["shop", "cart"] as const,
+  paymentMethods: () => ["shop", "payment-methods"] as const,
   orders: () => ["shop", "orders"] as const,
   order: (orderId: string) => ["shop", "order", orderId] as const,
 };
@@ -35,6 +37,10 @@ export function useShopProduct(productId: string | undefined) {
     enabled: isShopId(productId),
     staleTime: 60_000,
   });
+}
+
+export function useShopPaymentMethods() {
+  return useQuery({ queryKey: shopKeys.paymentMethods(), queryFn: listShopPaymentMethods, staleTime: 60_000 });
 }
 
 export function useShopCart() {

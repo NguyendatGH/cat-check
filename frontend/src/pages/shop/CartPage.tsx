@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, MapPin, QrCode, ShoppingCart, X } from "lucide-react";
@@ -15,7 +15,7 @@ import {
   SkeletonLoader,
   toast,
 } from "@/shared/ui";
-import { useClearCart, useShopCart } from "@/features/shop";
+import { useClearCart, useShopCart, useShopPaymentMethods } from "@/features/shop";
 import { usePaymentMethodStore } from "./paymentMethodStore";
 import {
   SHOP_PAYMENT_METHOD_IDS,
@@ -86,6 +86,13 @@ export function CartPage() {
   const { pendingProductId, isUpdating, setQuantity, remove } = useCartLineActions();
   const paymentMethodId = usePaymentMethodStore((s) => s.paymentMethodId);
   const setPaymentMethod = usePaymentMethodStore((s) => s.setPaymentMethod);
+  // COD only until the server confirms PayOS is configured (no keys ⇒ checkout with PAYOS would be a 503).
+  const serverMethods = useShopPaymentMethods().data ?? ["COD"];
+  const paymentMethodIds = SHOP_PAYMENT_METHOD_IDS.filter((id) => serverMethods.includes(id));
+  const paymentMethodOffered = paymentMethodIds.includes(paymentMethodId);
+  useEffect(() => {
+    if (!paymentMethodOffered) setPaymentMethod("COD");
+  }, [paymentMethodOffered, setPaymentMethod]);
 
   const cart = cartQuery.data;
   const lines = cart?.lines ?? [];
@@ -236,7 +243,7 @@ export function CartPage() {
                 <span className="text-[15px] font-bold text-text-primary">{t("cartPage.paymentTitle")}</span>
               </legend>
               <div className="flex flex-col gap-2.5 pt-3">
-                {SHOP_PAYMENT_METHOD_IDS.map((methodId) => {
+                {paymentMethodIds.map((methodId) => {
                   const Icon = PAYMENT_ICONS[methodId];
                   const selected = paymentMethodId === methodId;
                   return (
