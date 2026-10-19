@@ -73,6 +73,10 @@
       "BANK_TRANSFER": {
         "name": "Bank transfer",
         "note": "Payment gateway not connected yet; you complete this payment with the shop."
+      },
+      "PAYOS": {
+        "name": "Bank transfer / QR code (PayOS)",
+        "note": "Scan the VietQR code with your banking or e-wallet app. Unpaid orders are cancelled automatically after 5 minutes."
       }
     }
   },
@@ -190,7 +194,9 @@
       "stock": "Some products no longer have enough stock. Check the quantities in your cart.",
       "cartEmpty": "Your cart is empty, so the order can't be placed.",
       "session": "Your session has expired. Please log in again.",
-      "validation": "Order details are invalid. Check them and try again."
+      "validation": "Order details are invalid. Check them and try again.",
+      "paymentUnavailable": "PayOS is temporarily unavailable. You can choose cash on delivery instead.",
+      "orderLimit": "You already have 3 unpaid orders. Pay for or cancel one before placing a new order."
     }
   },
   "order": {
@@ -220,7 +226,8 @@
     "paymentNote": {
       "COD": "Pay the courier when you receive the package.",
       "MOMO": "Online payment gateway not connected yet; complete this payment with the shop.",
-      "BANK_TRANSFER": "Online payment gateway not connected yet; complete this payment with the shop."
+      "BANK_TRANSFER": "Online payment gateway not connected yet; complete this payment with the shop.",
+      "PAYOS": "Paid online through PayOS with a VietQR code."
     },
     "trackingTitle": "Order processing status",
     "trackingDisclaimer": "Status is updated by the shop in the system, and this page refreshes automatically. There's no live courier or delivery location data yet.",
@@ -238,6 +245,12 @@
     "paymentTitle": "Payment",
     "notFound": "Order not found",
     "notFoundBody": "This order doesn't exist or doesn't belong to your account.",
-    "error": "Couldn't load the order."
+    "error": "Couldn't load the order.",
+    "payAgain": "Continue paying",
+    "cancel": "Cancel order",
+    "expiresIn": "{{time}} left to pay",
+    "cancelReason": {
+      "PAYMENT_EXPIRED": "This order was cancelled automatically because it was not paid within 5 minutes"
+    }
   }
 }

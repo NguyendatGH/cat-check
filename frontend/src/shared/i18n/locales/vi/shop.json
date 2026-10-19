@@ -73,6 +73,10 @@
       "BANK_TRANSFER": {
         "name": "Chuyển khoản ngân hàng",
         "note": "Chưa nối cổng thanh toán; bạn hoàn tất khoản này với cửa hàng."
+      },
+      "PAYOS": {
+        "name": "Chuyển khoản / quét mã QR (PayOS)",
+        "note": "Quét mã VietQR bằng app ngân hàng hoặc ví điện tử. Đơn tự huỷ nếu chưa thanh toán sau 5 phút."
       }
     }
   },
@@ -190,7 +194,9 @@
       "stock": "Một số sản phẩm không còn đủ hàng. Kiểm tra lại số lượng trong giỏ.",
       "cartEmpty": "Giỏ hàng đã trống, không thể tạo đơn.",
       "session": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
-      "validation": "Thông tin đơn hàng chưa hợp lệ. Kiểm tra lại và thử lại."
+      "validation": "Thông tin đơn hàng chưa hợp lệ. Kiểm tra lại và thử lại.",
+      "paymentUnavailable": "PayOS đang gián đoạn. Bạn có thể chọn thanh toán khi nhận hàng.",
+      "orderLimit": "Bạn đang có 3 đơn chưa thanh toán. Hãy thanh toán hoặc huỷ bớt trước khi đặt đơn mới."
     }
   },
   "order": {
@@ -220,7 +226,8 @@
     "paymentNote": {
       "COD": "Trả tiền cho người giao khi nhận kiện hàng.",
       "MOMO": "Chưa nối cổng thanh toán trực tuyến; hoàn tất khoản này với cửa hàng.",
-      "BANK_TRANSFER": "Chưa nối cổng thanh toán trực tuyến; hoàn tất khoản này với cửa hàng."
+      "BANK_TRANSFER": "Chưa nối cổng thanh toán trực tuyến; hoàn tất khoản này với cửa hàng.",
+      "PAYOS": "Thanh toán trực tuyến qua PayOS bằng mã VietQR."
     },
     "trackingTitle": "Trạng thái xử lý đơn hàng",
     "trackingDisclaimer": "Trạng thái do cửa hàng cập nhật trên hệ thống, trang tự làm mới. Chưa có dữ liệu tài xế hay vị trí giao hàng trực tiếp.",
@@ -238,6 +245,12 @@
     "paymentTitle": "Thanh toán",
     "notFound": "Không tìm thấy đơn hàng",
     "notFoundBody": "Đơn hàng không tồn tại hoặc không thuộc tài khoản của bạn.",
-    "error": "Không tải được đơn hàng."
+    "error": "Không tải được đơn hàng.",
+    "payAgain": "Tiếp tục thanh toán",
+    "cancel": "Huỷ đơn",
+    "expiresIn": "Còn {{time}} để thanh toán",
+    "cancelReason": {
+      "PAYMENT_EXPIRED": "Đơn đã tự huỷ vì quá 5 phút chưa thanh toán"
+    }
   }
 }

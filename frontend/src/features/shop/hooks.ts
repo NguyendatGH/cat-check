@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  cancelShopOrder,
   clearShopCart,
   createShopOrder,
   getShopCart,
@@ -38,12 +39,22 @@ export function useShopCart() {
   return useQuery({ queryKey: shopKeys.cart(), queryFn: getShopCart, staleTime: 0 });
 }
 
+// Poll fast only while an unpaid PayOS order can still flip to PAID.
+export function orderRefetchMs(order: OrderApi | undefined): number {
+  const waitingForPayos =
+    order?.status === "PENDING_PAYMENT" &&
+    order.paymentMethod === "PAYOS" &&
+    order.paymentExpiresAt !== null &&
+    Date.parse(order.paymentExpiresAt) > Date.now();
+  return waitingForPayos ? 3000 : 30_000;
+}
+
 export function useShopOrder(orderId: string | undefined) {
   return useQuery({
     queryKey: shopKeys.order(orderId ?? ""),
     queryFn: () => getShopOrder(orderId ?? ""),
     enabled: isShopId(orderId),
-    refetchInterval: 30_000,
+    refetchInterval: (query) => orderRefetchMs(query.state.data),
   });
 }
 
@@ -98,6 +109,19 @@ export function useCreateOrder() {
     },
     onError: () => {
       void queryClient.invalidateQueries({ queryKey: shopKeys.cart() });
+    },
+  });
+}
+
+export function useCancelOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: cancelShopOrder,
+    onSuccess: (order: OrderApi) => {
+      queryClient.setQueryData<OrderApi>(shopKeys.order(order.id), order);
+    },
+    onError: (_error, orderId) => {
+      void queryClient.invalidateQueries({ queryKey: shopKeys.order(orderId) });
     },
   });
 }

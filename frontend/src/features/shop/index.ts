@@ -1,4 +1,5 @@
 export {
+  cancelShopOrder,
   clearShopCart,
   createShopOrder,
   getShopCart,
@@ -15,6 +16,7 @@ export {
 } from "./api";
 export {
   shopKeys,
+  useCancelOrder,
   useClearCart,
   useCreateOrder,
   useRemoveCartLine,

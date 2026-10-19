@@ -38,6 +38,10 @@ export interface OrderApi {
   totalVnd: number;
   lines: CartLineApi[];
   createdAt: string;
+  checkoutUrl: string | null;
+  paymentExpiresAt: string | null;
+  paidAt: string | null;
+  cancelReason: string | null;
 }
 
 function token() {
@@ -103,4 +107,7 @@ export function createShopOrder(payload: {
 }
 export function getShopOrder(orderId: string) {
   return request<OrderApi>(`/orders/${orderId}`);
+}
+export function cancelShopOrder(orderId: string) {
+  return request<OrderApi>(`/orders/${orderId}/cancel`, { method: "POST" });
 }

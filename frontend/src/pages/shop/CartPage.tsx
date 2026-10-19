@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, Landmark, MapPin, ShoppingCart, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, MapPin, QrCode, ShoppingCart, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { MoMoGlyph } from "@/shared/assets/icons/MoMoGlyph";
 import {
   Dialog,
   DialogClose,
@@ -30,10 +29,9 @@ import { ProductGlyph, QuantityStepper, ShippingFee } from "./shopUi";
 import { useCartLineActions } from "./useCartActions";
 
 
-const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon | null> = {
+const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon> = {
   COD: Banknote,
-  MOMO: null,
-  BANK_TRANSFER: Landmark,
+  PAYOS: QrCode,
 };
 
 function ClearCartButton() {
@@ -262,7 +260,7 @@ export function CartPage() {
                         className="sr-only"
                       />
                       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark">
-                        {Icon ? <Icon size={18} aria-hidden="true" /> : <MoMoGlyph size={28} />}
+                        <Icon size={18} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[14px] font-bold leading-snug text-text-primary">
