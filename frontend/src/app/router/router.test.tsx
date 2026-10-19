@@ -15,6 +15,7 @@ const GATED_ROUTES: [path: string, flag: "community" | "map" | "shop"][] = [
   ["/shop/products/:productId", "shop"],
   ["/cart", "shop"],
   ["/checkout", "shop"],
+  ["/orders", "shop"],
   ["/orders/:orderId", "shop"],
 ];
 

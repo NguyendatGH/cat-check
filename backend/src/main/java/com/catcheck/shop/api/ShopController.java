@@ -41,6 +41,10 @@ public class ShopController {
     @Operation(operationId = "getShopProduct")
     public ProductResponse product(@PathVariable UUID productId) { return ProductResponse.from(service.product(productId)); }
 
+    @GetMapping("/shop/payment-methods")
+    @Operation(operationId = "listShopPaymentMethods", description = "Phương thức thanh toán đang mở: luôn có COD; PAYOS chỉ khi đã cấu hình khoá PayOS.")
+    public List<String> paymentMethods() { return service.paymentMethods(); }
+
     @GetMapping("/cart")
     @Operation(operationId = "getCart")
     public CartResponse cart(@CurrentUser SecurityPrincipal user) { return CartResponse.from(service.cart(user.userId())); }
@@ -68,6 +72,14 @@ public class ShopController {
         OrderResponse response = OrderResponse.from(service.checkout(user.userId(), request.paymentMethod().toUpperCase(), request.receiverName(), request.receiverPhone(), request.shippingAddress()));
         return ResponseEntity.created(URI.create("/api/v1/orders/" + response.id())).body(response);
     }
+
+    @GetMapping("/orders")
+    @Operation(operationId = "listShopOrders")
+    public List<OrderResponse> orders(@CurrentUser SecurityPrincipal user) { return service.myOrders(user.userId()).stream().map(OrderResponse::from).toList(); }
+
+    @PostMapping("/orders/{orderId}/cancel")
+    @Operation(operationId = "cancelShopOrder")
+    public OrderResponse cancel(@CurrentUser SecurityPrincipal user, @PathVariable UUID orderId) { return OrderResponse.from(service.cancelByBuyer(user.userId(), orderId)); }
 
     @GetMapping("/orders/{orderId}")
     @Operation(operationId = "getShopOrder")

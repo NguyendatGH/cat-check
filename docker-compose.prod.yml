@@ -3,7 +3,7 @@
 #   cp .env.prod.example .env   # fill in real values (sets COMPOSE_FILE to this file)
 #   docker compose up -d --build
 #
-# Only `frontend` (Caddy) publishes ports; backend and postgres stay on the internal network.
+# Only `frontend` (Caddy) publishes a port, on 127.0.0.1 for the host's nginx; backend and postgres stay internal.
 name: catcheck-prod
 
 services:
@@ -27,7 +27,11 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
-    volumes: ["media_storage:/var/lib/catcheck/storage"]
+    volumes:
+      - media_storage:/var/lib/catcheck/storage
+      # FCM service account next to this file; must be readable by the container user (uid 1001).
+      # If the file is missing, Docker creates an empty directory here and push simply stays off.
+      - ./firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
     # Secrets and optional integrations (SMTP, Cloudinary, AI, Firebase) come from .env.
     env_file: .env
     environment:
@@ -43,22 +47,25 @@ services:
       # Links in emails (reminders, data-export ready); both default to http://localhost:5173.
       CATCHECK_NOTIFICATION_APPURL: https://${DOMAIN}
       CATCHECK_PRIVACY_EXPORT_WEBBASEURL: https://${DOMAIN}
+      # Container path of the mounted file above (a host path from .env would not exist in the container).
+      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account.json
+      # The model baked into the image; a local path from .env would silently turn vector retrieval off.
+      CATCHECK_AI_EMBEDDING_MODEL_DIR: /app/models/multilingual-e5-small
+      # PayOS return/cancel links back to the shop order page; defaults to http://localhost:5173.
+      CATCHECK_SHOP_WEBBASEURL: https://${DOMAIN}
     depends_on:
       postgres:
         condition: service_healthy
 
   frontend:
-    # Caddy: serves the built SPA, terminates TLS for DOMAIN, proxies /api, /oauth2, /login to backend.
+    # Caddy: serves the built SPA and proxies /api, /oauth2, /login to backend. HTTPS is terminated by the
+    # host's nginx, which proxies to this loopback port (config in docs/DEPLOYMENT.md, "nginx in front").
     build:
       context: .
       dockerfile: frontend/Dockerfile
     restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
     volumes:
       - caddy_data:/data
       - caddy_config:/config

@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Skeleton as AntSkeleton } from "antd";
-import { ArrowDownUp, ArrowRight, Boxes, Loader2, ShoppingCart, Tag } from "lucide-react";
+import { ArrowDownUp, ArrowRight, Boxes, ClipboardList, Loader2, ShoppingCart, Tag } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useListReveal } from "@/shared/lib/motion/usePageReveal";
 import { ErrorState } from "@/shared/ui";
@@ -236,6 +236,13 @@ export function ShopPage() {
                 {t("hero.ctaPrimary")}
                 <ArrowRight size={14} aria-hidden="true" />
               </a>
+              <Link
+                to="/orders"
+                className="flex items-center justify-center gap-2 rounded-lg bg-chip-bg px-4 py-2.5 text-[12px] font-bold text-primary-dark hover:bg-info"
+              >
+                <ClipboardList size={14} aria-hidden="true" />
+                {t("myOrders.link")}
+              </Link>
             </div>
           </div>
 

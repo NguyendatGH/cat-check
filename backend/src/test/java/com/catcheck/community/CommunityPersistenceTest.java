@@ -10,12 +10,15 @@ import com.catcheck.community.infrastructure.persistence.JdbcCommunityRepository
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shop.api.ShopErrorCode;
+import com.catcheck.shop.application.PayOsProperties;
 import com.catcheck.shop.application.ShopService;
+import com.catcheck.shop.domain.port.PaymentGateway;
 import com.catcheck.shop.infrastructure.persistence.JdbcShopRepository;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -23,6 +26,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,7 +67,8 @@ class CommunityPersistenceTest {
             }
         };
         community = new CommunityService(new JdbcCommunityRepository(jdbc), id -> AccountStatus.ACTIVE, alwaysAllow);
-        shop = new ShopService(new JdbcShopRepository(jdbc));
+        shop = new ShopService(new JdbcShopRepository(jdbc), Mockito.mock(PaymentGateway.class),
+                new PayOsProperties(null, null, null, null, null, null), Clock.systemUTC(), 3, "http://localhost:5173");
         user = insertUser("u1@example.invalid");
         other = insertUser("u2@example.invalid");
     }

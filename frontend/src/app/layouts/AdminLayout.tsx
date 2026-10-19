@@ -9,6 +9,7 @@ import {
   BellRing,
   BookOpenText,
   CalendarClock,
+  ClipboardList,
   FileCheck2,
   Flag,
   History,
@@ -118,6 +119,13 @@ const ADMIN_NAV: readonly AdminNavGroup<AdminNavItem>[] = [
         to: ROUTE_PATTERNS.adminProducts,
         labelKey: "nav.products",
         icon: ShoppingBag,
+        roles: ROLES.products,
+      },
+      {
+        id: "orders",
+        to: ROUTE_PATTERNS.adminOrders,
+        labelKey: "nav.orders",
+        icon: ClipboardList,
         roles: ROLES.products,
       },
       {

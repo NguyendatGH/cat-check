@@ -1,12 +1,22 @@
-import type { CartApi, CartLineApi } from "@/features/shop";
+import type { CartApi, CartLineApi, OrderApi } from "@/features/shop";
 import { formatNumber } from "@/shared/lib/format/formatNumber";
 
-export const SHOP_PAYMENT_METHOD_IDS = ["COD", "MOMO", "BANK_TRANSFER"] as const;
+export const SHOP_PAYMENT_METHOD_IDS = ["COD", "PAYOS"] as const;
 
 export type ShopPaymentMethodId = (typeof SHOP_PAYMENT_METHOD_IDS)[number];
 
-export function isShopPaymentMethodId(value: string): value is ShopPaymentMethodId {
-  return (SHOP_PAYMENT_METHOD_IDS as readonly string[]).includes(value);
+// Includes retired methods so old orders still render.
+export const SHOP_ORDER_PAYMENT_METHODS = ["COD", "PAYOS", "MOMO", "BANK_TRANSFER"] as const;
+
+export type ShopOrderPaymentMethod = (typeof SHOP_ORDER_PAYMENT_METHODS)[number];
+
+export function isShopOrderPaymentMethod(value: string): value is ShopOrderPaymentMethod {
+  return (SHOP_ORDER_PAYMENT_METHODS as readonly string[]).includes(value);
+}
+
+export function nextStepAfterOrder(order: OrderApi): { kind: "redirect"; url: string } | { kind: "order"; path: string } {
+  if (order.paymentMethod === "PAYOS" && order.checkoutUrl) return { kind: "redirect", url: order.checkoutUrl };
+  return { kind: "order", path: `/orders/${order.id}` };
 }
 
 export const SHOP_ORDER_STAGES = ["PENDING_PAYMENT", "PAID", "PACKING", "SHIPPING", "DELIVERED"] as const;

@@ -1,10 +1,9 @@
 import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { AlertTriangle, ArrowLeft, Banknote, Info, Landmark, Loader2, Lock, MapPin, ShoppingCart } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Banknote, Loader2, Lock, MapPin, QrCode, ShoppingCart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { isApiError } from "@/shared/api";
-import { MoMoGlyph } from "@/shared/assets/icons/MoMoGlyph";
 import { cn } from "@/shared/lib/cn";
 import { EmptyState, ErrorState, Input, SkeletonLoader } from "@/shared/ui";
 import { useSessionStore } from "@/entities/user";
@@ -17,14 +16,13 @@ import {
   type CheckoutFormValues,
 } from "./checkoutForm";
 import { usePaymentMethodStore } from "./paymentMethodStore";
-import { exceedsStock, formatVnd, type ShopPaymentMethodId } from "./shopFormat";
+import { exceedsStock, formatVnd, nextStepAfterOrder, type ShopPaymentMethodId } from "./shopFormat";
 import { ProductGlyph, ShippingFee } from "./shopUi";
 
 
-const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon | null> = {
+const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon> = {
   COD: Banknote,
-  MOMO: null,
-  BANK_TRANSFER: Landmark,
+  PAYOS: QrCode,
 };
 
 const FIELD_ORDER: CheckoutField[] = ["receiverName", "receiverPhone", "shippingAddress"];
@@ -33,6 +31,8 @@ function serverErrorKey(error: unknown): string {
   if (isApiError(error)) {
     if (error.code === "STOCK_UNAVAILABLE") return "checkout.errors.stock";
     if (error.code === "CART_EMPTY") return "checkout.errors.cartEmpty";
+    if (error.code === "PAYMENT_UNAVAILABLE") return "checkout.errors.paymentUnavailable";
+    if (error.code === "ORDER_LIMIT_REACHED") return "checkout.errors.orderLimit";
     if (error.status === 401) return "checkout.errors.session";
     if (error.status === 400) return "checkout.errors.validation";
   }
@@ -86,7 +86,9 @@ export function CheckoutPage() {
       },
       {
         onSuccess: (order) => {
-          void navigate(`/orders/${order.id}`, { replace: true, state: { justPlaced: true } });
+          const next = nextStepAfterOrder(order);
+          if (next.kind === "redirect") window.location.assign(next.url);
+          else void navigate(next.path, { replace: true, state: { justPlaced: true } });
         },
       },
     );
@@ -167,11 +169,6 @@ export function CheckoutPage() {
       className="flex flex-col gap-4 lg:gap-5"
     >
       {header}
-
-      <p className="flex items-start gap-2 rounded-xl bg-info px-3.5 py-2.5 text-[12px] leading-relaxed text-info-text">
-        <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-        {t("checkout.mockNotice")}
-      </p>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
@@ -260,7 +257,7 @@ export function CheckoutPage() {
             </div>
             <div className="flex items-center gap-3 pt-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark">
-                {MethodIcon ? <MethodIcon size={18} aria-hidden="true" /> : <MoMoGlyph size={28} />}
+                <MethodIcon size={18} aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <span className="block text-[14px] font-bold text-text-primary">

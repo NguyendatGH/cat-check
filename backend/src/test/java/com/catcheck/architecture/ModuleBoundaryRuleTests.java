@@ -69,6 +69,12 @@ class ModuleBoundaryRuleTests {
                     + "(chưa có instance nào ở M0)")
             .allowEmptyShould(true);
 
+    @ArchTest
+    static final ArchRule r11_payosSdkStaysInShopPaymentInfrastructure = noClasses()
+            .that().resideOutsideOfPackage("com.catcheck.shop.infrastructure.payment..")
+            .should().dependOnClassesThat().resideInAnyPackage("vn.payos..")
+            .because("R11: chỉ com.catcheck.shop.infrastructure.payment.. được phụ thuộc SDK vn.payos..");
+
     private static ArchCondition<JavaClass> notDependOnOwnModuleInfrastructure() {
         return new ArchCondition<>("not depend on ..infrastructure.. of its own module") {
             @Override

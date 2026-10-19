@@ -4,12 +4,15 @@ import com.catcheck.audit.api.AuditLogService;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.security.AdminApiErrorCode;
+import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.shop.api.ShopErrorCode;
 import com.catcheck.shop.api.dto.AdminProductRequest;
 import com.catcheck.shop.application.AdminShopService;
 import com.catcheck.shop.domain.AdminProduct;
 import com.catcheck.shop.domain.Order;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +21,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -32,11 +38,11 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Testcontainers
 class JdbcShopRepositoryCheckoutRaceIntegrationTest {
 
-    private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
-    private static final String DB_USER = "catcheck";
-    private static final String DB_PASSWORD = "catcheck_local_only";
+    @Container
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     private JdbcTemplate jdbc;
     private JdbcShopRepository repository;
@@ -45,9 +51,17 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
     private UUID userId;
     private UUID productId;
 
+    @BeforeAll
+    static void migrate() {
+        Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration", "classpath:db/seed")
+                .load().migrate();
+    }
+
     @BeforeEach
     void setUp() {
-        DataSource dataSource = new DriverManagerDataSource(JDBC_URL, DB_USER, DB_PASSWORD);
+        DataSource dataSource = new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         jdbc = new JdbcTemplate(dataSource);
         repository = new JdbcShopRepository(jdbc);
         txTemplate = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
@@ -87,7 +101,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
                 barrier.await(10, TimeUnit.SECONDS);
                 try {
                     Order order = txTemplate.execute(status ->
-                            repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test"));
+                            repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99));
                     return CheckoutOutcome.success(order);
                 } catch (ConflictException ex) {
                     return CheckoutOutcome.failure(ex);
@@ -135,7 +149,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
         jdbc.update("UPDATE shop_product SET status = 'ARCHIVED' WHERE id = ?", productId);
 
         assertThatThrownBy(() -> txTemplate.execute(status ->
-                repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test")))
+                repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99)))
                 .isInstanceOf(ConflictException.class)
                 .extracting(ex -> ((ConflictException) ex).errorCode())
                 .isEqualTo(ShopErrorCode.STOCK_UNAVAILABLE);
@@ -156,7 +170,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
                     jdbc.update("INSERT INTO shop_cart_line (user_id, product_id, quantity) VALUES (?, ?, 1)",
                             userId, productId);
                 }
-                placed.add(repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test").orderCode());
+                placed.add(repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99).orderCode());
             }
             return placed;
         });
@@ -172,7 +186,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
         AdminProductRequest form = new AdminProductRequest(null, "Race test product", "test", null,
                 100000L, null, 5, "PUBLISHED");
 
-        txTemplate.execute(status -> repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test"));
+        txTemplate.execute(status -> repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99));
 
         assertThatThrownBy(() -> txTemplate.execute(status ->
                 admin.update(productId, form, etagWhenFormOpened, UUID.randomUUID(), "ADMIN_CATALOG")))

@@ -3,7 +3,10 @@
 CatCheck runs as one Docker container per part, defined in `docker-compose.prod.yml`:
 
 ```
- Internet ──80/443──▶ frontend (Caddy)        serves the built React app, gets the HTTPS certificate,
+ Internet ──443──▶ nginx on the host (TLS, your certificate)
+                         │ 127.0.0.1:8080
+                         ▼
+                      frontend (Caddy)        serves the built React app,
                          │                     proxies /api, /oauth2, /login to the backend
                          ▼
                       backend (Spring Boot)   :8080, internal only; runs Flyway migrations on start
@@ -16,22 +19,66 @@ CatCheck runs as one Docker container per part, defined in `docker-compose.prod.
 |------------|---------------------------------------|-----------------------|----------------------------------------------|
 | `postgres` | `pgvector/pgvector:0.8.7-pg18-trixie` | none                  | `pg_data` (database)                         |
 | `backend`  | built from `backend/Dockerfile`       | none                  | `media_storage` (images, PDF reports, DSAR exports) |
-| `frontend` | built from `frontend/Dockerfile`      | 80, 443 (tcp + udp)   | `caddy_data` (TLS certificates), `caddy_config` |
+| `frontend` | built from `frontend/Dockerfile`      | 127.0.0.1:8080 (for nginx) | `caddy_data`, `caddy_config` |
 | `adminer`  | `adminer` (profile `tools`, optional) | 127.0.0.1:8081 only   | none                                         |
 
-Only the frontend is reachable from outside. The backend and database are on the private Compose network.
+Only nginx is reachable from outside; it forwards to the frontend container on the loopback port. The backend and
+database are on the private Compose network.
+
+Setting up a fresh Ubuntu VPS (Docker, firewall, `/opt/prod`) and GitHub Actions CI/CD: see [VPS_SETUP.md](VPS_SETUP.md).
 
 ## 1. Server requirements
 
 - A Linux **x86_64** server. The backend image bundles OpenCV for `linux-x86_64` only, so ARM servers do not work.
 - Docker Engine with the Compose v2 plugin (`docker compose version`).
-- A domain whose DNS A/AAAA record points at the server, and ports 80 and 443 open in the firewall.
-  Caddy needs both to get the certificate.
+- A domain whose DNS A/AAAA record points at the server, served over HTTPS by nginx on the host with your
+  certificate (ports 80 and 443 open in the firewall). See "nginx in front (TLS)" below.
 - An SMTP account for outgoing mail (OTP codes, reminders, DSAR links).
 - A Google OAuth client with the authorized redirect URI `https://<DOMAIN>/login/oauth2/code/google`.
 
 HTTPS is required, not optional. The session cookie is named `__Host-CATCHECK_SESSION`, and browsers only
 accept that cookie over HTTPS, so login fails on plain HTTP or a bare IP address.
+
+### nginx in front (TLS)
+
+The server's nginx terminates HTTPS with your certificate and proxies everything to Caddy on
+`127.0.0.1:${HTTP_PORT:-8080}` (Caddy no longer gets certificates itself). Replace the site's server block
+(e.g. `/etc/nginx/sites-available/catcheck.click`) with this, adjusting the certificate paths
+(written for nginx 1.24; on ≥ 1.25.1 use `listen 443 ssl;` + `http2 on;`):
+
+```nginx
+server {
+    listen 80;
+    server_name catcheck.click;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name catcheck.click;
+
+    ssl_certificate     /path/to/fullchain.pem;     # your existing certificate
+    ssl_certificate_key /path/to/privkey.pem;
+
+    client_max_body_size 10m;   # scan photos up to 9 MB; nginx's default 1 MB gives 413
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`X-Forwarded-Proto` is required: Caddy trusts it from private addresses and passes it on, so the backend
+knows the request was HTTPS. Without it, login fails (the `__Host-` cookie needs Secure) and Google login
+redirects to `http://`. Keep the certificate renewed on the nginx side.
 
 ## 2. Configure
 
@@ -48,7 +95,7 @@ Fill in every empty value in `.env`. The file explains each one and shows how to
 | `COMPOSE_FILE` | Already set to `docker-compose.prod.yml`, so plain `docker compose …` uses the prod stack. |
 | `DOMAIN` | Public host name, for example `catcheck.example.com`. |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Database credentials. The password is used when the volume is first created. |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | SMTP with STARTTLS. Mail is sent from `MAIL_USERNAME`. |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | SMTP with STARTTLS. Mail is sent from `MAIL_USERNAME`. If unset, the local names `SMTP_EMAIL` / `SMTP_APP_PASSWORD` are used, with `smtp.gmail.com:587`. |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google login. |
 | `APP_PII_ENCRYPTION_KEYS` | Encryption key for personal data, format `v1:<base64 32 bytes>`. |
 | `ACTIVATION_PEPPER`, `RECOVERY_CODE_PEPPER`, `OTP_PEPPER` | Three different secrets, 32 bytes or more each. |
@@ -63,18 +110,45 @@ An empty value is not the same as an unset one.
 - **Cloudinary:** set the three `CLOUDINARY_*` values to store images there instead of on the `media_storage` volume.
 - **AI assistant LLM:** set `CATCHECK_AI_ENABLED=true` and `CATCHECK_AI_API_KEY`. When it is off, the assistant
   answers by quoting the care-tip articles.
-- **Push notifications (backend):** put the service-account JSON on the server, set `FIREBASE_SERVICE_ACCOUNT_PATH`
-  and `FIREBASE_PROJECT_ID`, and mount the file into the backend by adding this under `backend:` in
-  `docker-compose.prod.yml`:
-  ```yaml
-      volumes:
-        - media_storage:/var/lib/catcheck/storage
-        - ./firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
-  ```
+- **Push notifications (backend):** put the service-account JSON next to `docker-compose.prod.yml` as
+  `firebase-service-account.json` and make it readable by the container user only:
+  `sudo chown 1001:1001 firebase-service-account.json && sudo chmod 600 firebase-service-account.json`.
+  Compose already mounts it at `/run/secrets/firebase-service-account.json` and sets `FIREBASE_SERVICE_ACCOUNT_PATH`;
+  the project id comes from the JSON. Check the backend log for `Push FCM: BẬT`.
 - **Frontend build-time values** (`VITE_FIREBASE_*`, `VITE_MAP_TILES_URL`): Vite bakes these into the JS bundle at
   build time, so they do not belong in `.env`. Put them in `frontend/.env.production` (git-ignored) before you
   build the frontend image. Leave out any variable you do not use. An empty `VITE_MAP_TILES_URL` breaks the app
   on load.
+
+### PayOS (online payment for shop orders)
+
+Without the PayOS keys, the shop hides the PayOS option and buyers see only cash on delivery (COD). To turn on
+online payment:
+
+1. Create a payment channel on [my.payos.vn](https://my.payos.vn) and link your bank account to it. Use a separate
+   channel for each environment (for example a staging server and production): each database numbers PayOS orders
+   from 100000, and PayOS rejects an order code that the channel has already used.
+2. Copy the channel's **Client ID**, **API Key** and **Checksum Key** into `.env` as `PAYOS_CLIENT_ID`,
+   `PAYOS_API_KEY` and `PAYOS_CHECKSUM_KEY` (uncomment them). Set all three: if any one is missing, PayOS stays off.
+3. Restart the backend: `docker compose up -d backend`.
+4. In the PayOS dashboard, set the channel's webhook URL to `https://<DOMAIN>/api/v1/payments/payos/webhook`.
+   PayOS sends a test request when you save it, and the endpoint answers 200. The endpoint is public and Caddy
+   already proxies `/api/*`, so nothing else needs opening. Requests with a bad signature get 400.
+5. Place a real order for a small amount and check that it moves to `PAID` (My orders, or the admin order list).
+6. Place a second order, and on the PayOS payment page press **Huỷ** (Cancel). You land back on the order page and
+   the order becomes `CANCELLED`.
+
+Good to know:
+
+- `CATCHECK_SHOP_WEBBASEURL` is fixed to `https://${DOMAIN}` in `docker-compose.prod.yml`. A value for it in `.env`
+  is ignored. PayOS sends the buyer back to `https://<DOMAIN>/orders/<id>`.
+- An online order that is still unpaid after 5 minutes is cancelled automatically. COD orders are never cancelled
+  this way.
+- If the keys are set but PayOS is down, placing a PayOS order fails with 503 `PAYMENT_UNAVAILABLE`.
+  COD keeps working.
+- PayOS accepts partial transfers. An order that is only partly paid when its 5 minutes run out is cancelled and
+  flagged "Cần hoàn tiền" (refund needed) in the admin order list, with its `CC…` code and transaction reference.
+  Refunds are made by hand.
 
 ## 3. First start
 
@@ -96,7 +170,7 @@ BACKEND_PROFILE=staging docker compose up -d --wait backend   # 2. API, first st
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U catcheck -d catcheck \
   < backend/tools/publish-standard-color-chart.sql      # 3. publish the standard pH chart (safe to re-run)
 
-docker compose up -d --wait                             # 4. backend restarts in prod, frontend (web + HTTPS) starts
+docker compose up -d --wait                             # 4. backend restarts in prod, frontend (web) starts
 docker compose exec backend printenv SPRING_PROFILES_ACTIVE   # prod
 docker compose ps                                       # all three should be "running (healthy)"
 ```
@@ -117,9 +191,9 @@ Publishing requires:
 Check that it works:
 
 ```bash
-curl -fsS https://<DOMAIN>/api/v1/reference/ph-bands | head -c 200; echo   # API through Caddy
+curl -fsS https://<DOMAIN>/api/v1/reference/ph-bands | head -c 200; echo   # API through nginx + Caddy
 docker compose exec backend curl -fsS localhost:8080/actuator/health/readiness; echo
-docker compose logs frontend | grep -i certificate                     # TLS certificate obtained
+curl -fsSI http://127.0.0.1:8080/ | head -1                            # Caddy answers nginx's upstream
 ```
 
 Then open `https://<DOMAIN>` in a browser.
@@ -212,12 +286,13 @@ For day-to-day development, run the backend and frontend natively. See `README.m
 | Symptom | Likely cause |
 |---|---|
 | `docker compose up` fails with `set DB_PASSWORD in .env` (or `DOMAIN`) | The value is missing or empty in `.env`. |
-| `frontend` logs show ACME/certificate errors | DNS does not point at the server yet, or port 80/443 is blocked. |
+| nginx returns 502 Bad Gateway | The frontend container is not running, or nginx's `proxy_pass` port differs from `HTTP_PORT`. |
+| Scan upload fails with 413 | nginx `client_max_body_size` is missing or below 10m. |
 | Backend exits on start with `IllegalStateException` about a pepper or key | One of the four required secrets is missing or too short. |
 | Backend exits on start with `bang mau dang ACTIVE la PLACEHOLDER` | The standard chart script has not run yet. See section 3. |
 | Backend log says `Khong nap duoc OpenCV native` | The image was built from an old `backend/Dockerfile` without `libgtk2.0-0t64`. Rebuild it. Scans fail until then. |
 | `dependency failed to start: container … backend is unhealthy` | Read `docker compose logs backend`. Usually a config value or the DB password is wrong. |
 | DB auth fails after you changed `DB_PASSWORD` | Postgres only reads the password when the volume is first created. Change it with `ALTER ROLE` in psql. |
-| Login works but you are signed out right away | The site is served over plain HTTP. See the HTTPS note in section 1. |
+| Login works but you are signed out right away, or Google redirects to `http://` | The site is served over plain HTTP, or nginx does not send `X-Forwarded-Proto` (see "nginx in front"). |
 | Google login returns `redirect_uri_mismatch` | Add `https://<DOMAIN>/login/oauth2/code/google` in Google Cloud Console. |
 | The server disk fills up | Container logs are not rotated by default. Set `log-opts` (`max-size`, `max-file`) in `/etc/docker/daemon.json`. |

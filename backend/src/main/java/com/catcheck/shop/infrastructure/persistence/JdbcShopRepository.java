@@ -4,6 +4,8 @@ import com.catcheck.shop.api.ShopErrorCode;
 import com.catcheck.shop.domain.AdminProduct;
 import com.catcheck.shop.domain.AdminProductDraft;
 import com.catcheck.shop.domain.CartLine;
+import com.catcheck.shop.domain.ExpiredPayment;
+import com.catcheck.shop.domain.MarkPaidResult;
 import com.catcheck.shop.domain.Order;
 import com.catcheck.shop.domain.Product;
 import com.catcheck.shop.domain.port.ShopRepository;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,30 +76,34 @@ public class JdbcShopRepository implements ShopRepository {
 
     @Override
     @Transactional
-    public Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address) {
+    public Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address,
+                             Instant paymentExpiresAt, int maxOpenOrders) {
         List<UUID> notPublished = new ArrayList<>();
         List<CartLine> lines = jdbc.query("""
                 SELECT p.id, p.sku, p.name, p.description, p.image_url, p.price_vnd, p.compare_at_price_vnd,
                        p.stock_quantity, p.status, c.quantity
                   FROM shop_cart_line c JOIN shop_product p ON p.id = c.product_id
-                 WHERE c.user_id = ? FOR UPDATE
+                 WHERE c.user_id = ? ORDER BY p.id FOR UPDATE
                 """, (rs, row) -> {
                     CartLine line = new CartLine(product(rs), rs.getInt("quantity"));
                     if (!"PUBLISHED".equals(rs.getString("status"))) notPublished.add(line.product().id());
                     return line;
                 }, userId);
         if (lines.isEmpty()) throw new ConflictException(ShopErrorCode.CART_EMPTY);
+        // The cart lock above serializes this user's checkouts, so the count cannot be raced past the cap.
+        Integer open = jdbc.queryForObject("SELECT count(*) FROM shop_order WHERE user_id = ? AND status = 'PENDING_PAYMENT'", Integer.class, userId);
+        if (open >= maxOpenOrders) throw new ConflictException(ShopErrorCode.ORDER_LIMIT_REACHED, maxOpenOrders);
         if (!notPublished.isEmpty()) throw new ConflictException(ShopErrorCode.STOCK_UNAVAILABLE);
         for (CartLine line : lines) {
             if (line.quantity() > line.product().stockQuantity()) throw new ConflictException(ShopErrorCode.STOCK_UNAVAILABLE);
         }
         long subtotal = lines.stream().mapToLong(CartLine::totalVnd).sum();
         long shipping = subtotal >= 500000 ? 0 : 30000;
+        Long payosCode = "PAYOS".equals(paymentMethod) ? jdbc.queryForObject("SELECT nextval('shop_order_payos_code_seq')", Long.class) : null;
         UUID id = jdbc.queryForObject("""
-                INSERT INTO shop_order (order_code, user_id, payment_method, receiver_name, receiver_phone, shipping_address, subtotal_vnd, shipping_fee_vnd, total_vnd)
-                VALUES ('CC-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)), ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
-                """, UUID.class, userId, paymentMethod, receiverName, receiverPhone, address, subtotal, shipping, subtotal + shipping);
-        String code = jdbc.queryForObject("SELECT order_code FROM shop_order WHERE id = ?", String.class, id);
+                INSERT INTO shop_order (order_code, user_id, payment_method, receiver_name, receiver_phone, shipping_address, subtotal_vnd, shipping_fee_vnd, total_vnd, payos_order_code, payment_expires_at)
+                VALUES ('CC-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+                """, UUID.class, userId, paymentMethod, receiverName, receiverPhone, address, subtotal, shipping, subtotal + shipping, payosCode, paymentExpiresAt);
         for (CartLine line : lines) {
             jdbc.update("INSERT INTO shop_order_line (order_id, product_id, product_name, unit_price_vnd, quantity) VALUES (?, ?, ?, ?, ?)", id, line.product().id(), line.product().name(), line.product().priceVnd(), line.quantity());
             jdbc.update("UPDATE shop_product SET stock_quantity = stock_quantity - ? WHERE id = ?", line.quantity(), line.product().id());
@@ -105,16 +112,97 @@ public class JdbcShopRepository implements ShopRepository {
         return order(userId, id).orElseThrow();
     }
 
+    private static final String ORDER_COLS = "id, order_code, status, payment_method, receiver_name, receiver_phone, shipping_address, subtotal_vnd, discount_vnd, shipping_fee_vnd, total_vnd, created_at, payos_order_code, payos_checkout_url, payment_expires_at, paid_at, payment_reference, cancel_reason, refund_needed";
+
     @Override
     public Optional<Order> order(UUID userId, UUID orderId) {
-        List<Order> orders = jdbc.query("SELECT id, order_code, status, payment_method, receiver_name, receiver_phone, shipping_address, subtotal_vnd, discount_vnd, shipping_fee_vnd, total_vnd, created_at FROM shop_order WHERE id = ? AND user_id = ?", (rs, row) -> mapOrder(rs, userId), orderId, userId);
-        return orders.stream().findFirst();
+        return jdbc.query("SELECT " + ORDER_COLS + " FROM shop_order WHERE id = ? AND user_id = ?", (rs, row) -> mapOrder(rs), orderId, userId).stream().findFirst();
     }
 
-    private Order mapOrder(ResultSet rs, UUID userId) throws SQLException {
+    @Override
+    public List<Order> orders(UUID userId, int limit) {
+        return jdbc.query("SELECT " + ORDER_COLS + " FROM shop_order WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?", (rs, row) -> mapOrder(rs), userId, Math.clamp(limit, 1, 100));
+    }
+
+    @Override
+    public List<Order> adminOrders(String statusOrNull, int limit, int offset) {
+        return jdbc.query("SELECT " + ORDER_COLS + " FROM shop_order WHERE (?::text IS NULL OR status = ?) ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
+                (rs, row) -> mapOrder(rs), statusOrNull, statusOrNull, Math.clamp(limit, 1, 100), Math.max(offset, 0));
+    }
+
+    @Override
+    public Optional<Order> adminOrder(UUID orderId) {
+        return jdbc.query("SELECT " + ORDER_COLS + " FROM shop_order WHERE id = ?", (rs, row) -> mapOrder(rs), orderId).stream().findFirst();
+    }
+
+    @Override
+    public void attachPaymentLink(UUID orderId, String paymentLinkId, String checkoutUrl) {
+        jdbc.update("UPDATE shop_order SET payos_payment_link_id = ?, payos_checkout_url = ? WHERE id = ?", paymentLinkId, checkoutUrl, orderId);
+    }
+
+    @Override
+    public boolean transition(UUID orderId, String fromStatus, String toStatus) {
+        return jdbc.update("UPDATE shop_order SET status = ? WHERE id = ? AND status = ?", toStatus, orderId, fromStatus) == 1;
+    }
+
+    @Override
+    @Transactional
+    public boolean cancelAndRestock(UUID orderId, String expectedStatus, String cancelReason, Instant at, boolean moneyReceived) {
+        String status = jdbc.query("SELECT status FROM shop_order WHERE id = ? FOR UPDATE", (rs, row) -> rs.getString("status"), orderId).stream().findFirst().orElse(null);
+        if (!expectedStatus.equals(status)) return false;
+        jdbc.update("UPDATE shop_order SET status = 'CANCELLED', cancelled_at = ?, cancel_reason = ?, refund_needed = (paid_at IS NOT NULL OR ?) WHERE id = ?", at, cancelReason, moneyReceived, orderId);
+        // Lock products in id order, like createOrder, so a cancel and a checkout over the same products cannot deadlock.
+        jdbc.query("SELECT id FROM shop_product WHERE id IN (SELECT product_id FROM shop_order_line WHERE order_id = ?) ORDER BY id FOR UPDATE", (rs, row) -> 0, orderId);
+        jdbc.update("""
+                UPDATE shop_product p SET stock_quantity = p.stock_quantity + l.quantity
+                  FROM (SELECT product_id, sum(quantity) AS quantity FROM shop_order_line WHERE order_id = ? GROUP BY product_id) l
+                 WHERE p.id = l.product_id
+                """, orderId);
+        return true;
+    }
+
+    private record PayRow(UUID id, String status, long totalVnd, boolean paid) { }
+
+    @Override
+    @Transactional
+    public MarkPaidResult markPaid(long payosOrderCode, long amountVnd, String reference, Instant paidAt) {
+        PayRow row = jdbc.query("SELECT id, status, total_vnd, paid_at IS NOT NULL AS paid FROM shop_order WHERE payos_order_code = ? FOR UPDATE",
+                (rs, n) -> new PayRow(rs.getObject("id", UUID.class), rs.getString("status"), rs.getLong("total_vnd"), rs.getBoolean("paid")), payosOrderCode).stream().findFirst().orElse(null);
+        if (row == null) return MarkPaidResult.UNKNOWN_ORDER;
+        if (row.totalVnd() != amountVnd) return MarkPaidResult.AMOUNT_MISMATCH;
+        if (row.paid()) return MarkPaidResult.ALREADY_PAID; // also a repeat on a cancelled order: first paid_at stays
+        switch (row.status()) {
+            case "PENDING_PAYMENT" -> {
+                jdbc.update("UPDATE shop_order SET status = 'PAID', paid_at = ?, payment_reference = ? WHERE id = ?", paidAt, reference, row.id());
+                return MarkPaidResult.PAID;
+            }
+            case "CANCELLED" -> {
+                jdbc.update("UPDATE shop_order SET paid_at = ?, payment_reference = ?, refund_needed = true WHERE id = ?", paidAt, reference, row.id());
+                return MarkPaidResult.PAID_AFTER_CANCEL;
+            }
+            default -> { return MarkPaidResult.ALREADY_PAID; }
+        }
+    }
+
+    @Override
+    public Optional<String> paymentReference(long payosOrderCode) {
+        return jdbc.queryForList("SELECT payment_reference FROM shop_order WHERE payos_order_code = ? AND payment_reference IS NOT NULL",
+                String.class, payosOrderCode).stream().findFirst();
+    }
+
+    @Override
+    public List<ExpiredPayment> expiredPayosOrders(Instant now, int limit) {
+        return jdbc.query("SELECT id, payos_order_code, total_vnd FROM shop_order WHERE status = 'PENDING_PAYMENT' AND payment_method = 'PAYOS' AND payment_expires_at < ? ORDER BY payment_expires_at LIMIT ?",
+                (rs, row) -> new ExpiredPayment(rs.getObject("id", UUID.class), rs.getLong("payos_order_code"), rs.getLong("total_vnd")), now, Math.clamp(limit, 1, 500));
+    }
+
+    private Order mapOrder(ResultSet rs) throws SQLException {
         UUID id = rs.getObject("id", UUID.class);
         List<CartLine> lines = jdbc.query("SELECT p.id, p.sku, l.product_name AS name, p.description, p.image_url, l.unit_price_vnd AS price_vnd, p.compare_at_price_vnd, p.stock_quantity, l.quantity FROM shop_order_line l JOIN shop_product p ON p.id = l.product_id WHERE l.order_id = ?", (child, row) -> new CartLine(product(child), child.getInt("quantity")), id);
-        return new Order(id, rs.getString("order_code"), rs.getString("status"), rs.getString("payment_method"), rs.getString("receiver_name"), rs.getString("receiver_phone"), rs.getString("shipping_address"), rs.getLong("subtotal_vnd"), rs.getLong("discount_vnd"), rs.getLong("shipping_fee_vnd"), rs.getLong("total_vnd"), lines, instant(rs, "created_at"));
+        long payosCode = rs.getLong("payos_order_code");
+        Long payosOrderCode = rs.wasNull() ? null : payosCode;
+        return new Order(id, rs.getString("order_code"), rs.getString("status"), rs.getString("payment_method"), rs.getString("receiver_name"), rs.getString("receiver_phone"), rs.getString("shipping_address"), rs.getLong("subtotal_vnd"), rs.getLong("discount_vnd"), rs.getLong("shipping_fee_vnd"), rs.getLong("total_vnd"), lines, instant(rs, "created_at"),
+                payosOrderCode, rs.getString("payos_checkout_url"), instant(rs, "payment_expires_at"), instant(rs, "paid_at"), rs.getString("payment_reference"), rs.getString("cancel_reason"), rs.getBoolean("refund_needed"));
     }
 
     private static final String ADMIN_COLS = "id, sku, name, description, image_url, price_vnd, compare_at_price_vnd, stock_quantity, status, updated_at";

@@ -35,6 +35,7 @@
         <spring-modulith.version>2.1.1</spring-modulith.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <firebase-admin.version>9.11.0</firebase-admin.version>
+        <payos-java.version>2.0.1</payos-java.version>
         <shedlock.version>7.10.1</shedlock.version>
         <openhtmltopdf.version>1.1.86</openhtmltopdf.version>
         <batik.version>1.19</batik.version>
@@ -188,6 +189,13 @@
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
             <version>${firebase-admin.version}</version>
+        </dependency>
+
+        <!-- ===== Thanh toan PayOS (module shop) ===== -->
+        <dependency>
+            <groupId>vn.payos</groupId>
+            <artifactId>payos-java</artifactId>
+            <version>${payos-java.version}</version>
         </dependency>
 
         <!-- ===== Xuat PDF (module export, M2+) ===== -->

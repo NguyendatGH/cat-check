@@ -1,4 +1,12 @@
-# DOMAIN set (prod): Caddy gets a TLS certificate and serves HTTPS. Unset (local): plain HTTP on :80.
+# Prod runs behind the host's nginx (TLS): trust its X-Forwarded-Proto/Host/For, otherwise the backend
+# sees http and the __Host- session cookie and the Google redirect URL break.
+{
+  servers {
+    trusted_proxies static private_ranges
+  }
+}
+
+# DOMAIN set: Caddy gets a TLS certificate itself. Unset (local, and prod behind nginx): plain HTTP on :80.
 {$DOMAIN::80} {
   encode zstd gzip
 
