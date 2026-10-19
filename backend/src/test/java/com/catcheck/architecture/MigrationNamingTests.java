@@ -80,7 +80,8 @@ class MigrationNamingTests {
                         "V32__place_booking_active_slot_unique.sql",
                         "V33__community_comment_reaction.sql",
                         "V34__ai_rag_hybrid.sql",
-                        "V35__ai_chunk_embedding.sql");
+                        "V35__ai_chunk_embedding.sql",
+                        "V36__shop_payos_payment.sql");
     }
 
     @Test

@@ -38,6 +38,10 @@ export interface OrderApi {
   totalVnd: number;
   lines: CartLineApi[];
   createdAt: string;
+  checkoutUrl: string | null;
+  paymentExpiresAt: string | null;
+  paidAt: string | null;
+  cancelReason: string | null;
 }
 
 function token() {
@@ -81,6 +85,9 @@ export function listShopProducts() {
 export function getShopProduct(productId: string) {
   return request<ShopProductApi>(`/shop/products/${productId}`);
 }
+export function listShopPaymentMethods() {
+  return request<string[]>("/shop/payment-methods");
+}
 export function getShopCart() {
   return request<CartApi>("/cart");
 }
@@ -101,6 +108,12 @@ export function createShopOrder(payload: {
 }) {
   return request<OrderApi>("/orders", { method: "POST", body: JSON.stringify(payload) });
 }
+export function listMyOrders() {
+  return request<OrderApi[]>("/orders");
+}
 export function getShopOrder(orderId: string) {
   return request<OrderApi>(`/orders/${orderId}`);
+}
+export function cancelShopOrder(orderId: string) {
+  return request<OrderApi>(`/orders/${orderId}/cancel`, { method: "POST" });
 }

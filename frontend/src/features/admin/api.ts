@@ -1,6 +1,7 @@
 import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "@/shared/config/constants";
+import type { AdminOrder } from "./types";
 
 const BASE_URL = "/api/v1";
 
@@ -136,4 +137,15 @@ export function adminQuery(params: Record<string, string | number | undefined>):
 
 export function isHexColor(value: string): boolean {
   return /^#[0-9A-Fa-f]{6}$/.test(value);
+}
+
+export function listAdminOrders(status?: string, page = 0) {
+  return adminFetch<AdminOrder[]>(`/admin/shop/orders${adminQuery({ status, page })}`);
+}
+
+export function changeAdminOrderStatus(orderId: string, status: string, reason?: string) {
+  return adminFetch<AdminOrder>(`/admin/shop/orders/${encodeURIComponent(orderId)}/status`, {
+    method: "POST",
+    json: { status, reason },
+  });
 }

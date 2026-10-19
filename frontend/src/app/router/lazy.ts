@@ -113,6 +113,7 @@ export const LazyPages = {
     import("@/pages/admin/AdminActivationCodesPage").then((m) => ({ default: m.AdminActivationCodesPage })),
   ),
   adminProducts: lazy(() => import("@/pages/admin/AdminProductsPage").then((m) => ({ default: m.AdminProductsPage }))),
+  adminOrders: lazy(() => import("@/pages/admin/AdminOrdersPage").then((m) => ({ default: m.AdminOrdersPage }))),
   adminPackages: lazy(() => import("@/pages/admin/AdminPackagesPage").then((m) => ({ default: m.AdminPackagesPage }))),
   adminPhColorChart: lazy(() =>
     import("@/pages/admin/AdminPhColorChartPage").then((m) => ({ default: m.AdminPhColorChartPage })),
@@ -148,6 +149,7 @@ export const LazyPages = {
   ),
   cart: lazy(() => import("@/pages/shop/CartPage").then((m) => ({ default: m.CartPage }))),
   checkout: lazy(() => import("@/pages/shop/CheckoutPage").then((m) => ({ default: m.CheckoutPage }))),
+  orderList: lazy(() => import("@/pages/shop/OrdersPage").then((m) => ({ default: m.OrdersPage }))),
   orderTracking: lazy(() => import("@/pages/shop/OrderTrackingPage").then((m) => ({ default: m.OrderTrackingPage }))),
   communityFeed: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityFeedPage }))),
   communityPostDetail: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityPostDetailPage }))),

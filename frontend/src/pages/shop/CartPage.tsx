@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, Landmark, MapPin, ShoppingCart, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, MapPin, QrCode, ShoppingCart, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { MoMoGlyph } from "@/shared/assets/icons/MoMoGlyph";
 import {
   Dialog,
   DialogClose,
@@ -16,7 +15,7 @@ import {
   SkeletonLoader,
   toast,
 } from "@/shared/ui";
-import { useClearCart, useShopCart } from "@/features/shop";
+import { useClearCart, useShopCart, useShopPaymentMethods } from "@/features/shop";
 import { usePaymentMethodStore } from "./paymentMethodStore";
 import {
   SHOP_PAYMENT_METHOD_IDS,
@@ -30,10 +29,9 @@ import { ProductGlyph, QuantityStepper, ShippingFee } from "./shopUi";
 import { useCartLineActions } from "./useCartActions";
 
 
-const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon | null> = {
+const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon> = {
   COD: Banknote,
-  MOMO: null,
-  BANK_TRANSFER: Landmark,
+  PAYOS: QrCode,
 };
 
 function ClearCartButton() {
@@ -88,6 +86,13 @@ export function CartPage() {
   const { pendingProductId, isUpdating, setQuantity, remove } = useCartLineActions();
   const paymentMethodId = usePaymentMethodStore((s) => s.paymentMethodId);
   const setPaymentMethod = usePaymentMethodStore((s) => s.setPaymentMethod);
+  // COD only until the server confirms PayOS is configured (no keys ⇒ checkout with PAYOS would be a 503).
+  const serverMethods = useShopPaymentMethods().data ?? ["COD"];
+  const paymentMethodIds = SHOP_PAYMENT_METHOD_IDS.filter((id) => serverMethods.includes(id));
+  const paymentMethodOffered = paymentMethodIds.includes(paymentMethodId);
+  useEffect(() => {
+    if (!paymentMethodOffered) setPaymentMethod("COD");
+  }, [paymentMethodOffered, setPaymentMethod]);
 
   const cart = cartQuery.data;
   const lines = cart?.lines ?? [];
@@ -238,7 +243,7 @@ export function CartPage() {
                 <span className="text-[15px] font-bold text-text-primary">{t("cartPage.paymentTitle")}</span>
               </legend>
               <div className="flex flex-col gap-2.5 pt-3">
-                {SHOP_PAYMENT_METHOD_IDS.map((methodId) => {
+                {paymentMethodIds.map((methodId) => {
                   const Icon = PAYMENT_ICONS[methodId];
                   const selected = paymentMethodId === methodId;
                   return (
@@ -262,7 +267,7 @@ export function CartPage() {
                         className="sr-only"
                       />
                       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark">
-                        {Icon ? <Icon size={18} aria-hidden="true" /> : <MoMoGlyph size={28} />}
+                        <Icon size={18} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[14px] font-bold leading-snug text-text-primary">

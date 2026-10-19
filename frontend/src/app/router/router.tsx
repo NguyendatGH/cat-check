@@ -502,6 +502,15 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "/orders",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.orderList />
+              </PageSuspense>,
+            ),
+          },
+          {
             path: "/orders/:orderId",
             element: featureGated(
               "shop",
@@ -756,6 +765,16 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "/admin/orders",
+            element: (
+              <RequireRole roles={ROLES.products}>
+                <PageSuspense>
+                  <LazyPages.adminOrders />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+          {
             path: "/admin/ph-color-chart",
             element: (
               <RequireRole roles={ROLES.colorChart}>
@@ -952,6 +971,14 @@ export const routes: RouteObject[] = [
             element: (
               <PageSuspense>
                 <LazyPages.sellerProducts />
+              </PageSuspense>
+            ),
+          },
+          {
+            path: "/seller/orders",
+            element: (
+              <PageSuspense>
+                <LazyPages.adminOrders />
               </PageSuspense>
             ),
           },

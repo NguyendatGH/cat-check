@@ -10,6 +10,10 @@ public enum ShopErrorCode implements ErrorCode {
     CART_EMPTY("shop/cart-empty", HttpStatus.CONFLICT),
     ORDER_NOT_FOUND("shop/order-not-found", HttpStatus.NOT_FOUND),
     STOCK_UNAVAILABLE("shop/stock-unavailable", HttpStatus.CONFLICT),
+    ORDER_LIMIT_REACHED("shop/order-limit-reached", HttpStatus.CONFLICT),
+    ORDER_NOT_CANCELLABLE("shop/order-not-cancellable", HttpStatus.CONFLICT),
+    ORDER_TRANSITION_INVALID("shop/order-transition-invalid", HttpStatus.CONFLICT),
+    PAYMENT_UNAVAILABLE("shop/payment-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     PRODUCT_SKU_DUPLICATE("shop/product-sku-duplicate", HttpStatus.CONFLICT),
     PRODUCT_INVALID("shop/product-invalid", HttpStatus.BAD_REQUEST),
     ADMIN_ROLE_REQUIRED("shop/admin-role-required", HttpStatus.FORBIDDEN);

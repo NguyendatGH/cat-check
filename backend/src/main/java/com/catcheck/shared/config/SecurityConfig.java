@@ -31,7 +31,7 @@ public class SecurityConfig {
     };
 
     private static final String[] PUBLIC_INGEST_PATHS = {
-            "/api/v1/csp-report", "/api/v1/client-errors"
+            "/api/v1/csp-report", "/api/v1/client-errors", "/api/v1/payments/payos/webhook"
     };
 
     @Bean

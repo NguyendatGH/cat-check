@@ -9,6 +9,7 @@
     "phColorChart": "Bảng màu pH",
     "users": "Người dùng",
     "products": "Sản phẩm",
+    "orders": "Đơn hàng",
     "brand": "CatCheck",
     "skipToContent": "Bỏ qua menu, tới nội dung chính",
     "openMenu": "Mở menu quản trị",
@@ -369,6 +370,10 @@
     "products": {
       "title": "Sản phẩm cửa hàng",
       "description": "Tạo, sửa, đăng bán và gỡ bán sản phẩm trong cửa hàng."
+    },
+    "orders": {
+      "title": "Đơn hàng cửa hàng",
+      "description": "Xem đơn của khách và chuyển trạng thái xử lý từng đơn."
     },
     "scans": {
       "title": "Lượt quét của người dùng",
@@ -1127,6 +1132,54 @@
       "priceVnd": "Giá phải là số nguyên không âm.",
       "compareAtPriceVnd": "Giá gốc phải là số nguyên lớn hơn giá bán.",
       "stockQuantity": "Tồn kho phải là số nguyên không âm."
+    }
+  },
+  "orderAdmin": {
+    "listTitle": "Danh sách đơn hàng",
+    "listDescription": "Mỗi nút là một bước chuyển trạng thái hợp lệ. Huỷ đơn cần lý do và hàng được trả lại kho.",
+    "filterLabel": "Lọc theo trạng thái",
+    "filterAll": "Tất cả trạng thái",
+    "code": "Mã đơn",
+    "receiver": "Người nhận",
+    "items": "Sản phẩm",
+    "payment": "Thanh toán",
+    "total": "Tổng tiền",
+    "status": "Trạng thái",
+    "action": "Thao tác",
+    "page": "Trang {{page}}",
+    "refundNeeded": "Cần hoàn tiền",
+    "cancelReason": "Lý do huỷ: {{reason}}",
+    "cancelReasons": {
+      "PAYMENT_EXPIRED": "Quá hạn thanh toán",
+      "BUYER": "Khách tự huỷ",
+      "ADMIN": "Nhân viên huỷ"
+    },
+    "payosOrderCode": "Mã PayOS: CC{{code}}",
+    "paymentReference": "Mã giao dịch: {{reference}}",
+    "paidAt": "Nhận tiền lúc {{time}}",
+    "cancelTitle": "Huỷ đơn hàng?",
+    "cancelConsequence": "Đơn sẽ chuyển sang Đã huỷ và hàng được trả lại kho. Không hoàn tác được.",
+    "cancelConfirm": "Xác nhận huỷ đơn",
+    "statuses": {
+      "PENDING_PAYMENT": "Chờ thanh toán",
+      "PAID": "Đã thanh toán",
+      "PACKING": "Đang chuẩn bị hàng",
+      "SHIPPING": "Đang giao hàng",
+      "DELIVERED": "Đã giao hàng",
+      "CANCELLED": "Đã huỷ"
+    },
+    "actions": {
+      "PAID": "Xác nhận đã thanh toán",
+      "PACKING": "Chuẩn bị hàng",
+      "SHIPPING": "Giao hàng",
+      "DELIVERED": "Đã giao",
+      "CANCELLED": "Huỷ đơn"
+    },
+    "paymentMethods": {
+      "COD": "Khi nhận hàng (COD)",
+      "PAYOS": "PayOS",
+      "MOMO": "MoMo",
+      "BANK_TRANSFER": "Chuyển khoản"
     }
   },
   "access": {

@@ -479,3 +479,28 @@ export interface AdminProductPayload {
   stockQuantity: number;
   status: AdminProductStatus;
 }
+
+export const ADMIN_ORDER_STATUSES = ["PENDING_PAYMENT", "PAID", "PACKING", "SHIPPING", "DELIVERED", "CANCELLED"] as const;
+
+export interface AdminOrder {
+  id: string;
+  orderCode: string;
+  status: string;
+  paymentMethod: string;
+  receiverName: string;
+  receiverPhone: string;
+  shippingAddress: string;
+  subtotalVnd: number;
+  discountVnd: number;
+  shippingFeeVnd: number;
+  totalVnd: number;
+  lines: { product: { id: string; sku: string; name: string }; quantity: number; totalVnd: number }[];
+  createdAt: string;
+  payosOrderCode: number | null;
+  paymentExpiresAt: string | null;
+  paidAt: string | null;
+  paymentReference: string | null;
+  cancelReason: string | null;
+  refundNeeded: boolean;
+  allowedNextStatuses: string[];
+}

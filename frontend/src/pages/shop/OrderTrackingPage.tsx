@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useParams } from "react-router";
 import { CONFETTI_CLASSES, CONFETTI_COUNT, useOrderCelebration } from "./useOrderCelebration";
@@ -13,6 +13,7 @@ import {
   Package,
   PackageCheck,
   PackageSearch,
+  QrCode,
   Truck,
   Wallet,
   X,
@@ -23,8 +24,8 @@ import { MoMoGlyph } from "@/shared/assets/icons/MoMoGlyph";
 import { cn } from "@/shared/lib/cn";
 import { formatDate } from "@/shared/lib/format/formatDate";
 import { EmptyState, ErrorState, SkeletonLoader, toast } from "@/shared/ui";
-import { isShopId, useShopOrder } from "@/features/shop";
-import { SHOP_ORDER_STAGES, formatVnd, isShopPaymentMethodId, type ShopPaymentMethodId } from "./shopFormat";
+import { isShopId, useCancelOrder, useShopOrder } from "@/features/shop";
+import { SHOP_ORDER_STAGES, formatVnd, isShopOrderPaymentMethod, type ShopOrderPaymentMethod } from "./shopFormat";
 import { ProductGlyph, ShippingFee } from "./shopUi";
 
 
@@ -36,11 +37,26 @@ const STAGE_ICONS: Record<(typeof SHOP_ORDER_STAGES)[number], LucideIcon> = {
   DELIVERED: PackageCheck,
 };
 
-const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon | null> = {
+const PAYMENT_ICONS: Record<ShopOrderPaymentMethod, LucideIcon | null> = {
   COD: Banknote,
+  PAYOS: QrCode,
   MOMO: null,
   BANK_TRANSFER: Landmark,
 };
+
+function useNow(active: boolean) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [active]);
+  return now;
+}
 
 function OrderSkeleton() {
   return (
@@ -66,6 +82,22 @@ export function OrderTrackingPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const orderQuery = useShopOrder(orderId);
   const location = useLocation();
+  const loaded = orderQuery.data;
+  const { mutate: cancelOrder, isPending: cancelling } = useCancelOrder();
+  const waitingForPayos = loaded?.status === "PENDING_PAYMENT" && loaded.paymentMethod === "PAYOS" && !!loaded.paymentExpiresAt;
+  const now = useNow(waitingForPayos);
+  const autoCancelled = useRef(false);
+  const params = new URLSearchParams(location.search);
+  const returnedCancelled = params.get("payment") === "cancel" || params.get("cancel") === "true";
+  const pendingOrderId = loaded?.status === "PENDING_PAYMENT" ? loaded.id : undefined;
+  useEffect(() => {
+    // PayOS sends the buyer back to our cancelUrl (payment=cancel) and appends its own cancel=true;
+    // the ref keeps StrictMode and refetches from cancelling twice.
+    if (returnedCancelled && pendingOrderId && !autoCancelled.current) {
+      autoCancelled.current = true;
+      cancelOrder(pendingOrderId);
+    }
+  }, [returnedCancelled, pendingOrderId, cancelOrder]);
   const [justPlaced] = useState(() => (location.state as { justPlaced?: boolean } | null)?.justPlaced === true);
   const celebrateRef = useRef<HTMLElement>(null);
   const celebrate = justPlaced && orderQuery.data !== undefined && orderQuery.data.status !== "CANCELLED";
@@ -107,7 +139,9 @@ export function OrderTrackingPage() {
   const cancelled = order.status === "CANCELLED";
   const stageIndex = (SHOP_ORDER_STAGES as readonly string[]).indexOf(order.status);
   const statusKey = cancelled || stageIndex >= 0 ? order.status : "UNKNOWN";
-  const paymentKey = isShopPaymentMethodId(order.paymentMethod) ? order.paymentMethod : null;
+  const paymentKey = isShopOrderPaymentMethod(order.paymentMethod) ? order.paymentMethod : null;
+  const remainingSeconds = waitingForPayos && order.paymentExpiresAt ? Math.ceil((Date.parse(order.paymentExpiresAt) - now) / 1000) : 0;
+  const expiredUnpaid = cancelled && order.cancelReason === "PAYMENT_EXPIRED";
   const PaymentIcon = paymentKey ? PAYMENT_ICONS[paymentKey] : Wallet;
   const lastIndex = SHOP_ORDER_STAGES.length - 1;
 
@@ -159,7 +193,7 @@ export function OrderTrackingPage() {
               {t(cancelled ? "order.cancelledTitle" : "order.successTitle")}
             </h1>
             <p className="pt-1.5 text-[13px] leading-relaxed text-text-secondary md:text-[14px]">
-              {t(cancelled ? "order.cancelledBody" : "order.successBody")}
+              {t(expiredUnpaid ? "order.cancelReason.PAYMENT_EXPIRED" : cancelled ? "order.cancelledBody" : "order.successBody")}
             </p>
           </div>
           <div data-celebrate="text" className="hidden shrink-0 gap-2 md:flex">
@@ -213,6 +247,41 @@ export function OrderTrackingPage() {
           </InfoCell>
         </dl>
       </section>
+
+      {order.status === "PENDING_PAYMENT" ? (
+        <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md sm:flex-row sm:items-center sm:justify-between md:p-6">
+          <p className="text-[14px] font-bold text-primary-dark">
+            {remainingSeconds > 0
+              ? t("order.expiresIn", {
+                  time: `${String(Math.floor(remainingSeconds / 60))}:${String(remainingSeconds % 60).padStart(2, "0")}`,
+                })
+              : null}
+          </p>
+          <div className="flex gap-2">
+            {remainingSeconds > 0 && order.checkoutUrl ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (order.checkoutUrl) window.location.assign(order.checkoutUrl);
+                }}
+                className="rounded-xl bg-primary-dark px-4 py-2.5 text-[13px] font-bold text-white hover:bg-primary"
+              >
+                {t("order.payAgain")}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              disabled={cancelling}
+              onClick={() => {
+                cancelOrder(order.id);
+              }}
+              className="rounded-xl bg-chip-bg px-4 py-2.5 text-[13px] font-semibold text-primary-dark hover:bg-info disabled:opacity-50"
+            >
+              {t("order.cancel")}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-2xl bg-surface p-5 shadow-brand-md md:p-6" aria-live="polite">
         <div className="flex items-start gap-3">

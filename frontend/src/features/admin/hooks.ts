@@ -6,9 +6,17 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import type { PhBand } from "@/entities/ph-bands";
-import { adminFetch, adminQuery, adminRequest, type ApiEnvelope } from "./api";
+import {
+  adminFetch,
+  adminQuery,
+  adminRequest,
+  changeAdminOrderStatus,
+  listAdminOrders,
+  type ApiEnvelope,
+} from "./api";
 import type {
   AdminOffsetPage,
+  AdminOrder,
   AdminSystemStatus,
   CareTipDetail,
   CareTipStatus,
@@ -984,6 +992,31 @@ export function useSetAdminProductStatus(): UseMutationResult<
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ADMIN_PRODUCTS_KEY });
+    },
+  });
+}
+
+const ADMIN_ORDERS_KEY = ["admin", "shop-orders"] as const;
+
+export function useAdminOrders(status: string | undefined, page: number): UseQueryResult<AdminOrder[]> {
+  return useQuery({
+    queryKey: [...ADMIN_ORDERS_KEY, status ?? "", page],
+    queryFn: () => listAdminOrders(status, page),
+    retry: false,
+  });
+}
+
+export function useChangeAdminOrderStatus(): UseMutationResult<
+  AdminOrder,
+  Error,
+  { id: string; status: string; reason?: string }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, reason }) => changeAdminOrderStatus(id, status, reason),
+    // Also after a 409: the order changed under us, so the list must show its real state.
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
     },
   });
 }
