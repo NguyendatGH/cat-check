@@ -7,6 +7,8 @@ import com.catcheck.shop.application.AdminShopService;
 import com.catcheck.shop.domain.AdminProduct;
 import com.catcheck.shop.domain.AdminProductDraft;
 import com.catcheck.shop.domain.CartLine;
+import com.catcheck.shop.domain.ExpiredPayment;
+import com.catcheck.shop.domain.MarkPaidResult;
 import com.catcheck.shop.domain.Order;
 import com.catcheck.shop.domain.Product;
 import com.catcheck.shop.domain.port.ShopRepository;
@@ -133,9 +135,18 @@ class AdminShopControllerTest {
         @Override public void setCartLine(UUID userId, UUID productId, int quantity) { throw new UnsupportedOperationException(); }
         @Override public void removeCartLine(UUID userId, UUID productId) { throw new UnsupportedOperationException(); }
         @Override public void clearCart(UUID userId) { throw new UnsupportedOperationException(); }
-        @Override public Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address) {
+        @Override public Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address,
+                                           Instant paymentExpiresAt, int maxOpenOrders) {
             throw new UnsupportedOperationException();
         }
         @Override public Optional<Order> order(UUID userId, UUID orderId) { throw new UnsupportedOperationException(); }
+        @Override public List<Order> orders(UUID userId, int limit) { throw new UnsupportedOperationException(); }
+        @Override public void attachPaymentLink(UUID orderId, String paymentLinkId, String checkoutUrl) { throw new UnsupportedOperationException(); }
+        @Override public boolean transition(UUID orderId, String fromStatus, String toStatus) { throw new UnsupportedOperationException(); }
+        @Override public boolean cancelAndRestock(UUID orderId, String expectedStatus, String cancelReason, Instant at) { throw new UnsupportedOperationException(); }
+        @Override public MarkPaidResult markPaid(long payosOrderCode, long amountVnd, String reference, Instant paidAt) { throw new UnsupportedOperationException(); }
+        @Override public List<ExpiredPayment> expiredPayosOrders(Instant now, int limit) { throw new UnsupportedOperationException(); }
+        @Override public List<Order> adminOrders(String statusOrNull, int limit, int offset) { throw new UnsupportedOperationException(); }
+        @Override public Optional<Order> adminOrder(UUID orderId) { throw new UnsupportedOperationException(); }
     }
 }

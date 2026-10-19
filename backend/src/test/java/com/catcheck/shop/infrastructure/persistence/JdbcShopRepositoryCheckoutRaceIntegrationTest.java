@@ -87,7 +87,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
                 barrier.await(10, TimeUnit.SECONDS);
                 try {
                     Order order = txTemplate.execute(status ->
-                            repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test"));
+                            repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99));
                     return CheckoutOutcome.success(order);
                 } catch (ConflictException ex) {
                     return CheckoutOutcome.failure(ex);
@@ -135,7 +135,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
         jdbc.update("UPDATE shop_product SET status = 'ARCHIVED' WHERE id = ?", productId);
 
         assertThatThrownBy(() -> txTemplate.execute(status ->
-                repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test")))
+                repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99)))
                 .isInstanceOf(ConflictException.class)
                 .extracting(ex -> ((ConflictException) ex).errorCode())
                 .isEqualTo(ShopErrorCode.STOCK_UNAVAILABLE);
@@ -156,7 +156,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
                     jdbc.update("INSERT INTO shop_cart_line (user_id, product_id, quantity) VALUES (?, ?, 1)",
                             userId, productId);
                 }
-                placed.add(repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test").orderCode());
+                placed.add(repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99).orderCode());
             }
             return placed;
         });
@@ -172,7 +172,7 @@ class JdbcShopRepositoryCheckoutRaceIntegrationTest {
         AdminProductRequest form = new AdminProductRequest(null, "Race test product", "test", null,
                 100000L, null, 5, "PUBLISHED");
 
-        txTemplate.execute(status -> repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test"));
+        txTemplate.execute(status -> repository.createOrder(userId, "COD", "Nguyen Van A", "0900000000", "Dia chi test", null, 99));
 
         assertThatThrownBy(() -> txTemplate.execute(status ->
                 admin.update(productId, form, etagWhenFormOpened, UUID.randomUUID(), "ADMIN_CATALOG")))
