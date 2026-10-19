@@ -73,13 +73,12 @@ và xoá file `99-hardening.conf`.
 sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw allow 443/udp     # HTTP/3
 sudo ufw enable
 sudo ufw status
 ```
 
 > **Lưu ý Docker vượt ufw:** cổng mà Docker publish (`ports:` trong compose) được mở trực tiếp qua iptables, ufw
-> **không chặn được**. `docker-compose.prod.yml` chỉ publish 80/443 (và adminer ở `127.0.0.1`), nên an toàn.
+> **không chặn được**. `docker-compose.prod.yml` chỉ publish `127.0.0.1:8080` cho nginx (và adminer ở `127.0.0.1`), nên an toàn.
 > **Đừng** thêm `ports:` cho `postgres` hay `backend`.
 
 ### A5. Chống dò mật khẩu SSH (fail2ban)
@@ -236,7 +235,8 @@ Google Cloud Console → Credentials → OAuth client → **Authorized redirect 
 dig +short <DOMAIN>     # phải ra đúng <VPS_IP>
 ```
 
-Caddy chỉ lấy được chứng chỉ HTTPS khi domain đã trỏ đúng và cổng 80/443 mở.
+HTTPS do nginx trên VPS lo bằng chứng chỉ của bạn; cấu hình server block (proxy về `127.0.0.1:8080`, kèm
+`X-Forwarded-Proto` và `client_max_body_size 10m`) có sẵn trong DEPLOYMENT.md, mục "nginx in front (TLS)".
 
 ### B6. Chạy lần đầu
 
@@ -248,7 +248,7 @@ Kiểm tra:
 ```bash
 docker compose ps                                                  # 3 dịch vụ "healthy"
 curl -fsS https://<DOMAIN>/api/v1/reference/ph-bands | head -c 120; echo
-docker compose logs frontend | grep -i certificate                 # Caddy đã lấy chứng chỉ
+curl -fsSI http://127.0.0.1:8080/ | head -1                        # Caddy trả lời cho nginx
 ```
 
 Rồi tạo admin đầu tiên theo DEPLOYMENT.md, mục "Create the first admin".
@@ -438,6 +438,6 @@ và đăng nhập GHCR trên VPS — làm sau khi quy trình trên đã chạy �
 | Dung lượng | `df -h /` và `docker system df` |
 | Lỗi CSP cần xem trước khi bật chặn | `docker compose logs backend \| grep csp_violation` |
 | Cập nhật OS | tự động (A6); thỉnh thoảng `sudo apt full-upgrade` + `sudo reboot` |
-| Chứng chỉ HTTPS | Caddy tự gia hạn; đừng xoá volume `caddy_data` |
+| Chứng chỉ HTTPS | nginx dùng chứng chỉ của bạn; nhớ gia hạn trước khi hết hạn |
 
 Các lệnh theo từng phần (restart, shell, stop…) và backup/khôi phục chi tiết: xem [DEPLOYMENT.md](DEPLOYMENT.md).

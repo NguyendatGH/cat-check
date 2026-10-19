@@ -3,7 +3,7 @@
 #   cp .env.prod.example .env   # fill in real values (sets COMPOSE_FILE to this file)
 #   docker compose up -d --build
 #
-# Only `frontend` (Caddy) publishes ports; backend and postgres stay on the internal network.
+# Only `frontend` (Caddy) publishes a port, on 127.0.0.1 for the host's nginx; backend and postgres stay internal.
 name: catcheck-prod
 
 services:
@@ -56,17 +56,14 @@ services:
         condition: service_healthy
 
   frontend:
-    # Caddy: serves the built SPA, terminates TLS for DOMAIN, proxies /api, /oauth2, /login to backend.
+    # Caddy: serves the built SPA and proxies /api, /oauth2, /login to backend. HTTPS is terminated by the
+    # host's nginx, which proxies to this loopback port (config in docs/DEPLOYMENT.md, "nginx in front").
     build:
       context: .
       dockerfile: frontend/Dockerfile
     restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
     volumes:
       - caddy_data:/data
       - caddy_config:/config
