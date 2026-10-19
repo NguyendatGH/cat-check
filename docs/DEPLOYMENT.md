@@ -26,6 +26,8 @@ Only nginx is reachable from outside; it forwards to the frontend container on t
 database are on the private Compose network.
 
 Setting up a fresh Ubuntu VPS (Docker, firewall, `/opt/prod`) and GitHub Actions CI/CD: see [VPS_SETUP.md](VPS_SETUP.md).
+First deploy on a VPS that already has Docker, nginx and HTTPS (Vietnamese, step by step):
+[VPS_FIRST_DEPLOY.md](VPS_FIRST_DEPLOY.md).
 
 ## 1. Server requirements
 
