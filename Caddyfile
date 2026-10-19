@@ -1,4 +1,5 @@
-:80 {
+# DOMAIN set (prod): Caddy gets a TLS certificate and serves HTTPS. Unset (local): plain HTTP on :80.
+{$DOMAIN::80} {
   encode zstd gzip
 
   @hashedAssets path /assets/*
@@ -17,6 +18,17 @@
   }
 
   handle {
+    # Security headers for the SPA only: /api responses already get Spring Security's headers.
+    # CSP is report-only: violations go to /api/v1/csp-report; enforce it once those logs are clean.
+    header {
+      Strict-Transport-Security "max-age=31536000"
+      X-Content-Type-Options "nosniff"
+      X-Frame-Options "DENY"
+      Referrer-Policy "strict-origin-when-cross-origin"
+      Permissions-Policy "camera=(self), geolocation=(self), microphone=()"
+      Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+      Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self' blob:; manifest-src 'self'; form-action 'self'; report-uri /api/v1/csp-report"
+    }
     root * /srv
     try_files {path} /index.html
     file_server

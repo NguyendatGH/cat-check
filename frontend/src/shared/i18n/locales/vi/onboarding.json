@@ -18,6 +18,8 @@
   },
   "stepper": {
     "label": "Bước {{current}} trên {{total}}",
+    "optionalTag": "Tuỳ chọn",
+    "optionalHint": "Bước tuỳ chọn có thể bỏ qua và hoàn thiện sau.",
     "steps": {
       "cat": "Hồ sơ mèo",
       "healthSurvey": "Sức khoẻ",

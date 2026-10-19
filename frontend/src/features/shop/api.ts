@@ -59,6 +59,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     try {
       problem = (await response.json()) as { detail?: string; errorCode?: string };
     } catch {
+      // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PhBand } from "./model";
-import { findBandForPh } from "./hooks";
+import { phBandsApiFetch } from "./api";
+import { findBandForPh, phBandsKeys } from "./hooks";
+
+// `currentAcceptLanguage` kéo theo i18next (nạp locale qua HTTP) — test chỉ cần giá trị.
+vi.mock("@/shared/api/acceptLanguage", () => ({ currentAcceptLanguage: () => "en" }));
 
 const bands: PhBand[] = [
   {
@@ -133,5 +137,23 @@ describe("findBandForPh với JSON đúng như server gửi (key bị bỏ, khô
     for (const ph of [0, 5, 6.45, 7, 14]) {
       expect(findBandForPh(wireBands, ph)?.code).not.toBe("INCONCLUSIVE");
     }
+  });
+});
+
+describe("nhãn dải pH theo ngôn ngữ", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("query key tách theo ngôn ngữ để đổi ngôn ngữ thì tải lại", () => {
+    expect(phBandsKeys.list("vi")).not.toEqual(phBandsKeys.list("en"));
+  });
+
+  it("gửi Accept-Language của ứng dụng", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("[]")));
+    vi.stubGlobal("fetch", fetchMock);
+    await phBandsApiFetch("/reference/ph-bands");
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.headers).toMatchObject({ "Accept-Language": "en" });
   });
 });

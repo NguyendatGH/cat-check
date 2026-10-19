@@ -9,8 +9,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record CreateCatRequest(
-        @NotBlank(message = "Vui lòng nhập tên bé mèo")
-        @Size(max = 60, message = "Tên bé mèo tối đa 60 ký tự")
+        @NotBlank(message = "{validation.cat.name.required}")
+        @Size(max = 60, message = "{validation.cat.name.max}")
         String name,
         LocalDate birthDate,
         Integer approxAgeMonths,
@@ -19,11 +19,11 @@ public record CreateCatRequest(
         String coatColor,
         String sex,
         Boolean neutered,
-        @DecimalMin(value = "0.01", message = "Cân nặng phải lớn hơn 0")
-        @DecimalMax(value = "29.99", message = "Cân nặng phải nhỏ hơn 30")
+        @DecimalMin(value = "0.01", message = "{validation.cat.weight.min}")
+        @DecimalMax(value = "29.99", message = "{validation.cat.weight.max}")
         BigDecimal weightKg,
         Boolean isPrimary,
-        @Size(max = 2000, message = "Ghi chú tối đa 2000 ký tự")
+        @Size(max = 2000, message = "{validation.cat.note.max}")
         String notes
 ) {
 }

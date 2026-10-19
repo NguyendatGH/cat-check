@@ -30,6 +30,7 @@ async function toApiError(response: Response, fallback: string): Promise<ApiErro
   try {
     problem = (await response.json()) as ProblemDetail;
   } catch {
+    // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
   }
   return new ApiError(problem?.detail ?? fallback, response.status, problem?.errorCode);
 }
@@ -68,6 +69,7 @@ export async function apiSubmitScan(metadata: SubmitScanMetadata, file: File): P
   formData.append("image", file);
 
   const headers = new Headers({ [IDEMPOTENCY_HEADER_NAME]: metadata.scanRequestId });
+  headers.set("Accept-Language", currentAcceptLanguage());
   const csrf = readCsrfToken();
   if (csrf) {
     headers.set(CSRF_HEADER_NAME, csrf);

@@ -1,3 +1,4 @@
+import i18n, { getStoredLocale } from "@/shared/i18n/i18n";
 import type { SessionUser } from "./model";
 
 interface RawSessionUser {
@@ -5,6 +6,7 @@ interface RawSessionUser {
   email: string;
   fullName: string;
   avatarUrl?: string | null;
+  locale?: string | null;
   onboardingStatus: "ACCOUNT_ONLY" | "CAT_CREATED" | "SURVEY_DONE_OR_SKIPPED" | "COMPLETED";
 }
 interface RawSessionResponse {
@@ -45,7 +47,12 @@ export async function loadSession(): Promise<SessionUser | null> {
   try {
     const response = await fetch("/api/v1/auth/session", { credentials: "include" });
     if (!response.ok) return null;
-    return toSessionUser((await response.json()) as RawSessionResponse);
+    const raw = (await response.json()) as RawSessionResponse;
+    // Thiết bị mới chưa có lựa chọn trong localStorage: lấy ngôn ngữ từ hồ sơ trên server.
+    // Trang Cài đặt ngôn ngữ không gọi hàm này nên không vòng lặp với PATCH hồ sơ của nó.
+    const locale = raw.user?.locale;
+    if (locale && !getStoredLocale() && locale !== i18n.resolvedLanguage) void i18n.changeLanguage(locale);
+    return toSessionUser(raw);
   } catch {
     return null;
   }

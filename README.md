@@ -23,4 +23,9 @@ listed in [`docs/DEMO_ACCOUNTS.md`](docs/DEMO_ACCOUNTS.md) — local only, never
 
 The containerized frontend is available at <http://localhost:5173> and proxies same-origin API requests to the backend.
 
+## Deployment
+
+Production runs one container per part (frontend/Caddy, backend, postgres) from `docker-compose.prod.yml`.
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 Read `CLAUDE.md`, then `context/spec/04-index.md`, before changing application behavior.

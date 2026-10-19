@@ -1,5 +1,6 @@
 package com.catcheck.scan.tooling;
 
+import com.catcheck.scan.domain.color.ColorSpace;
 import com.catcheck.scan.domain.color.PhChart;
 import com.catcheck.scan.domain.color.PhChartPoint;
 
@@ -19,7 +20,9 @@ final class SyntheticSandDatasetGenerator {
     private static final int CANVAS_SIZE = 700;
     private static final int GRAIN_DIAMETER = 14;
     private static final int GRAINS_PER_IMAGE = 220;
-    private static final int BACKGROUND_GRAY = 185;
+    // Nền phải là màu cát nền: pipeline cân bằng trắng theo nó, nền xám làm lệch màu hạt và trượt dải pH.
+    private static final Color BACKGROUND =
+            Color.decode(ColorSpace.labToHex(PipelineAccuracyHarness.REFERENCE_SUBSTRATE_LAB));
     private static final int NOISE_AMPLITUDE = 8;
     private static final int GRAIN_NOISE_AMPLITUDE = 5;
 
@@ -65,8 +68,10 @@ final class SyntheticSandDatasetGenerator {
         BufferedImage image = new BufferedImage(CANVAS_SIZE, CANVAS_SIZE, BufferedImage.TYPE_INT_RGB);
         for (int y = 0; y < CANVAS_SIZE; y++) {
             for (int x = 0; x < CANVAS_SIZE; x++) {
-                int v = clamp(BACKGROUND_GRAY + rng.nextInt(2 * NOISE_AMPLITUDE + 1) - NOISE_AMPLITUDE);
-                image.setRGB(x, y, (v << 16) | (v << 8) | v);
+                int r = clamp(BACKGROUND.getRed() + rng.nextInt(2 * NOISE_AMPLITUDE + 1) - NOISE_AMPLITUDE);
+                int g = clamp(BACKGROUND.getGreen() + rng.nextInt(2 * NOISE_AMPLITUDE + 1) - NOISE_AMPLITUDE);
+                int b = clamp(BACKGROUND.getBlue() + rng.nextInt(2 * NOISE_AMPLITUDE + 1) - NOISE_AMPLITUDE);
+                image.setRGB(x, y, (r << 16) | (g << 8) | b);
             }
         }
         Graphics2D g = image.createGraphics();

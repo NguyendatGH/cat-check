@@ -1,17 +1,20 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { phBandsApiFetch } from "./api";
 import type { ActiveColorChart, PhBand } from "./model";
 
 export const phBandsKeys = {
   all: ["phBands"] as const,
-  list: () => [...phBandsKeys.all, "list"] as const,
+  // `label`/`description` do server resolve theo `Accept-Language` → mỗi ngôn ngữ một cache.
+  list: (language: string) => [...phBandsKeys.all, "list", language] as const,
   activeChart: (params: { productLine?: string; productionBatch?: string } = {}) =>
     [...phBandsKeys.all, "activeChart", params] as const,
 };
 
 export function usePhBands(): UseQueryResult<PhBand[]> {
+  const { i18n } = useTranslation();
   return useQuery({
-    queryKey: phBandsKeys.list(),
+    queryKey: phBandsKeys.list(i18n.language),
     queryFn: () => phBandsApiFetch<PhBand[]>("/reference/ph-bands"),
     staleTime: 24 * 60 * 60 * 1000,
   });

@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, KeyRound, Loader2, Monitor, ShieldCheck } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   RecoveryCodeGrid,
   useChangePassword,
@@ -19,7 +20,7 @@ import {
 
 
 function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  return new Date(value).toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" });
 }
 
 export function SettingsSecurityPage() {

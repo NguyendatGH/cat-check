@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Badge, Button, Card, SkeletonLoader, celebrate } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { isApiError } from "@/shared/api";
 import {
   ActivationCodeField,
@@ -156,7 +157,7 @@ export function CreditsActivatePage() {
               <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-2.5">
                 <dt className="text-caption font-medium text-text-secondary">{t("activate.success.expiresLabel")}</dt>
                 <dd className="text-caption font-semibold text-text-primary">
-                  {new Date(success.expiresAt).toLocaleDateString("vi-VN")}
+                  {new Date(success.expiresAt).toLocaleDateString(intlLocale())}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4">

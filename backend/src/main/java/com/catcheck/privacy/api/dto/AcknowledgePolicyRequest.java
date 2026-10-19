@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 public record AcknowledgePolicyRequest(
-        @NotBlank(message = "surface không được trống")
-        @Pattern(regexp = "[a-z_]{1,64}", message = "surface không hợp lệ")
+        @NotBlank(message = "{validation.privacy.surface.required}")
+        @Pattern(regexp = "[a-z_]{1,64}", message = "{validation.privacy.surface.invalid}")
         String surface
 ) {
 }

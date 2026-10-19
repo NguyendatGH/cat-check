@@ -101,6 +101,21 @@ class PolicyVersionAdminServiceTest {
     }
 
     @Test
+    void aContentUrlThatIsNotHttpsOrASameSitePathIsRejected() {
+        for (String url : List.of("javascript:alert(1)", "JaVaScRiPt:alert(1)", "data:text/html,x",
+                "http://example.com/p", "//evil.example/p", "/\\evil.example/p")) {
+            assertEquals(AdminPolicyErrorCode.POLICY_VERSION_INVALID,
+                    assertThrows(BusinessRuleException.class, () -> service.createDraft(
+                            PolicyType.PRIVACY, "2.0", "vi", "T", null, url, null, false,
+                            List.of(), NEXT_MONTH, ACTION)).errorCode(), url);
+        }
+        service.createDraft(PolicyType.PRIVACY, "2.0", "vi", "T", null, "https://catcheck.vn/privacy", null,
+                false, List.of(), NEXT_MONTH, ACTION);
+        service.createDraft(PolicyType.TERMS, "2.0", "vi", "T", null, "/legal/terms", null,
+                false, List.of(), NEXT_MONTH, ACTION);
+    }
+
+    @Test
     void aDuplicateTypeVersionLocaleIsAConflict() {
         service.createDraft(PolicyType.PRIVACY, "2.0", "vi", "T", "# x", null, null, false,
                 List.of(), NEXT_MONTH, ACTION);

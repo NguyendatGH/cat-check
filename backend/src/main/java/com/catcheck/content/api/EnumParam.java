@@ -17,8 +17,6 @@ final class EnumParam {
         return Arrays.stream(type.getEnumConstants())
                 .filter(candidate -> candidate.name().equalsIgnoreCase(trimmed))
                 .findFirst()
-                .orElseThrow(() -> new BusinessRuleException(
-                        ContentErrorCode.VALIDATION_FAILED,
-                        "Giá trị không hợp lệ cho tham số '" + paramName + "': " + trimmed));
+                .orElseThrow(() -> new BusinessRuleException(ContentErrorCode.VALIDATION_FAILED, paramName));
     }
 }

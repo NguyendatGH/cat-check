@@ -35,12 +35,14 @@ import com.catcheck.identity.domain.port.UserRoleRepository;
 import com.catcheck.identity.infrastructure.ratelimit.Bucket4jRateLimiter;
 import com.catcheck.media.api.ImageStorage;
 import com.catcheck.notification.api.NotificationGateway;
+import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.CatCheckException;
 import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.security.MfaLevel;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Clock;
@@ -59,6 +61,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -127,12 +130,38 @@ class IdentitySecurityLogicReviewTest {
         when(hasher.currentPepperVersion()).thenReturn(1);
         when(hasher.hash(any(Integer.class), any(), any(), any())).thenReturn("hash");
 
-        OtpService service = new OtpService(mock(EmailOtpRepository.class), hasher,
+        OtpService service = new OtpService(mock(EmailOtpRepository.class), mock(UserAccountRepository.class), hasher,
                 new OtpCodeGenerator(), policy(), limiter, mock(NotificationGateway.class), audit(), CLOCK, false);
 
-        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
 
         verify(limiter).rejectIfLimited(RateLimitRule.OTP_REQUEST_BY_IP, CONTEXT.ipAddress());
+    }
+
+    @Test
+    void otpEmailUsesTheStoredLocaleThenTheRequestedOneThenTheDefault() {
+        OtpCodeHasher hasher = mock(OtpCodeHasher.class);
+        when(hasher.currentPepperVersion()).thenReturn(1);
+        when(hasher.hash(any(Integer.class), any(), any(), any())).thenReturn("hash");
+        UserAccountRepository accounts = mock(UserAccountRepository.class);
+        when(accounts.findById(USER_A)).thenReturn(Optional.of(account(USER_A, UserStatus.ACTIVE, AppLocale.EN)));
+        when(accounts.findByEmail(EmailAddress.of("person@example.com")))
+                .thenReturn(Optional.of(account(USER_A, UserStatus.PENDING_VERIFICATION, AppLocale.EN)));
+        NotificationGateway gateway = mock(NotificationGateway.class);
+        OtpService service = new OtpService(mock(EmailOtpRepository.class), accounts, hasher,
+                new OtpCodeGenerator(), policy(), allowingLimiter(), gateway, audit(), CLOCK, false);
+
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, USER_A, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
+        service.requestOtp("nobody@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, USER_A, "vi", CONTEXT);
+        service.requestOtp("nobody@example.com", OtpPurpose.REGISTER_VERIFY, null, "en", CONTEXT);
+        service.requestOtp("nobody@example.com", OtpPurpose.REGISTER_VERIFY, null, "fr", CONTEXT);
+
+        ArgumentCaptor<TransactionalEmailRequest> sent = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
+        verify(gateway, times(6)).enqueueTransactionalEmail(sent.capture());
+        assertThat(sent.getAllValues()).extracting(TransactionalEmailRequest::locale)
+                .containsExactly("en", "en", "vi", "en", "en", "vi");
     }
 
     @Test
@@ -147,7 +176,7 @@ class IdentitySecurityLogicReviewTest {
                 .thenReturn(Optional.of(challenge));
         when(challenges.incrementAttempt(challenge.id())).thenReturn(1);
 
-        OtpService service = new OtpService(challenges, hasher, new OtpCodeGenerator(),
+        OtpService service = new OtpService(challenges, mock(UserAccountRepository.class), hasher, new OtpCodeGenerator(),
                 policy(), allowingLimiter(), mock(NotificationGateway.class), audit(), CLOCK, false);
 
         assertThatThrownBy(() -> service.verifyOtp("person@example.com", OtpPurpose.REGISTER_VERIFY,
@@ -418,8 +447,12 @@ class IdentitySecurityLogicReviewTest {
     }
 
     private static UserAccount account(UUID userId, UserStatus status) {
+        return account(userId, status, AppLocale.VI);
+    }
+
+    private static UserAccount account(UUID userId, UserStatus status, AppLocale locale) {
         return new UserAccount(userId, EmailAddress.of("person@example.com"), NOW, "Person", null,
-                null, null, null, AppLocale.VI, "Asia/Ho_Chi_Minh", status,
+                null, null, null, locale, "Asia/Ho_Chi_Minh", status,
                 OnboardingStatus.ACCOUNT_ONLY, 0, null, null, null, null, null, null, null,
                 null, null, null, NOW, NOW);
     }

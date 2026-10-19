@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp, ArrowUpDown, Package, Plus, Search } from "lucide-react";
 import { isApiError } from "@/shared/api";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   Badge,
   Button,
@@ -57,7 +58,7 @@ const tdClass = "h-10 px-3 py-1.5 text-caption text-text-primary";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" });
 }
 
 export function SellerProductsPage() {

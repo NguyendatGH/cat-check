@@ -18,6 +18,7 @@
     "nearbyFound": "Có thêm {{count}} phòng khám thú y quanh bạn từ OpenStreetMap.",
     "nearbyNone": "Không tìm thấy thêm phòng khám thú y nào trong bán kính {{radius}} km trên OpenStreetMap.",
     "moreOnGoogle": "Tìm thêm quanh bạn trên Google Maps",
+    "googleSearchQuery": "phòng khám thú y",
     "nearbyError": "Chưa tra được phòng khám quanh bạn trên OpenStreetMap, đang hiển thị danh sách CatCheck."
   },
   "source": {

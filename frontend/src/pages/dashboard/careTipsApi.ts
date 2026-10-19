@@ -38,6 +38,7 @@ async function fetchCareTips(limit: number): Promise<CareTipSummary[]> {
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

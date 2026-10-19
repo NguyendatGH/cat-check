@@ -5,5 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 public record OtpRequestRequest(
         String email,
         @NotBlank String purpose,
-        String registrationToken) {
+        String registrationToken,
+        String locale) {
 }

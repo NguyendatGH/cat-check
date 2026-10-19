@@ -22,7 +22,7 @@ final class SvgTrendChartBuilder {
     record Point(LocalDate date, double phValue, boolean outOfRange) {
     }
 
-    static String build(List<Point> points) {
+    static String build(List<Point> points, DateTimeFormatter fmt) {
         if (points.isEmpty()) {
             return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + WIDTH + "\" height=\"" + HEIGHT + "\"></svg>";
         }
@@ -60,7 +60,6 @@ final class SvgTrendChartBuilder {
                     .append(String.format(Locale.US, "%.1f", tick)).append("</text>");
         }
 
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
         svg.append("<text x=\"").append(PAD_LEFT).append("\" y=\"").append(HEIGHT - 8)
                 .append("\" font-size=\"9\" fill=\"#374151\">").append(firstDate.format(fmt)).append("</text>");
         svg.append("<text x=\"").append(WIDTH - PAD_RIGHT - 30).append("\" y=\"").append(HEIGHT - 8)

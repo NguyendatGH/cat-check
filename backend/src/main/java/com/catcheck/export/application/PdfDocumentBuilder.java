@@ -1,53 +1,40 @@
 package com.catcheck.export.application;
 
+import com.catcheck.shared.i18n.MessageResolver;
+
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 final class PdfDocumentBuilder {
-
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy, HH:mm");
-
-    private static final String PDF_HEADER = """
-            <strong>Về tài liệu này.</strong> Đây là bản ghi do chủ nuôi tự thực hiện tại nhà bằng \
-            ứng dụng CatCheck, dựa trên quan sát màu của hạt chỉ thị trong cát vệ sinh. \
-            <strong>Đây không phải kết quả xét nghiệm của cơ sở thú y</strong> và không thay thế \
-            thăm khám lâm sàng hay xét nghiệm. Giá trị pH hiển thị là <strong>ước lượng từ ảnh \
-            chụp</strong>, có thể sai lệch do ánh sáng, thiết bị chụp và điều kiện môi trường. \
-            Việc gán kết quả cho từng cá thể mèo do <strong>chủ nuôi tự thực hiện</strong>; hệ \
-            thống không tự nhận diện được con mèo nào đã sử dụng khay.""";
-
-    private static final String EMERGENCY_TITLE = "⚠️ Những dấu hiệu cần đi thú y NGAY — đừng chờ theo dõi thêm";
-    private static final String EMERGENCY_BODY = """
-            Hãy đưa bé đến cơ sở thú y <strong>ngay lập tức</strong> nếu bạn thấy: bé <strong>rặn \
-            nhiều nhưng không ra nước tiểu</strong> hoặc chỉ ra vài giọt; bé <strong>kêu, gào, tỏ ra \
-            đau</strong> khi đi vệ sinh; bé <strong>ra vào khay liên tục</strong> mà khay vẫn khô; \
-            nước tiểu <strong>có máu</strong>; bé <strong>bỏ ăn, nôn, nằm li bì, bụng căng \
-            cứng</strong>. Tắc nghẽn đường tiểu là <strong>tình trạng cấp cứu</strong> và có thể \
-            nguy hiểm đến tính mạng <strong>trong vòng 24-48 giờ</strong>. Trong những trường hợp \
-            này, <strong>đừng dùng CatCheck để chờ theo dõi thêm</strong> — hãy gọi cho phòng khám \
-            thú y gần nhất.""";
-
-    private static final String PDF_FOOTER_LINE1 = "CatCheck — dữ liệu theo dõi tại nhà, mang tính "
-            + "tham khảo. Không phải kết quả xét nghiệm. Không thay thế bác sĩ thú y.";
 
     static final String SECTION_TREND = "TREND";
     static final String SECTION_SCAN_LOG = "SCAN_LOG";
     static final String SECTION_PROFILE = "PROFILE";
 
-    private PdfDocumentBuilder() {
+    private final MessageResolver messages;
+    private final Locale locale;
+    private final DateTimeFormatter dateFmt;
+    private final DateTimeFormatter dateTimeFmt;
+
+    PdfDocumentBuilder(MessageResolver messages, Locale locale) {
+        this.messages = messages;
+        this.locale = locale;
+        String datePattern = t("export.pdf.date_pattern");
+        this.dateFmt = DateTimeFormatter.ofPattern(datePattern, locale);
+        this.dateTimeFmt = DateTimeFormatter.ofPattern(datePattern + ", HH:mm", locale);
     }
 
-    static String build(ExportRenderData data) {
+    String build(ExportRenderData data) {
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><style>").append(css()).append("</style></head><body>");
 
         html.append("<div id=\"pdf-footer\">")
-                .append("<div class=\"footer-line1\">").append(PDF_FOOTER_LINE1)
-                .append(" | Xuất ngày ").append(escape(data.generatedAtLocal().format(DATE_FMT)))
+                .append("<div class=\"footer-line1\">").append(t("export.pdf.footer.disclaimer"))
+                .append(" | ").append(escape(t("export.pdf.footer.exported", data.generatedAtLocal().format(dateFmt))))
                 .append(" | ").append(escape(data.documentCode())).append("</div>")
-                .append("<div class=\"footer-line2\"><span>Trang <span class=\"page-number\"></span></span>"
-                        + "<span>Mã tài liệu: ").append(escape(data.documentCode())).append("</span>"
+                .append("<div class=\"footer-line2\"><span>").append(t("export.pdf.footer.page")).append("</span>"
+                        + "<span>").append(escape(t("export.pdf.doc_code", data.documentCode()))).append("</span>"
                         + "<span>CatCheck · catcheck.petcare@gmail.com · (+84) 842551312</span></div>")
                 .append("</div>");
 
@@ -68,45 +55,49 @@ final class PdfDocumentBuilder {
         return html.toString();
     }
 
-    private static String buildCover(ExportRenderData d) {
+    private String buildCover(ExportRenderData d) {
         return """
                 <section class="cover">
                   <div class="cover-header">
                     <span class="logo">CatCheck</span>
-                    <span class="doc-code">Mã tài liệu: %s</span>
+                    <span class="doc-code">%s</span>
                   </div>
-                  <h1>HỒ SƠ THEO DÕI SỨC KHỎE TIẾT NIỆU</h1>
+                  <h1>%s</h1>
                   <p class="subtitle">(CatCheck)</p>
                   <table class="cover-table">
-                    <tr><td class="label">Mèo</td><td>%s</td></tr>
-                    %s<tr><td class="label">Chủ nuôi</td><td>%s</td></tr>
-                    <tr><td class="label">Khoảng thời gian</td><td>%s – %s</td></tr>
-                    <tr><td class="label">Ngày xuất báo cáo</td><td>%s (giờ Việt Nam)</td></tr>
+                    <tr><td class="label">%s</td><td>%s</td></tr>
+                    %s<tr><td class="label">%s</td><td>%s</td></tr>
+                    <tr><td class="label">%s</td><td>%s – %s</td></tr>
+                    <tr><td class="label">%s</td><td>%s</td></tr>
                   </table>
                 </section>
                 """.formatted(
-                escape(d.documentCode()), escape(d.catName()), buildProfileRows(d),
-                escape(nullToDash(d.ownerName())),
-                d.rangeFrom().format(DATE_FMT), d.rangeTo().format(DATE_FMT),
-                d.generatedAtLocal().format(DATETIME_FMT));
+                escape(t("export.pdf.doc_code", d.documentCode())), t("export.pdf.cover.title"),
+                t("export.pdf.cover.cat"), escape(d.catName()), buildProfileRows(d),
+                t("export.pdf.cover.owner"), escape(nullToDash(d.ownerName())),
+                t("export.pdf.cover.range"), d.rangeFrom().format(dateFmt), d.rangeTo().format(dateFmt),
+                t("export.pdf.cover.generated"),
+                t("export.pdf.cover.generated_at", d.generatedAtLocal().format(dateTimeFmt)));
     }
 
     /** Hàng hồ sơ chi tiết của mèo trên bìa — chỉ khi user chọn khối PROFILE (M22). */
-    private static String buildProfileRows(ExportRenderData d) {
+    private String buildProfileRows(ExportRenderData d) {
         if (!d.includes(SECTION_PROFILE)) {
             return "";
         }
         return """
-                <tr><td class="label">Giống</td><td>%s</td></tr>
-                <tr><td class="label">Giới tính</td><td>%s</td></tr>
-                <tr><td class="label">Tuổi</td><td>%s</td></tr>
-                <tr><td class="label">Cân nặng</td><td>%s</td></tr>
+                <tr><td class="label">%s</td><td>%s</td></tr>
+                <tr><td class="label">%s</td><td>%s</td></tr>
+                <tr><td class="label">%s</td><td>%s</td></tr>
+                <tr><td class="label">%s</td><td>%s</td></tr>
                 """.formatted(
-                escape(nullToDash(d.breedLabel())), escape(nullToDash(d.sexLabel())),
-                escape(nullToDash(d.ageLabel())), escape(nullToDash(d.weightLabel())));
+                t("export.pdf.profile.breed"), escape(nullToDash(d.breedLabel())),
+                t("export.pdf.profile.sex"), escape(nullToDash(d.sexLabel())),
+                t("export.pdf.profile.age"), escape(nullToDash(d.ageLabel())),
+                t("export.pdf.profile.weight"), escape(nullToDash(d.weightLabel())));
     }
 
-    private static String buildDisclaimerBlock() {
+    private String buildDisclaimerBlock() {
         return """
                 <section class="disclaimer-block">
                   <div class="disclaimer-header"><span class="icon">ⓘ</span> %s</div>
@@ -116,32 +107,35 @@ final class PdfDocumentBuilder {
                   </div>
                 </section>
                 <div style="page-break-after: always;"></div>
-                """.formatted(PDF_HEADER, EMERGENCY_TITLE, EMERGENCY_BODY);
+                """.formatted(t("export.pdf.header"), t("export.pdf.emergency.title"), t("export.pdf.emergency.body"));
     }
 
-    private static String buildSummary(ExportRenderData d) {
+    private String buildSummary(ExportRenderData d) {
         String outOfRangeLine = d.nearBoundaryCount() > 0
-                ? "%d lần ngoài khoảng tham chiếu, ngoài ra %d lần sát ranh giới".formatted(d.outOfRangeCount(), d.nearBoundaryCount())
-                : "%d lần ngoài khoảng tham chiếu".formatted(d.outOfRangeCount());
+                ? t("export.pdf.summary.out_of_range_near", d.outOfRangeCount(), d.nearBoundaryCount())
+                : t("export.pdf.summary.out_of_range", d.outOfRangeCount());
         return """
                 <section class="summary">
-                  <h2>Tóm tắt</h2>
-                  <p>%d lần đo trong %d ngày. pH dao động %s–%s, trung vị %s. %s.</p>
+                  <h2>%s</h2>
+                  <p>%s</p>
                 </section>
-                """.formatted(d.validCount(), java.time.temporal.ChronoUnit.DAYS.between(d.rangeFrom(), d.rangeTo()) + 1,
-                nullToDash(str(d.minPh())), nullToDash(str(d.maxPh())), nullToDash(str(d.medianPh())), outOfRangeLine);
+                """.formatted(t("export.pdf.summary.title"),
+                t("export.pdf.summary.body", d.validCount(),
+                        java.time.temporal.ChronoUnit.DAYS.between(d.rangeFrom(), d.rangeTo()) + 1,
+                        nullToDash(str(d.minPh())), nullToDash(str(d.maxPh())), nullToDash(str(d.medianPh())),
+                        outOfRangeLine));
     }
 
-    private static String buildChart(ExportRenderData d) {
+    private String buildChart(ExportRenderData d) {
         return """
                 <section class="chart-section">
-                  <h2>Biểu đồ pH theo thời gian</h2>
+                  <h2>%s</h2>
                   %s
                 </section>
-                """.formatted(d.svgChart());
+                """.formatted(t("export.pdf.chart.title"), d.svgChart());
     }
 
-    private static String buildTable(ExportRenderData d) {
+    private String buildTable(ExportRenderData d) {
         String rows = d.scans().stream().map(row -> """
                 <tr>
                   <td>%s</td>
@@ -154,66 +148,67 @@ final class PdfDocumentBuilder {
                         escape(row.capturedAtLabel()),
                         nullToDash(str(row.phValue())),
                         escape(row.classificationSymbol()), escape(row.classificationLabel()),
-                        row.disputed() ? " <span class=\"disputed\">(chủ nuôi cho là không chính xác)</span>" : "",
+                        row.disputed() ? " <span class=\"disputed\">" + t("export.pdf.table.disputed") + "</span>" : "",
                         escape(row.confidenceLabel()),
                         row.qualityFlagLabel() == null ? "—" : escape(row.qualityFlagLabel())))
                 .collect(Collectors.joining());
 
         return """
                 <section class="table-section">
-                  <h2>Bảng chi tiết từng lần đo</h2>
+                  <h2>%s</h2>
                   <table class="scan-table">
-                    <thead><tr><th>Ngày giờ</th><th>pH</th><th>Phân loại</th><th>Độ tin cậy</th><th>Cảnh báo chất lượng</th></tr></thead>
+                    <thead><tr><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th></tr></thead>
                     <tbody>%s</tbody>
                   </table>
                 </section>
-                """.formatted(rows);
+                """.formatted(t("export.pdf.table.title"), t("export.pdf.table.date_time"), t("export.pdf.table.ph"),
+                t("export.pdf.table.classification"), t("export.pdf.table.confidence"), t("export.pdf.table.quality"),
+                rows);
     }
 
-    private static String buildFlags(ExportRenderData d) {
+    private String buildFlags(ExportRenderData d) {
         if (d.flags().isEmpty()) {
             return "";
         }
         String items = d.flags().stream().map(f -> "<li>" + escape(f.explanationVi()) + "</li>").collect(Collectors.joining());
         return """
                 <section class="flags-section">
-                  <h2>Dấu hiệu hệ thống đã đánh dấu</h2>
+                  <h2>%s</h2>
                   <ul>%s</ul>
                 </section>
-                """.formatted(items);
+                """.formatted(t("export.pdf.flags.title"), items);
     }
 
-    private static String buildMethodology(ExportRenderData d) {
+    private String buildMethodology(ExportRenderData d) {
         String conditionalLine = d.anyNonCardCcm()
-                ? "<p><em>Một số lần đo trong kỳ được thực hiện không có thẻ tham chiếu trong khung "
-                        + "hình; những lần đó có độ tin cậy thấp hơn và được đánh dấu ở cột \"Cảnh báo "
-                        + "chất lượng\".</em></p>"
+                ? "<p><em>" + t("export.pdf.methodology.no_card_note") + "</em></p>"
                 : "";
+        String chartVersion = d.chartVersionSnapshot() == null
+                ? t("export.pdf.methodology.uncalibrated")
+                : String.valueOf(d.chartVersionSnapshot());
         return """
                 <section class="methodology">
-                  <h2>Phương pháp đo</h2>
-                  <p>Chủ nuôi chụp ảnh vùng cát đổi màu sau khi mèo đi vệ sinh, cùng khung hình với \
-                  thẻ màu tham chiếu in kèm bao bì CatCheck. Hệ thống hiệu chỉnh màu theo thẻ tham \
-                  chiếu (khi có), đối chiếu màu hạt chỉ thị với bảng ánh xạ màu → pH (phiên bản %s), \
-                  rồi ước lượng giá trị pH.</p>
+                  <h2>%s</h2>
+                  <p>%s</p>
                   %s
-                  <p><strong>Giới hạn của phương pháp:</strong></p>
+                  <p><strong>%s</strong></p>
                   <ul>
-                    <li>Đây là ước lượng qua màu sắc quan sát bằng camera điện thoại, không phải phép \
-                    đo hoá học trực tiếp như que thử pH hoặc xét nghiệm nước tiểu tại phòng thí nghiệm.</li>
-                    <li>Kết quả phụ thuộc điều kiện ánh sáng, góc chụp, và việc đặt đúng thẻ màu tham \
-                    chiếu trong khung hình lúc chụp.</li>
-                    <li>Hệ thống chỉ đo pH, không phát hiện máu, protein, tinh thể hay các thành phần \
-                    khác trong nước tiểu.</li>
-                    <li>Hệ thống không tự xác định con mèo nào vừa đi vệ sinh — độ tin cậy của dữ liệu \
-                    phụ thuộc vào việc chủ nuôi gắn đúng kết quả cho đúng con mèo.</li>
-                    <li>Khoảng tham chiếu 6,3–6,6 áp dụng cho pH nước tiểu mèo khoẻ mạnh nói chung; \
-                    từng cá thể có thể có mức nền khác nhau, bác sĩ nên đối chiếu với bệnh sử riêng \
-                    của mèo.</li>
+                    <li>%s</li>
+                    <li>%s</li>
+                    <li>%s</li>
+                    <li>%s</li>
+                    <li>%s</li>
                   </ul>
                 </section>
-                """.formatted(d.chartVersionSnapshot() == null ? "chưa hiệu chuẩn (placeholder)" : d.chartVersionSnapshot(),
-                conditionalLine);
+                """.formatted(t("export.pdf.methodology.title"), t("export.pdf.methodology.intro", chartVersion),
+                conditionalLine, t("export.pdf.methodology.limits_title"),
+                t("export.pdf.methodology.limit1"), t("export.pdf.methodology.limit2"),
+                t("export.pdf.methodology.limit3"), t("export.pdf.methodology.limit4"),
+                t("export.pdf.methodology.limit5"));
+    }
+
+    private String t(String code, Object... args) {
+        return messages.resolve(code, args, locale);
     }
 
     private static String css() {

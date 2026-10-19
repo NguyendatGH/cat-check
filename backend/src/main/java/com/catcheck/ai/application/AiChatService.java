@@ -40,7 +40,12 @@ public class AiChatService {
             + "Mỗi ý lấy từ tài liệu phải kèm trích dẫn [1], [2] theo danh sách nguồn. "
             + "Không yêu cầu hoặc lặp lại email/số điện thoại của người dùng.";
 
-    // Mẫu khẩn cấp do thú y duyệt chỉ có bản tiếng Việt, không dịch máy (tools/check-message-key-parity.py).
+    // CONTEXT là tiếng Việt nên không có dòng này mô hình sẽ trả lời tiếng Việt cho cả người dùng tiếng Anh.
+    private static final String ANSWER_LANGUAGE_VI = " Luôn trả lời bằng tiếng Việt.";
+    private static final String ANSWER_LANGUAGE_EN =
+            " Always answer in English, even if CONTEXT is in Vietnamese, and keep the [1], [2] citation markers.";
+
+    // Mẫu khẩn cấp do thú y duyệt chỉ có bản tiếng Việt, không dịch máy (MessageBundleParityTest).
     private static final Locale EMERGENCY_LOCALE = Locale.forLanguageTag("vi");
 
     // Tối đa 3 chữ số: không bao giờ có hơn 12 nguồn, và parseInt không tràn với output bất thường.
@@ -198,7 +203,8 @@ public class AiChatService {
         String catContextBlock = catContext.map(CatContextPresenter::renderContext).filter(block -> !block.isBlank())
                 .orElse(null);
         List<Map<String, String>> prompt = new ArrayList<>();
-        prompt.add(Map.of("role", "system", "content", SYSTEM_PROMPT));
+        prompt.add(Map.of("role", "system", "content",
+                SYSTEM_PROMPT + ("en".equalsIgnoreCase(requestedLocale) ? ANSWER_LANGUAGE_EN : ANSWER_LANGUAGE_VI)));
         for (String[] item : history) {
             prompt.add(Map.of("role", item[0].equals("USER") ? "user" : "assistant",
                     "content", AiPromptRedactor.redact(item[1])));

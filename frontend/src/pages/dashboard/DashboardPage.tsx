@@ -42,6 +42,7 @@ import { ErrorState } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { formatDate } from "@/shared/lib/format/formatDate";
 import { formatRelative } from "@/shared/lib/format/formatRelative";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { useListReveal } from "@/shared/lib/motion/usePageReveal";
 
 const WEB_RANGES: TrendRange[] = ["7D", "30D", "90D"];
@@ -251,7 +252,7 @@ export function DashboardPage() {
       .join(" • ");
 
   const introText = (() => {
-    const names = new Intl.ListFormat("vi", { style: "long", type: "conjunction" }).format(cats.map((c) => c.name));
+    const names = new Intl.ListFormat(intlLocale(), { style: "long", type: "conjunction" }).format(cats.map((c) => c.name));
     const wish =
       cats.length > 0
         ? t("dashboardWeb.introWish", { ns: "common", names })

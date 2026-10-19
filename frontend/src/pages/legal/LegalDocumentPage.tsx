@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { EmptyState, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { usePolicyCurrent } from "./hooks";
 import { extractMarkdownHeadings, renderMarkdown, stripLeadingTitle } from "./markdown";
 import { DocumentToc, LEGAL_ASIDE, LEGAL_ASIDE_CARD, LEGAL_COLUMN, LEGAL_SHELL, LEGAL_SPLIT } from "./shell";
@@ -47,7 +48,7 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
   const headings = body ? extractMarkdownHeadings(body) : [];
   const versionLine = t("document.versionBanner", {
     version: data.version,
-    date: new Date(data.effectiveFrom).toLocaleDateString("vi-VN"),
+    date: new Date(data.effectiveFrom).toLocaleDateString(intlLocale()),
   });
   const versionsHref = `/legal/${policyCode.toLowerCase()}/versions`;
 

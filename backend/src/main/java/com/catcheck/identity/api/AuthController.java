@@ -139,7 +139,7 @@ public class AuthController {
         AuthRequestContext context = context(httpRequest);
         OtpPurpose purpose = OtpPurpose.valueOf(request.purpose());
         OtpService.OtpRequestResult result = otpService.requestOtp(
-                request.email(), purpose, otpOwner(purpose, request.email(), principal), context);
+                request.email(), purpose, otpOwner(purpose, request.email(), principal), request.locale(), context);
         return Map.of(
                 "otpExpiresAt", result.expiresAt().toString(),
                 "canResendInSeconds", result.ttlSeconds(),

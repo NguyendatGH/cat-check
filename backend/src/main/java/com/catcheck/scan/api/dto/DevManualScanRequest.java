@@ -12,9 +12,9 @@ import java.util.List;
 public record DevManualScanRequest(
         String catId,
         String assignment,
-        @NotNull(message = "capturedAt là bắt buộc") Instant capturedAt,
-        @DecimalMin(value = "3.0", message = "pH phải >= 3.0")
-        @DecimalMax(value = "11.0", message = "pH phải <= 11.0")
+        @NotNull(message = "{validation.scan.capturedAt.required}") Instant capturedAt,
+        @DecimalMin(value = "3.0", message = "{validation.scan.ph.min}")
+        @DecimalMax(value = "11.0", message = "{validation.scan.ph.max}")
         BigDecimal phValue,
         String classification,
         @DecimalMin(value = "0.0") @DecimalMax(value = "1.0") BigDecimal confidence,

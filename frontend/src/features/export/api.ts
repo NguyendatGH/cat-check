@@ -42,6 +42,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
+      // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -54,7 +55,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 }
 
 export function requestExport(payload: ExportRequestPayload): Promise<ExportJob> {
-  return apiFetch<ExportJob>("/exports", { method: "POST", body: JSON.stringify(payload) });
+  // PDF theo ngôn ngữ đang hiển thị, không theo hồ sơ (có thể lệch khi lưu hồ sơ lỗi).
+  return apiFetch<ExportJob>("/exports", {
+    method: "POST",
+    body: JSON.stringify({ locale: currentAcceptLanguage(), ...payload }),
+  });
 }
 
 export function listExports(cursor?: string | null): Promise<ExportJobPage> {

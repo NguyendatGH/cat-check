@@ -18,6 +18,7 @@
     "nearbyFound": "Found {{count}} more vet clinics near you from OpenStreetMap.",
     "nearbyNone": "No additional vet clinics found within {{radius}} km on OpenStreetMap.",
     "moreOnGoogle": "Find more near you on Google Maps",
+    "googleSearchQuery": "veterinary clinic",
     "nearbyError": "Couldn't look up clinics near you on OpenStreetMap; showing the CatCheck list."
   },
   "source": {

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { AlertTriangle, BellRing, Check, Laptop, Loader2, Smartphone, Trash2 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { isApiError } from "@/shared/api";
 import { Switch } from "@/shared/ui";
 import {
@@ -99,7 +100,7 @@ function DeviceRow({
           {t(`push.platforms.${device.platform}`)}
           {device.lastSeenAt == null
             ? ""
-            : ` · ${t("push.devices.lastSeen", { date: new Date(device.lastSeenAt).toLocaleDateString("vi-VN") })}`}
+            : ` · ${t("push.devices.lastSeen", { date: new Date(device.lastSeenAt).toLocaleDateString(intlLocale()) })}`}
         </span>
       </span>
       <button
@@ -172,6 +173,7 @@ export function PushDevicesCard({ className }: { className?: string }) {
           setLocalId(null);
         }
       } catch {
+        // Lỗi thu hồi hiển thị qua revoke.error (mutationError) bên dưới.
       } finally {
         setBusy(false);
       }

@@ -18,6 +18,8 @@
   },
   "stepper": {
     "label": "Step {{current}} of {{total}}",
+    "optionalTag": "Optional",
+    "optionalHint": "Optional steps can be skipped and completed later.",
     "steps": {
       "cat": "Cat profile",
       "healthSurvey": "Health",

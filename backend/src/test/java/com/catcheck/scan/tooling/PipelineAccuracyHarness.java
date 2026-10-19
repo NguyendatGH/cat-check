@@ -27,6 +27,9 @@ import java.util.TreeMap;
 
 public final class PipelineAccuracyHarness {
 
+    /** Màu cát nền mà pipeline cân bằng trắng hướng tới (khớp seed litter_substrate_profile ở V9). */
+    static final Lab REFERENCE_SUBSTRATE_LAB = new Lab(66.814, 3.154, 10.461);
+
     private PipelineAccuracyHarness() {
     }
 
@@ -124,7 +127,7 @@ public final class PipelineAccuracyHarness {
         ChartCatalog chartCatalog = LocalDbChartCatalog.fromSystemPropertiesOrLocalDefaults();
         CardLayoutCatalog cardLayoutCatalog = code -> Optional.empty();
         var substrateProfileCatalog = (com.catcheck.scan.domain.color.SubstrateProfileCatalog)
-                (line, batch) -> Optional.of(new Lab(66.814, 3.154, 10.461));
+                (line, batch) -> Optional.of(REFERENCE_SUBSTRATE_LAB);
         ColorPipelineService pipeline = new ColorPipelineService(
                 rawImagePort, visionEngine, chartCatalog, cardLayoutCatalog,
                 substrateProfileCatalog, Clock.systemUTC());

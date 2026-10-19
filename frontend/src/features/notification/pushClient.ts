@@ -143,6 +143,7 @@ export async function unregisterThisDevice(): Promise<void> {
     if (!app || !(await isSupported())) return;
     await unregister(getMessaging(app));
   } catch {
+    // Best-effort: subscription phía server đã bị thu hồi, lỗi gỡ ở trình duyệt không chặn việc tắt.
   }
 }
 
@@ -161,5 +162,6 @@ export function writeLocalSubscriptionId(subscriptionId: string | null): void {
     if (subscriptionId === null) localStorage.removeItem(LOCAL_SUBSCRIPTION_KEY);
     else localStorage.setItem(LOCAL_SUBSCRIPTION_KEY, subscriptionId);
   } catch {
+    // localStorage bị chặn (chế độ riêng tư): chỉ mất phần ghi nhớ thiết bị này.
   }
 }

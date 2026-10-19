@@ -88,6 +88,9 @@ public class PolicyVersionAdminService {
         if (contentMd == null && contentUrl == null) {
             throw new BusinessRuleException(AdminPolicyErrorCode.POLICY_VERSION_INVALID, "contentMd");
         }
+        if (contentUrl != null && !isSafeContentUrl(contentUrl)) {
+            throw new BusinessRuleException(AdminPolicyErrorCode.POLICY_VERSION_INVALID, "contentUrl");
+        }
         Instant now = clock.instant();
         if (effectiveFrom == null || !effectiveFrom.isAfter(now)) {
             throw new BusinessRuleException(AdminPolicyErrorCode.POLICY_VERSION_INVALID, "effectiveFrom");
@@ -203,5 +206,11 @@ public class PolicyVersionAdminService {
 
     public record PolicyAdminAction(UUID actorId, String actorRole, String reason,
                                     String requestId, String ipAddress, String userAgent) {
+    }
+
+    // contentUrl được render thành <a href> trên trang pháp lý công khai: chỉ nhận https:// hoặc đường
+    // dẫn cùng site, để không lưu được "javascript:..." (XSS khi người dùng bấm link).
+    private static boolean isSafeContentUrl(String url) {
+        return !url.contains("\\") && (url.startsWith("https://") || (url.startsWith("/") && !url.startsWith("//")));
     }
 }

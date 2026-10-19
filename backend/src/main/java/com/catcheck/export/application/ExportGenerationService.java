@@ -7,6 +7,7 @@ import com.catcheck.export.domain.port.ReportStorage;
 import com.catcheck.export.domain.port.SubjectSnapshotPort;
 import com.catcheck.insight.api.HealthFlagExportQuery;
 import com.catcheck.scan.api.ScanHistoryQuery;
+import com.catcheck.shared.i18n.MessageResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,7 +30,6 @@ import java.util.UUID;
 public class ExportGenerationService {
 
     private static final Logger log = LoggerFactory.getLogger(ExportGenerationService.class);
-    private static final DateTimeFormatter DATETIME_LABEL = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final ExportJobRepository jobRepository;
     private final SubjectSnapshotPort subjectSnapshotPort;
@@ -36,6 +37,7 @@ public class ExportGenerationService {
     private final HealthFlagExportQuery healthFlagExportQuery;
     private final PdfRenderer pdfRenderer;
     private final ReportStorage reportStorage;
+    private final MessageResolver messages;
     private final Clock clock;
 
     public ExportGenerationService(
@@ -45,6 +47,7 @@ public class ExportGenerationService {
             HealthFlagExportQuery healthFlagExportQuery,
             PdfRenderer pdfRenderer,
             ReportStorage reportStorage,
+            MessageResolver messages,
             Clock clock) {
         this.jobRepository = jobRepository;
         this.subjectSnapshotPort = subjectSnapshotPort;
@@ -52,6 +55,7 @@ public class ExportGenerationService {
         this.healthFlagExportQuery = healthFlagExportQuery;
         this.pdfRenderer = pdfRenderer;
         this.reportStorage = reportStorage;
+        this.messages = messages;
         this.clock = clock;
     }
 
@@ -65,9 +69,10 @@ public class ExportGenerationService {
         job.markRunning();
         jobRepository.save(job);
 
+        Locale locale = Locale.forLanguageTag(job.getLocale());
         try {
-            ExportRenderData data = gatherData(job);
-            String html = PdfDocumentBuilder.build(data);
+            ExportRenderData data = gatherData(job, locale);
+            String html = new PdfDocumentBuilder(messages, locale).build(data);
             PdfRenderer.Result rendered = pdfRenderer.render(html);
 
             ReportStorage.Stored stored = reportStorage.put(job.getDocumentCode(), rendered.bytes());
@@ -77,24 +82,22 @@ public class ExportGenerationService {
             jobRepository.save(job);
         } catch (Exception ex) {
             log.error("export_job {} that bai: {}", jobId, ex.getMessage());
-            job.markFailed(friendlyFailureReason(ex), clock.instant());
+            job.markFailed(messages.resolve("export.pdf.failure.generic", locale), clock.instant());
             jobRepository.save(job);
         }
     }
 
     public void markRejected(UUID jobId, Instant now) {
         jobRepository.findById(jobId).ifPresent(job -> {
-            job.markFailed("He thong dang ban. Ban thu tao lai sau it phut nhe.", now);
+            job.markFailed(messages.resolve("export.pdf.failure.busy", Locale.forLanguageTag(job.getLocale())), now);
             jobRepository.save(job);
         });
     }
 
-    private String friendlyFailureReason(Exception ex) {
-        return "Co loi khi sinh bao cao. Ban thu tao lai nhe.";
-    }
-
-    private ExportRenderData gatherData(ExportJob job) {
+    private ExportRenderData gatherData(ExportJob job, Locale locale) {
         ZoneId zone = ZoneId.of(job.getTimezone());
+        DateTimeFormatter dateTimeLabel = DateTimeFormatter.ofPattern(
+                messages.resolve("export.pdf.date_pattern", locale) + " HH:mm", locale);
         // M23: ranh giới ngày theo múi giờ của job (cùng múi giờ dùng cho nhãn), không phải UTC.
         Instant fromInstant = job.getRangeFrom().atStartOfDay(zone).toInstant();
         Instant toInstant = job.getRangeTo().plusDays(1).atStartOfDay(zone).toInstant();
@@ -116,11 +119,11 @@ public class ExportGenerationService {
         Integer chartVersionSnapshot = null;
 
         List<ExportRenderData.ScanRow> scanRows = scans.stream().map(s -> new ExportRenderData.ScanRow(
-                LocalDateTime.ofInstant(s.capturedAt(), zone).format(DATETIME_LABEL),
+                LocalDateTime.ofInstant(s.capturedAt(), zone).format(dateTimeLabel),
                 s.phValue(),
                 symbolFor(s.classification()),
-                labelFor(s.classification()),
-                confidenceLabel(s.confidence()),
+                labelFor(s.classification(), locale),
+                confidenceLabel(s.confidence(), locale),
                 s.qualityFlagCodes().isEmpty() ? null : String.join(", ", s.qualityFlagCodes()),
                 s.disputed(),
                 s.imageAvailable())).toList();
@@ -133,7 +136,8 @@ public class ExportGenerationService {
                         s.phValue().doubleValue(),
                         !"IN_RANGE".equals(s.classification()) && !s.nearBoundary()))
                 .toList();
-        String svgChart = SvgTrendChartBuilder.build(points);
+        String svgChart = SvgTrendChartBuilder.build(points,
+                DateTimeFormatter.ofPattern(messages.resolve("export.pdf.chart.date_pattern", locale), locale));
 
         List<ExportRenderData.FlagRow> flagRows = flags.stream()
                 .map(f -> new ExportRenderData.FlagRow(f.ruleCode(), f.severity(), f.explanationVi(), f.triggeredAt()))
@@ -143,8 +147,8 @@ public class ExportGenerationService {
                 job.getDocumentCode(),
                 cat.name(),
                 cat.breedLabel(),
-                sexLabel(cat.sex()),
-                ageLabel(cat),
+                sexLabel(cat.sex(), locale),
+                ageLabel(cat, locale),
                 cat.weightKg() == null ? null : cat.weightKg() + " kg",
                 owner.map(SubjectSnapshotPort.OwnerProfile::fullName).orElse(null),
                 job.getRangeFrom(),
@@ -176,46 +180,48 @@ public class ExportGenerationService {
         };
     }
 
-    private String labelFor(String classification) {
-        return switch (classification) {
-            case "IN_RANGE" -> "Trong khoảng tham chiếu";
-            case "SLIGHTLY_HIGH" -> "Hơi cao (thiên kiềm)";
-            case "SLIGHTLY_LOW" -> "Hơi thấp (thiên axit)";
-            case "HIGH" -> "Cao rõ rệt (thiên kiềm)";
-            case "LOW" -> "Thấp rõ rệt (thiên axit)";
-            default -> "Chưa đủ dữ liệu để kết luận";
-        };
+    private String labelFor(String classification, Locale locale) {
+        return messages.resolve(switch (classification) {
+            case "IN_RANGE" -> "export.pdf.classification.in_range";
+            case "SLIGHTLY_HIGH" -> "export.pdf.classification.slightly_high";
+            case "SLIGHTLY_LOW" -> "export.pdf.classification.slightly_low";
+            case "HIGH" -> "export.pdf.classification.high";
+            case "LOW" -> "export.pdf.classification.low";
+            default -> "export.pdf.classification.unknown";
+        }, locale);
     }
 
-    private String confidenceLabel(BigDecimal confidence) {
+    private String confidenceLabel(BigDecimal confidence, Locale locale) {
         if (confidence == null) {
             return "—";
         }
         double v = confidence.doubleValue();
         if (v >= 0.75) {
-            return "Cao";
+            return messages.resolve("export.pdf.confidence.high", locale);
         }
-        return v >= 0.40 ? "Trung bình" : "Thấp";
+        return messages.resolve(v >= 0.40 ? "export.pdf.confidence.medium" : "export.pdf.confidence.low", locale);
     }
 
-    private String sexLabel(String sex) {
+    private String sexLabel(String sex, Locale locale) {
         if (sex == null) {
             return null;
         }
-        return switch (sex) {
-            case "MALE" -> "Mèo đực";
-            case "FEMALE" -> "Mèo cái";
-            default -> "Chưa rõ";
-        };
+        return messages.resolve(switch (sex) {
+            case "MALE" -> "export.pdf.sex.male";
+            case "FEMALE" -> "export.pdf.sex.female";
+            default -> "export.pdf.sex.unknown";
+        }, locale);
     }
 
-    private String ageLabel(SubjectSnapshotPort.CatProfile cat) {
+    private String ageLabel(SubjectSnapshotPort.CatProfile cat, Locale locale) {
         if (cat.birthDate() != null) {
             Period period = Period.between(cat.birthDate(), clock.instant().atZone(ZoneOffset.UTC).toLocalDate());
-            return period.getYears() + " tuổi " + period.getMonths() + " tháng";
+            return messages.resolve("export.pdf.age.years_months",
+                    new Object[] {period.getYears(), period.getMonths()}, locale);
         }
         if (cat.approxAgeMonths() != null) {
-            return (cat.approxAgeMonths() / 12) + " tuổi " + (cat.approxAgeMonths() % 12) + " tháng (ước lượng)";
+            return messages.resolve("export.pdf.age.approx",
+                    new Object[] {cat.approxAgeMonths() / 12, cat.approxAgeMonths() % 12}, locale);
         }
         return null;
     }

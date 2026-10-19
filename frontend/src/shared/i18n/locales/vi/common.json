@@ -2,6 +2,7 @@
   "actions": {
     "back": "Quay lại",
     "cancel": "Huỷ",
+    "close": "Đóng",
     "continue": "Tiếp tục",
     "logout": "Đăng xuất",
     "retry": "Thử lại",

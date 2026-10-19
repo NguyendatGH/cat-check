@@ -465,7 +465,7 @@ function AdminMobileDrawer({ open, onOpenChange, groups, location, user, onNavig
             <SheetClose asChild>
               <button
                 type="button"
-                aria-label={t("actions.close", "Đóng")}
+                aria-label={t("actions.close")}
                 className="flex size-11 items-center justify-center rounded-md border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X size={17} aria-hidden="true" />

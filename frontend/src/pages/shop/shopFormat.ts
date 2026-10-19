@@ -1,4 +1,5 @@
 import type { CartApi, CartLineApi } from "@/features/shop";
+import { formatNumber } from "@/shared/lib/format/formatNumber";
 
 export const SHOP_PAYMENT_METHOD_IDS = ["COD", "MOMO", "BANK_TRANSFER"] as const;
 
@@ -30,7 +31,7 @@ export function cartSavings(cart: CartApi | undefined): number {
 }
 
 export function formatVnd(value: number): string {
-  return `${value.toLocaleString("vi-VN")}đ`;
+  return `${formatNumber(value)}đ`;
 }
 
 export function discountPercent(priceVnd: number, compareAtPriceVnd: number | null | undefined): number {

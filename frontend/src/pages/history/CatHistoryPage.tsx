@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import { Camera } from "lucide-react";
 import { Skeleton as AntSkeleton } from "antd";
 import { Button, EmptyState, ErrorState } from "@/shared/ui";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { CatAvatar, useFormatCatAge } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
 import { findBandForPh, usePhBands } from "@/entities/ph-bands";
@@ -34,7 +35,7 @@ import tipScanFrequency from "@/shared/assets/images/web-history/tip-scan-freque
 import { WebHistoryScreen } from "./webHistory";
 
 export function CatHistoryPage() {
-  const { t, i18n } = useTranslation(["history", "cat", "scan", "common"]);
+  const { t } = useTranslation(["history", "cat", "scan", "common"]);
   const { catId } = useParams<{ catId: string }>();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<HistoryFilterKey>("ALL");
@@ -76,6 +77,7 @@ export function CatHistoryPage() {
   }, [selectedDay, rangeStart]);
   const { data: summary } = useScanSummary(catId, summaryWindow.from, summaryWindow.to);
 
+  const locale = intlLocale();
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase();
     const bandLabel = new Map((bands ?? []).map((b) => [b.code, b.label.toLowerCase()]));
@@ -91,11 +93,11 @@ export function CatHistoryPage() {
         item.phValue?.toFixed(1),
         bandLabel.get(item.bandCode),
         item.catName?.toLowerCase(),
-        captured.toLocaleDateString(i18n.language || "vi"),
+        captured.toLocaleDateString(locale),
       ];
       return haystack.some((value) => value?.includes(query));
     });
-  }, [items, bands, selectedDay, rangeStart, search, i18n.language]);
+  }, [items, bands, selectedDay, rangeStart, search, locale]);
 
   const oldestLoaded = items.at(-1);
   const canLoadMore =

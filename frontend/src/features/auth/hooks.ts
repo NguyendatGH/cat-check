@@ -1,4 +1,5 @@
 import { useMutation, useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack/react-query";
+import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { apiFetch } from "./api";
 import type {
   ChangePasswordRequest,
@@ -45,7 +46,7 @@ export function useRegister(): UseMutationResult<RegisterResponse, Error, Regist
           password: payload.password,
           fullName: payload.fullName,
           referralCodeRaw: payload.referralCodeRaw || null,
-          locale: payload.locale ?? "vi",
+          locale: payload.locale ?? currentAcceptLanguage(),
           otpTicket: payload.otpTicket ?? null,
           consents: payload.consents ?? [],
         }),
@@ -58,7 +59,7 @@ export function useRequestOtp(): UseMutationResult<OtpRequestResponse, Error, { 
     mutationFn: ({ email, purpose }) =>
       apiFetch<OtpRequestResponse>("/auth/otp/request", {
         method: "POST",
-        body: JSON.stringify({ email, purpose }),
+        body: JSON.stringify({ email, purpose, locale: currentAcceptLanguage() }),
       }),
   });
 }

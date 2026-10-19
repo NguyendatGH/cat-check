@@ -2,6 +2,7 @@
   "actions": {
     "back": "Back",
     "cancel": "Cancel",
+    "close": "Close",
     "continue": "Continue",
     "logout": "Log out",
     "retry": "Try again",

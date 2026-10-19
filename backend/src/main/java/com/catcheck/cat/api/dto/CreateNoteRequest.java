@@ -7,8 +7,8 @@ import java.time.LocalDate;
 
 public record CreateNoteRequest(
         String noteType,
-        @NotBlank(message = "Nội dung ghi chú không được để trống")
-        @Size(max = 2000, message = "Ghi chú tối đa 2000 ký tự")
+        @NotBlank(message = "{validation.cat.note.required}")
+        @Size(max = 2000, message = "{validation.cat.note.max}")
         String body,
         LocalDate occurredOn
 ) {

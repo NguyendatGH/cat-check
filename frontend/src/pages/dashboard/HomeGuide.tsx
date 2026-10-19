@@ -37,6 +37,7 @@ export function HomeGuide({ catName, className }: HomeGuideProps) {
     try {
       localStorage.setItem(HOME_GUIDE_STORAGE_KEY, "true");
     } catch {
+      // localStorage bị chặn: vẫn ẩn hướng dẫn trong phiên này.
     }
     setIsDismissed(true);
   };

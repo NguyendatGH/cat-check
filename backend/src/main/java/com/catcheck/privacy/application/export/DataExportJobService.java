@@ -13,6 +13,7 @@ import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.PermissionDeniedException;
+import com.catcheck.shared.i18n.MessageResolver;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,6 +40,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
@@ -58,6 +60,7 @@ public class DataExportJobService {
     private final JdbcTemplate jdbc;
     private final AuditLogService auditLog;
     private final NotificationGateway notificationGateway;
+    private final MessageResolver messages;
     private final String webBaseUrl;
     private final TransactionTemplate transactionTemplate;
 
@@ -65,12 +68,12 @@ public class DataExportJobService {
                                 DsarExportStorage storage, DsarRequestPort requests,
                                 @Qualifier("dsarExportExecutor") TaskExecutor executor,
                                 Clock clock, JdbcTemplate jdbc, AuditLogService auditLog,
-                                NotificationGateway notificationGateway,
+                                NotificationGateway notificationGateway, MessageResolver messages,
                                 @Value("${catcheck.privacy.export.web-base-url:http://localhost:5173}") String webBaseUrl,
                                 PlatformTransactionManager transactionManager) {
         this.jobs = jobs; this.snapshot = snapshot; this.storage = storage; this.requests = requests;
         this.executor = executor; this.clock = clock; this.jdbc = jdbc; this.auditLog = auditLog;
-        this.notificationGateway = notificationGateway;
+        this.notificationGateway = notificationGateway; this.messages = messages;
         this.webBaseUrl = webBaseUrl == null ? "http://localhost:5173" : webBaseUrl.replaceAll("/+$", "");
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -147,7 +150,11 @@ public class DataExportJobService {
             DsarRequest request = requests.findById(requestId)
                     .filter(r -> r.requestType() == DsarRequestType.ACCESS_EXPORT && r.userId() != null)
                     .orElseThrow();
-            byte[] zip = archive(request.userId());
+            // Null (không có dòng) để TransactionalEmailRequest hạ về mặc định vi.
+            String locale = jdbc.queryForList("SELECT locale FROM app_user WHERE id=?", String.class,
+                    request.userId()).stream().findFirst().orElse(null);
+            Locale userLocale = Locale.forLanguageTag(locale == null ? "vi" : locale);
+            byte[] zip = archive(request.userId(), userLocale);
             String key = storage.put(request.publicRef(), zip);
             storedKey = key;
             var expiresAt = clock.instant().plus(Duration.ofHours(72));
@@ -162,9 +169,9 @@ public class DataExportJobService {
                 jdbc.update("UPDATE dsar_export_job SET status='COMPLETED', storage_key=?, expires_at=?, email_download_token_hash=?, last_error_code=NULL WHERE dsar_request_id=? AND status='RUNNING'", key, expiresAt, sha256(emailToken), requestId);
                 requests.update(completed);
                 notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
-                        request.contactEmail(), "PRIVACY_EXPORT_READY", "vi",
+                        request.contactEmail(), "PRIVACY_EXPORT_READY", locale,
                         java.util.Map.of("publicRef", request.publicRef(), "downloadUrl", downloadLink,
-                                "expiresAt", expiresAt.toString(), "attachments", "Không có tệp đính kèm."),
+                                "expiresAt", expiresAt.toString(), "attachments", messages.resolve("privacy.export.attachments.none", userLocale)),
                         "PRIVACY_EXPORT_READY:" + request.id()));
             });
         } catch (Exception ex) {
@@ -228,7 +235,7 @@ public class DataExportJobService {
         return cleaned;
     }
 
-    private byte[] archive(UUID userId) throws IOException {
+    private byte[] archive(UUID userId, Locale locale) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
             entry(zip, "profile.json", snapshot.profile(userId));
@@ -241,7 +248,7 @@ public class DataExportJobService {
             entry(zip, "notifications.json", jsonArray(snapshot.notifications(userId)));
             entry(zip, "orders.json", jsonArray(snapshot.orders(userId)));
             entry(zip, "ai_conversations.json", jsonArray(snapshot.aiMessages(userId)));
-            entry(zip, "README.vi.md", "# Gói dữ liệu cá nhân CatCheck\n\nGói này chứa thông tin hồ sơ, mèo, kết quả quét, credit, consent, thông báo, đơn hàng và lịch sử trò chuyện với trợ lý AI hiện có trong hệ thống. Ảnh đã hết hạn retention 14 ngày hoặc đã bị xoá không thể khôi phục và không có trong gói này. Nội dung do người khác tạo và dữ liệu cộng đồng không được xuất trong phiên bản hiện tại. Các số điện thoại được mã hoá ở hệ thống không được đưa ra dưới dạng ciphertext.\n");
+            entry(zip, "README." + locale.getLanguage() + ".md", messages.resolve("privacy.export.readme", locale));
         }
         return bytes.toByteArray();
     }

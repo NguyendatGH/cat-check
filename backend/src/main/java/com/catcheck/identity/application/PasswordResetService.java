@@ -88,7 +88,7 @@ public class PasswordResetService {
         }
 
         UserAccount user = account.get();
-        otpService.requestOtp(user.email().value(), OtpPurpose.PASSWORD_RESET, user.id(), context);
+        otpService.requestOtp(user.email().value(), OtpPurpose.PASSWORD_RESET, user.id(), null, context);
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(user.id())
                 .action("AUTH_PASSWORD_RESET_REQUEST")

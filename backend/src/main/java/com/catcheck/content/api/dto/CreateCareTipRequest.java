@@ -13,11 +13,11 @@ import java.util.List;
 public record CreateCareTipRequest(
         @NotBlank
         @Size(max = 120)
-        @Pattern(regexp = "[a-z0-9]+(-[a-z0-9]+)*", message = "slug phải là kebab-case chữ thường")
+        @Pattern(regexp = "[a-z0-9]+(-[a-z0-9]+)*", message = "{validation.content.slug.format}")
         String slug,
 
         @NotBlank
-        @Pattern(regexp = "vi|en", message = "locale chỉ nhận 'vi' hoặc 'en'")
+        @Pattern(regexp = "vi|en", message = "{validation.content.locale.invalid}")
         String locale,
 
         @NotNull CareTipKind kind,

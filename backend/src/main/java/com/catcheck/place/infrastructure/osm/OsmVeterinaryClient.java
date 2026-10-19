@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class OsmVeterinaryClient implements NearbyPlaceSource {
     public static final String ID_PREFIX = "osm:";
-    private static final String UNNAMED = "Phòng khám thú y (chưa rõ tên)";
     private static final List<String> ENDPOINTS = List.of(
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter");
@@ -115,7 +114,7 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
             Double plon = number(el.get("lon"), el.get("center"), "lon");
             String name = text(tags.get("name"));
             if (plat == null || plon == null) continue;
-            if (name == null) name = first(text(tags.get("operator")), text(tags.get("brand")), UNNAMED);
+            if (name == null) name = first(text(tags.get("operator")), text(tags.get("brand")));
             String phone = first(text(tags.get("phone")), text(tags.get("contact:phone")));
             String street = String.join(" ", nonNull(text(tags.get("addr:housenumber")), text(tags.get("addr:street"))));
             String area = first(text(tags.get("addr:suburb")), text(tags.get("addr:district")), text(tags.get("addr:city")));

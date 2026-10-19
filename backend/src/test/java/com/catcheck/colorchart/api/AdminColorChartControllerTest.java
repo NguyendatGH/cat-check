@@ -149,6 +149,19 @@ class AdminColorChartControllerTest {
     }
 
     @Test
+    void bandLabelFollowsABrowserAcceptLanguageWithQualityValues() throws Exception {
+        AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_CATALOG"));
+        Instant now = Instant.parse("2026-10-09T10:00:00Z");
+        Mockito.when(phBandService.listBands()).thenReturn(List.of(new PhClassificationBand(
+                UUID.randomUUID(), null, "NORMAL", null, null, true, true, "Binh thuong", "Normal", null, null,
+                BandSeverity.NORMAL, "color-ph-normal", "check-circle", false, 1, true, now, now)));
+
+        mockMvc.perform(get("/api/v1/admin/ph-classification-bands").header("Accept-Language", "en-US,en;q=0.9"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].label").value("Normal"));
+    }
+
+    @Test
     void inactiveBandIsResolvedByCodeForTheETagCheckAndAnUnknownCodeIsNotFound() throws Exception {
         AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_CATALOG"));
         Instant now = Instant.parse("2026-10-09T10:00:00Z");

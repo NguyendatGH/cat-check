@@ -13,10 +13,10 @@ public record CreatePolicyVersionRequest(
 
         @NotBlank
         @Pattern(regexp = "^\\d{1,4}\\.\\d{1,4}(\\.\\d{1,4})?$",
-                message = "version phải là semver MAJOR.MINOR[.PATCH]")
+                message = "{validation.privacy.version.format}")
         String version,
 
-        @Pattern(regexp = "^(vi|en)$", message = "locale chỉ nhận vi hoặc en") String locale,
+        @Pattern(regexp = "^(vi|en)$", message = "{validation.privacy.locale.invalid}") String locale,
 
         @NotBlank @Size(max = 300) String title,
 

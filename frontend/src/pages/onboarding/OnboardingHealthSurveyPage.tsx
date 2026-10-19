@@ -335,6 +335,7 @@ export function OnboardingHealthSurveyPage() {
       setStep(3);
       void navigate("/onboarding/disclaimer");
     } catch {
+      // Lỗi chưa được hiển thị: người dùng ở lại bước này và có thể gửi lại.
     }
   };
 
@@ -345,6 +346,7 @@ export function OnboardingHealthSurveyPage() {
     try {
       await submitSurvey.mutateAsync({ answers: surveyAnswers, skipped: true });
     } catch {
+      // Khảo sát là tuỳ chọn: bỏ qua thất bại vẫn cho đi tiếp.
     }
     setStep(3);
     void navigate("/onboarding/disclaimer");

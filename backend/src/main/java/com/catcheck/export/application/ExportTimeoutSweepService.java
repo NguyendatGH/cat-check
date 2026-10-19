@@ -2,24 +2,25 @@ package com.catcheck.export.application;
 
 import com.catcheck.export.domain.ExportJob;
 import com.catcheck.export.domain.port.ExportJobRepository;
+import com.catcheck.shared.i18n.MessageResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
 public class ExportTimeoutSweepService {
 
-    static final String TIMEOUT_REASON =
-            "Quá thời gian xử lý cho phép. Bạn thử tạo lại bản xuất nhé.";
-
     private final ExportJobRepository jobRepository;
+    private final MessageResolver messages;
 
-    public ExportTimeoutSweepService(ExportJobRepository jobRepository) {
+    public ExportTimeoutSweepService(ExportJobRepository jobRepository, MessageResolver messages) {
         this.jobRepository = jobRepository;
+        this.messages = messages;
     }
 
     @Transactional(readOnly = true)
@@ -38,7 +39,8 @@ public class ExportTimeoutSweepService {
                 .filter(ExportJob::isActive)
                 .filter(job -> job.getRequestedAt().isBefore(cutoff))
                 .map(job -> {
-                    job.markFailed(TIMEOUT_REASON, now);
+                    job.markFailed(
+                            messages.resolve("export.pdf.failure.timeout", Locale.forLanguageTag(job.getLocale())), now);
                     jobRepository.save(job);
                     return true;
                 })

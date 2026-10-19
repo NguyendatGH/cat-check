@@ -16,9 +16,11 @@ import com.catcheck.shared.job.JobRunPort;
 import com.catcheck.shared.job.JobRunStatus;
 import com.catcheck.shared.job.JobTriggerType;
 import com.catcheck.shared.job.application.JobRunRecorder;
+import com.catcheck.shared.i18n.MessageResolver;
 import com.catcheck.shared.job.application.JobRunner;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -29,6 +31,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,7 +54,7 @@ class SendDueRemindersJobTest {
     private final SendDueRemindersJob job = new SendDueRemindersJob(
             new JobRunner(new JobRunRecorder(jobRuns, new UuidV7(CLOCK), CLOCK),
                     properties(), new SimpleMeterRegistry(), CLOCK),
-            new DueReminderDispatcher(reminders, cats, gateway),
+            new DueReminderDispatcher(reminders, cats, gateway, messages()),
             properties());
 
     @Test
@@ -73,6 +76,26 @@ class SendDueRemindersJobTest {
                 java.time.LocalDate.of(2026, 10, 6).atTime(LocalTime.of(8, 0)).atZone(ICT).toInstant(),
                 reminders.byId(due.id()).nextRunAt());
         assertEquals(NOW, reminders.byId(due.id()).lastRunAt());
+    }
+
+    @Test
+    void titleAndBodyFollowTheRecipientLocale() {
+        gateway.locale = Locale.forLanguageTag("en");
+        reminders.add(scanRoutine(NOW.minusSeconds(60), NOW.minusSeconds(60)));
+        Instant lateDue = NOW.minus(Duration.ofHours(30));
+        reminders.add(scanRoutine(lateDue, lateDue.minus(Duration.ofDays(1))));
+
+        job.run();
+
+        NotificationRequest scanDue = gateway.requests.get(1);
+        assertEquals("REMINDER_SCAN_DUE", scanDue.templateCode());
+        assertEquals("Time for your routine scan", scanDue.title());
+        assertEquals("Mochi is due for a scan today.", scanDue.body());
+        NotificationRequest overdue = gateway.requests.get(0);
+        assertEquals("REMINDER_OVERDUE", overdue.templateCode());
+        assertEquals("Monitoring overdue", overdue.title());
+        assertEquals("Mochi has not been scanned on schedule. Scan now to avoid missing any changes.",
+                overdue.body());
     }
 
     @Test
@@ -213,6 +236,15 @@ class SendDueRemindersJobTest {
                 base.createdAt(), base.updatedAt());
     }
 
+    /** {@code MessageResolver} thật đọc {@code messages/notification_*.properties} THẬT. */
+    private static MessageResolver messages() {
+        ReloadableResourceBundleMessageSource source = new ReloadableResourceBundleMessageSource();
+        source.setBasenames("classpath:messages/notification");
+        source.setDefaultEncoding("UTF-8");
+        source.setUseCodeAsDefaultMessage(true);
+        return new MessageResolver(source);
+    }
+
     private static JobProperties properties() {
         JobProperties.JobSetting onlyThisJob =
                 new JobProperties.JobSetting(true, "0 */5 * * * *", Duration.ofSeconds(270), 200, 1_000, false);
@@ -346,6 +378,12 @@ class SendDueRemindersJobTest {
 
         final List<NotificationRequest> requests = new ArrayList<>();
         UUID failFor;
+        Locale locale = Locale.forLanguageTag("vi");
+
+        @Override
+        public Locale recipientLocale(UUID userId) {
+            return locale;
+        }
 
         @Override
         public boolean enqueue(NotificationRequest request) {

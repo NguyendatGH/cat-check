@@ -1030,7 +1030,7 @@
     "stripLabel": "Các ô màu và giá trị pH tương ứng",
     "tabBands": "Dải phân loại",
     "tabCharts": "Bảng màu",
-    "techHelp": "Giá trị Lab đo trên ô màu thật. Dung sai ΔE là độ lệch màu tối đa vẫn được coi là khớp ô này. Hex sRGB có thể để trống.",
+    "techHelp": "Lab tự tính từ Hex sRGB (hoặc Hex hiển thị) khi chưa nhập; nên thay bằng giá trị đo trên ô màu thật. Dung sai ΔE là độ lệch màu tối đa vẫn được coi là khớp ô này. Hex sRGB có thể để trống.",
     "techTitle": "Thông số đo màu (Lab, dung sai)",
     "usedByScans": "Máy quét đang dùng",
     "usedByScansHelp": "Mọi lượt quét hiện đọc pH bằng bảng này (bảng Đang dùng của dòng Tiêu chuẩn, không gắn lô).",

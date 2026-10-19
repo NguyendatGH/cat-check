@@ -11,7 +11,6 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,9 +36,7 @@ public class PublicColorChartController {
             description = "F1. Nguồn duy nhất cho PhGaugeBar/PhBadge (p9 §9.2.4). "
                     + "6 dải toàn cục từ ph_classification_band.")
     @GetMapping("/ph-bands")
-    public ResponseEntity<List<PhBandResponse>> listPhBands(
-            @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, defaultValue = "vi") String acceptLanguage) {
-        Locale locale = Locale.forLanguageTag(acceptLanguage);
+    public ResponseEntity<List<PhBandResponse>> listPhBands(Locale locale) {
         List<PhBandResponse> bands = queryService.findGlobalBands().stream()
                 .map(band -> PhBandResponse.from(band, locale.getLanguage()))
                 .toList();

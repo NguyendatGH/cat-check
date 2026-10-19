@@ -1,3 +1,4 @@
+import { formatNumber } from "@/shared/lib/format/formatNumber";
 import type { AdminProduct, AdminProductPayload, AdminProductStatus } from "./types";
 
 export interface ProductFormValues {
@@ -93,5 +94,5 @@ export function adminProductEtag(product: Pick<AdminProduct, "id" | "updatedAt">
 }
 
 export function formatProductVnd(value: number): string {
-  return `${value.toLocaleString("vi-VN")}đ`;
+  return `${formatNumber(value)}đ`;
 }

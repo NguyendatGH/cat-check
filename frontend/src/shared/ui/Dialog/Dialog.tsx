@@ -1,5 +1,6 @@
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { cn } from "../cn";
 
@@ -25,6 +26,7 @@ export const DialogContent = forwardRef<
   ComponentRef<typeof RadixDialog.Content>,
   ComponentPropsWithoutRef<typeof RadixDialog.Content> & { hideCloseButton?: boolean }
 >(({ className, children, hideCloseButton, ...props }, ref) => {
+  const { t } = useTranslation("common");
   return (
   <RadixDialog.Portal>
     <DialogOverlay />
@@ -42,7 +44,7 @@ export const DialogContent = forwardRef<
       {hideCloseButton ? null : (
         <RadixDialog.Close
           className="absolute right-3 top-3 flex size-11 items-center justify-center rounded-lg text-text-tertiary hover:bg-background-alt"
-          aria-label="Đóng"
+          aria-label={t("actions.close")}
         >
           <X size={18} aria-hidden="true" />
         </RadixDialog.Close>

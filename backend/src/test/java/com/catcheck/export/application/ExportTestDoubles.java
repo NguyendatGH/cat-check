@@ -4,6 +4,8 @@ import com.catcheck.export.domain.port.PdfRenderer;
 import com.catcheck.export.domain.port.SubjectSnapshotPort;
 import com.catcheck.insight.api.HealthFlagExportQuery;
 import com.catcheck.scan.api.ScanHistoryQuery;
+import com.catcheck.shared.i18n.MessageResolver;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,6 +19,10 @@ final class ExportTestDoubles {
     }
 
     static SubjectSnapshotPort catOwnedBy(UUID catId, UUID ownerId) {
+        return catOwnedBy(catId, ownerId, "vi");
+    }
+
+    static SubjectSnapshotPort catOwnedBy(UUID catId, UUID ownerId, String ownerLocale) {
         return new SubjectSnapshotPort() {
             @Override
             public Optional<CatProfile> findCatProfile(UUID id) {
@@ -28,7 +34,7 @@ final class ExportTestDoubles {
 
             @Override
             public Optional<OwnerProfile> findOwnerProfile(UUID userId) {
-                return Optional.of(new OwnerProfile(ownerId, "Chu nuoi", "vi", "Asia/Ho_Chi_Minh"));
+                return Optional.of(new OwnerProfile(ownerId, "Chu nuoi", ownerLocale, "Asia/Ho_Chi_Minh"));
             }
         };
     }
@@ -47,6 +53,15 @@ final class ExportTestDoubles {
                         false, false, "NONE", List.of(), false));
             }
         };
+    }
+
+    /** {@code MessageResolver} thật đọc {@code messages/export_*.properties} THẬT. */
+    static MessageResolver messages() {
+        ReloadableResourceBundleMessageSource source = new ReloadableResourceBundleMessageSource();
+        source.setBasenames("classpath:messages/export");
+        source.setDefaultEncoding("UTF-8");
+        source.setUseCodeAsDefaultMessage(true);
+        return new MessageResolver(source);
     }
 
     static HealthFlagExportQuery noFlags() {

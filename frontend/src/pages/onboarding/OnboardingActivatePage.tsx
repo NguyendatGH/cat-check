@@ -13,6 +13,7 @@ import {
   useOnboardingStore,
 } from "@/features/onboarding";
 import { isApiError } from "@/shared/api";
+import { intlLocale } from "@/shared/lib/format/locale";
 
 export function OnboardingActivatePage() {
   const { t } = useTranslation(["onboarding", "common"]);
@@ -133,7 +134,7 @@ export function OnboardingActivatePage() {
             <div className="flex items-center justify-between gap-4">
               <dt className="text-body text-text-secondary">{t("activate.success.expiresLabel")}</dt>
               <dd className="text-body font-semibold text-text-primary">
-                {new Date(success.expiresAt).toLocaleDateString("vi-VN")}
+                {new Date(success.expiresAt).toLocaleDateString(intlLocale())}
               </dd>
             </div>
           </dl>

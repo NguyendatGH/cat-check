@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 
 public record StartBackfillPreviewRequest(
         @Pattern(regexp = "^[Pp](\\d+[Yy])?(\\d+[Mm])?(\\d+[Ww])?(\\d+[Dd])?$",
-                message = "window phải là chu kỳ ISO-8601, ví dụ P90D")
+                message = "{validation.colorchart.window.format}")
         String window,
 
         @NotBlank

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { CalendarClock, Camera, ChevronRight, Pause, Play, Ticket } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { ErrorState, SkeletonLoader } from "@/shared/ui";
 import { reminderCalendarUrl, type Reminder } from "@/features/reminder";
 import { ReminderQuickPlan } from "./ReminderQuickPlan";
@@ -172,7 +173,7 @@ export function WebRemindersScreen({
   ).length;
 
   const cells = buildMonthCells(active, now);
-  const monthLabel = now.toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
+  const monthLabel = now.toLocaleDateString(intlLocale(), { month: "long", year: "numeric" });
 
   const tabCount = (value: ReminderTab) => reminders.filter((reminder) => matchesTab(reminder, value)).length;
 
