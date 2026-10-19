@@ -1014,7 +1014,8 @@ export function useChangeAdminOrderStatus(): UseMutationResult<
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, status, reason }) => changeAdminOrderStatus(id, status, reason),
-    onSuccess: () => {
+    // Also after a 409: the order changed under us, so the list must show its real state.
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
     },
   });

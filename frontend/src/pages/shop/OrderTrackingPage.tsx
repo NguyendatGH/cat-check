@@ -87,10 +87,12 @@ export function OrderTrackingPage() {
   const waitingForPayos = loaded?.status === "PENDING_PAYMENT" && loaded.paymentMethod === "PAYOS" && !!loaded.paymentExpiresAt;
   const now = useNow(waitingForPayos);
   const autoCancelled = useRef(false);
-  const returnedCancelled = new URLSearchParams(location.search).get("payment") === "cancel";
+  const params = new URLSearchParams(location.search);
+  const returnedCancelled = params.get("payment") === "cancel" || params.get("cancel") === "true";
   const pendingOrderId = loaded?.status === "PENDING_PAYMENT" ? loaded.id : undefined;
   useEffect(() => {
-    // PayOS sends the buyer back with payment=cancel; the ref keeps StrictMode and refetches from cancelling twice.
+    // PayOS sends the buyer back to our cancelUrl (payment=cancel) and appends its own cancel=true;
+    // the ref keeps StrictMode and refetches from cancelling twice.
     if (returnedCancelled && pendingOrderId && !autoCancelled.current) {
       autoCancelled.current = true;
       cancelOrder(pendingOrderId);

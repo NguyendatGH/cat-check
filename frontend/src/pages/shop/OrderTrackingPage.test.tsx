@@ -1,6 +1,6 @@
 import { StrictMode, act, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrderApi } from "@/features/shop";
 import { OrderTrackingPage } from "./OrderTrackingPage";
 
@@ -88,12 +88,15 @@ function render(): { text: string; container: HTMLElement; cleanup: () => void }
   };
 }
 
+// Every test runs on a fixed fake clock, so the countdown is exact: NOW + 2:05.
+const NOW = new Date("2026-10-19T03:00:00Z");
+
 const pendingPayos: OrderApi = {
   ...baseOrder,
   status: "PENDING_PAYMENT",
   paymentMethod: "PAYOS",
   checkoutUrl: "https://pay.payos.vn/web/abc",
-  paymentExpiresAt: new Date(Date.now() + 125_000).toISOString(),
+  paymentExpiresAt: "2026-10-19T03:02:05Z",
 };
 
 function show(data: OrderApi, search = "") {
@@ -103,7 +106,14 @@ function show(data: OrderApi, search = "") {
 }
 
 describe("OrderTrackingPage", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
     state.search = "";
   });
@@ -157,7 +167,6 @@ describe("OrderTrackingPage", () => {
     const payAgain = [...container.querySelectorAll("button")].find((b) => b.textContent === "order.payAgain");
     act(() => payAgain?.click());
     expect(assign).toHaveBeenCalledWith("https://pay.payos.vn/web/abc");
-    vi.unstubAllGlobals();
     cleanup();
   });
 
@@ -181,8 +190,17 @@ describe("OrderTrackingPage", () => {
     cleanup();
   });
 
+  it("also cancels on PayOS's own cancel=true parameter", () => {
+    show(pendingPayos, "?code=00&id=abc&cancel=true&status=CANCELLED&orderCode=100001");
+    const { cleanup } = render();
+
+    expect(state.cancel).toHaveBeenCalledTimes(1);
+    expect(state.cancel).toHaveBeenCalledWith(ORDER_ID);
+    cleanup();
+  });
+
   it("does not cancel on payment=return or when the order is already paid", () => {
-    show(pendingPayos, "?payment=return");
+    show(pendingPayos, "?payment=return&code=00&cancel=false&status=PAID");
     render().cleanup();
     show({ ...pendingPayos, status: "PAID", checkoutUrl: null }, "?payment=cancel");
     const { text, cleanup } = render();
