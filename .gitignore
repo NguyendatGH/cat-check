@@ -3,6 +3,7 @@ figma-key.txt
 .env
 .env.*
 !.env.example
+!.env.prod.example
 *.pem
 *.p12
 *-service-account*.json

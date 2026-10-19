@@ -1,0 +1,84 @@
+# Production stack: one container per part. Guide: docs/DEPLOYMENT.md.
+#
+#   cp .env.prod.example .env   # fill in real values (sets COMPOSE_FILE to this file)
+#   docker compose up -d --build
+#
+# Only `frontend` (Caddy) publishes ports; backend and postgres stay on the internal network.
+name: catcheck-prod
+
+services:
+  postgres:
+    # Postgres 18 + pgvector (V35 needs the vector extension).
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-catcheck}
+      POSTGRES_USER: ${DB_USER:-catcheck}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    # PG 18+ images keep data in a versioned subdirectory; mount the parent, not .../data.
+    volumes: ["pg_data:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-catcheck} -d ${DB_NAME:-catcheck}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    volumes: ["media_storage:/var/lib/catcheck/storage"]
+    # Secrets and optional integrations (SMTP, Cloudinary, AI, Firebase) come from .env.
+    env_file: .env
+    environment:
+      # prod refuses to start while the active color chart is the seeded placeholder. First deploy only:
+      # BACKEND_PROFILE=staging (creates the tables), run backend/tools/publish-standard-color-chart.sql,
+      # then back to prod. See docs/DEPLOYMENT.md section 3.
+      SPRING_PROFILES_ACTIVE: ${BACKEND_PROFILE:-prod}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-catcheck}
+      DB_USERNAME: ${DB_USER:-catcheck}
+      CATCHECK_NOTIFICATION_EMAILSINK: smtp
+      CATCHECK_STORAGE_LOCAL_PUBLICBASEURL: https://${DOMAIN:?set DOMAIN in .env}
+      CATCHECK_OAUTH2_FRONTEND_SUCCESS_URL: https://${DOMAIN}/auth/oauth/complete
+      # Links in emails (reminders, data-export ready); both default to http://localhost:5173.
+      CATCHECK_NOTIFICATION_APPURL: https://${DOMAIN}
+      CATCHECK_PRIVACY_EXPORT_WEBBASEURL: https://${DOMAIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    # Caddy: serves the built SPA, terminates TLS for DOMAIN, proxies /api, /oauth2, /login to backend.
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Optional DB UI, localhost only (reach it through an SSH tunnel):
+  #   docker compose --profile tools up -d adminer
+  #   ssh -L 8081:localhost:8081 <server>  ->  http://localhost:8081
+  adminer:
+    image: adminer
+    profiles: ["tools"]
+    ports: ["127.0.0.1:8081:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  media_storage:
+  caddy_data:
+  caddy_config:
