@@ -133,8 +133,11 @@ class JdbcShopRepositoryOrderIntegrationTest {
 
         assertThatThrownBy(() -> placePayos(user, product))
                 .isInstanceOf(ConflictException.class)
-                .extracting(e -> ((ConflictException) e).errorCode())
-                .isEqualTo(ShopErrorCode.ORDER_LIMIT_REACHED);
+                .satisfies(e -> {
+                    ConflictException conflict = (ConflictException) e;
+                    assertThat(conflict.errorCode()).isEqualTo(ShopErrorCode.ORDER_LIMIT_REACHED);
+                    assertThat(conflict.args()).as("limit reaches the {0} message argument").containsExactly(3);
+                });
         assertThat(stock(product)).as("don bi tu choi khong tru kho").isEqualTo(2);
         assertThat(repository.cart(user)).as("gio hang con nguyen").hasSize(1);
 

@@ -92,7 +92,7 @@ public class JdbcShopRepository implements ShopRepository {
         if (lines.isEmpty()) throw new ConflictException(ShopErrorCode.CART_EMPTY);
         // The cart lock above serializes this user's checkouts, so the count cannot be raced past the cap.
         Integer open = jdbc.queryForObject("SELECT count(*) FROM shop_order WHERE user_id = ? AND status = 'PENDING_PAYMENT'", Integer.class, userId);
-        if (open >= maxOpenOrders) throw new ConflictException(ShopErrorCode.ORDER_LIMIT_REACHED);
+        if (open >= maxOpenOrders) throw new ConflictException(ShopErrorCode.ORDER_LIMIT_REACHED, maxOpenOrders);
         if (!notPublished.isEmpty()) throw new ConflictException(ShopErrorCode.STOCK_UNAVAILABLE);
         for (CartLine line : lines) {
             if (line.quantity() > line.product().stockQuantity()) throw new ConflictException(ShopErrorCode.STOCK_UNAVAILABLE);
