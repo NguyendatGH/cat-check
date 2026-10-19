@@ -17,6 +17,9 @@ const STEP_I18N_KEYS: Record<OnboardingStep, string> = {
   5: "success",
 };
 
+// Bỏ qua được theo hợp đồng hiện tại: khảo sát sức khoẻ (skipped) và kích hoạt mã.
+const OPTIONAL_STEPS: ReadonlySet<OnboardingStep> = new Set<OnboardingStep>([2, 4]);
+
 interface OnboardingStepperProps {
   current: OnboardingStep;
   onStepClick?: (step: OnboardingStep) => void;
@@ -27,6 +30,7 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
   const total = ONBOARDING_STEPS.length;
   const progressPercent = Math.round((current / total) * 100);
   const currentLabel = t(`stepper.steps.${STEP_I18N_KEYS[current]}`);
+  const optionalTag = t("stepper.optionalTag");
 
   return (
     <div className="w-full lg:rounded-2xl lg:border lg:border-border lg:bg-surface lg:p-5 lg:shadow-brand-md">
@@ -35,7 +39,9 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
           <LogoPawIcon size={16} />
           <span className="truncate">
             {t("stepper.label", { current, total })}
-            <span className="md:hidden">{` · ${currentLabel}`}</span>
+            <span className="md:hidden">
+              {` · ${currentLabel}${OPTIONAL_STEPS.has(current) ? ` (${optionalTag})` : ""}`}
+            </span>
           </span>
         </p>
         <p className="shrink-0 text-caption font-bold text-primary-dark" aria-hidden="true">
@@ -95,6 +101,9 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
                   >
                     {label}
                   </span>
+                  {OPTIONAL_STEPS.has(step) ? (
+                    <span className="text-small text-text-tertiary">{optionalTag}</span>
+                  ) : null}
                 </button>
               </li>
               {index < total - 1 ? (
@@ -108,6 +117,7 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
           );
         })}
       </ol>
+      <p className="mt-2 hidden text-center text-small text-text-tertiary md:block">{t("stepper.optionalHint")}</p>
     </div>
   );
 }
