@@ -152,6 +152,13 @@ catcheck:
       stale-after: PT15M
       dry-run: false
 
+    shop-payment-expiry:
+      enabled: true
+      cron: "0 * * * * *"
+      lock-at-most-for: PT50S
+      batch-size: 100
+      dry-run: false
+
     job-heartbeat-check:
       enabled: true
       cron: "0 */10 * * * *"
