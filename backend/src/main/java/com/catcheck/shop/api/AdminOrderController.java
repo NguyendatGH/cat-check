@@ -41,7 +41,7 @@ public class AdminOrderController {
 
     @PostMapping("/{orderId}/status")
     @Operation(operationId = "adminSetShopOrderStatus",
-            description = "Chỉ chuyển tới trạng thái nằm trong `allowedNextStatuses` (sai ⇒ 409). `CANCELLED` bắt buộc `reason` ≥ 5 ký tự và trả lại kho.")
+            description = "Chỉ chuyển tới trạng thái nằm trong `allowedNextStatuses` (sai ⇒ 409). `CANCELLED` bắt buộc `reason` ≥ 10 ký tự sau khi bỏ khoảng trắng hai đầu (thiếu ⇒ 400 `REASON_REQUIRED`) và trả lại kho.")
     public AdminOrderResponse status(@CurrentUser SecurityPrincipal user, @PathVariable UUID orderId, @Valid @RequestBody AdminOrderStatusRequest request) {
         String role = ShopAdminRole.require(user);
         return AdminOrderResponse.from(service.move(orderId, request.status(), request.reason(), user.userId(), role));

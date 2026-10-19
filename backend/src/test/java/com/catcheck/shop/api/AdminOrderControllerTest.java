@@ -5,10 +5,12 @@ import com.catcheck.audit.api.AuditEvent;
 import com.catcheck.audit.api.AuditLogService;
 import com.catcheck.shared.config.JdbcTemplateConfig;
 import com.catcheck.shared.testing.AdminApiMockMvc;
+import com.catcheck.shared.testing.LogCapture;
 import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.shared.testing.TestPrincipal;
 import com.catcheck.shop.application.AdminOrderService;
 import com.catcheck.shop.domain.Order;
+import com.catcheck.shop.domain.port.PaymentGateway;
 import com.catcheck.shop.infrastructure.persistence.JdbcShopRepository;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
@@ -46,6 +48,7 @@ class AdminOrderControllerTest {
     private JdbcTemplate jdbc;
     private JdbcShopRepository repository;
     private AuditLogService audit;
+    private PaymentGateway gateway;
     private MockMvc mvc;
     private UUID adminId;
     private UUID productId;
@@ -63,7 +66,8 @@ class AdminOrderControllerTest {
         jdbc = new JdbcTemplateConfig().jdbcTemplate(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())); // production Instant -> timestamptz handling
         repository = new JdbcShopRepository(jdbc);
         audit = Mockito.mock(AuditLogService.class);
-        mvc = AdminApiMockMvc.build(new AdminOrderController(new AdminOrderService(repository, audit, Clock.systemUTC())));
+        gateway = Mockito.mock(PaymentGateway.class);
+        mvc = AdminApiMockMvc.build(new AdminOrderController(new AdminOrderService(repository, gateway, audit, Clock.systemUTC())));
         TestPrincipal admin = TestPrincipal.withRoles("ADMIN_CATALOG");
         adminId = admin.userId();
         AdminApiMockMvc.authenticate(admin);
@@ -171,6 +175,37 @@ class AdminOrderControllerTest {
                 .andExpect(jsonPath("$.errorCode").value("ORDER_TRANSITION_INVALID"));
 
         assertThat(stock()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("Admin huy don PAYOS chua tra ⇒ dong link PayOS (ADMIN_CANCELLED) truoc khi huy; COD va don da tra thi khong goi PayOS")
+    void adminCancelOfPendingPayosClosesTheLink() throws Exception {
+        Order pending = order("PAYOS");
+        Order paid = order("PAYOS");
+        jdbc.update("UPDATE shop_order SET status = 'PAID', paid_at = now(), payment_reference = 'REF1' WHERE id = ?", paid.id());
+        Order cod = order("COD");
+
+        move(pending, "CANCELLED", "Khach goi bao huy don").andExpect(status().isOk());
+        move(paid, "CANCELLED", "Het hang that su, hoan tien").andExpect(status().isOk());
+        move(cod, "CANCELLED", "Khach doi y khong mua nua").andExpect(status().isOk());
+
+        Mockito.verify(gateway).cancelLink(pending.payosOrderCode(), "ADMIN_CANCELLED");
+        Mockito.verifyNoMoreInteractions(gateway);
+    }
+
+    @Test
+    @DisplayName("PayOS loi khi dong link: chi ghi log (khong lo noi dung loi), don van huy va tra kho")
+    void adminCancelSucceedsWhenLinkCancelFails() throws Exception {
+        Order pending = order("PAYOS");
+        String pii = "payer Nguyen Van A, account 0123456789";
+        Mockito.doThrow(new IllegalStateException(pii)).when(gateway).cancelLink(Mockito.anyLong(), Mockito.anyString());
+
+        String logged = LogCapture.text(LogCapture.capture(AdminOrderService.class, () ->
+                move(pending, "CANCELLED", "Khach goi bao huy don").andExpect(status().isOk())
+                        .andExpect(jsonPath("$.status").value("CANCELLED"))));
+
+        assertThat(stock()).isEqualTo(5);
+        assertThat(logged).contains("IllegalStateException").doesNotContain(pii);
     }
 
     @Test

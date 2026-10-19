@@ -4,6 +4,7 @@ import com.catcheck.shared.config.JdbcTemplateConfig;
 import com.catcheck.shared.job.JobContext;
 import com.catcheck.shared.job.JobOutcome;
 import com.catcheck.shared.job.JobRunStatus;
+import com.catcheck.shared.testing.LogCapture;
 import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.shop.domain.Order;
 import com.catcheck.shop.domain.PaymentLink;
@@ -206,14 +207,17 @@ class ShopPaymentExpiryJobTest {
 
     @Test
     @DisplayName("Loi PayOS tren mot don khong chan don khac; don khong hoi duoc PayOS thi khong bi huy")
-    void gatewayErrorOnOneOrderDoesNotStopOthers() {
+    void gatewayErrorOnOneOrderDoesNotStopOthers() throws Exception {
         UUID product = newProduct();
         Order unknown = checkout(product, "PAYOS");
         Order expired = checkout(product, "PAYOS");
         GATEWAY.amountPaidFailsFor.add(unknown.payosOrderCode());
 
-        JobOutcome outcome = run(false);
+        JobOutcome[] holder = new JobOutcome[1];
+        String logged = LogCapture.text(LogCapture.capture(ShopPaymentExpiryJob.class, () -> holder[0] = run(false)));
+        JobOutcome outcome = holder[0];
 
+        assertThat(logged).as("PayOS error text can carry payer details").contains("IllegalStateException").doesNotContain(FakeGateway.PII);
         assertThat(outcome.status()).isEqualTo(JobRunStatus.PARTIAL);
         assertThat(outcome.itemsProcessed()).isEqualTo(1);
         assertThat(outcome.itemsFailed()).isEqualTo(1);
@@ -240,6 +244,7 @@ class ShopPaymentExpiryJobTest {
 
     /** Hand-written fake: {@code amountPaid} holds what PayOS reports received (default 0), orders in {@code amountPaidFailsFor} throw. */
     private static final class FakeGateway implements PaymentGateway {
+        static final String PII = "payer Nguyen Van A, account 0123456789";
         final Map<Long, Long> amountPaid = new HashMap<>();
         final Set<Long> amountPaidFailsFor = new HashSet<>();
         final List<Long> checked = new ArrayList<>();
@@ -265,7 +270,7 @@ class ShopPaymentExpiryJobTest {
 
         @Override public long amountPaid(long code) {
             checked.add(code);
-            if (amountPaidFailsFor.contains(code)) throw new IllegalStateException("payos down");
+            if (amountPaidFailsFor.contains(code)) throw new IllegalStateException(PII);
             return amountPaid.getOrDefault(code, 0L);
         }
 

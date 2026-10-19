@@ -2,6 +2,7 @@ package com.catcheck.shop.application;
 
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.NotFoundException;
+import com.catcheck.shared.error.RedactedThrowable;
 import com.catcheck.shop.api.ShopErrorCode;
 import com.catcheck.shop.domain.CartLine;
 import com.catcheck.shop.domain.Order;
@@ -68,7 +69,7 @@ public class ShopService {
             link = gateway.createLink(code, order.totalVnd(), "CC" + code, expiresAt,
                     URI.create(orderUrl + "?payment=return"), URI.create(orderUrl + "?payment=cancel"));
         } catch (RuntimeException e) {
-            log.warn("PayOS createLink failed for order {}", order.id(), e);
+            log.warn("PayOS createLink failed for order {}", order.id(), RedactedThrowable.of(e));
             throw new BusinessRuleException(ShopErrorCode.PAYMENT_UNAVAILABLE, e);
         }
         repository.attachPaymentLink(order.id(), link.paymentLinkId(), link.checkoutUrl());
@@ -88,7 +89,7 @@ public class ShopService {
                 gateway.cancelLink(order.payosOrderCode(), "BUYER_CANCELLED");
             } catch (RuntimeException e) {
                 // The link expires on its own; a paid-meanwhile order is caught by the status check below.
-                log.warn("PayOS cancelLink failed for order {} (code {})", orderId, order.payosOrderCode(), e);
+                log.warn("PayOS cancelLink failed for order {} (code {})", orderId, order.payosOrderCode(), RedactedThrowable.of(e));
             }
         }
         if (!repository.cancelAndRestock(orderId, "PENDING_PAYMENT", "BUYER", clock.instant(), false)) throw new BusinessRuleException(ShopErrorCode.ORDER_NOT_CANCELLABLE);

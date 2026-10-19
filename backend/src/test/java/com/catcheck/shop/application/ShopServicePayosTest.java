@@ -3,6 +3,7 @@ package com.catcheck.shop.application;
 import com.catcheck.shared.config.JdbcTemplateConfig;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.NotFoundException;
+import com.catcheck.shared.testing.LogCapture;
 import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.shop.api.ShopErrorCode;
 import com.catcheck.shop.domain.Order;
@@ -45,6 +46,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** Wires a real Spring context (transaction proxy included) so the checkout rollback is the production one. */
 @Testcontainers
 class ShopServicePayosTest {
+
+    /** PayOS error text can echo payer details; logs must keep only the exception class. */
+    private static final String PII = "payer Nguyen Van A, account 0123456789";
 
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
@@ -155,14 +159,16 @@ class ShopServicePayosTest {
 
     @Test
     @DisplayName("PayOS loi => PAYMENT_UNAVAILABLE, khong co don moi, kho va gio hang nguyen ven")
-    void gatewayFailureRollsBackOrderStockAndCart() {
+    void gatewayFailureRollsBackOrderStockAndCart() throws Exception {
         UUID user = newUser();
         UUID product = newProduct();
         addToCart(user, product);
-        GATEWAY.createFailure = new IllegalStateException("payos down");
+        GATEWAY.createFailure = new IllegalStateException(PII);
 
-        assertThatThrownBy(() -> service.checkout(user, "PAYOS", "A", "0900000000", "Addr"))
-                .satisfies(e -> assertBusinessError(e, ShopErrorCode.PAYMENT_UNAVAILABLE));
+        String logged = LogCapture.text(LogCapture.capture(ShopService.class, () ->
+                assertThatThrownBy(() -> service.checkout(user, "PAYOS", "A", "0900000000", "Addr"))
+                        .satisfies(e -> assertBusinessError(e, ShopErrorCode.PAYMENT_UNAVAILABLE))));
+        assertThat(logged).contains("IllegalStateException").doesNotContain(PII);
 
         assertThat(orderCount(user)).isZero();
         assertThat(stock(product)).isEqualTo(5);
@@ -207,13 +213,15 @@ class ShopServicePayosTest {
 
     @Test
     @DisplayName("Huy link PayOS loi chi bi ghi log, don van duoc huy va tra kho")
-    void buyerCancelSucceedsWhenLinkCancelFails() {
+    void buyerCancelSucceedsWhenLinkCancelFails() throws Exception {
         UUID user = newUser();
         UUID product = newProduct();
         Order order = checkout(user, product, "PAYOS");
-        GATEWAY.cancelFailure = new IllegalStateException("payos down");
+        GATEWAY.cancelFailure = new IllegalStateException(PII);
 
-        assertThat(service.cancelByBuyer(user, order.id()).status()).isEqualTo("CANCELLED");
+        String logged = LogCapture.text(LogCapture.capture(ShopService.class, () ->
+                assertThat(service.cancelByBuyer(user, order.id()).status()).isEqualTo("CANCELLED")));
+        assertThat(logged).contains("IllegalStateException").doesNotContain(PII);
         assertThat(stock(product)).isEqualTo(5);
     }
 

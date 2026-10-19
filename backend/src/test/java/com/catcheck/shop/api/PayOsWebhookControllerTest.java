@@ -1,13 +1,12 @@
 package com.catcheck.shop.api;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.catcheck.shared.config.JdbcTemplateConfig;
 import com.catcheck.shared.config.SecurityConfig;
 import com.catcheck.shared.i18n.MessageResolver;
 import com.catcheck.shared.security.AdminAccessGate;
+import com.catcheck.shared.testing.LogCapture;
 import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.shop.application.PaymentWebhookService;
 import com.catcheck.shop.domain.InvalidWebhookException;
@@ -21,7 +20,6 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -146,9 +144,9 @@ class PayOsWebhookControllerTest {
         GATEWAY.payment = new VerifiedPayment(order.payosOrderCode(), order.totalVnd(), "REF-1", true);
         webhook(BODY).andExpect(status().isOk());
 
-        List<ILoggingEvent> sameReference = serviceLogs(() -> webhook(BODY).andExpect(status().isOk()));
+        List<ILoggingEvent> sameReference = LogCapture.capture(PaymentWebhookService.class, () -> webhook(BODY).andExpect(status().isOk()));
         GATEWAY.payment = new VerifiedPayment(order.payosOrderCode(), order.totalVnd(), "REF-2", true);
-        List<ILoggingEvent> otherReference = serviceLogs(() -> webhook(BODY).andExpect(status().isOk()));
+        List<ILoggingEvent> otherReference = LogCapture.capture(PaymentWebhookService.class, () -> webhook(BODY).andExpect(status().isOk()));
 
         assertThat(sameReference).as("PayOS gui lai cung giao dich").noneMatch(e -> e.getLevel() == Level.WARN);
         assertThat(otherReference).filteredOn(e -> e.getLevel() == Level.WARN).singleElement().satisfies(e -> {
@@ -156,22 +154,6 @@ class PayOsWebhookControllerTest {
             assertThat(e.getFormattedMessage()).doesNotContain("REF-1").doesNotContain("REF-2");
         });
         assertThat(reload(order).paymentReference()).as("giao dich dau tien giu nguyen").isEqualTo("REF-1");
-    }
-
-    private interface Call { void run() throws Exception; }
-
-    private static List<ILoggingEvent> serviceLogs(Call call) throws Exception {
-        Logger logger = (Logger) LoggerFactory.getLogger(PaymentWebhookService.class);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
-        try {
-            call.run();
-        } finally {
-            logger.detachAppender(appender);
-            appender.stop();
-        }
-        return appender.list;
     }
 
     @Test
