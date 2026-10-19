@@ -203,6 +203,8 @@ catcheck:
       push-batch-size: 100
 
   shop:
+    max-open-orders: 3
+    web-base-url: ${CATCHECK_SHOP_WEBBASEURL:http://localhost:5173}
     payos:
       client-id: ${PAYOS_CLIENT_ID:}
       api-key: ${PAYOS_API_KEY:}

@@ -69,6 +69,14 @@ public class ShopController {
         return ResponseEntity.created(URI.create("/api/v1/orders/" + response.id())).body(response);
     }
 
+    @GetMapping("/orders")
+    @Operation(operationId = "listShopOrders")
+    public List<OrderResponse> orders(@CurrentUser SecurityPrincipal user) { return service.myOrders(user.userId()).stream().map(OrderResponse::from).toList(); }
+
+    @PostMapping("/orders/{orderId}/cancel")
+    @Operation(operationId = "cancelShopOrder")
+    public OrderResponse cancel(@CurrentUser SecurityPrincipal user, @PathVariable UUID orderId) { return OrderResponse.from(service.cancelByBuyer(user.userId(), orderId)); }
+
     @GetMapping("/orders/{orderId}")
     @Operation(operationId = "getShopOrder")
     public OrderResponse order(@CurrentUser SecurityPrincipal user, @PathVariable UUID orderId) { return OrderResponse.from(service.order(user.userId(), orderId)); }
