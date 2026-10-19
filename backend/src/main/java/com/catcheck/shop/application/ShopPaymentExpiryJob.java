@@ -1,5 +1,6 @@
 package com.catcheck.shop.application;
 
+import com.catcheck.shared.error.RedactedThrowable;
 import com.catcheck.shared.job.JobContext;
 import com.catcheck.shared.job.JobOutcome;
 import com.catcheck.shared.job.application.JobRunner;
@@ -17,7 +18,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/** Cancels PAYOS orders still unpaid after their payment window, after asking PayOS once more whether they were paid. COD is never touched. */
+/**
+ * Cancels PAYOS orders still unpaid after their payment window, after asking PayOS once more how much it received.
+ * Fully paid ⇒ PAID; partly paid ⇒ cancelled with refund_needed. COD is never touched.
+ */
 @Component
 @ConditionalOnProperty(prefix = "catcheck.jobs.shop-payment-expiry", name = "enabled",
         havingValue = "true", matchIfMissing = true)
@@ -67,31 +71,32 @@ public class ShopPaymentExpiryJob {
         int errors = 0;
         for (ExpiredPayment p : expired) {
             try {
-                if (gateway.isPaid(p.payosOrderCode())) {
+                long paid = gateway.amountPaid(p.payosOrderCode());
+                if (paid >= p.totalVnd()) {
                     MarkPaidResult result = repository.markPaid(p.payosOrderCode(), p.totalVnd(), "late-check", context.startedAt());
                     log.info("Don {} (code {}) da tra tien sat gio: {}", p.orderId(), p.payosOrderCode(), result);
                     if (result == MarkPaidResult.PAID) handled++;
-                } else if (cancel(p, context)) {
+                } else if (cancel(p, context, paid > 0)) {
                     handled++;
                 }
             } catch (RuntimeException e) {
-                // Includes isPaid failing: an order that may be paid is left for the next run rather than cancelled.
+                // Includes amountPaid failing: an order that may be paid is left for the next run rather than cancelled.
                 errors++;
-                log.error("Khong xu ly duoc don {} (code {}) het han thanh toan", p.orderId(), p.payosOrderCode(), e);
+                log.error("Khong xu ly duoc don {} (code {}) het han thanh toan", p.orderId(), p.payosOrderCode(), RedactedThrowable.of(e));
             }
         }
         return JobOutcome.of(handled, 0, errors,
                 errors == 0 ? null : errors + " don het han loi, se thu lai o lan chay sau");
     }
 
-    private boolean cancel(ExpiredPayment p, JobContext context) {
-        try {
-            gateway.cancelLink(p.payosOrderCode(), "PAYMENT_EXPIRED");
-        } catch (RuntimeException e) {
-            log.warn("PayOS cancelLink failed for order {} (code {})", p.orderId(), p.payosOrderCode(), e);
+    // No cancelLink: the PayOS link was created with expiredAt = payment_expires_at, so it has already expired.
+    private boolean cancel(ExpiredPayment p, JobContext context, boolean moneyReceived) {
+        boolean cancelled = repository.cancelAndRestock(p.orderId(), "PENDING_PAYMENT", "PAYMENT_EXPIRED", context.startedAt(), moneyReceived);
+        if (cancelled && moneyReceived) {
+            log.warn("Don {} (code {}) nhan thieu tien, da huy, tra kho va danh dau can hoan tien", p.orderId(), p.payosOrderCode());
+        } else if (cancelled) {
+            log.info("Don {} (code {}) het han thanh toan, da huy va tra kho", p.orderId(), p.payosOrderCode());
         }
-        boolean cancelled = repository.cancelAndRestock(p.orderId(), "PENDING_PAYMENT", "PAYMENT_EXPIRED", context.startedAt());
-        if (cancelled) log.info("Don {} (code {}) het han thanh toan, da huy va tra kho", p.orderId(), p.payosOrderCode());
         return cancelled;
     }
 }

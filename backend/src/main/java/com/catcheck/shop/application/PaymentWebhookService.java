@@ -40,7 +40,11 @@ public class PaymentWebhookService {
         MarkPaidResult result = repository.markPaid(payment.payosOrderCode(), payment.amountVnd(), payment.reference(), clock.instant());
         switch (result) {
             case PAID -> log.info("PayOS payment recorded: orderCode={}", payment.payosOrderCode());
-            case ALREADY_PAID -> { }
+            // PayOS re-sends a transfer with the same reference; another reference is a second transfer to refund by hand.
+            case ALREADY_PAID -> repository.paymentReference(payment.payosOrderCode())
+                    .filter(stored -> !stored.equals(payment.reference()))
+                    .ifPresent(stored -> log.warn("PayOS webhook ALREADY_PAID with a different reference, check for a refund: orderCode={}",
+                            payment.payosOrderCode()));
             default -> log.warn("PayOS webhook {}: orderCode={}", result, payment.payosOrderCode());
         }
         return result;

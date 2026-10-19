@@ -17,7 +17,8 @@ public interface PaymentGateway {
 
     void cancelLink(long payosOrderCode, String reason);
 
-    boolean isPaid(long payosOrderCode);
+    /** What PayOS has received on this link so far; PayOS accepts partial transfers, so this can be below the order total. */
+    long amountPaid(long payosOrderCode);
 
     /** Checks the signature and parses the body; throws {@link InvalidWebhookException} when either fails. */
     VerifiedPayment verifyWebhook(String rawBody);

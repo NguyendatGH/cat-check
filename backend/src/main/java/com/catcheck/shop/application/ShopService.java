@@ -90,7 +90,7 @@ public class ShopService {
                 log.warn("PayOS cancelLink failed for order {} (code {})", orderId, order.payosOrderCode(), e);
             }
         }
-        if (!repository.cancelAndRestock(orderId, "PENDING_PAYMENT", "BUYER", clock.instant())) throw new BusinessRuleException(ShopErrorCode.ORDER_NOT_CANCELLABLE);
+        if (!repository.cancelAndRestock(orderId, "PENDING_PAYMENT", "BUYER", clock.instant(), false)) throw new BusinessRuleException(ShopErrorCode.ORDER_NOT_CANCELLABLE);
         return order(userId, orderId);
     }
 }

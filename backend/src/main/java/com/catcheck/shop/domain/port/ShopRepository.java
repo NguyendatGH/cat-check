@@ -28,9 +28,14 @@ public interface ShopRepository {
     void attachPaymentLink(UUID orderId, String paymentLinkId, String checkoutUrl);
     /** Compare-and-set on status; false when the order is not in {@code fromStatus}. */
     boolean transition(UUID orderId, String fromStatus, String toStatus);
-    /** Cancels and returns stock in one transaction; false when the order is not in {@code expectedStatus}. */
-    boolean cancelAndRestock(UUID orderId, String expectedStatus, String cancelReason, Instant at);
+    /**
+     * Cancels and returns stock in one transaction; false when the order is not in {@code expectedStatus}.
+     * Flags refund_needed when the order was paid or {@code moneyReceived} (a partial PayOS transfer never sets paid_at).
+     */
+    boolean cancelAndRestock(UUID orderId, String expectedStatus, String cancelReason, Instant at, boolean moneyReceived);
     MarkPaidResult markPaid(long payosOrderCode, long amountVnd, String reference, Instant paidAt);
+    /** Stored PayOS transaction reference; empty when unpaid or the code is unknown. */
+    Optional<String> paymentReference(long payosOrderCode);
     List<ExpiredPayment> expiredPayosOrders(Instant now, int limit);
 
     List<Order> adminOrders(String statusOrNull, int limit, int offset);

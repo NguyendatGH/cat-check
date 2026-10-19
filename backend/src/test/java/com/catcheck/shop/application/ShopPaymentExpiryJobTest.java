@@ -36,8 +36,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -127,8 +129,12 @@ class ShopPaymentExpiryJobTest {
         return job.expireUnpaidOrders(new JobContext(UUID.randomUUID(), ShopPaymentExpiryJob.JOB_NAME, AFTER_WINDOW, dryRun));
     }
 
+    private static boolean refundNeeded(Order order) {
+        return jdbc.queryForObject("SELECT refund_needed FROM shop_order WHERE id = ?", Boolean.class, order.id());
+    }
+
     @Test
-    @DisplayName("Don PAYOS qua 5 phut chua tra: bi huy PAYMENT_EXPIRED, tra kho, dong link PayOS")
+    @DisplayName("Don PAYOS qua 5 phut, PayOS chua nhan dong nao: huy PAYMENT_EXPIRED, tra kho, khong can hoan tien, khong goi cancelLink")
     void expiredUnpaidOrderIsCancelledAndRestocked() {
         UUID product = newProduct();
         Order order = checkout(product, "PAYOS");
@@ -141,16 +147,17 @@ class ShopPaymentExpiryJobTest {
         assertThat(status(order)).isEqualTo("CANCELLED");
         assertThat(jdbc.queryForObject("SELECT cancel_reason FROM shop_order WHERE id = ?", String.class, order.id()))
                 .isEqualTo("PAYMENT_EXPIRED");
+        assertThat(refundNeeded(order)).isFalse();
         assertThat(stock(product)).isEqualTo(5);
-        assertThat(GATEWAY.cancelled).containsExactly(order.payosOrderCode() + ":PAYMENT_EXPIRED");
+        assertThat(GATEWAY.cancelled).as("link PayOS da tu het han cung luc").isEmpty();
     }
 
     @Test
-    @DisplayName("Da tra tien sat gio: markPaid voi late-check, khong huy, khong tra kho")
+    @DisplayName("Da tra du tien sat gio: markPaid voi late-check, khong huy, khong tra kho")
     void paidJustBeforeExpiryIsMarkedPaidNotCancelled() {
         UUID product = newProduct();
         Order order = checkout(product, "PAYOS");
-        GATEWAY.paid.add(order.payosOrderCode());
+        GATEWAY.amountPaid.put(order.payosOrderCode(), order.totalVnd());
 
         JobOutcome outcome = run(false);
 
@@ -158,8 +165,28 @@ class ShopPaymentExpiryJobTest {
         assertThat(status(order)).isEqualTo("PAID");
         assertThat(jdbc.queryForObject("SELECT payment_reference FROM shop_order WHERE id = ?", String.class, order.id()))
                 .isEqualTo("late-check");
+        assertThat(refundNeeded(order)).isFalse();
         assertThat(stock(product)).isEqualTo(4);
         assertThat(GATEWAY.cancelled).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Tra thieu tien (PayOS UNDERPAID): huy PAYMENT_EXPIRED, tra kho, danh dau can hoan tien")
+    void underpaidOrderIsCancelledWithRefundFlag() {
+        UUID product = newProduct();
+        Order order = checkout(product, "PAYOS");
+        GATEWAY.amountPaid.put(order.payosOrderCode(), order.totalVnd() - 1);
+
+        JobOutcome outcome = run(false);
+
+        assertThat(outcome.itemsProcessed()).isEqualTo(1);
+        assertThat(status(order)).isEqualTo("CANCELLED");
+        assertThat(jdbc.queryForObject("SELECT cancel_reason FROM shop_order WHERE id = ?", String.class, order.id()))
+                .isEqualTo("PAYMENT_EXPIRED");
+        assertThat(refundNeeded(order)).as("da nhan tien thi phai co tin hieu hoan tien").isTrue();
+        assertThat(jdbc.queryForObject("SELECT paid_at IS NULL FROM shop_order WHERE id = ?", Boolean.class, order.id()))
+                .as("chua tra du nen khong phai don da thanh toan").isTrue();
+        assertThat(stock(product)).isEqualTo(5);
     }
 
     @Test
@@ -183,8 +210,7 @@ class ShopPaymentExpiryJobTest {
         UUID product = newProduct();
         Order unknown = checkout(product, "PAYOS");
         Order expired = checkout(product, "PAYOS");
-        GATEWAY.isPaidFailsFor.add(unknown.payosOrderCode());
-        GATEWAY.cancelFails = true; // a failed link cancel is only logged
+        GATEWAY.amountPaidFailsFor.add(unknown.payosOrderCode());
 
         JobOutcome outcome = run(false);
 
@@ -212,20 +238,18 @@ class ShopPaymentExpiryJobTest {
         assertThat(GATEWAY.cancelled).isEmpty();
     }
 
-    /** Hand-written fake: orders in {@code paid} report as paid, orders in {@code isPaidFailsFor} throw. */
+    /** Hand-written fake: {@code amountPaid} holds what PayOS reports received (default 0), orders in {@code amountPaidFailsFor} throw. */
     private static final class FakeGateway implements PaymentGateway {
-        final Set<Long> paid = new HashSet<>();
-        final Set<Long> isPaidFailsFor = new HashSet<>();
+        final Map<Long, Long> amountPaid = new HashMap<>();
+        final Set<Long> amountPaidFailsFor = new HashSet<>();
         final List<Long> checked = new ArrayList<>();
         final List<String> cancelled = new ArrayList<>();
-        boolean cancelFails;
 
         void reset() {
-            paid.clear();
-            isPaidFailsFor.clear();
+            amountPaid.clear();
+            amountPaidFailsFor.clear();
             checked.clear();
             cancelled.clear();
-            cancelFails = false;
         }
 
         @Override public boolean enabled() { return true; }
@@ -236,14 +260,13 @@ class ShopPaymentExpiryJobTest {
         }
 
         @Override public void cancelLink(long code, String reason) {
-            if (cancelFails) throw new IllegalStateException("payos down");
             cancelled.add(code + ":" + reason);
         }
 
-        @Override public boolean isPaid(long code) {
+        @Override public long amountPaid(long code) {
             checked.add(code);
-            if (isPaidFailsFor.contains(code)) throw new IllegalStateException("payos down");
-            return paid.contains(code);
+            if (amountPaidFailsFor.contains(code)) throw new IllegalStateException("payos down");
+            return amountPaid.getOrDefault(code, 0L);
         }
 
         @Override public VerifiedPayment verifyWebhook(String rawBody) { throw new UnsupportedOperationException(); }

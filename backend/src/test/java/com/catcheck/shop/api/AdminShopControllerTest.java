@@ -143,8 +143,9 @@ class AdminShopControllerTest {
         @Override public List<Order> orders(UUID userId, int limit) { throw new UnsupportedOperationException(); }
         @Override public void attachPaymentLink(UUID orderId, String paymentLinkId, String checkoutUrl) { throw new UnsupportedOperationException(); }
         @Override public boolean transition(UUID orderId, String fromStatus, String toStatus) { throw new UnsupportedOperationException(); }
-        @Override public boolean cancelAndRestock(UUID orderId, String expectedStatus, String cancelReason, Instant at) { throw new UnsupportedOperationException(); }
+        @Override public boolean cancelAndRestock(UUID orderId, String expectedStatus, String cancelReason, Instant at, boolean moneyReceived) { throw new UnsupportedOperationException(); }
         @Override public MarkPaidResult markPaid(long payosOrderCode, long amountVnd, String reference, Instant paidAt) { throw new UnsupportedOperationException(); }
+        @Override public Optional<String> paymentReference(long payosOrderCode) { throw new UnsupportedOperationException(); }
         @Override public List<ExpiredPayment> expiredPayosOrders(Instant now, int limit) { throw new UnsupportedOperationException(); }
         @Override public List<Order> adminOrders(String statusOrNull, int limit, int offset) { throw new UnsupportedOperationException(); }
         @Override public Optional<Order> adminOrder(UUID orderId) { throw new UnsupportedOperationException(); }

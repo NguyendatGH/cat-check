@@ -291,7 +291,7 @@ class ShopServicePayosTest {
             cancelled.add(code + ":" + reason);
         }
 
-        @Override public boolean isPaid(long code) { throw new UnsupportedOperationException(); }
+        @Override public long amountPaid(long code) { throw new UnsupportedOperationException(); }
 
         @Override public VerifiedPayment verifyWebhook(String rawBody) {
             throw new UnsupportedOperationException();

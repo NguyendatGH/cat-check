@@ -49,7 +49,7 @@ public class AdminOrderService {
         if (!OrderStatusPolicy.adminNextStatuses(order.paymentMethod(), from).contains(target)) throw invalid(from, target);
         boolean cancel = "CANCELLED".equals(target);
         String cancelReason = cancel ? AdminGuard.requireReason(reason) : null;
-        boolean moved = cancel ? repository.cancelAndRestock(id, from, "ADMIN", clock.instant()) : repository.transition(id, from, target);
+        boolean moved = cancel ? repository.cancelAndRestock(id, from, "ADMIN", clock.instant(), false) : repository.transition(id, from, target);
         if (!moved) throw invalid(from, target); // someone else changed the order between our read and the compare-and-set
         AuditEvent.Builder event = AuditEvent.builder()
                 .actor(AuditActor.admin(adminId, role))

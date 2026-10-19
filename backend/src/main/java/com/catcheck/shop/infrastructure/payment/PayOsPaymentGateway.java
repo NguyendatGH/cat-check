@@ -7,7 +7,6 @@ import com.catcheck.shop.domain.port.PaymentGateway;
 import vn.payos.PayOS;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
-import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 import vn.payos.model.webhooks.WebhookData;
 
 import java.net.URI;
@@ -47,8 +46,8 @@ class PayOsPaymentGateway implements PaymentGateway, AutoCloseable {
     }
 
     @Override
-    public boolean isPaid(long payosOrderCode) {
-        return client.paymentRequests().get(payosOrderCode).getStatus() == PaymentLinkStatus.PAID;
+    public long amountPaid(long payosOrderCode) {
+        return client.paymentRequests().get(payosOrderCode).getAmountPaid(); // never null: the SDK rejects a response without it
     }
 
     @Override

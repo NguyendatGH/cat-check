@@ -85,7 +85,7 @@ class JdbcShopRepositoryOrderIntegrationTest {
 
     private static boolean cancel(UUID orderId, String expected) {
         return Boolean.TRUE.equals(tx.execute(s ->
-                repository.cancelAndRestock(orderId, expected, "BUYER", Instant.now())));
+                repository.cancelAndRestock(orderId, expected, "BUYER", Instant.now(), false)));
     }
 
     private static int stock(UUID product) {
@@ -181,6 +181,35 @@ class JdbcShopRepositoryOrderIntegrationTest {
         assertThat(cancelled.status()).isEqualTo("CANCELLED");
         assertThat(cancelled.refundNeeded()).isTrue();
         assertThat(stock(product)).as("ca hai don duoc tra kho").isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("Huy don chua tra du nhung da nhan mot phan tien (moneyReceived) => refundNeeded, paid_at van null")
+    void cancelFlagsRefundWhenMoneyReceivedWithoutFullPayment() {
+        UUID user = newUser();
+        UUID product = newProduct();
+        Order underpaid = placePayos(user, product);
+
+        Boolean done = tx.execute(s -> repository.cancelAndRestock(underpaid.id(), "PENDING_PAYMENT", "PAYMENT_EXPIRED", Instant.now(), true));
+        assertThat(done).isTrue();
+
+        Order cancelled = reload(user, underpaid.id());
+        assertThat(cancelled.status()).isEqualTo("CANCELLED");
+        assertThat(cancelled.refundNeeded()).isTrue();
+        assertThat(cancelled.paidAt()).isNull();
+        assertThat(stock(product)).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("paymentReference: ma giao dich da luu, rong khi chua tra hoac ma don khong co")
+    void paymentReferenceLookup() {
+        Order order = placePayos(newUser(), newProduct());
+        assertThat(repository.paymentReference(order.payosOrderCode())).isEmpty();
+
+        pay(order.payosOrderCode(), order.totalVnd(), "REF1");
+
+        assertThat(repository.paymentReference(order.payosOrderCode())).contains("REF1");
+        assertThat(repository.paymentReference(999_999_998L)).isEmpty();
     }
 
     @Test

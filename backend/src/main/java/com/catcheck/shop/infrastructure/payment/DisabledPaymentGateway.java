@@ -29,7 +29,7 @@ class DisabledPaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public boolean isPaid(long payosOrderCode) {
+    public long amountPaid(long payosOrderCode) {
         throw new IllegalStateException(MESSAGE);
     }
 
