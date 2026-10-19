@@ -106,7 +106,8 @@ export default defineConfig({
       srcDir: "src",
       filename: "sw.ts",
       registerType: "prompt",
-      injectRegister: false,
+      // Adds /registerSW.js to index.html. Push needs an active worker (navigator.serviceWorker.ready).
+      injectRegister: "script",
       manifest: {
         name: "CatCheck",
         short_name: "CatCheck",

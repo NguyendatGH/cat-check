@@ -12,6 +12,8 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     trace: "on-first-retry",
+    // Keep page.route() mocks working: a registered service worker would bypass them.
+    serviceWorkers: "block",
     launchOptions: process.env.PLAYWRIGHT_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : undefined,
