@@ -1149,6 +1149,14 @@
     "page": "Page {{page}}",
     "refundNeeded": "Refund needed",
     "cancelReason": "Cancel reason: {{reason}}",
+    "cancelReasons": {
+      "PAYMENT_EXPIRED": "Payment window expired",
+      "BUYER": "Cancelled by the buyer",
+      "ADMIN": "Cancelled by staff"
+    },
+    "payosOrderCode": "PayOS code: CC{{code}}",
+    "paymentReference": "Transaction ref: {{reference}}",
+    "paidAt": "Paid at {{time}}",
     "cancelTitle": "Cancel this order?",
     "cancelConsequence": "The order becomes Cancelled and the items return to stock. This cannot be undone.",
     "cancelConfirm": "Confirm cancel",

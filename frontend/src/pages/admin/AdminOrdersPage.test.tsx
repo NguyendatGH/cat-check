@@ -2,7 +2,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import i18next from "i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AdminOrder } from "@/features/admin";
+import { formatAdminDateTime, type AdminOrder } from "@/features/admin";
 import adminVi from "@/shared/i18n/locales/vi/admin.json";
 import { AdminOrdersPage } from "./AdminOrdersPage";
 
@@ -50,6 +50,7 @@ function order(overrides: Partial<AdminOrder>): AdminOrder {
     totalVnd: 155000,
     lines: [{ product: { id: "p1", sku: "CAT-01", name: "Cát vệ sinh" }, quantity: 2, totalVnd: 125000 }],
     createdAt: "2026-10-04T10:00:00Z",
+    payosOrderCode: null,
     paymentExpiresAt: null,
     paidAt: "2026-10-04T10:05:00Z",
     paymentReference: null,
@@ -153,6 +154,47 @@ describe("AdminOrdersPage", () => {
     ];
     render();
     expect(document.body.textContent.match(/Cần hoàn tiền/g)).toHaveLength(1);
+  });
+
+  it("đơn PayOS cần hoàn tiền hiện mã CC, mã giao dịch và giờ nhận tiền để đối soát", () => {
+    m.orders = [
+      order({
+        id: "o2",
+        orderCode: "CC-1002",
+        status: "CANCELLED",
+        refundNeeded: true,
+        payosOrderCode: 100123,
+        paymentReference: "FT26277ABC",
+        paidAt: "2026-10-04T10:05:00Z",
+        cancelReason: "PAYMENT_EXPIRED",
+        allowedNextStatuses: [],
+      }),
+    ];
+    render();
+    const text = document.body.textContent;
+    expect(text).toContain("CC100123");
+    expect(text).toContain("FT26277ABC");
+    expect(text).toContain(formatAdminDateTime("2026-10-04T10:05:00Z"));
+  });
+
+  it("đơn COD không hiện mã PayOS", () => {
+    m.orders = [order({ paymentMethod: "COD", paidAt: null, allowedNextStatuses: [] })];
+    render();
+    expect(document.body.textContent).not.toContain("Mã PayOS");
+  });
+
+  it("lý do huỷ hiện bằng nhãn, không hiện mã thô", () => {
+    m.orders = [
+      order({ id: "a", status: "CANCELLED", cancelReason: "PAYMENT_EXPIRED", allowedNextStatuses: [] }),
+      order({ id: "b", status: "CANCELLED", cancelReason: "BUYER", allowedNextStatuses: [] }),
+      order({ id: "c", status: "CANCELLED", cancelReason: "ADMIN", allowedNextStatuses: [] }),
+    ];
+    render();
+    const text = document.body.textContent;
+    expect(text).toContain(tVi("orderAdmin.cancelReason", { reason: tVi("orderAdmin.cancelReasons.PAYMENT_EXPIRED") }));
+    expect(text).toContain(tVi("orderAdmin.cancelReasons.BUYER"));
+    expect(text).toContain(tVi("orderAdmin.cancelReasons.ADMIN"));
+    expect(text).not.toMatch(/PAYMENT_EXPIRED|BUYER|ADMIN/);
   });
 
   it("đổi bộ lọc trạng thái quay về trang đầu", () => {

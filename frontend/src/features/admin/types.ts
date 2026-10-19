@@ -496,6 +496,7 @@ export interface AdminOrder {
   totalVnd: number;
   lines: { product: { id: string; sku: string; name: string }; quantity: number; totalVnd: number }[];
   createdAt: string;
+  payosOrderCode: number | null;
   paymentExpiresAt: string | null;
   paidAt: string | null;
   paymentReference: string | null;

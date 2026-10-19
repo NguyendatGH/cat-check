@@ -182,6 +182,9 @@ class AdminOrderControllerTest {
 
         mvc.perform(get("/api/v1/admin/shop/orders/{id}", paid.id())).andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentReference").value("REF1"))
+                .andExpect(jsonPath("$.payosOrderCode").value(paid.payosOrderCode()))
+                .andExpect(jsonPath("$.paidAt").exists())
+                .andExpect(jsonPath("$.checkoutUrl").doesNotExist())
                 .andExpect(jsonPath("$.refundNeeded").value(false))
                 .andExpect(jsonPath("$.allowedNextStatuses[0]").value("PACKING"));
         move(paid, "CANCELLED", "Het hang that su, hoan tien").andExpect(status().isOk());
@@ -190,7 +193,8 @@ class AdminOrderControllerTest {
         mvc.perform(get("/api/v1/admin/shop/orders/{id}", paid.id()))
                 .andExpect(jsonPath("$.refundNeeded").value(true));
         mvc.perform(get("/api/v1/admin/shop/orders/{id}", cod.id()))
-                .andExpect(jsonPath("$.refundNeeded").value(false));
+                .andExpect(jsonPath("$.refundNeeded").value(false))
+                .andExpect(jsonPath("$.payosOrderCode").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test

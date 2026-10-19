@@ -1149,6 +1149,14 @@
     "page": "Trang {{page}}",
     "refundNeeded": "Cần hoàn tiền",
     "cancelReason": "Lý do huỷ: {{reason}}",
+    "cancelReasons": {
+      "PAYMENT_EXPIRED": "Quá hạn thanh toán",
+      "BUYER": "Khách tự huỷ",
+      "ADMIN": "Nhân viên huỷ"
+    },
+    "payosOrderCode": "Mã PayOS: CC{{code}}",
+    "paymentReference": "Mã giao dịch: {{reference}}",
+    "paidAt": "Nhận tiền lúc {{time}}",
     "cancelTitle": "Huỷ đơn hàng?",
     "cancelConsequence": "Đơn sẽ chuyển sang Đã huỷ và hàng được trả lại kho. Không hoàn tác được.",
     "cancelConfirm": "Xác nhận huỷ đơn",

@@ -108,6 +108,21 @@ export function AdminOrdersPage() {
                     </td>
                     <td className={denseTdClass}>
                       {t(`orderAdmin.paymentMethods.${order.paymentMethod}`, { defaultValue: order.paymentMethod })}
+                      {order.payosOrderCode !== null ? (
+                        <span className="block text-small text-text-tertiary">
+                          {t("orderAdmin.payosOrderCode", { code: order.payosOrderCode })}
+                        </span>
+                      ) : null}
+                      {order.paymentReference ? (
+                        <span className="block text-small text-text-tertiary">
+                          {t("orderAdmin.paymentReference", { reference: order.paymentReference })}
+                        </span>
+                      ) : null}
+                      {order.paidAt ? (
+                        <span className="block text-small text-text-tertiary">
+                          {t("orderAdmin.paidAt", { time: formatAdminDateTime(order.paidAt) })}
+                        </span>
+                      ) : null}
                     </td>
                     <td className={denseTdClass}>{formatVnd(order.totalVnd)}</td>
                     <td className={denseTdClass}>
@@ -121,7 +136,9 @@ export function AdminOrdersPage() {
                       ) : null}
                       {order.cancelReason ? (
                         <span className="block max-w-64 whitespace-normal break-words text-small text-text-tertiary">
-                          {t("orderAdmin.cancelReason", { reason: order.cancelReason })}
+                          {t("orderAdmin.cancelReason", {
+                            reason: t(`orderAdmin.cancelReasons.${order.cancelReason}`, { defaultValue: order.cancelReason }),
+                          })}
                         </span>
                       ) : null}
                     </td>
