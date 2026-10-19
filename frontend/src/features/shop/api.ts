@@ -105,6 +105,9 @@ export function createShopOrder(payload: {
 }) {
   return request<OrderApi>("/orders", { method: "POST", body: JSON.stringify(payload) });
 }
+export function listMyOrders() {
+  return request<OrderApi[]>("/orders");
+}
 export function getShopOrder(orderId: string) {
   return request<OrderApi>(`/orders/${orderId}`);
 }

@@ -251,5 +251,16 @@
     "cancelReason": {
       "PAYMENT_EXPIRED": "This order was cancelled automatically because it was not paid within 5 minutes"
     }
+  },
+  "myOrders": {
+    "title": "My orders",
+    "link": "My orders",
+    "empty": {
+      "title": "You have no orders yet",
+      "description": "Orders you place will appear here so you can track their status.",
+      "cta": "Go to the shop"
+    },
+    "error": "Could not load your orders.",
+    "itemCount": "{{count}} items"
   }
 }

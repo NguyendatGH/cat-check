@@ -7,6 +7,7 @@ import {
   getShopOrder,
   getShopProduct,
   isShopId,
+  listMyOrders,
   listShopProducts,
   removeShopCartLine,
   setShopCartLine,
@@ -19,6 +20,7 @@ export const shopKeys = {
   products: () => ["shop", "products"] as const,
   product: (productId: string) => ["shop", "product", productId] as const,
   cart: () => ["shop", "cart"] as const,
+  orders: () => ["shop", "orders"] as const,
   order: (orderId: string) => ["shop", "order", orderId] as const,
 };
 
@@ -47,6 +49,10 @@ export function orderRefetchMs(order: OrderApi | undefined): number {
     order.paymentExpiresAt !== null &&
     Date.parse(order.paymentExpiresAt) > Date.now();
   return waitingForPayos ? 3000 : 30_000;
+}
+
+export function useMyOrders() {
+  return useQuery({ queryKey: shopKeys.orders(), queryFn: listMyOrders });
 }
 
 export function useShopOrder(orderId: string | undefined) {
@@ -103,6 +109,7 @@ export function useCreateOrder() {
     mutationFn: createShopOrder,
     onSuccess: (order: OrderApi) => {
       queryClient.setQueryData<OrderApi>(shopKeys.order(order.id), order);
+      void queryClient.invalidateQueries({ queryKey: shopKeys.orders() });
       void queryClient.invalidateQueries({ queryKey: shopKeys.cart() });
       void queryClient.invalidateQueries({ queryKey: shopKeys.products() });
       void queryClient.invalidateQueries({ queryKey: ["shop", "product"] });
@@ -119,6 +126,7 @@ export function useCancelOrder() {
     mutationFn: cancelShopOrder,
     onSuccess: (order: OrderApi) => {
       queryClient.setQueryData<OrderApi>(shopKeys.order(order.id), order);
+      void queryClient.invalidateQueries({ queryKey: shopKeys.orders() });
     },
     onError: (_error, orderId) => {
       void queryClient.invalidateQueries({ queryKey: shopKeys.order(orderId) });

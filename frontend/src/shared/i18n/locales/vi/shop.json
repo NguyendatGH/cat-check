@@ -251,5 +251,16 @@
     "cancelReason": {
       "PAYMENT_EXPIRED": "Đơn đã tự huỷ vì quá 5 phút chưa thanh toán"
     }
+  },
+  "myOrders": {
+    "title": "Đơn của tôi",
+    "link": "Đơn của tôi",
+    "empty": {
+      "title": "Bạn chưa có đơn hàng nào",
+      "description": "Các đơn bạn đặt sẽ hiện ở đây để theo dõi trạng thái.",
+      "cta": "Tới cửa hàng"
+    },
+    "error": "Không tải được danh sách đơn hàng.",
+    "itemCount": "{{count}} mặt hàng"
   }
 }

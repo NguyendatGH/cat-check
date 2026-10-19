@@ -9,6 +9,7 @@
     "phColorChart": "pH color chart",
     "users": "Users",
     "products": "Products",
+    "orders": "Orders",
     "brand": "CatCheck",
     "skipToContent": "Skip menu, go to main content",
     "openMenu": "Open admin menu",
@@ -369,6 +370,10 @@
     "products": {
       "title": "Shop products",
       "description": "Create, edit, list and unlist products in the shop."
+    },
+    "orders": {
+      "title": "Shop orders",
+      "description": "View customer orders and move each one through its processing status."
     },
     "scans": {
       "title": "User scans",
@@ -1127,6 +1132,46 @@
       "priceVnd": "Price must be a non-negative integer.",
       "compareAtPriceVnd": "Original price must be an integer greater than the selling price.",
       "stockQuantity": "Stock must be a non-negative integer."
+    }
+  },
+  "orderAdmin": {
+    "listTitle": "Order list",
+    "listDescription": "Each button is a valid status change. Cancelling needs a reason and returns the items to stock.",
+    "filterLabel": "Filter by status",
+    "filterAll": "All statuses",
+    "code": "Order code",
+    "receiver": "Recipient",
+    "items": "Items",
+    "payment": "Payment",
+    "total": "Total",
+    "status": "Status",
+    "action": "Actions",
+    "page": "Page {{page}}",
+    "refundNeeded": "Refund needed",
+    "cancelReason": "Cancel reason: {{reason}}",
+    "cancelTitle": "Cancel this order?",
+    "cancelConsequence": "The order becomes Cancelled and the items return to stock. This cannot be undone.",
+    "cancelConfirm": "Confirm cancel",
+    "statuses": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "PACKING": "Packing",
+      "SHIPPING": "Shipping",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled"
+    },
+    "actions": {
+      "PAID": "Confirm paid",
+      "PACKING": "Start packing",
+      "SHIPPING": "Ship",
+      "DELIVERED": "Mark delivered",
+      "CANCELLED": "Cancel order"
+    },
+    "paymentMethods": {
+      "COD": "Cash on delivery",
+      "PAYOS": "PayOS",
+      "MOMO": "MoMo",
+      "BANK_TRANSFER": "Bank transfer"
     }
   },
   "access": {

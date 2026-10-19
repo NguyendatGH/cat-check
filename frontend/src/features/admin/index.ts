@@ -37,6 +37,8 @@ export {
   useCreateAdminProduct,
   useUpdateAdminProduct,
   useSetAdminProductStatus,
+  useAdminOrders,
+  useChangeAdminOrderStatus,
   useAdminJobRuns,
   useAdminOutbox,
   useAdminAuditLogs,
@@ -225,6 +227,7 @@ export type { ProductFormValues, ProductFormErrors } from "./productForm";
 
 export {
   SHOP_PRODUCT_STATUSES,
+  ADMIN_ORDER_STATUSES,
   CHART_STATUSES,
   PRODUCT_LINES,
   CARE_TIP_STATUSES,
@@ -268,6 +271,7 @@ export type {
   AdminProduct,
   AdminProductPayload,
   AdminProductStatus,
+  AdminOrder,
   UpdateAdminPackagePlanPayload,
   AdminJobRun,
   AdminOutboxEntry,
