@@ -7,10 +7,11 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    # MAIL_* thắng; thiếu thì dùng lại các biến SMTP_* của profile local.
+    host: ${MAIL_HOST:${SMTP_HOST:smtp.gmail.com}}
+    port: ${MAIL_PORT:${SMTP_PORT:587}}
+    username: ${MAIL_USERNAME:${SMTP_EMAIL:}}
+    password: ${MAIL_PASSWORD:${SMTP_APP_PASSWORD:}}
     properties:
       mail:
         smtp:

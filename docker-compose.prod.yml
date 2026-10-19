@@ -27,7 +27,11 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
-    volumes: ["media_storage:/var/lib/catcheck/storage"]
+    volumes:
+      - media_storage:/var/lib/catcheck/storage
+      # FCM service account next to this file; must be readable by the container user (uid 1001).
+      # If the file is missing, Docker creates an empty directory here and push simply stays off.
+      - ./firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
     # Secrets and optional integrations (SMTP, Cloudinary, AI, Firebase) come from .env.
     env_file: .env
     environment:
@@ -43,6 +47,8 @@ services:
       # Links in emails (reminders, data-export ready); both default to http://localhost:5173.
       CATCHECK_NOTIFICATION_APPURL: https://${DOMAIN}
       CATCHECK_PRIVACY_EXPORT_WEBBASEURL: https://${DOMAIN}
+      # Container path of the mounted file above (a host path from .env would not exist in the container).
+      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account.json
       # PayOS return/cancel links back to the shop order page; defaults to http://localhost:5173.
       CATCHECK_SHOP_WEBBASEURL: https://${DOMAIN}
     depends_on:

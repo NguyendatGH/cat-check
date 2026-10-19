@@ -50,7 +50,7 @@ Fill in every empty value in `.env`. The file explains each one and shows how to
 | `COMPOSE_FILE` | Already set to `docker-compose.prod.yml`, so plain `docker compose …` uses the prod stack. |
 | `DOMAIN` | Public host name, for example `catcheck.example.com`. |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Database credentials. The password is used when the volume is first created. |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | SMTP with STARTTLS. Mail is sent from `MAIL_USERNAME`. |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | SMTP with STARTTLS. Mail is sent from `MAIL_USERNAME`. If unset, the local names `SMTP_EMAIL` / `SMTP_APP_PASSWORD` are used, with `smtp.gmail.com:587`. |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google login. |
 | `APP_PII_ENCRYPTION_KEYS` | Encryption key for personal data, format `v1:<base64 32 bytes>`. |
 | `ACTIVATION_PEPPER`, `RECOVERY_CODE_PEPPER`, `OTP_PEPPER` | Three different secrets, 32 bytes or more each. |
@@ -65,14 +65,11 @@ An empty value is not the same as an unset one.
 - **Cloudinary:** set the three `CLOUDINARY_*` values to store images there instead of on the `media_storage` volume.
 - **AI assistant LLM:** set `CATCHECK_AI_ENABLED=true` and `CATCHECK_AI_API_KEY`. When it is off, the assistant
   answers by quoting the care-tip articles.
-- **Push notifications (backend):** put the service-account JSON on the server, set `FIREBASE_SERVICE_ACCOUNT_PATH`
-  and `FIREBASE_PROJECT_ID`, and mount the file into the backend by adding this under `backend:` in
-  `docker-compose.prod.yml`:
-  ```yaml
-      volumes:
-        - media_storage:/var/lib/catcheck/storage
-        - ./firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
-  ```
+- **Push notifications (backend):** put the service-account JSON next to `docker-compose.prod.yml` as
+  `firebase-service-account.json` and make it readable by the container user only:
+  `sudo chown 1001:1001 firebase-service-account.json && sudo chmod 600 firebase-service-account.json`.
+  Compose already mounts it at `/run/secrets/firebase-service-account.json` and sets `FIREBASE_SERVICE_ACCOUNT_PATH`;
+  the project id comes from the JSON. Check the backend log for `Push FCM: BẬT`.
 - **Frontend build-time values** (`VITE_FIREBASE_*`, `VITE_MAP_TILES_URL`): Vite bakes these into the JS bundle at
   build time, so they do not belong in `.env`. Put them in `frontend/.env.production` (git-ignored) before you
   build the frontend image. Leave out any variable you do not use. An empty `VITE_MAP_TILES_URL` breaks the app
