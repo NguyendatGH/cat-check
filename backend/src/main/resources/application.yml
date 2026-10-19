@@ -202,6 +202,15 @@ catcheck:
       email-batch-size: 50
       push-batch-size: 100
 
+  shop:
+    payos:
+      client-id: ${PAYOS_CLIENT_ID:}
+      api-key: ${PAYOS_API_KEY:}
+      checksum-key: ${PAYOS_CHECKSUM_KEY:}
+      timeout-ms: 10000
+      max-retries: 0
+      payment-ttl: PT5M
+
   i18n:
     default-locale: vi
     supported-locales: vi,en
