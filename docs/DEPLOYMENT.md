@@ -80,9 +80,12 @@ An empty value is not the same as an unset one.
 
 ### PayOS (online payment for shop orders)
 
-Without PayOS, the shop only offers cash on delivery (COD). To turn on online payment:
+Without the PayOS keys, the shop hides the PayOS option and buyers see only cash on delivery (COD). To turn on
+online payment:
 
-1. Create a payment channel on [my.payos.vn](https://my.payos.vn) and link your bank account to it.
+1. Create a payment channel on [my.payos.vn](https://my.payos.vn) and link your bank account to it. Use a separate
+   channel for each environment (for example a staging server and production): each database numbers PayOS orders
+   from 100000, and PayOS rejects an order code that the channel has already used.
 2. Copy the channel's **Client ID**, **API Key** and **Checksum Key** into `.env` as `PAYOS_CLIENT_ID`,
    `PAYOS_API_KEY` and `PAYOS_CHECKSUM_KEY` (uncomment them). Set all three: if any one is missing, PayOS stays off.
 3. Restart the backend: `docker compose up -d backend`.
@@ -90,15 +93,20 @@ Without PayOS, the shop only offers cash on delivery (COD). To turn on online pa
    PayOS sends a test request when you save it, and the endpoint answers 200. The endpoint is public and Caddy
    already proxies `/api/*`, so nothing else needs opening. Requests with a bad signature get 400.
 5. Place a real order for a small amount and check that it moves to `PAID` (My orders, or the admin order list).
+6. Place a second order, and on the PayOS payment page press **Huỷ** (Cancel). You land back on the order page and
+   the order becomes `CANCELLED`.
 
 Good to know:
 
-- `CATCHECK_SHOP_WEBBASEURL` is already set to `https://${DOMAIN}` in `docker-compose.prod.yml`. PayOS sends the
-  buyer back to `https://<DOMAIN>/orders/<id>`, so do not override it with another host.
+- `CATCHECK_SHOP_WEBBASEURL` is fixed to `https://${DOMAIN}` in `docker-compose.prod.yml`. A value for it in `.env`
+  is ignored. PayOS sends the buyer back to `https://<DOMAIN>/orders/<id>`.
 - An online order that is still unpaid after 5 minutes is cancelled automatically. COD orders are never cancelled
   this way.
-- If PayOS is down or the keys are not set, choosing online payment at checkout fails with 503
-  `PAYMENT_UNAVAILABLE`. COD keeps working.
+- If the keys are set but PayOS is down, placing a PayOS order fails with 503 `PAYMENT_UNAVAILABLE`.
+  COD keeps working.
+- PayOS accepts partial transfers. An order that is only partly paid when its 5 minutes run out is cancelled and
+  flagged "Cần hoàn tiền" (refund needed) in the admin order list, with its `CC…` code and transaction reference.
+  Refunds are made by hand.
 
 ## 3. First start
 
