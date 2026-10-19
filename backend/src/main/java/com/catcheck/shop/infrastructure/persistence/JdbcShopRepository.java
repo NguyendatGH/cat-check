@@ -114,7 +114,7 @@ public class JdbcShopRepository implements ShopRepository {
     private Order mapOrder(ResultSet rs, UUID userId) throws SQLException {
         UUID id = rs.getObject("id", UUID.class);
         List<CartLine> lines = jdbc.query("SELECT p.id, p.sku, l.product_name AS name, p.description, p.image_url, l.unit_price_vnd AS price_vnd, p.compare_at_price_vnd, p.stock_quantity, l.quantity FROM shop_order_line l JOIN shop_product p ON p.id = l.product_id WHERE l.order_id = ?", (child, row) -> new CartLine(product(child), child.getInt("quantity")), id);
-        return new Order(id, rs.getString("order_code"), rs.getString("status"), rs.getString("payment_method"), rs.getString("receiver_name"), rs.getString("receiver_phone"), rs.getString("shipping_address"), rs.getLong("subtotal_vnd"), rs.getLong("discount_vnd"), rs.getLong("shipping_fee_vnd"), rs.getLong("total_vnd"), lines, instant(rs, "created_at"));
+        return new Order(id, rs.getString("order_code"), rs.getString("status"), rs.getString("payment_method"), rs.getString("receiver_name"), rs.getString("receiver_phone"), rs.getString("shipping_address"), rs.getLong("subtotal_vnd"), rs.getLong("discount_vnd"), rs.getLong("shipping_fee_vnd"), rs.getLong("total_vnd"), lines, instant(rs, "created_at"), null, null, null, null, null, null, false);
     }
 
     private static final String ADMIN_COLS = "id, sku, name, description, image_url, price_vnd, compare_at_price_vnd, stock_quantity, status, updated_at";

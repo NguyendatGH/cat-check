@@ -6,4 +6,6 @@ import java.util.UUID;
 
 public record Order(UUID id, String orderCode, String status, String paymentMethod, String receiverName,
                     String receiverPhone, String shippingAddress, long subtotalVnd, long discountVnd,
-                    long shippingFeeVnd, long totalVnd, List<CartLine> lines, Instant createdAt) { }
+                    long shippingFeeVnd, long totalVnd, List<CartLine> lines, Instant createdAt,
+                    Long payosOrderCode, String checkoutUrl, Instant paymentExpiresAt, Instant paidAt,
+                    String paymentReference, String cancelReason, boolean refundNeeded) { }
