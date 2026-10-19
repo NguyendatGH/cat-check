@@ -2,11 +2,6 @@ import { EXPORT_PRESET_DAYS, type ExportRangePreset } from "@/features/export";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Khoảng ngày THẬT ứng với preset đang chọn — mockup `10` hiện dòng "15 Th08 – 14 Th09, 2026"
- * cạnh tiêu đề mục 2. Preset tính ngược từ hôm nay (cùng quy ước với `ExportRequestService` ở
- * backend: khoảng đóng, tính cả ngày hôm nay).
- */
 export function resolveExportRange(
   preset: ExportRangePreset,
   customFrom: string,

@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { ScanResult } from "@/entities/scan-result";
 import { ScanMetaCard } from "./webPanels";
 
-// `@/features/scan` re-export `worker` của MSW — `setupWorker` không chạy được ngoài trình duyệt.
 vi.mock("@/features/scan/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -30,7 +29,6 @@ function render(result: ScanResult): string {
 
 describe("ScanMetaCard", () => {
   it("lần quét chưa gắn bảng màu (server bỏ hẳn key `chartVersion`) không in dòng 'bảng màu vundefined'", () => {
-    // JSON thật: các field null (chartCode/chartVersion/engineVersion/...) không có trong response.
     const fromServer = {
       scanId: "s1",
       scanRequestId: "r1",

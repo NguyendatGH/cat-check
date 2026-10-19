@@ -38,6 +38,7 @@ import {
 } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { useSessionStore } from "@/entities/user";
 import {
   DELETION_GRACE_DAYS,
@@ -70,52 +71,20 @@ import {
   type StepUpMethod,
 } from "@/features/privacy";
 
-/**
- * `/account/privacy` — Trung tâm quyền riêng tư (p15 §15.3.3, §15.4).
- *
- * Nối API thật của `PrivacyController` (C1–C15, p8 §8.4.3): danh mục mục đích + trạng thái
- * consent hiện hành + sổ lịch sử append-only, bảng kiểm kê dữ liệu, xuất dữ liệu, tạm ngừng
- * xử lý, xoá tài khoản (ân hạn 7 ngày, có đường huỷ) và bốn loại DSAR phải có người xử lý.
- *
- * Ba nguyên tắc chi phối màn hình này, không phải lựa chọn thẩm mỹ:
- *  1. **Trạng thái hiện hành đọc từ server** (view `consent_current`, p4 B2) — không suy ra
- *     từ lịch sử ở client, vì lệch ở đây là lệch bằng chứng pháp lý.
- *  2. **Append-only**: rút đồng ý là INSERT một dòng `WITHDRAWN` (I16), nên UI nói rõ lịch
- *     sử là vĩnh viễn và không có nút xoá dòng nào.
- *  3. **Không tick sẵn** mục tuỳ chọn (I17, p15 §15.3.1 C4) — `NONE` hiển thị là TẮT kèm câu
- *     "chưa được hỏi không có nghĩa là đồng ý", không phải khoảng trắng im lặng.
- *
- * Những chỗ spec đòi mà backend chưa có endpoint đều hiện khối "Chưa có API" (đúng thiết kế
- * M-18/Web-19, câu chữ cho người dùng — không lộ số mục spec hay tên class), KHÔNG bịa dữ liệu:
- * tải tệp bằng chứng đồng ý (§15.3.1 C6), thời hạn lưu bằng chữ (§15.5.1), đọc thẳng trạng thái
- * tạm ngừng xử lý (§15.4.7), lựa chọn nội dung cộng đồng khi xoá (§15.4.6, Giai đoạn 2).
- *
- * Mã máy (mã mục đích, mã nơi ghi nhận) không hiện thô: mã mục đích tra ra nhãn từ chính
- * `GET /privacy/purposes`; danh sách dài (lịch sử, kiểm kê) hiện 5 dòng đầu + nút xem hết.
- * "Nhật ký truy cập" (B13) không có trong thiết kế và endpoint hiện luôn trả rỗng — khối chỉ
- * hiện khi có dòng thật.
- *
- * Bố cục: trang nằm trong `TaskLayout` — layout đã cấp `px-4 py-6` và hộp 944px ở `lg`, trang
- * KHÔNG tự thêm. Cột nội dung co giãn + cột phụ 360px theo đúng idiom `SettingsSecurityPage`.
- */
 
-/* ------------------------------------------------------------------ *
- * Tiện ích hiển thị
- * ------------------------------------------------------------------ */
 
 const CARD = "flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-brand-md";
 const SECTION_TITLE = "flex items-center gap-2 text-h3 font-bold text-text-primary";
 const ASIDE_CARD = "flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md";
 
-/** Yêu cầu còn đang mở — bốn trạng thái chưa đóng của `dsar_request`. */
 const OPEN_DSAR_STATUSES = new Set(["RECEIVED", "IDENTITY_PENDING", "IN_PROGRESS", "EXTENDED"]);
 
 function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  return new Date(value).toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" });
 }
 
 function formatDate(value: Date): string {
-  return value.toLocaleString("vi-VN", { dateStyle: "long", timeStyle: "short" });
+  return value.toLocaleString(intlLocale(), { dateStyle: "long", timeStyle: "short" });
 }
 
 function daysUntil(deadline: Date): number {
@@ -126,7 +95,6 @@ function errorCodeOf(error: unknown): string | undefined {
   return isApiError(error) ? error.code : undefined;
 }
 
-/** Khối "Chưa có API" (MissingApiNote của thiết kế) — nói thẳng phần còn thiếu thay vì dựng UI giả. */
 function MissingApiNote({ children }: { children: ReactNode }) {
   const { t } = useTranslation("legal");
   return (
@@ -137,15 +105,8 @@ function MissingApiNote({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Cỡ chữ của Badge viết bằng giá trị arbitrary: `cn()` (tailwind-merge chưa khai token chữ của
- * dự án) coi `text-overline` của Badge là MÀU chữ và xoá nó khi gặp `text-*-text` của tone —
- * badge rơi về 16px. `text-[12px]` thì tailwind-merge nhận đúng là cỡ chữ nên giữ lại.
- * Sửa gốc thuộc `shared/lib/cn.ts` (ngoài phạm vi màn này).
- */
 const BADGE_TEXT = "text-[12px] leading-4 font-semibold";
 
-/** Số dòng hiện sẵn của các danh sách dài (thiết kế: "5 dòng gần nhất"). */
 const COLLAPSED_ROWS = 5;
 
 const STATUS_TONE: Record<ConsentStatus, "success" | "warning" | "neutral"> = {
@@ -155,7 +116,6 @@ const STATUS_TONE: Record<ConsentStatus, "success" | "warning" | "neutral"> = {
   NONE: "neutral",
 };
 
-/** Nơi ghi nhận đồng ý đã biết (`consent_record.ui_surface`); mã lạ thì hiện nguyên văn. */
 const KNOWN_SURFACES = new Set(["register", "privacy_center", "onboarding", "scan_first", "cookie_banner"]);
 
 function ToggleMore({ expanded, total, onToggle }: { expanded: boolean; total: number; onToggle: () => void }) {
@@ -176,9 +136,6 @@ function InlineError({ message }: { message: string }) {
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Step-up re-auth (p15 REQ-DSAR-04)
- * ------------------------------------------------------------------ */
 
 interface StepUpDialogProps {
   open: boolean;
@@ -188,11 +145,6 @@ interface StepUpDialogProps {
   onVerified: () => void;
 }
 
-/**
- * Xác minh lại danh tính trước khi xuất/xoá dữ liệu. p15 REQ-DSAR-04 nêu đích danh OTP email
- * nên đó là cách mặc định; mật khẩu là đường thứ hai cho người đã đặt mật khẩu.
- * Luồng OTP: A4 `/auth/otp/request` → A5 `/auth/otp/verify` (lấy vé) → A12 `/auth/reauth`.
- */
 function StepUpDialog({ open, email, targetAction, onClose, onVerified }: StepUpDialogProps) {
   const { t } = useTranslation("legal");
   const [method, setMethod] = useState<StepUpMethod>("EMAIL_OTP");
@@ -391,9 +343,6 @@ function StepUpDialog({ open, email, targetAction, onClose, onVerified }: StepUp
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Một dòng mục đích xử lý
- * ------------------------------------------------------------------ */
 
 interface PurposeRowProps {
   purpose: PurposeView;
@@ -414,7 +363,6 @@ function PurposeRow({ purpose, status, pending, disabled, onChange }: PurposeRow
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-body font-semibold text-text-primary">{purpose.label}</span>
             {purpose.mandatory ? <Badge tone="brand" className={BADGE_TEXT}>{t("privacyCenter.consent.mandatoryBadge")}</Badge> : null}
-            {/* Đ6.4 NĐ356 + p4 B3: dữ liệu nhạy cảm BẮT BUỘC có nhãn cạnh ô chọn. */}
             {purpose.sensitive ? (
               <Badge tone="danger" className={BADGE_TEXT}>{t("privacyCenter.consent.sensitiveBadge")}</Badge>
             ) : null}
@@ -457,9 +405,6 @@ function PurposeRow({ purpose, status, pending, disabled, onChange }: PurposeRow
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Một dòng bảng kiểm kê dữ liệu
- * ------------------------------------------------------------------ */
 
 function InventoryRow({ item, purposeLabels }: { item: DataInventoryView; purposeLabels: Map<string, string> }) {
   const { t } = useTranslation(["legal", "settings"]);
@@ -496,7 +441,7 @@ function InventoryRow({ item, purposeLabels }: { item: DataInventoryView; purpos
           t("privacyCenter.inventory.labelRetention"),
           item.retentionPolicyCode === undefined
             ? t("settings:privacy.notApplicable")
-            : // Tên đọc được cho mã chính sách (chỉ tên — thời hạn chưa có trong C5); mã lạ hiện nguyên văn.
+            :
               t(`settings:privacy.retention.${item.retentionPolicyCode}`, { defaultValue: item.retentionPolicyCode }),
         )}
         {field(t("privacyCenter.inventory.labelStorage"), item.storageLocation)}
@@ -513,13 +458,9 @@ function InventoryRow({ item, purposeLabels }: { item: DataInventoryView; purpos
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Trang
- * ------------------------------------------------------------------ */
 
 const MANUAL_DSAR_TYPES: readonly ManualDsarType[] = ["RECTIFY", "OBJECT", "PROTECTION_MEASURE", "COMPLAINT"];
 
-/** Icon từng loại yêu cầu — đúng bộ icon của listRow trong thiết kế M-18c/Web-19b. */
 const MANUAL_DSAR_ICONS: Record<ManualDsarType, LucideIcon> = {
   RECTIFY: SquarePen,
   OBJECT: Ban,
@@ -577,11 +518,6 @@ export function AccountPrivacyPage() {
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
   }, []);
 
-  /**
-   * Chạy một thao tác cần step-up. Không mở hộp thoại trước: phiên có thể đã step-up trong
-   * cửa sổ 300 giây và không có endpoint nào đọc được trạng thái đó, nên cách trung thực là
-   * thử — gặp đúng `DSAR_IDENTITY_VERIFICATION_REQUIRED` mới xin xác minh rồi chạy lại.
-   */
   const runGuarded = useCallback(async (targetAction: string, action: () => Promise<void>) => {
     setActionError(null);
     setNotice(null);
@@ -598,7 +534,6 @@ export function AccountPrivacyPage() {
     }
   }, []);
 
-  /** Mã mục đích → nhãn đã dịch, tra từ chính `GET /privacy/purposes` (không tự đặt chữ). */
   const purposeLabels = useMemo(() => {
     const map = new Map<string, string>();
     for (const purpose of purposes.data ?? []) map.set(purpose.code, purpose.label);
@@ -676,7 +611,6 @@ export function AccountPrivacyPage() {
     [t],
   );
 
-  /** Bọc một thao tác: chạy có step-up, bắt lỗi về một chỗ, đặt thông báo thành công. */
   const dispatch = useCallback(
     (targetAction: string, action: () => Promise<void>) => {
       void runGuarded(targetAction, action).catch(handleActionError);
@@ -698,7 +632,6 @@ export function AccountPrivacyPage() {
         <p className="pt-1 text-body text-text-secondary">{t("privacyCenter.intro")}</p>
       </header>
 
-      {/* ---------- Băng cảnh báo: tài khoản đang trong ân hạn xoá (C9/C10) ---------- */}
       {openErase && eraseDeadline ? (
         <section className="flex flex-col gap-3 rounded-2xl border border-danger bg-danger-bg p-5">
           <h2 className="flex items-center gap-2 text-h3 font-bold text-danger-text">
@@ -751,7 +684,6 @@ export function AccountPrivacyPage() {
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
-          {/* ---------- Mục đích xử lý dữ liệu (C1 + C2 + C3) ---------- */}
           <section className={CARD}>
             <h2 className={SECTION_TITLE}>
               <ShieldCheck size={18} className="text-primary-dark" aria-hidden="true" />
@@ -792,7 +724,6 @@ export function AccountPrivacyPage() {
             <MissingApiNote>{t("settings:privacy.missing.evidence")}</MissingApiNote>
           </section>
 
-          {/* ---------- Lịch sử đồng ý (C4) ---------- */}
           <section className={CARD}>
             <h2 className={SECTION_TITLE}>
               <History size={18} className="text-primary-dark" aria-hidden="true" />
@@ -858,7 +789,6 @@ export function AccountPrivacyPage() {
             )}
           </section>
 
-          {/* ---------- Dữ liệu CatCheck đang giữ về bạn (C5) ---------- */}
           <section className={CARD}>
             <h2 className={SECTION_TITLE}>
               <Database size={18} className="text-primary-dark" aria-hidden="true" />
@@ -894,7 +824,6 @@ export function AccountPrivacyPage() {
             <MissingApiNote>{t("settings:privacy.missing.retention")}</MissingApiNote>
           </section>
 
-          {/* ---------- Xuất dữ liệu (C6 + C7 + C8) ---------- */}
           <section className={CARD}>
             <h2 className={SECTION_TITLE}>
               <Download size={18} className="text-primary-dark" aria-hidden="true" />
@@ -957,7 +886,6 @@ export function AccountPrivacyPage() {
             )}
           </section>
 
-          {/* ---------- Tạm ngừng xử lý (C11 + C12) ---------- */}
           <section className={CARD}>
             <h2 className={SECTION_TITLE}>
               <PauseCircle size={18} className="text-primary-dark" aria-hidden="true" />
@@ -990,10 +918,6 @@ export function AccountPrivacyPage() {
             <MissingApiNote>{t("settings:privacy.missing.restriction")}</MissingApiNote>
           </section>
 
-          {/*
-            ---------- Nhật ký truy cập (B13) ----------
-            Không có trong thiết kế M-18/Web-19. Dữ liệu thật từ audit log; khối chỉ hiện khi có dòng thật — không dựng một thẻ trống thường trực.
-          */}
           {accessLog.data && accessLog.data.length > 0 ? (
             <section className={CARD}>
               <h2 className={SECTION_TITLE}>
@@ -1031,7 +955,6 @@ export function AccountPrivacyPage() {
             </section>
           ) : null}
 
-          {/* ---------- Yêu cầu khác (C13 + C14) ---------- */}
           <section className={CARD}>
             <h2 className={SECTION_TITLE}>
               <FileText size={18} className="text-primary-dark" aria-hidden="true" />
@@ -1105,7 +1028,6 @@ export function AccountPrivacyPage() {
             )}
           </section>
 
-          {/* ---------- Xoá tài khoản (C9) ---------- */}
           <section className={cn(CARD, "border border-danger")}>
             <h2 className="flex items-center gap-2 text-h3 font-bold text-danger-text">
               <Trash2 size={18} aria-hidden="true" />
@@ -1174,7 +1096,6 @@ export function AccountPrivacyPage() {
           </section>
         </div>
 
-        {/* ---------- Cột phụ 360px (từ `xl`; hẹp hơn thì xuống cuối trang như M-18d) ---------- */}
         <aside className="flex flex-col gap-4 xl:sticky xl:top-20 xl:w-[360px] xl:shrink-0">
           <div className={ASIDE_CARD}>
             <h2 className={SECTION_TITLE}>
@@ -1225,7 +1146,6 @@ export function AccountPrivacyPage() {
         </aside>
       </div>
 
-      {/* ---------- Hộp thoại xác nhận xoá ---------- */}
       <Dialog
         open={deleteDialogOpen}
         onOpenChange={(next) => {

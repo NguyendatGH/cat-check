@@ -45,7 +45,6 @@ function toDraft(plan: AdminPackagePlan): PlanDraft {
 export function AdminPackagesPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  // Sửa gói: backend chỉ cho ADMIN_SUPER (ROLES.packagesWrite); xem: ROLES.packagesRead.
   const canEdit = can("packagesWrite");
   const plans = useAdminPackagePlans(true);
   const update = useUpdateAdminPackagePlan();
@@ -96,11 +95,7 @@ export function AdminPackagesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.packages.title")}
-        description={t("pages.packages.description")}
-        specRef="L25–L26 · GET/PATCH /api/v1/admin/package-plans"
-      />
+      <AdminPageHeader title={t("pages.packages.title")} description={t("pages.packages.description")} />
 
       <DensePanel title={t("packageAdmin.listTitle")} description={t("packageAdmin.listDescription")}>
         {canEdit ? null : <p className="text-caption text-text-secondary">{t("packageAdmin.readOnlyNote")}</p>}

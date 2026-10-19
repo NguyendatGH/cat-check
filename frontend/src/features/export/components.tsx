@@ -20,23 +20,12 @@ import type { Cat } from "@/entities/cat";
 import { CatCard } from "@/entities/cat";
 import type { ExportJob, ExportRangePreset, ExportSection } from "./types";
 
-/**
- * UI cho màn xuất hồ sơ (p9 §9.4.3, mockup `10. Xuất Hồ sơ Sức khỏe`). Ghép `entities/cat`
- * (`CatCard`) — feature → entity (bất kỳ entity) luôn được phép.
- *
- * Mockup `10` là MỘT TRANG CUỘN (ba mục cấu hình + xem trước + CTA hiện cùng lúc), không phải
- * wizard từng bước — các component ở đây được dựng để cả bản mobile lẫn desktop dùng chung.
- */
 
-/* ---------------- ExportSectionHeading ---------------- */
 
 export interface ExportSectionHeadingProps {
-  /** Số thứ tự mục, VD "1." — bỏ trống cho mục không đánh số (VD "Xem trước báo cáo"). */
   index?: string;
   title: string;
-  /** Chữ phụ bên phải (khoảng ngày đã chọn, "Hồ sơ đang theo dõi"…). */
   hint?: string;
-  /** Hành động bên phải, VD nút "Chọn tất cả". */
   action?: ReactNode;
   className?: string;
 }
@@ -45,8 +34,6 @@ export function ExportSectionHeading({ index, title, hint, action, className }: 
   const trailing =
     action ?? (hint ? <span className="text-[11px] font-semibold text-primary-dark">{hint}</span> : null);
   return (
-    // KHÔNG `flex-wrap`: mockup `10` luôn đặt chữ phụ/hành động CÙNG HÀNG với tiêu đề (tiêu đề
-    // tự xuống dòng bên trong). Cho phép wrap thì "Chọn tất cả (4)" rơi xuống dòng riêng.
     <div className={cn("flex items-baseline justify-between gap-3", className)}>
       <h2 className="min-w-0 text-caption font-bold uppercase tracking-[0.4px] text-text-primary">
         {[index, title].filter(Boolean).join(" ")}
@@ -56,7 +43,6 @@ export function ExportSectionHeading({ index, title, hint, action, className }: 
   );
 }
 
-/* ---------------- CatPickerStep ---------------- */
 
 export interface CatPickerStepProps {
   cats: Cat[];
@@ -64,12 +50,10 @@ export interface CatPickerStepProps {
   onSelect: (cat: Cat) => void;
   primaryLabel: string;
   secondaryLabel: string;
-  /** Tuổi đã định dạng của từng bé (mockup `10`: "Luna 3 tuổi 2 tháng") — từ `ageMonths` của API. */
   ageLabelFor?: (cat: Cat) => string | undefined;
   className?: string;
 }
 
-/** Thẻ chọn bé (mockup `10`): ảnh · tên · giống/tuổi · badge "Mèo chính"/"Mèo phụ" theo `isPrimary`. */
 export function CatPickerStep({
   cats,
   selectedCatId,
@@ -95,7 +79,6 @@ export function CatPickerStep({
   );
 }
 
-/* ---------------- RangePickerStep ---------------- */
 
 export interface RangePickerStepProps {
   value: ExportRangePreset;
@@ -104,7 +87,6 @@ export interface RangePickerStepProps {
   customTo: string;
   onCustomChange: (from: string, to: string) => void;
   labels: Record<ExportRangePreset, string>;
-  /** Preset được gợi ý — hiện thêm hậu tố `recommendedSuffix` (mockup `10`: "30 ngày qua"). */
   recommended?: ExportRangePreset;
   recommendedSuffix?: string;
   fromLabel: string;
@@ -114,7 +96,6 @@ export interface RangePickerStepProps {
 
 const RANGE_OPTIONS: ExportRangePreset[] = ["7D", "30D", "90D", "CUSTOM"];
 
-/** Lưới 2×2 các khoảng thời gian (mockup `10`), ô đang chọn nền `primary-dark`. */
 export function RangePickerStep({
   value,
   onChange,
@@ -183,7 +164,6 @@ export function RangePickerStep({
   );
 }
 
-/* ---------------- SectionsChecklist ---------------- */
 
 export interface SectionItem {
   value: ExportSection;
@@ -198,7 +178,6 @@ export interface SectionsChecklistProps {
   className?: string;
 }
 
-/** Icon đầu dòng cho từng mục nội dung — khớp mockup `10` (biểu đồ / màu / thức ăn / hồ sơ). */
 const SECTION_ICON: Record<ExportSection, LucideIcon> = {
   TREND: LineChart,
   SCAN_LOG: Palette,
@@ -245,17 +224,12 @@ export function SectionsChecklist({ items, selected, onToggle, className }: Sect
   );
 }
 
-/* ---------------- ReportPreviewThumbnail ---------------- */
 
 export interface ReportPreviewThumbnailProps {
   watermark: string;
   className?: string;
 }
 
-/**
- * Ảnh thu nhỏ trang A4 — DỰNG BẰNG CSS, không phải ảnh render thật từ backend: J1 chỉ trả
- * `pageCount`/`scanCount` SAU khi job chạy xong, trước khi bấm tạo thì chưa có gì để render.
- */
 export function ReportPreviewThumbnail({ watermark, className }: ReportPreviewThumbnailProps) {
   return (
     <div
@@ -285,7 +259,6 @@ export function ReportPreviewThumbnail({ watermark, className }: ReportPreviewTh
   );
 }
 
-/* ---------------- ExportJobStatusCard ---------------- */
 
 const STATUS_META: Record<ExportJob["status"], { icon: typeof Clock; tone: string }> = {
   QUEUED: { icon: Hourglass, tone: "text-text-tertiary" },
@@ -299,30 +272,17 @@ export interface ExportJobStatusCardProps {
   job: ExportJob;
   statusLabel: string;
   documentCodeLabel: string;
-  /** "12 trang · 38 lượt quét" — chỉ khi `READY` và backend đã trả `pageCount`/`scanCount`. */
   pageCountLabel?: string;
-  /** "Còn 6 ngày 04 giờ để tải" — tính từ `expiresAt` của job. */
   expiryLabel?: string;
-  /** Câu giải thích dưới tiêu đề cho `FAILED`/`EXPIRED`. */
   hint?: string;
-  /** Nhãn a11y của thanh tiến trình (QUEUED/RUNNING). */
   progressLabel: string;
   downloadLabel: string;
   downloadHref: string;
-  /** Nút tạo lại (`FAILED` → "Thử lại", `EXPIRED` → "Tạo lại"). */
   retryLabel?: string;
   onRetry?: () => void;
   className?: string;
 }
 
-/**
- * Thẻ trạng thái job xuất PDF — frame `M-10a` / `Web - 10a` (design/figma-plugin `30-core.js`,
- * `x1_exportCard`): icon · tiêu đề trạng thái · mã hồ sơ · thanh tiến trình (đang chạy) ·
- * số trang/lượt quét + hạn tải + nút tải (sẵn sàng) · lời nhắn + nút tạo lại (lỗi/hết hạn).
- *
- * `failureReason` của backend KHÔNG được in ra: chuỗi đó viết tiếng Việt không dấu ("Co loi
- * khi sinh bao cao…") — dùng câu i18n tương đương thay thế.
- */
 export function ExportJobStatusCard({
   job,
   statusLabel,
@@ -353,7 +313,6 @@ export function ExportJobStatusCard({
       </div>
 
       {inProgress ? (
-        // Backend không trả phần trăm — thanh chạy vô định (indeterminate), không bịa số %.
         <div
           role="progressbar"
           aria-label={progressLabel}

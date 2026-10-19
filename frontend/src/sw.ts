@@ -6,13 +6,9 @@ import { createHandlerBoundToURL } from "workbox-precaching";
 
 declare const self: ServiceWorkerGlobalScope;
 
-// injectManifest strategy (vite-plugin-pwa) — self.__WB_MANIFEST được thay bằng danh sách
-// file thật lúc build.
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-// SPA fallback cho navigation request khi offline và trang chưa được precache — trỏ về
-// app shell (index.html), router phía client sẽ tự render /offline nếu cần.
 registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
 
 self.addEventListener("install", () => {
@@ -23,15 +19,44 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-/**
- * TODO — FCM background message handler: CHƯA có Firebase project + VAPID key thật (Y4
- * mặc định "push tắt" tới khi có VAPID key — xem shared/config/env.ts `isPushEnabled`).
- * Khi có key thật, khởi tạo firebase/app + firebase/messaging/sw ở đây và xử lý
- * `onBackgroundMessage` để hiện notification hệ thống. Import `firebase/*` CHỈ được phép
- * ở src/sw.ts và features/notification (rule ESLint no-restricted-imports).
- *
- * import { initializeApp } from "firebase/app";
- * import { getMessaging, onBackgroundMessage } from "firebase/messaging/sw";
- * const app = initializeApp({ ... });
- * onBackgroundMessage(getMessaging(app), (payload) => { ... });
- */
+// Backend gửi FCM data-only (title, body, url, notificationId), nên service worker phải tự hiện thông báo.
+self.addEventListener("push", (event) => {
+  let payload: { data?: Record<string, string> } & Record<string, unknown> = {};
+  try {
+    payload = event.data?.json() ?? {};
+  } catch {
+    // Payload không phải JSON: vẫn phải hiện một thông báo (userVisibleOnly).
+  }
+  const data = payload.data ?? (payload as Record<string, string>);
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? "CatCheck", {
+      body: data.body,
+      icon: "/icons/pwa-192x192.png",
+      tag: data.notificationId,
+      data: { url: data.url },
+    }),
+  );
+});
+
+// Chỉ mở link cùng origin: url đến từ payload push.
+function sameOriginUrl(raw: string | undefined): string {
+  try {
+    const target = new URL(raw ?? "/", self.location.origin);
+    if (target.origin === self.location.origin) return target.href;
+  } catch {
+    // URL hỏng: về trang chủ.
+  }
+  return self.location.origin + "/";
+}
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = sameOriginUrl((event.notification.data as { url?: string } | undefined)?.url);
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then((windows) => {
+      const open = windows.at(0);
+      return open ? open.focus().then((w) => w.navigate(url)) : self.clients.openWindow(url);
+    }),
+  );
+});
+

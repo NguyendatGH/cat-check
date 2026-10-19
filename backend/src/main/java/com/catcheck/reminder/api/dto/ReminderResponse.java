@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
 
-/** Một lịch nhắc trả về client (p8 I1/I2/I3/I4). DTO là record — ArchUnit R14. */
 public record ReminderResponse(
         String id,
         String catId,

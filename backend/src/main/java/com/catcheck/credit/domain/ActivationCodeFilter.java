@@ -1,35 +1,64 @@
 package com.catcheck.credit.domain;
 
+import java.time.Instant;
+
 /**
- * Bộ lọc của L19 {@code GET /admin/activation-codes?prefix=&packageCode=&status=&batchId=}.
- *
- * <p>p8 §8.4.12 ghi rõ <i>"không tra theo mã đầy đủ — chỉ có hash trong DB"</i>: không có
- * trường nào ở đây nhận mã thô, và cũng không thể có. Tra cứu một mã cụ thể phải đi đường băm
- * {@code HMAC-SHA256(pepper, code)} rồi so {@code code_hash} (p14 §14.3.2 mục 4), là một hành
- * động khác hẳn về mặt audit nên không gộp vào bộ lọc danh sách này.</p>
- *
- * <p>Mọi trường {@code null} = không lọc theo tiêu chí đó.</p>
- *
- * @param codePrefix      khớp đầu chuỗi {@code code_prefix}
- * @param packageCode     khớp đúng {@code package_code}
- * @param status          khớp đúng {@code status}
- * @param productionBatch khớp đúng {@code production_batch} (tham số {@code batchId} của p8)
+ * Bộ lọc tra cứu mã. {@code expired} (kèm {@code asOf}) chỉ có nghĩa khi cần tách mã ISSUED còn hạn
+ * và đã hết hạn kích hoạt; {@code null} = không lọc theo hạn.
  */
 public record ActivationCodeFilter(
         String codePrefix,
         String packageCode,
         ActivationCodeStatus status,
-        String productionBatch
+        String productionBatch,
+        Boolean expired,
+        Instant asOf
 ) {
 
     public static ActivationCodeFilter none() {
         return new ActivationCodeFilter(null, null, null, null);
     }
 
+    public ActivationCodeFilter(String codePrefix, String packageCode, ActivationCodeStatus status,
+                                String productionBatch) {
+        this(codePrefix, packageCode, status, productionBatch, null, null);
+    }
+
+    /** Lọc theo trạng thái suy diễn: ISSUED = chưa dùng & còn hạn, EXPIRED = chưa dùng & quá hạn. */
+    public static ActivationCodeFilter of(String codePrefix, String packageCode,
+                                          ActivationCodeEffectiveStatus effectiveStatus,
+                                          String productionBatch, Instant now) {
+        if (effectiveStatus == null) {
+            return new ActivationCodeFilter(codePrefix, packageCode, null, productionBatch);
+        }
+        return switch (effectiveStatus) {
+            case ISSUED -> new ActivationCodeFilter(codePrefix, packageCode, ActivationCodeStatus.ISSUED,
+                    productionBatch, Boolean.FALSE, now);
+            case EXPIRED -> new ActivationCodeFilter(codePrefix, packageCode, ActivationCodeStatus.ISSUED,
+                    productionBatch, Boolean.TRUE, now);
+            case REDEEMED -> new ActivationCodeFilter(codePrefix, packageCode, ActivationCodeStatus.REDEEMED,
+                    productionBatch);
+            case VOID -> new ActivationCodeFilter(codePrefix, packageCode, ActivationCodeStatus.VOID,
+                    productionBatch);
+        };
+    }
+
     public ActivationCodeFilter {
         codePrefix = blankToNull(codePrefix);
         packageCode = blankToNull(packageCode);
         productionBatch = blankToNull(productionBatch);
+        if (expired != null && asOf == null) {
+            throw new IllegalArgumentException("Lọc theo hạn cần mốc thời gian asOf");
+        }
+    }
+
+    /** Khớp đúng điều kiện SQL của adapter, dùng cho test double và kiểm tra trong bộ nhớ. */
+    public boolean matches(ActivationCode code) {
+        return (codePrefix == null || (code.codePrefix() != null && code.codePrefix().startsWith(codePrefix)))
+                && (packageCode == null || packageCode.equals(code.packageCode()))
+                && (status == null || status == code.status())
+                && (productionBatch == null || productionBatch.equals(code.productionBatch()))
+                && (expired == null || expired == code.isIssuanceExpiredAt(asOf));
     }
 
     private static String blankToNull(String value) {

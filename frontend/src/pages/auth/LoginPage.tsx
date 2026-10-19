@@ -3,7 +3,11 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
-import { AtSign, ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { message } from "antd";
+import { loadSession, useSessionStore } from "@/entities/user";
+import { playSplash } from "@/shared/lib/motion/splash";
+import { ArrowLeft, AtSign, ArrowRight, Check, ExternalLink, KeyRound, ShieldCheck } from "lucide-react";
 import { Button, Input, Switch } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import appLogo from "@/shared/assets/images/web-auth/logo.png";
@@ -13,6 +17,7 @@ import { LoginShowcase } from "./LoginShowcase";
 import { AuthCard } from "./AuthCard";
 import {
   GoogleAuthButton,
+  OtpCodeInput,
   InlineAlert,
   PasswordField,
   isMfaChallenge,
@@ -23,29 +28,21 @@ import {
   useVerifyLoginRecoveryCode,
   useVerifyLoginTotp,
   type LoginFieldValues,
+  type OtpStatus,
 } from "@/features/auth";
 
-const DEFAULT_AFTER_LOGIN = "/dashboard";
-
-function resolveRedirectTarget(next: string | null): string {
-  // Chỉ chấp nhận path nội bộ bắt đầu bằng "/" — chặn open-redirect qua query `next`.
-  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
-  return DEFAULT_AFTER_LOGIN;
+// The holder lives above the login/MFA view switch so a toast survives it.
+export function LoginPage() {
+  const [messageApi, contextHolder] = message.useMessage();
+  return (
+    <>
+      {contextHolder}
+      <LoginView messageApi={messageApi} />
+    </>
+  );
 }
 
-/**
- * `/auth/login` (p9 §9.4.3 #2, M1 01b · W1 Web-01) — khớp Figma (CatCheck-Demo
- * 26mOVF2zdu4cI1EPz2Syxw). Mobile 1 cột (logo tròn + badge phiên bản lấy `buildVersion` từ
- * `GET /system/status`), web 2 cột: panel thương hiệu `LoginShowcase` + form.
- *
- * Thẻ demo "Bé Luna & Bạn — Khỏe mạnh" của mockup 01b đã BỎ: trước đăng nhập không có dữ
- * liệu mèo thật, và nhãn "Khỏe mạnh" là một kết luận sức khoẻ sản phẩm không được đưa ra.
- *
- * Bước 2 MFA (A10/A11, p11 §11.12): `POST /auth/login` có thể trả `mfaRequired: true`
- * ngay trên trang này (không có route riêng) — chuyển UI in-place sang nhập mã TOTP hoặc
- * mã khôi phục.
- */
-export function LoginPage() {
+function LoginView({ messageApi }: { messageApi: ReturnType<typeof message.useMessage>[0] }) {
   const { t } = useTranslation(["auth", "common"]);
   const [searchParams] = useSearchParams();
   const setPendingLoginMfaMethods = useAuthFlowStore((s) => s.setPendingLoginMfaMethods);
@@ -56,20 +53,19 @@ export function LoginPage() {
   const verifyTotp = useVerifyLoginTotp();
   const verifyRecovery = useVerifyLoginRecoveryCode();
 
-  const [loginError, setLoginError] = useState<string | null>(null);
   const [oauthCancelled, setOauthCancelled] = useState(false);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaError, setMfaError] = useState<string | null>(null);
+  const [mfaStatus, setMfaStatus] = useState<OtpStatus>("idle");
+  const [mfaErrorSignal, setMfaErrorSignal] = useState(0);
   const mfaInputRef = useRef<HTMLInputElement>(null);
 
-  // jsx-a11y/no-autofocus cấm prop `autoFocus` — focus bằng tay khi bước MFA vừa hiện,
-  // hành vi tương đương (M1 01c-2 tự focus ô nhập mã).
   useEffect(() => {
-    if (pendingLoginMfaMethods) {
+    if (pendingLoginMfaMethods && useRecoveryCode) {
       mfaInputRef.current?.focus();
     }
-  }, [pendingLoginMfaMethods]);
+  }, [pendingLoginMfaMethods, useRecoveryCode]);
 
   useEffect(() => {
     if (searchParams.get("error") === "oauth_cancelled") {
@@ -87,50 +83,67 @@ export function LoginPage() {
     defaultValues: { email: "", password: "", rememberMe: true },
   });
 
-  const redirectAfterLogin = () => {
-    window.location.assign(resolveRedirectTarget(searchParams.get("next")));
+  const queryClient = useQueryClient();
+  const setSession = useSessionStore((state) => state.setSession);
+  const enterApp = () => {
+    playSplash(loadSession(), (user) => {
+      queryClient.removeQueries();
+      setSession(user);
+    });
+  };
+
+  const showLoginError = (content: string) => {
+    void messageApi.open({ type: "error", content, key: "login-error" });
   };
 
   const onSubmit = async (values: LoginFieldValues) => {
-    setLoginError(null);
     try {
       const result = await login.mutateAsync(values);
       if (isMfaChallenge(result)) {
         setPendingLoginMfaMethods(result.mfaMethods);
         return;
       }
-      redirectAfterLogin();
+      enterApp();
     } catch (error) {
-      // Nhánh mặc định TRƯỚC ĐÂY là `invalidCredentials`, nên mọi lỗi lạ đều hiện "sai mật
-      // khẩu" — kể cả `SESSION_LIMIT_REACHED` (409), khiến người dùng gõ lại đúng mật khẩu
-      // mãi không vào được. Giờ chỉ 401/INVALID_CREDENTIALS mới nói sai thông tin đăng nhập.
       const code = isApiError(error) ? error.code : undefined;
       if (code === "ACCOUNT_LOCKED") {
-        setLoginError(t("login.errors.accountLocked"));
+        showLoginError(t("login.errors.accountLocked"));
       } else if (code === "ACCOUNT_NOT_VERIFIED") {
-        setLoginError(t("login.errors.accountNotVerified"));
+        showLoginError(t("login.errors.accountNotVerified"));
       } else if (code === "RATE_LIMITED") {
-        setLoginError(t("errors.rateLimited"));
+        showLoginError(t("errors.rateLimited"));
       } else if (code === "SESSION_LIMIT_REACHED") {
-        setLoginError(t("login.errors.sessionLimitReached"));
+        showLoginError(t("login.errors.sessionLimitReached"));
       } else if (code === "INVALID_CREDENTIALS" || (isApiError(error) && error.status === 401)) {
-        setLoginError(t("login.errors.invalidCredentials"));
+        showLoginError(t("login.errors.invalidCredentials"));
       } else {
-        setLoginError(t("errors.generic"));
+        showLoginError(t("errors.generic"));
       }
     }
   };
 
-  const onSubmitMfa = async () => {
+  const onSubmitMfa = async (code = mfaCode) => {
     setMfaError(null);
+    setMfaStatus("verifying");
     try {
       if (useRecoveryCode) {
-        await verifyRecovery.mutateAsync(mfaCode);
+        await verifyRecovery.mutateAsync(code);
       } else {
-        await verifyTotp.mutateAsync(mfaCode);
+        await verifyTotp.mutateAsync(code);
       }
-      redirectAfterLogin();
+      setMfaStatus("success");
+      enterApp();
     } catch (error) {
+      if (isApiError(error) && error.code === "UNAUTHENTICATED") {
+        // Bước chờ TOTP đã hết hạn — quay lại form đăng nhập.
+        setPendingLoginMfaMethods(null);
+        setMfaCode("");
+        setMfaStatus("idle");
+        showLoginError(t("mfa.errors.expired"));
+        return;
+      }
+      setMfaStatus("error");
+      setMfaErrorSignal((n) => n + 1);
       if (isApiError(error) && error.code === "TOTP_INVALID") {
         setMfaError(t("mfa.errors.invalidCode"));
       } else if (isApiError(error) && error.code === "TOTP_LOCKED") {
@@ -147,70 +160,109 @@ export function LoginPage() {
 
   if (pendingLoginMfaMethods) {
     const isBusy = verifyTotp.isPending || verifyRecovery.isPending;
+    const canSubmit = useRecoveryCode ? mfaCode.length > 0 : mfaCode.length === 6;
     return (
       <AuthCard>
-        <header className="flex flex-col gap-1 text-center">
-          <h1 className="text-h2 font-bold text-text-primary">{t("mfa.title")}</h1>
-          <p className="text-caption text-text-secondary">
-            {useRecoveryCode ? t("mfa.recoverySubtitle") : t("mfa.totpSubtitle")}
-          </p>
-        </header>
+        <div className="flex flex-col items-center gap-6">
+          <header className="flex flex-col items-center gap-3 text-center">
+            <span className="content-enter flex size-14 items-center justify-center rounded-2xl bg-chip-bg text-primary-dark">
+              {useRecoveryCode ? <KeyRound size={26} aria-hidden="true" /> : <ShieldCheck size={26} aria-hidden="true" />}
+            </span>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-h2 font-bold text-text-primary">{t("mfa.title")}</h1>
+              <p className="max-w-xs text-caption leading-relaxed text-text-secondary">
+                {useRecoveryCode ? t("mfa.recoverySubtitle") : t("mfa.totpSubtitle")}
+              </p>
+            </div>
+          </header>
 
-        <Input
-          ref={mfaInputRef}
-          label={useRecoveryCode ? t("mfa.fields.recoveryCode.label") : t("mfa.fields.code.label")}
-          inputMode={useRecoveryCode ? "text" : "numeric"}
-          maxLength={useRecoveryCode ? 24 : 6}
-          value={mfaCode}
-          onChange={(event) => {
-            setMfaCode(event.target.value.trim());
-          }}
-          error={mfaError ?? undefined}
-        />
+          <div key={useRecoveryCode ? "recovery" : "totp"} className="content-enter w-full">
+            {useRecoveryCode ? (
+              <Input
+                ref={mfaInputRef}
+                label={t("mfa.fields.recoveryCode.label")}
+                inputMode="text"
+                autoComplete="one-time-code"
+                maxLength={24}
+                value={mfaCode}
+                onChange={(event) => {
+                  setMfaCode(event.target.value.trim());
+                  setMfaError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && canSubmit && !isBusy) void onSubmitMfa();
+                }}
+                error={mfaError ?? undefined}
+              />
+            ) : (
+              <OtpCodeInput
+                value={mfaCode}
+                onChange={(next) => {
+                  setMfaCode(next);
+                  setMfaError(null);
+                  if (mfaStatus === "error") setMfaStatus("idle");
+                }}
+                onComplete={(full) => {
+                  if (!isBusy) void onSubmitMfa(full);
+                }}
+                error={mfaError ?? undefined}
+                errorSignal={mfaErrorSignal}
+                status={mfaStatus}
+                disabled={isBusy}
+                focusOnMount
+              />
+            )}
+          </div>
 
-        <Button
-          type="button"
-          size="lg"
-          loading={isBusy}
-          disabled={!mfaCode || isBusy}
-          onClick={() => {
-            void onSubmitMfa();
-          }}
-        >
-          {t("mfa.submit")}
-        </Button>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            loading={isBusy}
+            disabled={!canSubmit || isBusy}
+            onClick={() => {
+              void onSubmitMfa();
+            }}
+          >
+            {t("mfa.submit")}
+          </Button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setUseRecoveryCode((v) => !v);
-            setMfaCode("");
-            setMfaError(null);
-          }}
-          className="min-h-11 text-caption font-semibold text-primary hover:underline"
-        >
-          {useRecoveryCode ? t("mfa.useTotpInstead") : t("mfa.useRecoveryInstead")}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setPendingLoginMfaMethods(null);
-          }}
-          className="min-h-11 text-caption text-text-tertiary hover:underline"
-        >
-          {t("mfa.backToLogin")}
-        </button>
+          <div className="flex w-full flex-col items-center gap-1 border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setUseRecoveryCode((v) => !v);
+                setMfaCode("");
+                setMfaError(null);
+                setMfaStatus("idle");
+              }}
+              className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-caption font-semibold text-primary transition-colors hover:bg-chip-bg"
+            >
+              {useRecoveryCode ? <ShieldCheck size={15} aria-hidden="true" /> : <KeyRound size={15} aria-hidden="true" />}
+              {useRecoveryCode ? t("mfa.useTotpInstead") : t("mfa.useRecoveryInstead")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingLoginMfaMethods(null);
+                setMfaCode("");
+                setMfaStatus("idle");
+              }}
+              className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-caption text-text-tertiary transition-colors hover:text-text-secondary"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              {t("mfa.backToLogin")}
+            </button>
+          </div>
+        </div>
       </AuthCard>
     );
   }
 
   return (
     <div className="lg:grid lg:min-h-[733.5px] lg:grid-cols-12 lg:overflow-hidden lg:rounded-3xl lg:bg-surface lg:shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]">
-      {/* ══ Cột trái CHỈ CÓ Ở WEB (Figma 16:7573) — panel thương hiệu, dữ liệu pH từ API ══ */}
       <LoginShowcase />
 
-      {/* ══ Cột form — mobile là toàn bộ trang, web là 5 cột bên phải ══ */}
       <div className="flex flex-col gap-6 pb-6 pt-2 lg:col-span-5 lg:justify-between lg:gap-0 lg:bg-surface lg:p-12 lg:pb-12 lg:pt-12">
         <header className="order-1 flex flex-col items-center gap-1 text-center lg:hidden">
           <div className="relative mb-1 flex h-20 w-44 items-center justify-center">
@@ -230,7 +282,6 @@ export function LoginPage() {
           <p className="max-w-[330px] text-caption leading-[21px] text-text-secondary">{t("login.subtitle")}</p>
         </header>
 
-        {/* Header form CHỈ CÓ Ở WEB (Figma 16:7682) */}
         <div className="order-1 hidden lg:flex lg:flex-col lg:gap-2">
           <span className="flex w-fit items-center gap-2 rounded-full bg-chip-bg px-3 py-1">
             <img src={portalBadge} alt="" className="h-[14px] w-[10.667px]" />
@@ -280,7 +331,6 @@ export function LoginPage() {
                 {t("login.fields.password.label")}
                 <span className="hidden text-danger lg:inline">{` ${t("common.requiredMark")}`}</span>
               </label>
-              {/* Web (Figma 16:7712): link nằm ngay hàng label. Mobile: xuống hàng toggle bên dưới. */}
               <Link
                 to="/auth/forgot-password"
                 className="hidden text-caption font-semibold text-primary hover:underline lg:inline"
@@ -297,8 +347,6 @@ export function LoginPage() {
             />
           </div>
 
-          {/* Mobile (Figma 01b): toggle TRÁI + "Quên mật khẩu?" PHẢI trên cùng 1 hàng.
-            Web (Figma 16:7719): checkbox vuông 16px, không phải toggle. */}
           <Controller
             control={control}
             name="rememberMe"
@@ -338,15 +386,12 @@ export function LoginPage() {
             )}
           />
 
-          {loginError ? <InlineAlert>{loginError}</InlineAlert> : null}
-
           <Button type="submit" size="lg" loading={login.isPending} disabled={login.isPending} className="gap-2">
             {t("login.submit")}
             <ArrowRight size={18} aria-hidden="true" />
           </Button>
         </form>
 
-        {/* Google + divider: dưới form ở mobile, TRÊN form ở web (Figma 16:7693/16:7701) */}
         <div className="order-4 flex flex-col gap-6 lg:order-2 lg:gap-5 lg:pt-6">
           <div className="flex items-center gap-3 lg:hidden" role="separator">
             <span className="h-px flex-1 bg-on-primary-subtle" />
@@ -354,7 +399,6 @@ export function LoginPage() {
             <span className="h-px flex-1 bg-on-primary-subtle" />
           </div>
 
-          {/* Web (Figma 16:7693): nút Google nền #F3F2FF, không viền. Mobile: trắng + viền. */}
           <GoogleAuthButton
             label={t("login.googleCta")}
             className="lg:border-transparent lg:bg-background-alt lg:shadow-none"

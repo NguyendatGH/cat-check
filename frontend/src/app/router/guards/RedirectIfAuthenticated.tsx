@@ -1,17 +1,19 @@
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useSearchParams } from "react-router";
 import { useSessionStore } from "@/entities/user";
-import { ROUTE_PATTERNS } from "../routes";
+import { defaultLandingPath, resolveRedirectTarget } from "@/shared/auth/landing";
 
-/**
- * Guard bước 2 (nhánh ngược, p9 mục 6): đã đăng nhập mà vào /auth/* hoặc "/" → redirect
- * /dashboard. Áp cho AuthLayout subtree và riêng route "/" (KHÔNG áp cho /legal/* — trang
- * pháp lý vẫn xem được dù đã đăng nhập).
- */
 export function RedirectIfAuthenticated() {
   const status = useSessionStore((state) => state.status);
+  const roles = useSessionStore((state) => state.user?.roles);
+  const [searchParams] = useSearchParams();
+
+  if (status === "idle" || status === "loading") {
+    return null;
+  }
 
   if (status === "authenticated") {
-    return <Navigate to={ROUTE_PATTERNS.dashboard} replace />;
+    const target = roles?.length ? resolveRedirectTarget(searchParams.get("next"), roles) : defaultLandingPath(roles);
+    return <Navigate to={target} replace />;
   }
 
   return <Outlet />;

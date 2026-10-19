@@ -1,13 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 
-/**
- * Khung thẻ cho các màn auth 1 cột (quên/đặt lại mật khẩu, bước MFA, trạng thái thiếu nháp).
- *
- * `AuthLayout` bản web mở rộng `main` tới 1280px cho các màn 2 cột (Đăng nhập, Đăng ký,
- * OTP); màn 1 cột đặt thẳng vào đó thì ô nhập/nút kéo dài hết 1184px. Ở `lg` thẻ này thu về
- * 480px, nền trắng, căn giữa — mobile giữ nguyên bố cục cột hẹp của layout.
- */
 export function AuthCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div

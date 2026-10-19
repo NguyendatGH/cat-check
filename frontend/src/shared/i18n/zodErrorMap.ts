@@ -1,10 +1,6 @@
 import { z } from "zod";
 import i18n from "./i18n";
 
-/**
- * Map lỗi zod (react-hook-form resolver) sang key trong errors.json thay vì message tiếng
- * Anh mặc định. Gọi 1 lần lúc khởi động app (app/providers/AppProviders.tsx).
- */
 export function applyZodErrorMap(): void {
   z.config({
     customError: (iss) => {

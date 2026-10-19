@@ -18,13 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link DeviceSessionRepository} tren {@code JdbcTemplate}.
- *
- * <p>Bang nay chi la <b>ban sao</b> cua phien trong {@code SPRING_SESSION}, dung de
- * hien thi cho nguoi dung. Xac thuc van la Spring Session; khi thu hoi phien phai
- * goi ca {@code AuthenticatedSessionRevoker} (noi that) va bang nay (hien thi).</p>
- */
 @Repository
 public class JdbcDeviceSessionRepository implements DeviceSessionRepository {
 
@@ -95,8 +88,6 @@ public class JdbcDeviceSessionRepository implements DeviceSessionRepository {
 
     @Override
     public boolean revoke(UUID sessionId, Instant revokedAt, SessionRevokeReason reason) {
-        // `AND revoked_at IS NULL` de thao tac idempotent: bam nut hai lan khong loi,
-        // va lan hai khong ghi deo ly do goc.
         return jdbc.update("""
                 UPDATE user_device_session
                    SET revoked_at = ?, revoke_reason = ?

@@ -28,15 +28,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Điểm vào cho {@code POST /api/v1/scans} — điều phối TOÀN BỘ luồng TD-02 (p7 §7.4.5):
- * idempotency → kiểm quyền sở hữu mèo → chặn sớm bằng credit (read-only) → chạy pipeline (NGOÀI
- * transaction) → lưu ảnh (NGOÀI transaction) → {@link ScanPersistenceService#persist} (TRONG một
- * transaction, trừ credit).
- *
- * <p><b>Không có {@code @Transactional} ở đây</b> — class này CHỦ Ý nằm ngoài mọi transaction
- * DB; phần duy nhất mở transaction là {@link ScanPersistenceService} (R12).</p>
- */
 @Service
 public class SubmitScanService {
 
@@ -52,15 +43,6 @@ public class SubmitScanService {
     private final ImageStorage imageStorage;
     private final Clock clock;
 
-    /**
-     * Khoá chống trùng lặp trong cùng một instance (p6 §6.4.1 {@code SCAN_IN_PROGRESS}).
-     *
-     * <p><b>Giới hạn đã biết:</b> chỉ hoạt động trong PHẠM VI MỘT instance — {@code shared.idempotency}
-     * (cơ chế TTL 24h cấp toàn hệ thống mà p7 §7.4.5 mô tả) chưa tồn tại ở M0 (ngoài phạm vi sở
-     * hữu của A6, xem {@code docs/handovers/A6.md}). Lưới an toàn cuối vẫn là
-     * {@code UNIQUE(user_id, idempotency_key)} ở DB — hai instance đụng nhau sẽ có một cái nhận
-     * lỗi ràng buộc UNIQUE, ánh xạ về {@link ScanErrorCode#SCAN_IN_PROGRESS} ở tầng gọi.</p>
-     */
     private final ConcurrentHashMap<String, Boolean> inFlight = new ConcurrentHashMap<>();
 
     public SubmitScanService(
@@ -99,7 +81,6 @@ public class SubmitScanService {
             throw new ConflictException(ScanErrorCode.SCAN_IN_PROGRESS);
         }
         try {
-            // Có thể một request song song đã hoàn tất giữa lúc kiểm tra replay và lúc giành khoá.
             Optional<ScanSubmitResult> raced = tryReplay(cmd);
             if (raced.isPresent()) {
                 return raced.get();
@@ -137,8 +118,6 @@ public class SubmitScanService {
             }
         }
 
-        // Chặn sớm bằng credit (read-only, không khoá dòng) TRƯỚC KHI tốn CPU chạy pipeline —
-        // xem javadoc credit.api.CreditConsumption.
         boolean trialRegime = creditConsumption.hasTrialScanRemaining(cmd.userId());
         boolean creditAvailable = creditConsumption.hasAvailableCredit(cmd.userId());
         if (!trialRegime && !creditAvailable) {
@@ -149,7 +128,6 @@ public class SubmitScanService {
                 () -> pipelineService.analyze(cmd.imageBytes(), cmd.roi(), cmd.cardQuadHint()));
 
         boolean storeImageAllowed = entitlementQuery.isFeatureEnabled(cmd.userId(), Feature.STORE_IMAGE);
-        // Gói cho phép chưa đủ: SCAN_IMAGE_RETAIN là consent tuỳ chọn, mặc định tắt.
         boolean imageConsentGranted = storeImageAllowed && imageRetentionConsent.isGranted(cmd.userId());
         boolean willStoreImage = imageConsentGranted && !trialRegime && !outcome.inconclusive();
 
@@ -164,9 +142,6 @@ public class SubmitScanService {
             return persistenceService.persist(cmd, outcome, cat, trialRegime, storeImageAllowed,
                     imageConsentGranted, storedImage);
         } catch (RuntimeException ex) {
-            // Transaction rollback (vd. hết credit do race) — dọn file đã ghi ngoài transaction
-            // (p7 §7.4.5 điểm 2: staging/ghi file KHÔNG nằm trong transaction, nên dọn thủ công ở
-            // đây thay vì TransactionSynchronization; xem docs/handovers/A6.md).
             storedImage.ifPresent(stored -> safeDelete(stored));
             throw ex;
         }
@@ -176,7 +151,6 @@ public class SubmitScanService {
         try {
             imageStorage.delete(stored.key());
         } catch (RuntimeException ignored) {
-            // best-effort — không được che lỗi gốc của nhánh persist()
         }
     }
 

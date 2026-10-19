@@ -1,11 +1,5 @@
 package com.catcheck.identity.domain;
 
-/**
- * Ngon ngu ui. Khop {@code app_user.locale} (p4 §4.4.2).
- *
- * <p>Khong dung truc tiep {@link java.util.Locale} trong code vi se do lai khoong
- * chua p11 §11.2.7 yeu cau moi noi dung nho phai lay theo key da gan nghiep vu.</p>
- */
 public enum AppLocale {
 
     VI("vi"),
@@ -28,5 +22,13 @@ public enum AppLocale {
             }
         }
         throw new IllegalArgumentException("Locale khong ho tro: " + value);
+    }
+
+    public static AppLocale fromCodeOrDefault(String value) {
+        try {
+            return fromCode(value);
+        } catch (IllegalArgumentException ex) {
+            return VI;
+        }
     }
 }

@@ -10,23 +10,14 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-/**
- * Body của L41 — tạo bản nháp.
- *
- * <p>Không có trường nào cho phép đặt {@code status} thành {@code PUBLISHED}: trạng thái chỉ đổi
- * qua L43 rồi L44, để không có đường nào publish mà bỏ qua bước duyệt.</p>
- *
- * @param slug  khoá định tuyến, duy nhất theo cặp (slug, locale)
- * @param locale {@code vi} hoặc {@code en}
- */
 public record CreateCareTipRequest(
         @NotBlank
         @Size(max = 120)
-        @Pattern(regexp = "[a-z0-9]+(-[a-z0-9]+)*", message = "slug phải là kebab-case chữ thường")
+        @Pattern(regexp = "[a-z0-9]+(-[a-z0-9]+)*", message = "{validation.content.slug.format}")
         String slug,
 
         @NotBlank
-        @Pattern(regexp = "vi|en", message = "locale chỉ nhận 'vi' hoặc 'en'")
+        @Pattern(regexp = "vi|en", message = "{validation.content.locale.invalid}")
         String locale,
 
         @NotNull CareTipKind kind,

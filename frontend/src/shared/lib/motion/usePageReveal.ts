@@ -18,33 +18,47 @@ const INTERACTIVE =
     ".motion-card",
   ].join(", ");
 
-const TWEEN = { duration: 0.32, ease: "sine.out", overwrite: "auto" as const };
+const TWEEN = { duration: 0.2, ease: "sine.out", overwrite: "auto" as const };
 const PRESS_TWEEN = { duration: 0.1, ease: "power1.out", overwrite: "auto" as const };
 
 type MotionKind = "card" | "row" | "control";
-type SurfaceKind = "dialog" | "sheet" | "overlay";
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+const kindCache = new WeakMap<HTMLElement, MotionKind>();
+const skipCache = new WeakMap<HTMLElement, boolean>();
+
 function motionKind(element: HTMLElement): MotionKind {
+  const cached = kindCache.get(element);
+  if (cached) return cached;
   const attr = element.getAttribute("data-motion");
-  if (attr === "card" || attr === "row" || attr === "control") return attr;
-  if (element.classList.contains("motion-card")) return "card";
-  // ponytail: đo width một lần lúc pointer — hàng full-width scale trông như giật layout
-  return element.offsetWidth >= 240 ? "row" : "control";
+  let kind: MotionKind;
+  if (attr === "card" || attr === "row" || attr === "control") kind = attr;
+  else if (element.classList.contains("motion-card")) kind = "card";
+  else kind = element.offsetWidth >= 240 ? "row" : "control";
+  kindCache.set(element, kind);
+  return kind;
 }
 
+// GSAP writes inline transforms every frame; a CSS transition on the same property would chase
+// each frame and make the motion lag, so elements that already animate transforms in CSS are left alone.
 function skipMotion(element: HTMLElement) {
-  if (element.closest("[data-motion='none']")) return true;
-  // GSAP ghi đè cả transform CSS: bỏ qua nút đang dùng translate để canh giữa (FAB quét, dialog).
-  return /(?:^|\s)-translate-(?:x|y)-1\/2(?:\s|$)/.test(element.className);
+  const cached = skipCache.get(element);
+  if (cached !== undefined) return cached;
+  let skip = Boolean(element.closest("[data-motion='none']"));
+  if (!skip && /(?:^|\s)-translate-(?:x|y)-1\/2(?:\s|$)/.test(element.className)) skip = true;
+  if (!skip) {
+    const props = getComputedStyle(element).transitionProperty;
+    skip = /\b(all|transform|translate|scale)\b/.test(props);
+  }
+  skipCache.set(element, skip);
+  return skip;
 }
 
 function hoverVars(element: HTMLElement) {
-  // ponytail: hover-scale trông đồ chơi; chỉ nhấc card, nút đứng im đến lúc press
   return motionKind(element) === "card" ? { y: -3, scale: 1 } : { y: 0, scale: 1 };
 }
 
@@ -59,16 +73,11 @@ function pressVars(element: HTMLElement) {
   return { y: 0, scale: 0.97 };
 }
 
-/**
- * A restrained entrance for page-level content. It animates transforms/opacity only,
- * scopes selectors to the page root, and exits cleanly for reduced-motion users.
- */
 export function usePageReveal(scope: RefObject<HTMLElement | null>) {
   useGSAP(
     () => {
       const page = scope.current;
       if (!page) return;
-      // Trang tự dựng timeline (welcome) — đừng chồng slide generic.
       if (page.hasAttribute("data-motion-scene") || page.querySelector("[data-motion-scene]")) return;
 
       const marked = gsap.utils.toArray<HTMLElement>("[data-reveal]", page);
@@ -84,20 +93,23 @@ export function usePageReveal(scope: RefObject<HTMLElement | null>) {
         gsap.set(items, { autoAlpha: 1, clearProps: "transform,opacity,visibility" });
       });
       media.add("(prefers-reduced-motion: no-preference)", () => {
-        const intro = gsap.timeline({ defaults: { ease: "power2.out" } });
-        intro.fromTo(
-          items,
-          { autoAlpha: 0, y: 8 },
+        const visible = items.filter((el) => el.getClientRects().length > 0);
+        if (visible.length === 0) return;
+        const intro = gsap.fromTo(
+          visible,
+          { autoAlpha: 0, y: 10 },
           {
             autoAlpha: 1,
             y: 0,
-            duration: 0.48,
-            ease: "sine.out",
-            stagger: { amount: 0.16, from: "start" },
+            duration: 0.26,
+            ease: "power2.out",
+            stagger: Math.min(0.035, 0.18 / visible.length),
             clearProps: "transform,opacity,visibility",
           },
         );
-        return () => intro.kill();
+        return () => {
+          intro.progress(1).kill();
+        };
       });
 
       return () => {
@@ -108,10 +120,6 @@ export function usePageReveal(scope: RefObject<HTMLElement | null>) {
   );
 }
 
-/**
- * Welcome / Splash screen entrance timeline (Figma M1).
- * Softly animates glowing backdrops, status copy, badges, and hero elements.
- */
 export function useWelcomeScene(scope: RefObject<HTMLElement | null>) {
   useGSAP(
     () => {
@@ -164,46 +172,6 @@ export function useWelcomeScene(scope: RefObject<HTMLElement | null>) {
   );
 }
 
-/** Overlay / dialog / sheet entrance. Same reduced-motion gate as page reveal. */
-export function useSurfaceEnter(scope: RefObject<HTMLElement | null>, kind: SurfaceKind) {
-  useGSAP(
-    () => {
-      const element = scope.current;
-      if (!element) return;
-      if (prefersReducedMotion()) {
-        gsap.set(element, { autoAlpha: 1, clearProps: "transform,opacity,visibility" });
-        return;
-      }
-      if (kind === "overlay") {
-        gsap.fromTo(element, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: "power1.out" });
-        return;
-      }
-      if (kind === "sheet") {
-        gsap.fromTo(
-          element,
-          { autoAlpha: 0, y: 20 },
-          { autoAlpha: 1, y: 0, duration: 0.36, ease: "sine.out", clearProps: "transform" },
-        );
-        return;
-      }
-      // Dialog đã canh giữa bằng CSS translate; GSAP giữ xPercent/yPercent để không lệch khung.
-      gsap.fromTo(
-        element,
-        { autoAlpha: 0, xPercent: -50, yPercent: -50 },
-        {
-          autoAlpha: 1,
-          xPercent: -50,
-          yPercent: -50,
-          duration: 0.3,
-          ease: "sine.out",
-        },
-      );
-    },
-    { scope, dependencies: [kind] },
-  );
-}
-
-/** Consistent press/hover/focus feedback for interactive controls across the whole app. */
 export function useMicroInteractions(scope: RefObject<HTMLElement | null>) {
   useGSAP(
     (_context, contextSafe) => {
@@ -265,5 +233,48 @@ export function useMicroInteractions(scope: RefObject<HTMLElement | null>) {
       };
     },
     { scope },
+  );
+}
+
+export function useListReveal(scope: RefObject<HTMLElement | null>, dependency: string | number | boolean) {
+  useGSAP(
+    () => {
+      const container = scope.current;
+      if (!container) return;
+
+      if (prefersReducedMotion()) {
+        gsap.set(container.querySelectorAll("[data-reveal-item], :scope > *"), {
+          autoAlpha: 1,
+          clearProps: "transform,opacity,visibility",
+        });
+        return;
+      }
+
+      const marked = gsap.utils.toArray<HTMLElement>("[data-reveal-item]", container);
+      const all = marked.length > 0 ? marked : (Array.from(container.children) as HTMLElement[]);
+      const items = all.filter((el) => !el.hasAttribute("data-revealed") && el.getClientRects().length > 0);
+      if (items.length === 0) return;
+      items.forEach((el) => {
+        el.setAttribute("data-revealed", "");
+      });
+
+      const tween = gsap.fromTo(
+        items,
+        { autoAlpha: 0, y: 8 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.24,
+          ease: "power2.out",
+          stagger: Math.min(0.03, 0.18 / items.length),
+          clearProps: "transform,opacity,visibility",
+        },
+      );
+
+      return () => {
+        tween.progress(1).kill();
+      };
+    },
+    { scope, dependencies: [dependency] },
   );
 }

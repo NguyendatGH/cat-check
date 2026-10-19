@@ -1,11 +1,6 @@
 import { classifyAdminError, type AdminErrorKind } from "./adminAccess";
 
-/**
- * Công cụ bảng dữ liệu dày cho admin: sắp xếp, tìm kiếm, chọn nhiều và chạy thao tác hàng
- * loạt. Hàm thuần để test được mà không cần DOM.
- */
 
-// ------------------------------------------------------------------- sắp xếp
 
 export type SortDirection = "asc" | "desc";
 
@@ -16,7 +11,6 @@ export interface SortState<K extends string> {
 
 export type SortValue = string | number | boolean | null | undefined;
 
-/** So sánh hai giá trị; rỗng (`null`/`undefined`/`""`) luôn nằm cuối dù tăng hay giảm. */
 export function compareSortValues(a: SortValue, b: SortValue, direction: SortDirection): number {
   const aEmpty = a === null || a === undefined || a === "";
   const bEmpty = b === null || b === undefined || b === "";
@@ -34,7 +28,6 @@ export function compareSortValues(a: SortValue, b: SortValue, direction: SortDir
   return direction === "asc" ? result : -result;
 }
 
-/** Sắp xếp ổn định (giữ thứ tự gốc khi bằng nhau), không đổi mảng đầu vào. */
 export function sortRows<T, K extends string>(
   rows: readonly T[],
   sort: SortState<K> | null,
@@ -52,7 +45,6 @@ export function sortRows<T, K extends string>(
     .map((entry) => entry.row);
 }
 
-/** Bấm tiêu đề cột: cột mới thì tăng dần, bấm lại thì đảo chiều. */
 export function nextSort<K extends string>(current: SortState<K> | null, key: K): SortState<K> {
   if (current?.key !== key) {
     return { key, direction: "asc" };
@@ -60,7 +52,6 @@ export function nextSort<K extends string>(current: SortState<K> | null, key: K)
   return { key, direction: current.direction === "asc" ? "desc" : "asc" };
 }
 
-/** Giá trị `aria-sort` cho `<th>`. */
 export function ariaSortOf<K extends string>(
   current: SortState<K> | null,
   key: K,
@@ -71,9 +62,7 @@ export function ariaSortOf<K extends string>(
   return current.direction === "asc" ? "ascending" : "descending";
 }
 
-// ------------------------------------------------------------------- tìm kiếm
 
-/** Bỏ dấu tiếng Việt và viết thường để "dong y" khớp "Đồng ý". */
 export function normalizeSearchText(value: string): string {
   return value
     .normalize("NFD")
@@ -84,7 +73,6 @@ export function normalizeSearchText(value: string): string {
     .trim();
 }
 
-/** Mọi từ trong `query` phải xuất hiện ở ít nhất một trường. Query rỗng khớp tất cả. */
 export function matchesQuery(fields: readonly (string | number | null | undefined)[], query: string): boolean {
   const terms = normalizeSearchText(query)
     .split(/\s+/)
@@ -101,9 +89,7 @@ export function matchesQuery(fields: readonly (string | number | null | undefine
   return terms.every((term) => haystack.includes(term));
 }
 
-// ------------------------------------------------------------------- chọn nhiều
 
-/** Bật/tắt một dòng trong tập đã chọn, trả tập mới. */
 export function toggleSelection(selected: ReadonlySet<string>, id: string): Set<string> {
   const next = new Set(selected);
   if (next.has(id)) {
@@ -114,7 +100,6 @@ export function toggleSelection(selected: ReadonlySet<string>, id: string): Set<
   return next;
 }
 
-/** Ô "chọn tất cả": nếu đã chọn hết các dòng đang hiện thì bỏ chọn chúng, ngược lại chọn hết. */
 export function toggleAllVisible(selected: ReadonlySet<string>, visibleIds: readonly string[]): Set<string> {
   const next = new Set(selected);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => next.has(id));
@@ -128,7 +113,6 @@ export function toggleAllVisible(selected: ReadonlySet<string>, visibleIds: read
   return next;
 }
 
-/** Trạng thái ô "chọn tất cả": `true`, `false` hoặc `"mixed"` (cho `aria-checked`/`indeterminate`). */
 export function selectionState(selected: ReadonlySet<string>, visibleIds: readonly string[]): boolean | "mixed" {
   const count = visibleIds.filter((id) => selected.has(id)).length;
   if (count === 0) {
@@ -137,13 +121,11 @@ export function selectionState(selected: ReadonlySet<string>, visibleIds: readon
   return count === visibleIds.length ? true : "mixed";
 }
 
-/** Bỏ khỏi tập chọn các id không còn trên màn (đổi trang, đổi bộ lọc). */
 export function pruneSelection(selected: ReadonlySet<string>, availableIds: readonly string[]): Set<string> {
   const available = new Set(availableIds);
   return new Set([...selected].filter((id) => available.has(id)));
 }
 
-// ------------------------------------------------------------------- hàng loạt
 
 export interface BulkFailure {
   id: string;
@@ -156,11 +138,6 @@ export interface BulkOutcome {
   failed: BulkFailure[];
 }
 
-/**
- * Chạy lần lượt từng việc (không song song): mỗi lệnh ghi của admin đi kèm audit và có thể
- * dính 412, chạy tuần tự giữ thứ tự audit dễ đọc và không dội server. Một việc lỗi không
- * dừng các việc còn lại; kết quả gom lại để báo cho người dùng.
- */
 export async function runSequential<T>(
   tasks: readonly T[],
   idOf: (task: T) => string,
@@ -187,7 +164,6 @@ export async function runSequential<T>(
   return outcome;
 }
 
-/** Bộ đếm cho câu tóm tắt sau thao tác hàng loạt. */
 export function summarizeBulk(outcome: BulkOutcome): { ok: number; failed: number; stale: number } {
   return {
     ok: outcome.succeeded.length,

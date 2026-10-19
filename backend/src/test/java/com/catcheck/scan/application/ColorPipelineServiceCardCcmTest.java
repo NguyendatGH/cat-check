@@ -40,51 +40,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/**
- * Kiểm thử nhánh CARD_CCM của {@link ColorPipelineService}: đọc layout → lấy mẫu → fit
- * linearization → giải CCM → hậu kiểm → áp dụng — qua {@link OpenCvRawImageProcessor} THẬT (Mat
- * OpenCV thật, không mock); chỉ {@link VisionEngine#detectCard} bị thay bằng stub.
- *
- * <h2>Ảnh dùng trong test này là ảnh TỔNG HỢP, không phải ảnh chụp thật</h2>
- * <p>Ảnh "thẻ" là canvas 600×380 vẽ trực tiếp bằng {@link BufferedImage} — KHÔNG có marker
- * ArUco/QR thật (dò thẻ thật quá phức tạp cho unit test và không phải điều cần chứng minh ở đây).
- * Mỗi patch {@code role=NEUTRAL} tô đúng vị trí {@code rect} của layout {@code CC-CARD} thật
- * (toạ độ + {@code ref_lab} chép từ {@code psql ... reference_card_layout}). Test này KHÔNG
- * chứng minh độ chính xác quang học thật — chỉ chứng minh luồng code chạy đúng.
- *
- * <h2>Phát hiện quan trọng khi viết test này: CCM chỉ-NEUTRAL luôn suy biến</h2>
- * <p>Mọi patch {@code role=NEUTRAL} có {@code ref_lab} với {@code a=b=0}. Vì {@link CcmSolver}
- * giải BA hệ (một hệ mỗi kênh đầu ra) dùng CHUNG ma trận chuẩn tắc nhưng vế phải lấy từ
- * {@code reference}, mà {@code reference} của cả 5 patch giống hệt nhau trên cả 3 kênh — nên BA
- * HÀNG của ma trận giải được LUÔN giống hệt nhau, bất kể dữ liệu "đo được" sạch cỡ nào
- * ({@code det = 0} chính xác, xem {@link #solvedNeutralOnlyCcmIsAlwaysSingular_mathematicalProof}).
- * Một ma trận như vậy chiếu MỌI màu về một trục xám — áp lên ảnh thật sẽ xoá sạch chroma, làm
- * hỏng cả S6 (tách hạt cần chroma) lẫn S8 (khớp bảng màu cần hue/chroma). Vì vậy
- * {@code ColorPipelineService.tryCardCcm} có thêm một bước hậu kiểm ĐỊNH THỨC (không chỉ residual
- * trên tập train, vì residual đó luôn thấp một cách giả tạo — ma trận được fit để khớp đúng 5
- * điểm train). Với layout chỉ-NEUTRAL hiện tại, CARD_CCM sẽ GẦN NHƯ KHÔNG BAO GIỜ được chấp nhận
- * trong thực tế — ghi rõ trong báo cáo bàn giao, cần quyết định thiết kế tiếp theo (thêm patch
- * COLOR vào tập fit, hoặc ràng buộc CCM dạng chéo, hoặc chỉ dùng kết quả NEUTRAL-fit cho
- * linearization/white-balance chứ không áp CCM đầy đủ).
- */
 class ColorPipelineServiceCardCcmTest {
 
     private static final int CARD_WIDTH = 600;
     private static final int CARD_HEIGHT = 380;
 
-    /**
-     * Inset vùng màu "sạch" bên trong mỗi patch — nhỏ hơn {@code PATCH_BORDER_TRIM} (0.12) của
-     * production nên vùng {@code sampleNeutralPatches} lấy mẫu (đã trim) luôn nằm gọn trong đây,
-     * không bao giờ dính mép "nhiễm bẩn" (contaminant) phủ quanh patch.
-     */
     private static final double CLEAN_INSET_FRAC = 0.08;
 
-    /**
-     * Độ lệch CỐ Ý, riêng từng kênh/patch (đơn vị 8-bit) — phá tính thẳng hàng của riêng DỮ LIỆU
-     * ĐO ĐƯỢC để {@link CcmSolver#solve} không ném lỗi "suy thoái" NGAY LẬP TỨC, cho phép quan sát
-     * được rằng ngay cả khi giải RA một ma trận, ma trận đó vẫn suy biến (det=0) vì lý do khác hẳn
-     * (xem Javadoc lớp).
-     */
     private static final int[][] MEASURED_OFFSET = {
             {6, -4, 2}, {-3, 5, -5}, {4, 3, -6}, {-5, -2, 4}, {2, -6, 3}
     };
@@ -110,8 +72,6 @@ class ColorPipelineServiceCardCcmTest {
     @DisplayName("Patch NEUTRAL hoan hao (khong lech kenh do duoc) -> du lieu do thang hang tuyet doi -> CcmSolver nem loi suy bien -> CARD_UNUSABLE")
     void perfectlyNeutralPatches_measuredDataCollinear_ccmSolverRejects() throws IOException {
         CardLayout layout = buildCardLayout();
-        // KHONG cong offset: ca 3 kenh dung HET mot gia tri do duoc -> 5 diem do thang hang tuyet
-        // doi trong khong gian linear RGB -> CcmSolver.solve phai nem IllegalArgumentException.
         byte[] cardBytes = buildCardImageBytes(layout, false);
         byte[] sandBytes = buildSandImageBytes();
 
@@ -130,12 +90,6 @@ class ColorPipelineServiceCardCcmTest {
     void neutralPatchesWithNoise_solvedCcmStillSingularByConstruction_rejectedByDeterminantGuard()
             throws IOException {
         CardLayout layout = buildCardLayout();
-        // CO cong offset rieng tung kenh: du lieu DO DUOC khong con thang hang -> CcmSolver.solve
-        // giai duoc that (khong nem loi) — nhung vi REFERENCE (ref_lab) cua ca 5 patch deu trung
-        // tinh, ba hang cua ma tran giai duoc VAN giong het nhau (chung minh trong Javadoc lop va
-        // trong test solvedNeutralOnlyCcmIsAlwaysSingular_mathematicalProof) -> det=0 -> pheer bi
-        // tu choi boi buoc hau kiem dinh thuc, KHONG phai boi residual (residual tren tap train
-        // van rat thap, do la ly do PHAI kiem dinh thuc chu khong chi residual).
         byte[] cardBytes = buildCardImageBytes(layout, true);
         byte[] sandBytes = buildSandImageBytes();
 
@@ -166,12 +120,6 @@ class ColorPipelineServiceCardCcmTest {
                 .noneMatch(f -> f.code() == QualityFlagCode.CARD_UNUSABLE);
     }
 
-    /**
-     * Chứng minh trực tiếp (không qua pipeline) phát hiện ở Javadoc lớp: fit CCM chỉ bằng patch
-     * NEUTRAL (ref_lab trung tính) luôn cho ba hàng giống hệt nhau — det=0 chính xác — bất kể dữ
-     * liệu đo được. Dùng lại ĐÚNG {@link CcmSolver}/{@link ColorSpace} production, không viết lại
-     * công thức.
-     */
     @Test
     @DisplayName("CHUNG MINH: CcmSolver.solve tren toan patch NEUTRAL (ref_lab trung tinh) luon tra ve ma tran det=0")
     void solvedNeutralOnlyCcmIsAlwaysSingular_mathematicalProof() {
@@ -182,8 +130,6 @@ class ColorPipelineServiceCardCcmTest {
         Random rng = new Random(1L);
         for (Lab refLab : neutralRefLabs) {
             RgbLinear reference = ColorSpace.labToLinearRgb(refLab);
-            // "Do duoc" = tham chieu + nhieu NGAU NHIEN rieng tung kenh (khong con thang hang) —
-            // du co nhieu the nao, ket luan van phai la det=0 (xem khang dinh ben duoi).
             RgbLinear measured = new RgbLinear(
                     reference.r() + rng.nextGaussian() * 0.02,
                     reference.g() + rng.nextGaussian() * 0.02,
@@ -199,14 +145,6 @@ class ColorPipelineServiceCardCcmTest {
                 .isCloseTo(0.0, within(1e-9));
     }
 
-    /**
-     * Chứng minh bước "áp dụng" (S4 CARD_CCM) hoạt động đúng, ĐỘC LẬP với phát hiện suy biến ở
-     * trên: dùng {@link Matrix3#IDENTITY} (không suy biến, không phải fit từ patch NEUTRAL) +
-     * {@link LinearizationCurve#standard()} cho một ảnh phẳng màu đã biết, kiểm tra
-     * {@link OpenCvRawImageProcessor#applyCardCcm} trả về đúng {@code CalibrationMethod.CARD_CCM},
-     * đúng {@code residualDe00} truyền vào, và Lab suy ra từ {@code xyzFrame} khớp hex gốc (vì
-     * CCM đơn vị + curve chuẩn phải là phép truyền thẳng, không méo màu).
-     */
     @Test
     @DisplayName("applyCardCcm voi ma tran KHONG suy bien: Lab dau ra khop mau sRGB da biet, method=CARD_CCM, residual giu nguyen")
     void applyCardCcm_withWellConditionedMatrix_producesExpectedLab() throws IOException {
@@ -232,7 +170,6 @@ class ColorPipelineServiceCardCcmTest {
         assertThat(actual.b()).isCloseTo(expected.b(), within(0.5));
     }
 
-    // ------------------------------------------------------------------ wiring
 
     private PipelineOutcome runPipeline(CardLayout layout, byte[] cardBytes, byte[] sandBytes,
                                          CardLayoutCatalog cardLayoutCatalog) throws IOException {
@@ -253,11 +190,6 @@ class ColorPipelineServiceCardCcmTest {
                 substrateProfileCatalog, Clock.systemUTC());
     }
 
-    /**
-     * {@link OpenCvNativeLoader#load()} là {@code @PostConstruct} package-private — Spring gọi nó
-     * khi tạo bean. Test này không chạy trong Spring nên gọi lại chính method đó qua reflection
-     * (cùng kỹ thuật {@code PipelineAccuracyHarness.invokePostConstruct}, KHÔNG sao chép logic).
-     */
     private static void invokePostConstruct(OpenCvNativeLoader loader) {
         try {
             Method load = OpenCvNativeLoader.class.getDeclaredMethod("load");
@@ -268,14 +200,11 @@ class ColorPipelineServiceCardCcmTest {
         }
     }
 
-    /** Stub {@link VisionEngine}: cố định {@code detectCard}, delegate {@code selectIndicatorGrains} cho engine thật. */
     private record FoundCardVisionEngine(VisionEngine real, VisionEngine.FrameHandle canonicalCard)
             implements VisionEngine {
 
         @Override
         public CardDetectionResult detectCard(FrameHandle image, QuadHint hint) {
-            // Anh tong hop khong ve marker ArUco/QR that: gia lap dò+nắn phẳng đã THÀNH CÔNG, dùng
-            // thẳng ảnh thẻ tổng hợp dựng sẵn ở test (xem Javadoc lớp).
             return new CardDetectionResult(QuadHint.empty(), canonicalCard, CardDetectionResult.Method.ARUCO);
         }
 
@@ -285,9 +214,7 @@ class ColorPipelineServiceCardCcmTest {
         }
     }
 
-    // ------------------------------------------------------------------ CardLayout (CC-CARD thật)
 
-    /** 5 patch NEUTRAL của {@code CC-CARD} — rect/ref_lab chép từ DB thật (xem Javadoc lớp). */
     private static CardLayout buildCardLayout() {
         List<CardLayout.Patch> patches = List.of(
                 neutral("W1", 0.06, 0.12, 0.14, 0.16, 95.494),
@@ -302,15 +229,7 @@ class ColorPipelineServiceCardCcmTest {
         return new CardLayout.Patch(id, x, y, w, h, CardLayout.Role.NEUTRAL, new Lab(labL, 0.0, 0.0));
     }
 
-    // ------------------------------------------------------------------ anh the tong hop
 
-    /**
-     * Vẽ canvas 600×380: mỗi patch NEUTRAL tô {@code contaminant} (mép giả định nhiễu/lệch nắn
-     * phẳng) trên TOÀN BỘ rect, rồi tô vùng lõi (inset {@link #CLEAN_INSET_FRAC}, nhỏ hơn trim sản
-     * xuất {@code PATCH_BORDER_TRIM}=0.12 nên luôn nằm trong vùng {@code sampleNeutralPatches} lấy
-     * mẫu) bằng màu "đo được" — đúng màu suy từ {@code ref_lab} nếu {@code applyOffset=false}, hoặc
-     * cộng thêm {@link #MEASURED_OFFSET} (riêng từng kênh) nếu {@code applyOffset=true}.
-     */
     private static byte[] buildCardImageBytes(CardLayout layout, boolean applyOffset) throws IOException {
         BufferedImage image = new BufferedImage(CARD_WIDTH, CARD_HEIGHT, BufferedImage.TYPE_INT_RGB);
         fillRect(image, 0, 0, CARD_WIDTH, CARD_HEIGHT, 0xFFFFFF);
@@ -323,7 +242,6 @@ class ColorPipelineServiceCardCcmTest {
             int pw = (int) Math.round(patch.w() * CARD_WIDTH);
             int ph = (int) Math.round(patch.h() * CARD_HEIGHT);
 
-            // Mep "nhiem ban" (mo phong sai so nan phang/in an) phu toan bo rect truoc.
             fillRect(image, x0, y0, pw, ph, 0xFF00FF);
 
             int trueEncoded = trueEncodedChannel(patch.refLab());
@@ -343,7 +261,6 @@ class ColorPipelineServiceCardCcmTest {
         return toPngBytes(image);
     }
 
-    /** sRGB 8-bit "thật" của một ref_lab trung tính (a=b=0 nên r=g=b trong linear) — xem patch Javadoc. */
     private static int trueEncodedChannel(Lab refLab) {
         RgbLinear linear = ColorSpace.labToLinearRgb(refLab);
         double meanLinear = (linear.r() + linear.g() + linear.b()) / 3.0;
@@ -364,13 +281,7 @@ class ColorPipelineServiceCardCcmTest {
         return Math.max(0, Math.min(255, v));
     }
 
-    // ------------------------------------------------------------------ anh cat (ROI) tong hop
 
-    /**
-     * Nền cát nhiễu nhẹ trung tính + hạt chỉ thị tô đúng {@link #GRAIN_HEX} — CÙNG kiểu ảnh với
-     * {@code SyntheticSandDatasetGenerator} (GĐ4), đã chứng minh qua được Q1-Q5 + tách hạt S6
-     * thật qua {@code PipelineAccuracyHarnessTest}.
-     */
     private static byte[] buildSandImageBytes() throws IOException {
         Random rng = new Random(20261009L);
         BufferedImage image = new BufferedImage(SAND_CANVAS, SAND_CANVAS, BufferedImage.TYPE_INT_RGB);
@@ -412,7 +323,6 @@ class ColorPipelineServiceCardCcmTest {
         return out.toByteArray();
     }
 
-    // ------------------------------------------------------------------ ChartCatalog gia (in-memory)
 
     private static ChartCatalog sampleChartCatalog() {
         PhChart chart = PhChart.of("chart-test", List.of(

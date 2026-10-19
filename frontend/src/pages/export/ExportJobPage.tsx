@@ -5,15 +5,6 @@ import { ExportJobStatusCard, exportDownloadUrl, useExportJob } from "@/features
 
 const HOUR_MS = 60 * 60 * 1000;
 
-/**
- * `/export/:jobId` — poll trạng thái job xuất PDF tới khi sẵn sàng (p8 §8.4.10 J3/J4).
- *
- * Dựng theo frame `M-10a` / `Web - 10a. Trạng thái & Tải Báo cáo` (design/figma-plugin
- * `30-core.js`): tiêu đề trang, thẻ trạng thái 560px canh giữa, nút "Quay lại". Mọi con số
- * (mã hồ sơ, số trang, số lượt quét, hạn tải) đến từ `ExportJobResponse`.
- *
- * ĐÃ BỎ so với frame: nút "Xem tất cả bản xuất" — không có route danh sách bản xuất.
- */
 export function ExportJobPage() {
   const { t } = useTranslation(["export", "common"]);
   const { jobId } = useParams<{ jobId: string }>();
@@ -50,7 +41,6 @@ export function ExportJobPage() {
     void navigate("/export");
   };
 
-  // "Còn N ngày H giờ để tải" từ `expiresAt`; không có hạn thì không in.
   let expiry: string | undefined;
   if (job.status === "READY" && job.expiresAt) {
     const remainingHours = Math.max(0, Math.floor((new Date(job.expiresAt).getTime() - Date.now()) / HOUR_MS));
@@ -93,7 +83,6 @@ export function ExportJobPage() {
       <Button
         variant="tertiary"
         onClick={() => {
-          // Về đúng hồ sơ của bé vừa xuất (`catId` của job), không về danh sách chung.
           void navigate(`/cats/${job.catId}`);
         }}
       >

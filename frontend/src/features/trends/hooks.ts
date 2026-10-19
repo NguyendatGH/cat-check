@@ -3,13 +3,6 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { fetchCatTrends } from "./api";
 import type { CatTrendPoint, CatTrendsResponse, DistributionBucket, TrendPoint, TrendRange } from "./types";
 
-/**
- * Hooks xu hướng pH. MỘT nguồn duy nhất: D13 `GET /cats/{catId}/trends`.
- *
- * `useTrendSeries`/`useTrendSummary` cũ (tự tổng hợp từ `GET /scans` + `GET /scans/summary`)
- * đã bị xoá — chúng tồn tại vì D13 từng là stub 501, và khi D13 chạy thật thì hai đường cho
- * số khác nhau giữa Trang chủ và màn Xu hướng.
- */
 
 export const trendsKeys = {
   all: ["trends"] as const,
@@ -28,18 +21,11 @@ export function useCatTrends(
       return fetchCatTrends(catId, range);
     },
     enabled: Boolean(catId) && enabled,
-    // 403 FEATURE_NOT_IN_PLAN / 404 không bao giờ tự khỏi khi thử lại — retry chỉ làm màn
-    // "khoá gói" hiện chậm hơn vài giây. Tắt refetchOnWindowFocus để tránh spam 403 khi đổi tab.
     retry: false,
     refetchOnWindowFocus: false,
   });
 }
 
-/**
- * Chuỗi điểm để vẽ: bỏ lần quét `INCONCLUSIVE` (API BỎ HẲN key `phValue`, không trả `null`
- * ⇒ phải lọc theo `typeof === "number"`, không so `!== null`) và sắp theo thời gian
- * tăng dần. Điểm cuối được đánh dấu `isLatest` cho chú giải "lần đo gần nhất".
- */
 export function toTrendPoints(points: CatTrendPoint[] | undefined): TrendPoint[] {
   const measured = (points ?? [])
     .filter((p): p is CatTrendPoint & { phValue: number } => typeof p.phValue === "number")
@@ -52,11 +38,6 @@ export function toTrendPoints(points: CatTrendPoint[] | undefined): TrendPoint[]
   }));
 }
 
-/**
- * Phân bố % theo phân loại, đếm TỪ CHÍNH `points` của D13 — không gọi thêm
- * `GET /scans/summary`: hai nguồn đếm trên hai cửa sổ thời gian khác nhau là cách cũ làm
- * lệch số giữa biểu đồ và thanh phân bố.
- */
 export function useDistributionBuckets(points: CatTrendPoint[] | undefined): DistributionBucket[] {
   return useMemo(() => {
     const items = points ?? [];

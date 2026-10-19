@@ -12,18 +12,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link ScanInsightPort} doc thang {@code scan} / {@code scan_analysis} / {@code health_flag} /
- * {@code ph_classification_band} bang {@code JdbcTemplate}.
- *
- * <p>KHONG import class nao cua {@code com.catcheck.scan.*} hay {@code com.catcheck.insight.*}
- * — xem javadoc {@link ScanInsightPort} ve ly do kien truc.</p>
- *
- * <p>Bang/cot tra o {@code V11__scan.sql}, {@code V12__monitoring.sql}, {@code V9__colorchart.sql}.
- * Luu y {@code scan_analysis.is_current} — mot scan co the co nhieu ban phan tich (recompute),
- * chi ban {@code is_current = true} moi tinh. Chi lay {@code scan.deleted_at IS NULL} va
- * {@code status = 'ANALYZED'}.</p>
- */
 @Repository
 class JdbcScanInsightAdapter implements ScanInsightPort {
 
@@ -177,11 +165,6 @@ class JdbcScanInsightAdapter implements ScanInsightPort {
                 catId, from, to);
     }
 
-    /**
-     * Doc cot {@code TIMESTAMPTZ} qua {@code getObject(col, OffsetDateTime.class)} roi chuyen
-     * sang {@link Instant} — KHONG dung {@code getTimestamp()}: do la {@code java.sql.Timestamp},
-     * bi ArchUnit R13 cam (cung khuon voi {@code privacy.infrastructure.persistence.RowReaders}).
-     */
     private static Instant instant(ResultSet rs, String column) throws SQLException {
         OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
         return value == null ? null : value.toInstant();

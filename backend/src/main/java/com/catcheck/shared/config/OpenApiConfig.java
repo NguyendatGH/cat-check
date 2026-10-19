@@ -6,11 +6,6 @@ import io.swagger.v3.oas.models.info.License;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Cấu hình springdoc-openapi (chạy ở {@code /v3/api-docs} và {@code /swagger-ui.html}, tự động
- * nhờ {@code springdoc-openapi-starter-webmvc-ui} có mặt trên classpath). Bean dưới đây chỉ
- * điền metadata mô tả API, không tắt/bật tính năng gì thêm ở M0.
- */
 @Configuration
 public class OpenApiConfig {
 

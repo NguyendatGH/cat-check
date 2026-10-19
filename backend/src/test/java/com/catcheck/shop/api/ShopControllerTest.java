@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** 405 va 400 kieu tham so — truoc day deu roi vao handler 500. */
 class ShopControllerTest {
 
     private final ShopService service = Mockito.mock(ShopService.class);

@@ -1,0 +1,33 @@
+{
+  "welcome": {
+    "title": "Welcome to CatCheck",
+    "body": "Take a quick look at the main features to start tracking your cat's litter color. You can skip at any time."
+  },
+  "steps": {
+    "dashboard": "An overview of your cats, latest scans and scan reminders.",
+    "scan": "Photograph the color-indicator litter with the color chart to record your cat's pH.",
+    "history": "Review each cat's scans and pH trends over time.",
+    "cats": "Manage your cats' profiles: breed, age and profile photo.",
+    "community": "Read care tips and share experiences with other cat owners.",
+    "map": "Find vet clinics and emergency care near you.",
+    "shop": "Buy color-indicator litter and litter tray accessories.",
+    "credits": "Activate the code printed on your litter bag to get credits for scans.",
+    "assistant": "Ask about cat care, with cited sources so you can double-check. Information is for reference only and does not replace a veterinarian.",
+    "notifications": "Get scan reminders and important updates here.",
+    "profile": "Update your account, manage notifications and security, and replay this tour."
+  },
+  "actions": {
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "finish": "Get started",
+    "dontShowAgain": "Don't show again"
+  },
+  "progress": "{{current}}/{{total}}",
+  "settings": {
+    "title": "Feature tour",
+    "note": "Automatically shows a short tour when you open Home. Turn it off if you don't want to see it again.",
+    "toggle": "Show feature tour automatically",
+    "replay": "Replay tour"
+  }
+}

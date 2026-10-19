@@ -19,12 +19,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Thân {@code ExpireCreditBatchesJob} (p12 §12.6.2 nhóm A) — gọi thẳng, không qua scheduler.
- *
- * <p>Kiểm ba hành vi mà spec nêu đích danh: xử lý theo lô có {@code LIMIT}, một lô lỗi không
- * chặn lô khác, và {@code dry_run} chỉ đếm.</p>
- */
 class ExpireCreditBatchesJobTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T05:05:00Z");
@@ -40,8 +34,6 @@ class ExpireCreditBatchesJobTest {
                 new JobProperties(true, ZoneId.of("Asia/Ho_Chi_Minh"),
                         setting, setting, setting, setting, setting, setting, setting, setting);
         CreditExpiryService service = new CreditExpiryService(store, store, new UuidV7(CLOCK));
-        // JobRunner null: test gọi thẳng thân job, không đi qua khuôn chạy chung (đã có
-        // JobRunnerTest lo phần đó) — tách hai mối quan tâm thay vì dựng cả hai mỗi lần.
         return new ExpireCreditBatchesJob(null, service, properties);
     }
 
@@ -69,7 +61,6 @@ class ExpireCreditBatchesJobTest {
 
     @Test
     void oneFailingBatchDoesNotBlockTheOthers() {
-        // p12 §12.6.2: "Mỗi batch một transaction riêng; lỗi 1 batch không chặn batch khác".
         store.addBatch(userId, NOW.minusSeconds(300), 2, 5);
         InMemoryCreditStore.Batch broken = store.addBatch(userId, NOW.minusSeconds(200), 2, 5);
         store.addBatch(userId, NOW.minusSeconds(100), 2, 5);
@@ -112,8 +103,6 @@ class ExpireCreditBatchesJobTest {
 
     @Test
     void aFullPageOfLockedRowsDoesNotLoopForever() {
-        // Trang đầy mà không đóng được lô nào ⇒ câu SELECT sẽ trả đúng trang đó mãi. Job phải
-        // dừng và để giờ sau thử lại, thay vì quay vòng tới khi chạm lockAtMostFor.
         for (int i = 0; i < 4; i++) {
             InMemoryCreditStore.Batch batch =
                     store.addBatch(userId, NOW.minusSeconds(60L * (i + 1)), 2, 5);

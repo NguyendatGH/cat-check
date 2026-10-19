@@ -12,7 +12,7 @@ import {
   DenseTableFrame,
   MonoId,
   MutationErrorNote,
-  ReasonField,
+  ReasonConfirmDialog,
   SearchField,
   SortableTh,
   TableSkeleton,
@@ -21,7 +21,7 @@ import {
   denseTdClass,
   denseThClass,
   formatAdminDateTime,
-  isReasonValid,
+  isUuid,
   matchesQuery,
   nextSort,
   sortRows,
@@ -35,17 +35,8 @@ import {
   type SortState,
 } from "@/features/admin";
 
-/** Vai trò cấp được qua API; backend từ chối ADMIN_SUPER, DPO, USER (`ROLE_NOT_ASSIGNABLE`). */
 const STAFF_ROLES = ["ADMIN_SUPPORT", "ADMIN_CATALOG", "MODERATOR", "VET"] as const;
 
-/**
- * Khoá `ROLES` (shared/auth/roles.ts) mà trang này hỏi: `staffRolesWrite` (chỉ ADMIN_SUPER),
- * `totpResetRequestsRead` (ADMIN_SUPER, DPO), `totpResetApprove` (chỉ DPO).
- *
- * `AdminLayout` tính khả năng cho MỌI khoá của `ROLES` rồi đặt vào `AdminAccessProvider`, nên
- * ba khoá này có sẵn lúc chạy; kiểu `AdminCapabilityKey` chưa liệt kê chúng nên nới kiểu ở đây.
- * Khoá vắng ⇒ `false` (không có provider thì không hiện nút ghi nào). Backend vẫn kiểm độc lập.
- */
 type StaffCapability = "staffRolesWrite" | "totpResetRequestsRead" | "totpResetApprove";
 
 function useStaffCan(): (key: StaffCapability) => boolean {
@@ -55,11 +46,6 @@ function useStaffCan(): (key: StaffCapability) => boolean {
 
 type ApprovalState = "allowed" | "self" | "expired" | "closed";
 
-/**
- * Quy tắc hai người (backend `approveTotpReset`): người tạo yêu cầu không tự duyệt
- * (`MFA_RESET_TWO_PERSON_REQUIRED`); yêu cầu hết hạn hoặc không còn PENDING bị từ chối
- * (`MFA_RESET_NOT_PENDING`). Chặn sẵn ở UI khi response có đủ dữ liệu.
- */
 function approvalState(item: AdminMfaResetRequest, currentUserId: string | undefined, now: number): ApprovalState {
   if (item.status !== "PENDING") return "closed";
   if (currentUserId !== undefined && item.requestedBy === currentUserId) return "self";
@@ -83,10 +69,6 @@ function ReadOnlyNote({ text }: { text: string }) {
   );
 }
 
-/**
- * `/admin/staff` — L13–L17: cấp/gỡ role staff, tạo yêu cầu reset TOTP (chỉ ADMIN_SUPER), xem
- * hàng đợi (ADMIN_SUPER, DPO) và duyệt reset TOTP theo quy tắc hai người (chỉ DPO).
- */
 export function AdminStaffPage() {
   const { t } = useTranslation("admin");
   const can = useStaffCan();
@@ -94,13 +76,7 @@ export function AdminStaffPage() {
   const canReadQueue = can("totpResetRequestsRead");
   const canApprove = can("totpResetApprove");
 
-  const header = (
-    <AdminPageHeader
-      title={t("pages.staff.title")}
-      description={t("pages.staff.description")}
-      specRef="L13–L17 · /api/v1/admin"
-    />
-  );
+  const header = <AdminPageHeader title={t("pages.staff.title")} description={t("pages.staff.description")} />;
 
   if (!canWriteRoles && !canReadQueue) {
     return (
@@ -120,24 +96,38 @@ export function AdminStaffPage() {
   );
 }
 
-/** Cấp/gỡ role và tạo yêu cầu reset TOTP — chỉ dựng khi có `staffRolesWrite`. */
+type RoleAction = "grant" | "revoke" | "requestReset";
+
 function StaffRolePanel() {
   const { t } = useTranslation("admin");
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<string>(STAFF_ROLES[0]);
-  const [reason, setReason] = useState("");
+  const [pending, setPending] = useState<RoleAction | null>(null);
   const grant = useGrantAdminRole();
   const revoke = useRevokeAdminRole();
   const requestReset = useRequestAdminMfaReset();
-  const canSubmit = userId.trim().length > 0 && isReasonValid(reason);
+  const canSubmit = isUuid(userId.trim());
+  const mutation = pending === "grant" ? grant : pending === "revoke" ? revoke : requestReset;
+  const roleLabel = t(`roleLabels.${role}`, { defaultValue: role });
+  const lastSuccess = grant.isSuccess || revoke.isSuccess || requestReset.isSuccess;
+
+  const open = (action: RoleAction) => {
+    grant.reset();
+    revoke.reset();
+    requestReset.reset();
+    setPending(action);
+  };
 
   return (
     <DensePanel title={t("pages.staff.roleTitle")} description={t("pages.staff.roleDescription")}>
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px] md:items-end">
         <Input
           label={t("pages.staff.userId")}
-          className="h-10"
+          className="h-10 font-mono"
           value={userId}
+          autoComplete="off"
+          spellCheck={false}
+          error={userId.trim().length > 0 && !canSubmit ? t("pages.staff.userIdInvalid") : undefined}
           onChange={(event) => {
             setUserId(event.target.value);
           }}
@@ -152,19 +142,18 @@ function StaffRolePanel() {
         >
           {STAFF_ROLES.map((item) => (
             <option key={item} value={item}>
-              {item}
+              {t(`roleLabels.${item}`, { defaultValue: item })}
             </option>
           ))}
         </AdminSelect>
       </div>
-      <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
           size="sm"
           disabled={!canSubmit || grant.isPending}
           onClick={() => {
-            grant.mutate({ userId: userId.trim(), role, reason: reason.trim() });
+            open("grant");
           }}
         >
           {t("pages.staff.grant")}
@@ -174,29 +163,76 @@ function StaffRolePanel() {
           size="sm"
           disabled={!canSubmit || revoke.isPending}
           onClick={() => {
-            revoke.mutate({ userId: userId.trim(), role });
+            open("revoke");
           }}
         >
           {t("pages.staff.revoke")}
         </Button>
         <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
         <Button
-          variant="primary"
+          variant="tertiary"
           size="sm"
           disabled={!canSubmit || requestReset.isPending}
           onClick={() => {
-            requestReset.mutate({ userId: userId.trim(), reason: reason.trim() });
+            open("requestReset");
           }}
         >
           {t("pages.staff.requestReset")}
         </Button>
       </div>
-      <MutationErrorNote error={grant.error ?? revoke.error ?? requestReset.error} />
+      {lastSuccess && pending === null ? (
+        <p role="status" className="text-caption text-success-text">
+          {t("feedback.saved")}
+        </p>
+      ) : null}
+      <ReasonConfirmDialog
+        open={pending !== null}
+        onOpenChange={(next) => {
+          if (!next) setPending(null);
+        }}
+        title={
+          pending === "grant"
+            ? t("pages.staff.grant")
+            : pending === "revoke"
+              ? t("pages.staff.revoke")
+              : t("pages.staff.requestReset")
+        }
+        target={pending === "requestReset" ? userId.trim() : `${userId.trim()} · ${roleLabel}`}
+        consequence={
+          pending === "grant"
+            ? t("pages.staff.grantConsequence", { role: roleLabel })
+            : pending === "revoke"
+              ? t("pages.staff.revokeConsequence", { role: roleLabel })
+              : t("pages.staff.requestResetConsequence")
+        }
+        confirmLabel={
+          pending === "grant"
+            ? t("pages.staff.grant")
+            : pending === "revoke"
+              ? t("pages.staff.revoke")
+              : t("pages.staff.requestReset")
+        }
+        // Backend L14 (gỡ role) không nhận `reason`.
+        requireReason={pending !== "revoke"}
+        destructive={pending !== "grant"}
+        pending={mutation.isPending}
+        error={mutation.error}
+        onConfirm={(reason) => {
+          const done = {
+            onSuccess: () => {
+              setPending(null);
+            },
+          };
+          const target = userId.trim();
+          if (pending === "grant") grant.mutate({ userId: target, role, reason }, done);
+          else if (pending === "revoke") revoke.mutate({ userId: target, role }, done);
+          else requestReset.mutate({ userId: target, reason }, done);
+        }}
+      />
     </DensePanel>
   );
 }
 
-/** Hàng đợi reset TOTP — chỉ dựng khi có `totpResetRequestsRead` để không gọi API sẽ trả 403. */
 function ResetQueuePanel({ canApprove }: { canApprove: boolean }) {
   const { t } = useTranslation("admin");
   const requests = useAdminMfaResetRequests();
@@ -204,6 +240,7 @@ function ResetQueuePanel({ canApprove }: { canApprove: boolean }) {
   const currentUserId = useSessionStore((state) => state.user?.id);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortState<QueueSortKey> | null>({ key: "requestedAt", direction: "asc" });
+  const [confirmItem, setConfirmItem] = useState<AdminMfaResetRequest | null>(null);
 
   const items = useMemo(() => requests.data ?? [], [requests.data]);
   const visible = useMemo(
@@ -300,7 +337,8 @@ function ResetQueuePanel({ canApprove }: { canApprove: boolean }) {
                                 className="min-h-8 px-2"
                                 disabled={approve.isPending}
                                 onClick={() => {
-                                  approve.mutate(item.id);
+                                  approve.reset();
+                                  setConfirmItem(item);
                                 }}
                               >
                                 <Check size={14} aria-hidden="true" />
@@ -323,7 +361,29 @@ function ResetQueuePanel({ canApprove }: { canApprove: boolean }) {
           )}
         </>
       )}
-      <MutationErrorNote error={approve.error} />
+      {confirmItem === null ? <MutationErrorNote error={approve.error} /> : null}
+      <ReasonConfirmDialog
+        open={confirmItem !== null}
+        onOpenChange={(next) => {
+          if (!next) setConfirmItem(null);
+        }}
+        title={t("pages.staff.approve")}
+        target={confirmItem?.targetUserId ?? ""}
+        consequence={t("pages.staff.approveConsequence")}
+        confirmLabel={t("pages.staff.approve")}
+        requireReason={false}
+        destructive
+        pending={approve.isPending}
+        error={approve.error}
+        onConfirm={() => {
+          if (confirmItem === null) return;
+          approve.mutate(confirmItem.id, {
+            onSuccess: () => {
+              setConfirmItem(null);
+            },
+          });
+        }}
+      />
     </DensePanel>
   );
 }

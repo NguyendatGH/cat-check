@@ -1,9 +1,9 @@
-import { lazy } from "react";
+import { lazyPage as lazy, preloadInIdle } from "./lazyPage";
 
-/**
- * React.lazy cho từng page P1 (code-splitting theo route). Route Phase 2/3 dùng chung
- * ComingSoonPage (import thường, không cần lazy vì rất nhẹ) — xem router.tsx.
- */
+export const LazyAdminLayout = lazy(() =>
+  import("../layouts/AdminLayout").then((m) => ({ default: m.AdminLayout })),
+);
+
 export const LazyPages = {
   home: lazy(() => import("@/pages/public/HomePage").then((m) => ({ default: m.HomePage }))),
   login: lazy(() => import("@/pages/auth/LoginPage").then((m) => ({ default: m.LoginPage }))),
@@ -75,6 +75,10 @@ export const LazyPages = {
   export: lazy(() => import("@/pages/export/ExportPage").then((m) => ({ default: m.ExportPage }))),
   exportJob: lazy(() => import("@/pages/export/ExportJobPage").then((m) => ({ default: m.ExportJobPage }))),
   credits: lazy(() => import("@/pages/credit/CreditsPage").then((m) => ({ default: m.CreditsPage }))),
+  careTip: lazy(() => import("@/pages/legal/CareTipPage").then((m) => ({ default: m.CareTipPage }))),
+  creditsPlans: lazy(() =>
+    import("@/pages/credit/CreditPlansPage").then((m) => ({ default: m.CreditPlansPage })),
+  ),
   creditsActivate: lazy(() =>
     import("@/pages/credit/CreditsActivatePage").then((m) => ({ default: m.CreditsActivatePage })),
   ),
@@ -138,7 +142,6 @@ export const LazyPages = {
   adminAuditLog: lazy(() => import("@/pages/admin/AdminAuditLogPage").then((m) => ({ default: m.AdminAuditLogPage }))),
   offline: lazy(() => import("@/pages/system/OfflinePage").then((m) => ({ default: m.OfflinePage }))),
   notFound: lazy(() => import("@/pages/system/NotFoundPage").then((m) => ({ default: m.NotFoundPage }))),
-  // Shop (Phase 3) — chỉ có UI + mock data, chưa có backend. Xem src/pages/shop/mockData.ts.
   shop: lazy(() => import("@/pages/shop/ShopPage").then((m) => ({ default: m.ShopPage }))),
   shopProductDetail: lazy(() =>
     import("@/pages/shop/ProductDetailPage").then((m) => ({ default: m.ProductDetailPage })),
@@ -146,12 +149,9 @@ export const LazyPages = {
   cart: lazy(() => import("@/pages/shop/CartPage").then((m) => ({ default: m.CartPage }))),
   checkout: lazy(() => import("@/pages/shop/CheckoutPage").then((m) => ({ default: m.CheckoutPage }))),
   orderTracking: lazy(() => import("@/pages/shop/OrderTrackingPage").then((m) => ({ default: m.OrderTrackingPage }))),
-  // Cộng đồng (Phase 2 theo p4 — `post`/`comment` chưa đặc tả, chưa viết migration ở Phase 1).
-  // Chỉ có UI + mock data. Xem src/pages/community/mockData.ts.
   communityFeed: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityFeedPage }))),
   communityPostDetail: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityPostDetailPage }))),
   communityNewPost: lazy(() => import("@/pages/community").then((m) => ({ default: m.CommunityNewPostPage }))),
-  // Bản đồ & phòng khám (Phase 2 — `place`/`place_review` cùng lý do trên).
   catCareMap: lazy(() => import("@/pages/map").then((m) => ({ default: m.CatCareMapPage }))),
   clinicDetail: lazy(() => import("@/pages/map").then((m) => ({ default: m.ClinicDetailPage }))),
   adminScans: lazy(() => import("@/pages/admin/AdminScansPage").then((m) => ({ default: m.AdminScansPage }))),
@@ -172,3 +172,17 @@ export const LazyPages = {
     import("@/pages/seller/SellerProductsPage").then((m) => ({ default: m.SellerProductsPage })),
   ),
 } as const;
+
+const AUTH_PAGES = new Set<string>(["login", "register", "verifyOtp", "forgotPassword", "resetPassword", "oAuthComplete"]);
+
+export function preloadPagesFor(audience: "anonymous" | "buyer" | "staff") {
+  const entries = Object.entries(LazyPages);
+  const isStaffPage = (key: string) => key.startsWith("admin") || key.startsWith("seller");
+  const picked = entries.filter(([key]) => {
+    if (audience === "anonymous") return AUTH_PAGES.has(key) || key === "home";
+    if (audience === "staff") return isStaffPage(key);
+    return !isStaffPage(key) && !AUTH_PAGES.has(key);
+  });
+  const pages = picked.map(([, page]) => page);
+  preloadInIdle(audience === "staff" ? [LazyAdminLayout, ...pages] : pages);
+}

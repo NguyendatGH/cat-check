@@ -24,7 +24,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** G4 — cursor hỏng phải thành {@code 400 PAGINATION_CURSOR_INVALID} trước khi chạm repository. */
 class NotificationServiceInboxTest {
 
     private static final UUID USER = UUID.randomUUID();

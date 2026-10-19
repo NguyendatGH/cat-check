@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Spring Data repository cho {@code cat_health_survey} (D14/D15, p4 C3). */
 interface CatHealthSurveyJpaRepository extends JpaRepository<CatHealthSurvey, UUID> {
 
     Optional<CatHealthSurvey> findFirstByCatIdOrderByCreatedAtDesc(UUID catId);

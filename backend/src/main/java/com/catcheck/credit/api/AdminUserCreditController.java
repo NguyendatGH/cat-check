@@ -28,34 +28,13 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Credit của một người dùng ở màn quản trị — <b>L9</b>
- * ({@code GET /admin/users/{userId}/credits}) và <b>L10</b>
- * ({@code POST /admin/users/{userId}/credit-adjustments}), p8 §8.4.12 mục (a).
- *
- * <p><b>Vai trò</b> chép đúng cột {@code R:} của p8, ánh xạ 1-1 sang ma trận p11 §11.5.4 (ô Q7
- * của p14):</p>
- * <ul>
- *   <li>L9 <b>đọc</b>: {@code ADMIN_SUPER}, {@code ADMIN_SUPPORT}, {@code DPO} — §11.5.4 dòng
- *       "Credit/ledger" cho cả ba quyền "Đọc".</li>
- *   <li>L10 <b>ghi</b>: <b>{@code ADMIN_SUPER} duy nhất</b>. p14 §14.4.4 đóng OQ7 bằng một câu
- *       dứt khoát: {@code ADMIN_SUPPORT} không cấp credit ở bất kỳ hạn mức nào, và
- *       <i>"Support gọi thẳng endpoint vẫn nhận 403 ACCESS_DENIED"</i>. Đó chính là dòng
- *       {@code AdminGuard.requireAnyRole(principal, ADJUST_ROLES)} dưới đây.</li>
- * </ul>
- *
- * <p><b>Chưa có:</b> step-up re-auth ({@code S1:TOTP} của p8 cho L10 — một lớp NGOÀI
- * {@code mfaLevel} mà {@code AdminMfaGateFilter} đã kiểm). Handoff H15.102.</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @Tag(name = "Quản trị credit", description = "L9, L10 — lô credit, sổ ledger, điều chỉnh thủ công")
 public class AdminUserCreditController {
 
-    /** p8 L9 / p11 §11.5.4 dòng "Credit/ledger": cả ba vai trò đọc được. */
     static final Set<String> READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
 
-    /** p8 L10 + p14 §14.4.4: điều chỉnh credit là {@code ADMIN_SUPER} duy nhất. */
     static final Set<String> ADJUST_ROLES = Set.of("ADMIN_SUPER");
 
     private final AdminCreditService adminCreditService;
@@ -64,7 +43,6 @@ public class AdminUserCreditController {
         this.adminCreditService = adminCreditService;
     }
 
-    // ------------------------------------------------------------------- L9
 
     @Operation(
             operationId = "getAdminUserCredits",
@@ -91,12 +69,9 @@ public class AdminUserCreditController {
                 overview.ledgerSize(),
                 overview.ledgerTotal());
 
-        // Dữ liệu tài chính của người KHÁC: không vào cache nào (p8 §8.1.10 mặc định
-        // `private, no-store` cho dữ liệu người dùng; ở đây nói rõ `no-store`).
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(body);
     }
 
-    // ------------------------------------------------------------------ L10
 
     @Operation(
             operationId = "adjustAdminUserCredits",
@@ -125,13 +100,7 @@ public class AdminUserCreditController {
                 AdminContext.of(principal, request.reason(), httpRequest)));
     }
 
-    /* ---------------------------------------------------------------- helper */
 
-    /**
-     * Giá trị lạ ⇒ {@code IllegalArgumentException} ⇒ {@code 400 VALIDATION_FAILED}. Bean
-     * validation ({@code @Pattern}) đã chặn trước; đây là lớp thứ hai cho các đường vào không qua
-     * bean validation.
-     */
     private static AdminCreditService.AdjustmentDirection parseDirection(String direction) {
         return AdminCreditService.AdjustmentDirection.valueOf(
                 direction.strip().toUpperCase(Locale.ROOT));

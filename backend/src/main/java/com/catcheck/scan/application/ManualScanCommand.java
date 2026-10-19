@@ -10,17 +10,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Lệnh của đường nhập scan THỦ CÔNG dev-only ({@code POST /api/v1/dev/scans}) — bản không-ảnh
- * của {@link SubmitScanCommand}. Tầng {@code api} dựng record này từ JSON trước khi gọi xuống
- * {@link ManualScanIngestService} (R2/R3: application không biết kiểu HTTP).
- *
- * @param userId               chủ sở hữu, LUÔN lấy từ phiên chứ không từ body (bất biến I14)
- * @param catId                {@code null} khi {@code assignment = SHARED_UNKNOWN}
- * @param capturedAt           cho phép lùi quá khứ — đó là lý do đường này tồn tại
- * @param forcedClassification ép mã phân loại; {@code null} ⇒ suy từ {@code phValue}
- * @param confidence           {@code null} ⇒ mặc định của {@link ManualPipelineOutcomeFactory}
- */
 public record ManualScanCommand(
         UUID userId,
         UUID catId,

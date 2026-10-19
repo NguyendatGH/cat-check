@@ -10,10 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Spring Data repository cho {@code scan}. Nằm ở {@code infrastructure.persistence} (R7).
- * Tầng application chỉ biết {@code scan.domain.port.ScanRepository} (R2).
- */
 interface ScanJpaRepository extends JpaRepository<Scan, UUID> {
 
     Optional<Scan> findByUserIdAndIdempotencyKey(UUID userId, String idempotencyKey);

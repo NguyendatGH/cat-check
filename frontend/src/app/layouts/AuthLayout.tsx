@@ -1,6 +1,6 @@
 import { Link, Outlet, useMatches } from "react-router";
 import { useTranslation } from "react-i18next";
-import { TopBar } from "@/shared/ui";
+import { ShineLogo, TopBar } from "@/shared/ui";
 import webLogo from "@/shared/assets/images/web-auth/logo.png";
 import headerShield from "@/shared/assets/icons/web-auth/header-shield.svg";
 
@@ -9,17 +9,6 @@ interface AuthRouteHandle {
   hideTopBar?: boolean;
 }
 
-/**
- * Layout cho /auth/*.
- *
- * Figma có HAI bộ frame cho cùng các màn này:
- * - mobile 390px (01b, 01c-1, 01c-2) → `TopBar` task-level + cột hẹp `max-w-sm`
- * - web 1280px (`Web - 01…` 16:7569, 16:6784, 16:8427) → header cao 78px (logo + slogan
- *   giám sát) + container `max-w-[1280px]` padding 48px, các trang tự dựng lưới 12 cột.
- *
- * Một trang React phục vụ cả hai (p9): chrome mobile ẩn từ `lg` trở lên và ngược lại, KHÔNG
- * render hai lần nội dung — phần thân do từng page tự xử lý responsive.
- */
 export function AuthLayout() {
   const { t } = useTranslation("auth");
   const matches = useMatches();
@@ -28,18 +17,16 @@ export function AuthLayout() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      {/* Chrome mobile (Figma 390px) — ẩn nếu route đã có header riêng (ví dụ /auth/login) */}
       {!hideTopBar ? (
         <div className="lg:hidden">
           <TopBar variant="task-level" title={titleKey ? t(titleKey) : ""} />
         </div>
       ) : null}
 
-      {/* Header web (Figma 16:9599 / 16:8635) — cao 78px, nền mờ + blur */}
-      <header className="sticky top-0 z-[var(--z-sticky-header)] hidden w-full bg-[rgba(250,248,255,0.8)] shadow-[0px_1px_8px_0px_rgba(0,0,0,0.04)] backdrop-blur-[12px] lg:block">
+      <header className="header-glass sticky top-0 z-[var(--z-sticky-header)] hidden w-full border-b border-border/40 lg:block">
         <div className="mx-auto flex h-[78px] max-w-[1280px] items-center justify-between px-12">
           <Link to="/" className="inline-flex items-center" aria-label={t("pages.login.title")}>
-            <img src={webLogo} alt={t("pages.login.title")} className="h-20 w-[120px] object-contain" />
+            <ShineLogo src={webLogo} alt={t("pages.login.title")} className="h-20 w-[120px] object-contain" />
           </Link>
           <div className="flex items-center gap-1">
             <img src={headerShield} alt="" className="h-[15px] w-3" />

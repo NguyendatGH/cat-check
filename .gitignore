@@ -3,6 +3,7 @@ figma-key.txt
 .env
 .env.*
 !.env.example
+!.env.prod.example
 *.pem
 *.p12
 *-service-account*.json
@@ -68,10 +69,4 @@ backend/data/
 
 # ---- Agent skills là repo riêng, không nhúng vào repo chính ----
 agent-skills/
-/context/
-build/
-asset/
-.claude/
-deployment/
-docs/
-design/
+archived/

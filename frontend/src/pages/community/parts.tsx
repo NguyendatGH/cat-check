@@ -17,17 +17,9 @@ import {
   type CommunityReportReason,
 } from "@/features/community";
 
-/**
- * Mảnh giao diện dùng chung cho 3 trang Cộng đồng. MỌI dữ liệu hiển thị đều là field của
- * `CommunityPostResponse` / `CommunityCommentResponse` (backend `community/api/dto`) — không
- * có huy hiệu "đã xác minh", tên bé mèo, ý kiến bác sĩ hay số liệu cộng đồng như trong design
- * (API không trả những field đó).
- */
 
-/** Ba quy tắc trung tính — cột phải bảng tin, chi tiết bài và trang soạn bài. */
 export const RULE_KEYS = ["respect", "noDiagnosis", "privacy"] as const;
 
-/** Cặp màu nền/chữ của avatar chữ cái — chọn ổn định theo tên, chỉ để phân biệt người viết. */
 const AVATAR_TONES = [
   "bg-chip-bg text-primary-dark",
   "bg-secondary-light text-secondary-text-on",
@@ -68,7 +60,6 @@ export function CategoryBadge({ category }: { category: string }) {
   );
 }
 
-/** Thời điểm tương đối, kèm ngày giờ tuyệt đối ở `title`/`dateTime` cho người cần chính xác. */
 export function RelativeTime({ value, prefix }: { value: string; prefix?: boolean }) {
   const { t } = useTranslation("community");
   const relative = formatRelative(value);
@@ -79,10 +70,6 @@ export function RelativeTime({ value, prefix }: { value: string; prefix?: boolea
   );
 }
 
-/**
- * Tên tác giả + chuyên mục + thời điểm. Desktop: tên và nhãn chuyên mục cùng dòng (design web).
- * Mobile: nhãn xuống dòng 2 cạnh giờ (design mobile) để tên dài không đẩy nhãn vỡ dòng.
- */
 export function AuthorMeta({
   name,
   category,
@@ -144,13 +131,11 @@ export function TagChips({ tags, className }: { tags: string[]; className?: stri
   );
 }
 
-/** Khối quy tắc trung tính + disclaimer. Không chứng thực tổ chức nào. */
 export function RulesCard({
   className,
   showDisclaimer = true,
 }: {
   className?: string;
-  /** Tắt khi trang đã hiện disclaimer ở chỗ khác (vd dải lưu ý đầu bảng tin mobile). */
   showDisclaimer?: boolean;
 }) {
   const { t } = useTranslation("community");
@@ -178,9 +163,7 @@ export function RulesCard({
   );
 }
 
-/* ------------------------------ Hành động trên bài ------------------------------ */
 
-/** Chia sẻ liên kết bài: Web Share API nếu có (mobile), không thì chép vào clipboard. */
 export function useSharePost() {
   const { t } = useTranslation("community");
   return async (post: Pick<CommunityPostApi, "id" | "title">) => {
@@ -193,14 +176,12 @@ export function useSharePost() {
       await navigator.clipboard.writeText(url);
       toast.success(t("post.shareCopied"));
     } catch (error) {
-      // Người dùng tự đóng bảng chia sẻ ⇒ AbortError, không phải lỗi.
       if (error instanceof DOMException && error.name === "AbortError") return;
       toast.error(t("post.shareFailed"));
     }
   };
 }
 
-/** Nút thích / lưu — dùng chung bảng tin và chi tiết. Trạng thái thật từ `liked`/`bookmarked`. */
 export function PostActions({
   post,
   commentHref,
@@ -208,9 +189,7 @@ export function PostActions({
   className,
 }: {
   post: CommunityPostApi;
-  /** Có ⇒ số bình luận là liên kết tới chi tiết (bảng tin); không ⇒ chỉ hiển thị số. */
   commentHref?: string;
-  /** Class thêm cho 2 nút phụ Chia sẻ + Lưu (vd `lg:hidden` khi trang đã có bản khác). */
   secondaryClassName?: string;
   className?: string;
 }) {
@@ -229,8 +208,6 @@ export function PostActions({
     );
   };
 
-  // Nhãn chữ chỉ hiện từ `md` (768px): design mobile chỉ có icon + số. KHÔNG dùng `sm` — token
-  // `--breakpoint-sm` của dự án là 375px nên `sm:` vẫn bật ở khung 390px.
   const actionClass =
     "flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-[13px] font-semibold text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark";
 
@@ -242,8 +219,6 @@ export function PostActions({
     </>
   );
 
-  // Viền trên nằm ở hộp ngoài; hàng nút bên trong lùi -mx-2 để vùng chạm rộng mà chữ vẫn
-  // thẳng mép nội dung thẻ (đặt -mx-2 ở hộp có viền thì viền lòi ra ngoài lề).
   return (
     <div className={className}>
       <div className="-mx-2 flex items-center gap-2 md:gap-3">
@@ -302,11 +277,9 @@ export function PostActions({
   );
 }
 
-/* ------------------------------ Menu ⋯ + báo cáo ------------------------------ */
 
 export type ReportTarget = { postId: string; commentId?: undefined } | { commentId: string; postId?: undefined };
 
-/** Nút ⋯ ở góc thẻ bài / bình luận — hiện tại có đúng một hành động thật: báo cáo vi phạm. */
 export function ContentMenu({ target, label }: { target: ReportTarget; label?: string }) {
   const { t } = useTranslation("community");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -515,7 +488,6 @@ function ReportDialog({
   );
 }
 
-/* ------------------------------ Khung chờ tải ------------------------------ */
 
 export function PostCardSkeleton() {
   return (

@@ -29,11 +29,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Tầng API của L4 — nhánh phân quyền (cột {@code R:} của p8 L4) và nhánh lỗi {@code reason}, cộng
- * với hai tính chất của response mà p8/p15 ràng buộc tường minh: <b>không trả
- * {@code storage_key}</b> (p8 §8.2.5 mục 3) và <b>che văn bản tự do</b> (p11 §11.5.4).
- */
 class AdminUserCatControllerTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -91,11 +86,7 @@ class AdminUserCatControllerTest {
         assertThat(body.items().getFirst().name()).isEqualTo("L***");
         assertThat(body.items().getFirst().notes()).isEqualTo("N***");
         assertThat(body.items().getFirst().hasAvatar()).isTrue();
-        // Mã hiển thị KHÔNG bị che: đó là mã người dùng đọc qua điện thoại để xác nhận đúng bé.
         assertThat(body.items().getFirst().publicCode()).isEqualTo("CC-VN-A1B2C3");
-        // p8 §8.2.5 mục 3: `storage_key` không bao giờ rời khỏi server. Neo bằng toàn bộ nội dung
-        // serialise được của DTO, không chỉ bằng việc "DTO hiện không có field đó" — thêm một field
-        // mang khoá lưu trữ về sau sẽ làm test này đỏ.
         assertThat(body.items().getFirst().toString()).doesNotContain("cat-avatar/");
     }
 
@@ -128,7 +119,6 @@ class AdminUserCatControllerTest {
         assertThat(response.getBody().page().hasMore()).isFalse();
     }
 
-    /* --------------------------------------------------------------- helper */
 
     private static Cat catWithAvatar() {
         Cat cat = Cat.create(UUID.fromString("00000000-0000-7000-8000-0000000000c1"), USER_ID,

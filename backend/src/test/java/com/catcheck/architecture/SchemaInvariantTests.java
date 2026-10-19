@@ -1,5 +1,6 @@
 package com.catcheck.architecture;
 
+import com.catcheck.shared.testing.TestPostgres;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,36 +20,14 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Kiểm tra bắt buộc sau lần migrate đầu tiên — p4 §4.9.4.
- *
- * <p>Test chạy Flyway THẬT (cùng `locations` với {@code application.yml}) trên một PostgreSQL
- * 18.6 rỗng qua Testcontainers, rồi soi catalog. Không dùng Spring context: thứ cần kiểm là
- * schema và dữ liệu seed, không phải bean — chạy Flyway trực tiếp giữ test nhanh và không phụ
- * thuộc tình trạng wiring của các module khác.</p>
- *
- * <p>Vì sao PostgreSQL thật chứ không H2: `uuidv7()`, `jsonb`, partial index, `EXCLUDE USING
- * gist` và trigger PL/pgSQL đều không có hành vi tương đương ở H2
- * ({@code reference/research-integrations.md}).</p>
- */
 @Testcontainers
 class SchemaInvariantTests {
 
-    /**
-     * p4 §4.9.4 mục 2: 56 bảng do Part 4 đặc tả (A:9 · B:10 · C:5 · D:13 · E:5 · F:6 · G:1 ·
-     * H:3 · K:4) + 4 bảng framework (SPRING_SESSION, SPRING_SESSION_ATTRIBUTES,
-     * event_publication, shedlock) + flyway_schema_history + 5 bảng RAG = 77, + 1 bảng của
-     * V23–V25 (DSAR export job) = 78.
-     *
-     * <p><b>Con số này là một điểm nóng khi nhiều nhánh chạy song song.</b> Mỗi migration thêm
-     * bảng đều phải sửa nó, nên nó đỏ ngay khi một nhánh khác merge trước. Giữ nguyên dạng con số
-     * cố định là CỐ Ý: một ngưỡng mềm ("≥ 77") sẽ không còn bắt được việc tạo bảng ngoài danh mục
-     * p4 §4.9.2 — đúng thứ test này tồn tại để bắt.</p>
-     */
-    private static final int EXPECTED_TABLE_COUNT = 78;
+    // +1 for community_comment_reaction (V33).
+    private static final int EXPECTED_TABLE_COUNT = 79;
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     private static MigrateResult migrateResult;
 
@@ -61,18 +40,14 @@ class SchemaInvariantTests {
         migrateResult = flyway.migrate();
     }
 
-    /** p4 §4.9.4 mục 1: không còn migration nào `Pending`. */
     @Test
     void migratesCleanlyFromAnEmptyDatabase() {
         assertThat(migrateResult.success).as("Flyway migrate phải thành công").isTrue();
-        // V1..V16 + V18..V27 (28 versioned) + 7 file R__ repeatable.
-        // V23–V25: DSAR export job (W5 khác). V26: 6 cột `job_run` của p4 §K3 (W5-D, H15.44/H15.180).
         assertThat(migrateResult.migrationsExecuted)
                 .as("số migration áp dụng trên DB rỗng")
-                .isEqualTo(34);
+                .isEqualTo(42);
     }
 
-    /** p4 §4.9.4 mục 2. */
     @Test
     void tableCountMatchesPart4() throws SQLException {
         assertThat(scalarInt("SELECT count(*) FROM information_schema.tables "
@@ -81,10 +56,6 @@ class SchemaInvariantTests {
                 .isEqualTo(EXPECTED_TABLE_COUNT);
     }
 
-    /**
-     * p4 §4.9.4 mục 4 + §4.9.2 dòng V16: "mọi bảng có `updated_at` đều có trigger".
-     * Đây là lưới bắt khi ai đó thêm bảng mới sau V16 mà quên tạo trigger.
-     */
     @Test
     void everyTableWithUpdatedAtHasTheSetUpdatedAtTrigger() throws SQLException {
         List<String> missing = strings("""
@@ -111,7 +82,6 @@ class SchemaInvariantTests {
                 .isEmpty();
     }
 
-    /** Trigger phải thực sự chạy, không chỉ tồn tại trong catalog. */
     @Test
     void setUpdatedAtTriggerActuallyBumpsTheColumn() throws SQLException {
         try (Connection c = connection(); Statement st = c.createStatement()) {
@@ -128,7 +98,6 @@ class SchemaInvariantTests {
         }
     }
 
-    /** Bất biến I7 (p4 §4.5.1) — `scan.store_image = false` ⇒ không được có `scan_image`. */
     @Test
     void invariantI7BlocksScanImageWhenStoreImageIsFalse() throws SQLException {
         try (Connection c = connection(); Statement st = c.createStatement()) {
@@ -151,10 +120,8 @@ class SchemaInvariantTests {
                             now(), 'CAMERA', 'PENDING', 'i7-with-image', true)
                     """);
 
-            // store_image = true ⇒ chèn được.
             st.execute(insertScanImage("01a10000-0000-7000-8000-00000000003a", "key/ok"));
 
-            // store_image = false ⇒ trigger chặn.
             assertThatThrownBy(() -> st.execute(
                     insertScanImage("01a10000-0000-7000-8000-00000000002a", "key/blocked")))
                     .isInstanceOf(SQLException.class)
@@ -166,7 +133,6 @@ class SchemaInvariantTests {
         }
     }
 
-    /** Bất biến I9 (p4 §4.5.1) — hai dải ACTIVE cùng `chart_id` không được chồng lấn. */
     @Test
     void invariantI9BlocksOverlappingActiveBands() throws SQLException {
         try (Connection c = connection(); Statement st = c.createStatement()) {
@@ -174,14 +140,12 @@ class SchemaInvariantTests {
             assertThatThrownBy(() -> st.execute(insertBand("SLIGHTLY_HIGH", "6.5", "6.7", true, true, 2)))
                     .isInstanceOf(SQLException.class)
                     .hasMessageContaining("ex_ph_classification_band_i9_no_overlap");
-            // Dải không giao nhau thì vẫn chèn được.
             st.execute(insertBand("HIGH", "6.6", "7.2", false, true, 3));
 
             st.execute("DELETE FROM ph_classification_band WHERE chart_id IS NOT NULL");
         }
     }
 
-    /** Bất biến I31 (p4 §4.5.1) — PUBLISHED + claim ≠ NONE thì `source_reference` ≥ 10 ký tự. */
     @Test
     void invariantI31BlocksPublishedClaimWithoutSource() throws SQLException {
         try (Connection c = connection(); Statement st = c.createStatement()) {
@@ -201,7 +165,6 @@ class SchemaInvariantTests {
         }
     }
 
-    /** Thủ tục ẩn danh hoá của p4 §4.6.2 phải tồn tại, là SECURITY DEFINER và PUBLIC không chạy được. */
     @Test
     void anonymizationProcedureIsSecurityDefinerAndNotExecutableByPublic() throws SQLException {
         assertThat(scalarInt("""
@@ -220,28 +183,19 @@ class SchemaInvariantTests {
                 .isZero();
     }
 
-    /** Số dòng seed — p4 §4.9.2 bảng "Seed (repeatable…)". */
     @Test
     void referenceDataIsSeeded() throws SQLException {
-        // 25 khoá ở p4 §H3 + 6 kill-switch ở §4.3b.1.
         assertThat(scalarInt("SELECT count(*) FROM app_setting")).isEqualTo(31);
-        // D1…D21 theo p15 §15.2.2 + D30 (hội thoại trợ lý AI — ngoại lệ ghi đầu
-        // R__seed_data_inventory_item.sql).
         assertThat(scalarInt("SELECT count(*) FROM data_inventory_item")).isEqualTo(22);
         assertThat(scalarInt("SELECT count(*) FROM data_inventory_item WHERE code = 'D21'")).isEqualTo(1);
         assertThat(scalarInt("SELECT count(*) FROM data_inventory_item WHERE code = 'D30'")).isEqualTo(1);
-        // ~18 chính sách theo p15 §15.5.1 (19 dòng; hai dòng chưa có đích lưu ở Phase 1 — xem
-        // ghi chú đầu R__seed_retention_policy.sql) + AI_CONVERSATION_LIFECYCLE (D30).
         assertThat(scalarInt("SELECT count(*) FROM retention_policy")).isEqualTo(20);
-        // Vòng khoá ngoại thứ hai (p4 §4.9.3) phải được nối lại sau khi cả hai file seed chạy.
         assertThat(scalarInt("SELECT count(*) FROM data_inventory_item WHERE retention_policy_code IS NOT NULL"))
                 .isEqualTo(10);
-        // Lịch nghỉ lễ VN 2026 + 2027.
         assertThat(scalarInt("SELECT count(*) FROM holiday_calendar WHERE country_code = 'VN'")).isEqualTo(33);
         assertThat(scalarInt("SELECT count(DISTINCT extract(year FROM holiday_date)) FROM holiday_calendar"))
                 .as("p4 §4.9.2: ngày lễ của năm hiện tại VÀ năm sau")
                 .isEqualTo(2);
-        // Hai bất biến về thời hạn (I15) không được nới bằng cấu hình.
         assertThat(scalarInt("SELECT (value #>> '{}')::int FROM app_setting WHERE key = 'scan.image_retention_days'"))
                 .isLessThanOrEqualTo(14);
         assertThat(scalarInt("SELECT (value #>> '{}')::int FROM app_setting WHERE key = 'account.deletion_grace_days'"))

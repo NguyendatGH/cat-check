@@ -8,13 +8,6 @@ import { SecuritySessionsTab } from "./adminSecuritySessions";
 
 type SecurityTab = "incidents" | "sessions";
 
-/**
- * `/admin/security` — hai tab:
- * - "Sự cố": L59 (đọc: DPO, ADMIN_SUPER), L60/L61 (mở/sửa: chỉ DPO).
- * - "Phiên": L62 thu hồi toàn bộ phiên (chỉ ADMIN_SUPER), xác nhận hai bước.
- *
- * Tab đang mở nằm trên URL (`?tab=`) để menu trái trỏ thẳng tới từng tab.
- */
 export function AdminSecurityPage() {
   const { t } = useTranslation("admin");
   const can = useAdminCan();
@@ -24,13 +17,7 @@ export function AdminSecurityPage() {
   if (can("securityIncidentsRead")) available.push("incidents");
   if (can("securitySessionsPurge")) available.push("sessions");
 
-  const header = (
-    <AdminPageHeader
-      title={t("pages.security.title")}
-      description={t("pages.security.description")}
-      specRef="L59–L62 — /api/v1/admin/security"
-    />
-  );
+  const header = <AdminPageHeader title={t("pages.security.title")} description={t("pages.security.description")} />;
 
   if (available.length === 0) {
     return (
@@ -42,7 +29,6 @@ export function AdminSecurityPage() {
   }
 
   const requested = searchParams.get("tab");
-  // `available` không rỗng (đã chặn ở trên) nên `available[0]` luôn có giá trị.
   const active: SecurityTab = available.find((tab) => tab === requested) ?? available[0];
 
   return (

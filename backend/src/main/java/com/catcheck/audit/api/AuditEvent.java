@@ -5,17 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Mot dong audit se ghi. Dung {@link #builder()} de tao — 11 truong neu danh sach
- * vi tri thi de sai thu tu.
- *
- * <p>Chua {@code occurredAt}: thoi diem do {@code Clock} cua he thong quyet dinh
- * (R13 — khong bao gio goi {@code Instant.now()}).</p>
- *
- * <p>KHONG dua PII tho vao {@code metadata}/{@code before}/{@code after}. Tang
- * application conap {@code PiiRedactor} loai khoa/gi tri nhay cam truoc khi ghi
- * (p11 §11.10.3), nhung nguyen tac la khong truyen PII vao day (p4 §4.6.4).</p>
- */
 public record AuditEvent(
         AuditActor actor,
         AuditSubjectType subjectType,

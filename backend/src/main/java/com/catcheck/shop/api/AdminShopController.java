@@ -72,7 +72,6 @@ public class AdminShopController {
         return AdminProductResponse.from(p, AdminShopService.etagOf(p));
     }
 
-    /** Trả về vai trò khớp (không tiền tố ROLE_) để ghi audit. */
     private static String role(SecurityPrincipal user) {
         if (user != null) {
             for (String r : user.roles()) {

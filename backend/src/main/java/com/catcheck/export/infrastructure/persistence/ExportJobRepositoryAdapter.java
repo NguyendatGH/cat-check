@@ -14,11 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link ExportJobRepository} — CRUD qua JPA; {@link #findByUser} dùng {@code JdbcTemplate} với
- * keyset {@code (requested_at, id)} (cùng khuôn với {@code scan}/{@code credit}) vì số lượng bản
- * ghi mỗi user nhỏ nhưng vẫn giữ đúng hợp đồng phân trang con trỏ của p8.
- */
 @Repository
 class ExportJobRepositoryAdapter implements ExportJobRepository {
 
@@ -30,13 +25,6 @@ class ExportJobRepositoryAdapter implements ExportJobRepository {
         this.jdbc = jdbc;
     }
 
-    /**
-     * {@code saveAndFlush}, không {@code save} trần: {@code id} gán sẵn (UUIDv7) nên Hibernate
-     * hoãn {@code INSERT} tới lúc COMMIT. Vi phạm {@code UNIQUE(user_id) WHERE status IN
-     * ('QUEUED','RUNNING')} (I25) khi đó nổ SAU khi {@code ExportRequestService.request()} đã
-     * return — lưới {@code catch} ở đó không bao giờ bắt được và request đua nhận 500 thay vì 409.
-     * Cùng lý do {@code HealthFlagRepositoryAdapter.saveIfNotDuplicate} dùng {@code saveAndFlush}.
-     */
     @Override
     public ExportJob save(ExportJob job) {
         return jpaRepository.saveAndFlush(job);
@@ -74,7 +62,9 @@ class ExportJobRepositoryAdapter implements ExportJobRepository {
 
     @Override
     public Page findByUser(UUID userId, String cursor, int limit) {
-        int fetchSize = Math.min(limit + 1, 100);
+        // Lấy dư đúng MỘT dòng làm sentinel cho hasMore. Không chặn trần ở đây: limit đã được
+        // ExportQueryService kẹp trong [1, 100], chặn thêm làm mất sentinel khi limit = 100 (M24).
+        int fetchSize = limit + 1;
         StringBuilder sql = new StringBuilder("SELECT id FROM export_job WHERE user_id = ?");
         List<Object> args = new java.util.ArrayList<>();
         args.add(userId);

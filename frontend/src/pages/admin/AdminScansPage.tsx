@@ -88,13 +88,6 @@ interface Lookup {
   reason: string;
 }
 
-/**
- * `/admin/scans` — L5 (số liệu quét), L6 (ảnh gốc, chỉ DPO), L18 (chuyển mèo).
- *
- * Mỗi lần gọi L5/L6 ghi audit kèm `reason`, nên danh sách chỉ tải khi bấm "Tra cứu" và không
- * tự tải lại khi đổi tab trình duyệt. Server không có endpoint chi tiết riêng cho một scan:
- * khung "Chi tiết" hiện đủ trường của dòng L5 đã tải.
- */
 export function AdminScansPage() {
   const { t } = useTranslation("admin");
   const can = useAdminCan();
@@ -135,7 +128,6 @@ export function AdminScansPage() {
   );
   const visibleIds = visible.map((scan) => scan.scanId);
 
-  // Đổi trang/bộ lọc thì bỏ các dòng đã chọn không còn hiện, để thao tác hàng loạt không chạm dòng ẩn.
   useEffect(() => {
     setSelected((current) =>
       pruneSelection(
@@ -176,11 +168,7 @@ export function AdminScansPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.scans.title")}
-        description={t("pages.scans.description")}
-        specRef="L5 · L6 · L18 — /api/v1/admin"
-      />
+      <AdminPageHeader title={t("pages.scans.title")} description={t("pages.scans.description")} />
 
       <DensePanel title={t("scans.lookupTitle")} description={t("scans.auditNote")}>
         <form className="grid gap-3 lg:grid-cols-12" onSubmit={onLookup} noValidate>
@@ -502,8 +490,6 @@ export function AdminScansPage() {
   );
 }
 
-// ------------------------------------------------------------------- chi tiết
-
 interface ScanDetailDialogProps {
   scan: AdminScanItem | null;
   lookupReason: string;
@@ -601,10 +587,6 @@ function ScanDetailDialog({ scan, lookupReason, canImage, canReassign, onClose, 
   );
 }
 
-/**
- * Ảnh gốc (L6, chỉ DPO). Tải bằng `fetch` thành `Blob`, hiện qua object URL và thu hồi URL khi
- * đóng — ảnh không nằm lại trong bộ nhớ trang. Không ghi log URL hay nội dung.
- */
 function ScanImagePanel({ scanId, defaultReason }: { scanId: string; defaultReason: string }) {
   const { t } = useTranslation("admin");
   const [reason, setReason] = useState(defaultReason);
@@ -673,8 +655,6 @@ function ScanImagePanel({ scanId, defaultReason }: { scanId: string; defaultReas
     </section>
   );
 }
-
-// ------------------------------------------------------------------- chuyển mèo
 
 interface ReassignDialogProps {
   userId: string;

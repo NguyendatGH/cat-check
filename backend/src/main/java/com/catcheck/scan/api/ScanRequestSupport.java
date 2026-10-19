@@ -16,11 +16,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 
-/**
- * Hàm chuyển đổi DTO ↔ kiểu domain cho {@link ScanController} — tách riêng khỏi class
- * {@code @RestController} để KHÔNG vi phạm R4 (ArchUnit quét mọi method, kể cả private, của một
- * lớp mang {@code @RestController}; lớp thường không mang annotation đó thì không bị soi).
- */
 final class ScanRequestSupport {
 
     private ScanRequestSupport() {
@@ -42,12 +37,6 @@ final class ScanRequestSupport {
         return ScanResultResponse.from(row, catName, imageUrl);
     }
 
-    /**
-     * Ánh xạ danh sách — cố ý nhận {@link Function} thay vì để {@code ScanController} tự
-     * {@code .stream().map(row -> ...)}: một lambda có tham số {@code Row} (domain) khai báo
-     * ngay trong lớp {@code @RestController} biên dịch thành method tổng hợp (synthetic) MANG
-     * chữ ký đó trên chính lớp controller, và ArchUnit R4 quét cả method private/synthetic.
-     */
     static List<ScanListItemResponse> toListItems(List<Row> rows, Function<UUID, String> catNameResolver) {
         return rows.stream()
                 .map(row -> ScanListItemResponse.from(row, catNameResolver.apply(row.catId())))

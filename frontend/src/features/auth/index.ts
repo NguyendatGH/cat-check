@@ -1,7 +1,5 @@
-// features/auth — đăng ký/OTP/đăng nhập/MFA/quên-đặt lại mật khẩu/phiên/tài khoản (p8 §8.4.1-8.4.2).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
+export { OtpCodeInput, type OtpStatus } from "./OtpCodeInput";
 export {
-  OtpCodeInput,
   PasswordField,
   PasswordStrengthMeter,
   ResendCountdown,

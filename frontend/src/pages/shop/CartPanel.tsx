@@ -7,14 +7,6 @@ import { exceedsStock, formatVnd, maxOrderQuantity } from "./shopFormat";
 import { ProductGlyph, QuantityStepper, ShippingFee } from "./shopUi";
 import { useCartLineActions } from "./useCartActions";
 
-/**
- * Cột giỏ hàng bên phải trang Cửa hàng (design `Web - 14 & Giỏ hàng`).
- *
- * Mọi con số là phản hồi `GET/PUT/DELETE /api/v1/cart`: dòng hàng (tên, SKU, giá, số lượng,
- * `totalVnd` từng dòng), tạm tính, phí vận chuyển và tổng. Đã gỡ khỏi mockup vì backend không
- * có resource tương ứng: thanh tiến độ "miễn phí vận chuyển 2H", quà tặng 0đ, mã giảm giá,
- * nhãn "bảo mật SSL 256-bit"/"hoàn tiền nếu lỗi".
- */
 export function CartPanel() {
   const { t } = useTranslation("shop");
   const cartQuery = useShopCart();

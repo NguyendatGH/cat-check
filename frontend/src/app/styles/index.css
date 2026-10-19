@@ -1,19 +1,6 @@
 @import "tailwindcss";
 @import "./fonts.css";
 
-/*
- * Design tokens — CHÉP NGUYÊN VĂN từ spec/parts/p10-design-system-ui.md §2.9/§2.10.
- * (a) :root — toàn bộ custom property thô, kể cả token không sinh Tailwind utility
- *     (z-index, duration, spacing chi tiết, focus-ring...).
- * (b) @theme — khối Tailwind v4 cho phần cần sinh utility class (color/typography/
- *     radius/shadow/breakpoint).
- *
- * BỔ SUNG (quyết định hợp lý của M0, spec §2.10 là bản trích chưa đầy đủ so với §2.9):
- * --color-secondary-text-on, --radius-xs, --radius-sm, --radius-full, --shadow-xs,
- * --shadow-sm, --shadow-top, --breakpoint-sm — đã có trong :root gốc nhưng thiếu ở
- * @theme, bổ sung vào @theme bên dưới để Tailwind sinh utility tương ứng.
- */
-
 :root {
   color-scheme: light;
   --color-primary: #2f4fb2;
@@ -25,9 +12,7 @@
   --color-text-primary: #161b2c;
   --color-text-secondary: #444652;
   --color-text-tertiary: #63667a;
-  /* Bổ sung khi match Figma pixel-perfect (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw): 2 giá trị
-     xuất hiện lặp lại trong design thật (bottom nav inactive, chữ phụ trên nền primary)
-     nhưng p10 chưa có token — giữ riêng, không đổi ngữ nghĩa token cũ. */
+  
   --color-nav-inactive: #747684;
   --color-on-primary-muted: #becaff;
   --color-border: #c4c5d4;
@@ -36,11 +21,9 @@
   --color-background: #faf8ff;
   --color-background-alt: #f3f2ff;
   --color-chip-bg: #e4e7ff;
-  /* Nền trang trí xoay nhẹ sau ảnh hero màn Chào mừng (Figma 16:7830) — không trùng token nào sẵn có. */
+  
   --color-deco-backdrop: #ebedff;
-  /* Panel giới thiệu bản web (Figma 16:7573 Sign In, 16:8476 OTP): chữ/nền trên nền xanh đậm
-     và bộ xanh lá "đã xác thực". Các giá trị này lặp lại ở nhiều màn web nên tách token thay
-     vì để rgb() rải rác trong .tsx (ESLint cấm hex nên trước đó phải viết rgb()). */
+  
   --color-on-primary-subtle: #dee1f9;
   --color-verified-bright: #6bff8f;
   --color-verified-deep: #004a1d;
@@ -68,6 +51,8 @@
   --color-ph-unknown: var(--color-info);
   --color-ph-unknown-bg: var(--color-chip-bg);
   --font-family-base: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+  /* ponytail: Admin reads denser than Buyer; system UI font, no new webfont to download */
+  --font-family-admin: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -104,9 +89,7 @@
   --color-text-primary: #161b2c;
   --color-text-secondary: #444652;
   --color-text-tertiary: #63667a;
-  /* Bổ sung khi match Figma pixel-perfect (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw): 2 giá trị
-     xuất hiện lặp lại trong design thật (bottom nav inactive, chữ phụ trên nền primary)
-     nhưng p10 chưa có token — giữ riêng, không đổi ngữ nghĩa token cũ. */
+  
   --color-nav-inactive: #747684;
   --color-on-primary-muted: #becaff;
   --color-border: #c4c5d4;
@@ -115,11 +98,9 @@
   --color-background: #faf8ff;
   --color-background-alt: #f3f2ff;
   --color-chip-bg: #e4e7ff;
-  /* Nền trang trí xoay nhẹ sau ảnh hero màn Chào mừng (Figma 16:7830) — không trùng token nào sẵn có. */
+  
   --color-deco-backdrop: #ebedff;
-  /* Panel giới thiệu bản web (Figma 16:7573 Sign In, 16:8476 OTP): chữ/nền trên nền xanh đậm
-     và bộ xanh lá "đã xác thực". Các giá trị này lặp lại ở nhiều màn web nên tách token thay
-     vì để rgb() rải rác trong .tsx (ESLint cấm hex nên trước đó phải viết rgb()). */
+  
   --color-on-primary-subtle: #dee1f9;
   --color-verified-bright: #6bff8f;
   --color-verified-deep: #004a1d;
@@ -135,10 +116,7 @@
   --color-danger-text: #93000a;
   --color-info: #dce1ff;
   --color-info-text: #444652;
-  /* Bộ token dải pH: trước đây CHỈ khai báo ở :root nên Tailwind v4 không sinh utility —
-     `text-ph-normal-text`, `bg-ph-mild-bg`… ở 8 call site render ra KHÔNG MÀU. Khai báo lại
-     ở @theme để các class đó có thật; cú pháp arbitrary `bg-[var(--color-ph-*)]` mà
-     entities/ph-bands/colorToken.ts dùng vẫn chạy nguyên vẹn. */
+  
   --color-ph-normal: var(--color-success);
   --color-ph-normal-bg: var(--color-success-bg);
   --color-ph-normal-text: var(--color-success-text);
@@ -151,17 +129,19 @@
   --color-ph-unknown: var(--color-info);
   --color-ph-unknown-bg: var(--color-chip-bg);
   --font-family-sans: "Nunito", "Be Vietnam Pro", system-ui, sans-serif;
-  --text-display: 2.5rem;
-  --text-display--line-height: 3rem;
+  --font-family-admin: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Type scale locked to spec 6.1: page 28/36, section 20/28, body 16/24, caption 14/20, small 12/16 */
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.25rem;
   --text-display--font-weight: 700;
-  --text-h1: 2rem;
-  --text-h1--line-height: 2.5rem;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.25rem;
   --text-h1--font-weight: 700;
-  --text-h2: 1.5rem;
-  --text-h2--line-height: 2rem;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.75rem;
   --text-h2--font-weight: 600;
-  --text-h3: 1.25rem;
-  --text-h3--line-height: 1.75rem;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.5rem;
   --text-h3--font-weight: 600;
   --text-body: 1rem;
   --text-body--line-height: 1.5rem;
@@ -174,8 +154,9 @@
   --text-overline--line-height: 1rem;
   --text-overline--font-weight: 600;
   --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 8px;
+  /* Canonical radii (spec 6.2): sm=input/table 6px, md=panel 10px, lg=focal card 12px. Larger steps kept for legacy layout only. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 20px;
@@ -187,21 +168,22 @@
   --shadow-brand-lg: 0 4px 12px rgba(47, 79, 178, 0.08);
   --shadow-brand-xl: 0 8px 12px rgba(47, 79, 178, 0.35);
   --shadow-top: 0 -4px 12px rgba(47, 79, 178, 0.08);
-  /* ⚠ `sm` ở đây là 375px, KHÔNG phải 640px mặc định của Tailwind. Mọi điện thoại hiện đại
-     đều rộng hơn 375px, nên `sm:` kích hoạt ở GẦN NHƯ MỌI thiết bị — nó là "màn hình rất hẹp
-     trở lên", không phải "màn hình to hơn điện thoại".
-     Đã có một bug thật vì hiểu nhầm điều này: ShopPage tách mobile/desktop bằng 30 biến thể
-     `sm:`, nên cây giao diện mobile tồn tại trong code mà không bao giờ render được trên
-     điện thoại. Tách mobile khỏi desktop thì dùng `md:` (768px) hoặc `lg:` (1024px).
-     Dùng `sm:` chỉ cho tinh chỉnh nhỏ giữa máy rất hẹp và máy thường. */
+  
   --breakpoint-sm: 375px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
 }
 
-/* Chỉ light theme ở Phase 1 (đã khai color-scheme: light ở trên tường minh).
-   Token đặt tên theo vai trò (semantic) sẵn cho dark mode tương lai — KHÔNG build dark mode ở M0. */
+@media (max-width: 767px) {
+  :root {
+    /* Spec 6.1: page title is 24/32 on mobile */
+    --text-display: 1.5rem;
+    --text-display--line-height: 2rem;
+    --text-h1: 1.5rem;
+    --text-h1--line-height: 2rem;
+  }
+}
 
 *,
 *::before,
@@ -239,17 +221,15 @@ body {
   outline-offset: var(--focus-ring-offset);
 }
 
-/* Motion primitives used by lazy-loaded pages. Keep the interaction tactile but restrained. */
 .page-transition-root {
   width: 100%;
   min-width: 0;
 }
 
 .motion-card {
-  transform: translateZ(0);
   transition:
-    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 240ms ease;
+    box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms ease;
 }
 
 .motion-card:hover {
@@ -268,7 +248,6 @@ body {
   }
 }
 
-/* Animation utilities for interactive components and highlighted cards */
 @keyframes floatSlow {
   0%, 100% {
     transform: translateY(0px) rotate(0deg);
@@ -306,7 +285,7 @@ body {
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 
@@ -344,11 +323,536 @@ body {
   content: "";
 }
 
+.fade-swap,
+.content-enter {
+  animation: tabContentEnter 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rowFlash {
+  0% {
+    background-color: var(--color-info);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.row-flash {
+  animation: rowFlash 0.6s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-float-slow,
   .animate-pulse-glow,
   .animate-pop-spring,
-  .shimmer-effect::after {
+  .shimmer-effect::after,
+  .fade-swap,
+  .content-enter,
+  .tab-content-enter,
+  .row-flash {
     animation: none;
   }
+}
+
+.nav-item-animated {
+  position: relative;
+  transform: translateZ(0);
+  transition:
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-item-animated:active {
+  transform: scale(0.98);
+}
+
+@keyframes navItemSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.nav-stagger-enter {
+  opacity: 0;
+  animation: navItemSlideIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.btm-nav-tab {
+  position: relative;
+  transform: translateZ(0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btm-nav-tab:active {
+  transform: scale(0.92);
+}
+
+.btm-nav-tab-pill {
+  position: absolute;
+  inset: 4px 6px;
+  border-radius: 0.875rem;
+  background: rgba(47, 79, 178, 0.08);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.btm-nav-tab-icon {
+  transition:
+    transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 180ms ease;
+}
+
+.btm-nav-tab-label {
+  transition:
+    color 180ms ease,
+    font-weight 180ms ease;
+}
+
+@keyframes navDotPop {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.nav-active-dot {
+  transition:
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 180ms ease;
+}
+
+.tab-pill-animated {
+  transition:
+    background-color 150ms ease-out,
+    color 140ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tab-pill-animated:active {
+  transform: scale(0.96);
+}
+
+@keyframes tabContentEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tab-content-enter {
+  animation: tabContentEnter 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.double-bezel {
+  border-radius: 1.25rem;
+  background: rgba(243, 242, 255, 0.6);
+  padding: 0.25rem;
+  border: 1px solid rgba(196, 197, 212, 0.45);
+  box-shadow:
+    0 2px 8px rgba(47, 79, 178, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.double-bezel-inner {
+  border-radius: calc(1.25rem - 0.25rem);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes fabPulseRing {
+  0% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
+.fab-scan-pulse {
+  position: relative;
+}
+
+.fab-scan-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 3px rgba(47, 79, 178, 0.3);
+  pointer-events: none;
+  animation: fabPulseRing 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab-scan-pulse::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@keyframes scanLineMove {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: calc(100% - 2px);
+    opacity: 0;
+  }
+}
+
+/* Sweeps top→bottom across the viewfinder; the element must be absolutely positioned. */
+.animate-scan-line {
+  top: 0;
+  box-shadow: 0 0 12px 2px rgba(253, 207, 82, 0.55);
+  animation: scanLineMove 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-line {
+    animation: none;
+    top: 50%;
+  }
+}
+
+@keyframes sidebarCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sidebar-card-enter {
+  opacity: 0;
+  animation: sidebarCardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
+}
+
+.header-glass {
+  background: rgba(250, 248, 255, 0.84);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0px 1px 8px 0px rgba(0, 0, 0, 0.04),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.bottom-nav-glass {
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0px -4px 24px 0px rgba(47, 79, 178, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 767px) {
+  .header-glass {
+    background: var(--color-background);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .bottom-nav-glass {
+    background: var(--color-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .fab-scan-pulse {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item-animated,
+  .nav-item-animated::before,
+  .tab-pill-animated,
+  .btm-nav-tab-pill,
+  .tab-content-enter {
+    transition: none;
+    animation: none;
+  }
+
+  .nav-stagger-enter {
+    animation: none;
+    opacity: 1;
+  }
+
+  .btm-nav-tab-icon,
+  .btm-nav-tab-label {
+    transition: none;
+  }
+
+  .btm-nav-tab[data-active="true"] .btm-nav-tab-icon {
+    transform: none;
+  }
+
+  .nav-active-dot[data-visible="true"] {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .fab-scan-pulse {
+    animation: none;
+  }
+
+  .sidebar-card-enter {
+    animation: none;
+    opacity: 1;
+  }
+
+  .animate-scan-line {
+    animation: none;
+  }
+}
+
+/* Radix keeps a closing surface mounted until its exit animation ends. */
+@keyframes uiFadeIn {
+  from { opacity: 0; }
+}
+@keyframes uiFadeOut {
+  to { opacity: 0; }
+}
+@keyframes uiSheetLeftIn {
+  from { transform: translate3d(-100%, 0, 0); }
+}
+@keyframes uiSheetLeftOut {
+  to { transform: translate3d(-100%, 0, 0); }
+}
+@keyframes uiSheetRightIn {
+  from { transform: translate3d(100%, 0, 0); }
+}
+@keyframes uiSheetRightOut {
+  to { transform: translate3d(100%, 0, 0); }
+}
+@keyframes uiSheetBottomIn {
+  from { transform: translate3d(0, 100%, 0); }
+}
+@keyframes uiSheetBottomOut {
+  to { transform: translate3d(0, 100%, 0); }
+}
+@keyframes uiSheetTopIn {
+  from { transform: translate3d(0, -100%, 0); }
+}
+@keyframes uiSheetTopOut {
+  to { transform: translate3d(0, -100%, 0); }
+}
+@keyframes uiDialogIn {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+}
+@keyframes uiDialogOut {
+  to { opacity: 0; transform: scale(0.97) translateY(4px); }
+}
+
+.ui-overlay[data-state="open"] { animation: uiFadeIn 0.24s ease-out; }
+.ui-overlay[data-state="closed"] { animation: uiFadeOut 0.2s ease-in forwards; }
+
+.ui-sheet[data-state="open"] { animation-duration: 0.34s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+.ui-sheet[data-state="closed"] {
+  animation-duration: 0.22s;
+  animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  animation-fill-mode: forwards;
+}
+.ui-sheet[data-side="left"][data-state="open"] { animation-name: uiSheetLeftIn; }
+.ui-sheet[data-side="left"][data-state="closed"] { animation-name: uiSheetLeftOut; }
+.ui-sheet[data-side="right"][data-state="open"] { animation-name: uiSheetRightIn; }
+.ui-sheet[data-side="right"][data-state="closed"] { animation-name: uiSheetRightOut; }
+.ui-sheet[data-side="bottom"][data-state="open"] { animation-name: uiSheetBottomIn; }
+.ui-sheet[data-side="bottom"][data-state="closed"] { animation-name: uiSheetBottomOut; }
+.ui-sheet[data-side="top"][data-state="open"] { animation-name: uiSheetTopIn; }
+.ui-sheet[data-side="top"][data-state="closed"] { animation-name: uiSheetTopOut; }
+
+.ui-dialog[data-state="open"] { animation: uiDialogIn 0.24s cubic-bezier(0.22, 1, 0.36, 1); }
+.ui-dialog[data-state="closed"] { animation: uiDialogOut 0.16s ease-in forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay,
+  .ui-sheet,
+  .ui-dialog {
+    animation: none !important;
+  }
+}
+
+/* Universal-indicator style hues for the pH dial (chemistry scale, not severity). */
+:root {
+  --ph-hue-3: #e4352b;
+  --ph-hue-4: #f26a21;
+  --ph-hue-5: #f7b500;
+  --ph-hue-6: #c4cf2b;
+  --ph-hue-7: #3fae4a;
+  --ph-hue-8: #1d9d8f;
+  --ph-hue-9: #2e6fca;
+  --ph-hue-10: #4a4fb8;
+  --ph-hue-11: #7a3fa8;
+}
+
+/* Mobile header shortcut row: collapses on scroll down (MobileAppHeader). */
+.header-shortcuts {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+}
+
+.header-shortcuts[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bottom navigation: icon sits in a pill indicator, label always visible. */
+.btm-tab {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--color-nav-inactive);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btm-tab-indicator {
+  display: flex;
+  height: 32px;
+  width: 56px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btm-tab:active .btm-tab-indicator,
+.btm-tab:active .btm-scan-btn {
+  transform: scale(0.92);
+}
+
+.btm-tab-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.btm-tab-active {
+  color: var(--color-primary-dark);
+}
+
+.btm-tab-active .btm-tab-indicator {
+  background: rgba(47, 79, 178, 0.12);
+}
+
+.btm-tab-active .btm-tab-label {
+  font-weight: 800;
+}
+
+.btm-scan-btn {
+  display: flex;
+  height: 44px;
+  width: 56px;
+  margin-top: -14px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  box-shadow:
+    0 6px 16px rgba(47, 79, 178, 0.32),
+    0 0 0 4px var(--color-surface);
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btm-tab-scan .btm-tab-label {
+  color: var(--color-primary-dark);
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-shortcuts,
+  .btm-tab-indicator,
+  .btm-scan-btn {
+    transition: none;
+  }
+}
+
+/* Glossy sweep across the brand logo every 5s (ShineLogo). */
+.logo-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgb(255 255 255 / 0.75) 50%,
+    transparent 60%
+  );
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  background-repeat: no-repeat;
+  -webkit-mask-image: var(--logo-mask);
+  mask-image: var(--logo-mask);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: var(--logo-mask-pos, center);
+  mask-position: var(--logo-mask-pos, center);
+  animation: logoShine 5s ease-in-out infinite;
+}
+
+@keyframes logoShine {
+  0% { background-position: 150% 0; }
+  22%, 100% { background-position: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-shine { display: none; }
+}
+
+/* Brand splash: head outline reveal, swept clockwise from the open bottom-left tip (BrandSplash). */
+[data-splash="head"] {
+  -webkit-mask-image: conic-gradient(from 200deg at 50% 65%, #000 var(--sweep, 360deg), transparent 0);
+  mask-image: conic-gradient(from 200deg at 50% 65%, #000 var(--sweep, 360deg), transparent 0);
 }

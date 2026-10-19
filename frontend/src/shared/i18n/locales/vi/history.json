@@ -35,7 +35,8 @@
     "bandRange": "{{label}} ({{min}} – {{max}})",
     "bandBelow": "{{label}} (dưới {{max}})",
     "bandAbove": "{{label}} (trên {{min}})",
-    "empty": "Chưa đủ dữ liệu để dựng phổ pH."
+    "empty": "Chưa đủ dữ liệu để dựng phổ pH.",
+    "basedOn": "Dựa trên {{count}} lần quét"
   },
   "export": {
     "title": "Cần chia sẻ hồ sơ với phòng khám thú y?",
@@ -47,7 +48,10 @@
     "emptyDescription": "Bắt đầu quét lần đầu để theo dõi chỉ số pH của bé.",
     "emptyCta": "Quét ngay",
     "loadError": "Không tải được lịch sử. Vui lòng thử lại.",
-    "loadMore": "Tải thêm"
+    "loadMore": "Tải thêm",
+    "filteredEmptyTitle": "Không có lần quét phù hợp",
+    "filteredEmptyBody": "Thử khoảng thời gian dài hơn hoặc đổi từ khoá.",
+    "showAll": "Xem tất cả lịch sử"
   },
   "web": {
     "eyebrow": "LỊCH SỬ SỨC KHOẺ",
@@ -99,5 +103,32 @@
   "tip": {
     "title": "Bao lâu nên quét một lần?",
     "body": "Quét đều đặn 2–3 ngày/lần giúp bạn nắm rõ mức pH thường ngày của bé và nhận ra ngay khi màu hạt cát thay đổi."
+  },
+  "activity": {
+    "title": "Hoạt động quét",
+    "less": "Ít",
+    "more": "Nhiều",
+    "summary": "{{count}} lần quét · {{days}} ngày",
+    "cellLabel": "{{date}}: {{count}} lần quét"
+  },
+  "toolbar": {
+    "rangeLabel": "Khoảng thời gian",
+    "range": {
+      "3": "3 ngày",
+      "7": "7 ngày",
+      "30": "30 ngày",
+      "all": "Tất cả"
+    },
+    "search": "Tìm kiếm lần quét",
+    "searchPlaceholder": "Tìm theo pH, kết quả, tên bé hoặc ngày",
+    "clearSearch": "Xoá từ khoá",
+    "pickDate": "Chọn ngày",
+    "clearDate": "Bỏ lọc ngày"
+  },
+  "search": {
+    "placeholder": "Tìm theo pH, kết quả, tên bé hoặc ngày",
+    "clear": "Xoá từ khoá",
+    "reset": "Xoá bộ lọc",
+    "resultCount": "{{count}} kết quả"
   }
 }

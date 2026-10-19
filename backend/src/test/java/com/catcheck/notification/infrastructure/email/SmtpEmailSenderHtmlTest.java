@@ -32,7 +32,6 @@ class SmtpEmailSenderHtmlTest {
         MimeMessage message = sent.getValue();
         assertThat(message.getSubject()).isEqualTo("Mã xác thực đăng ký CatCheck");
         assertThat(message.getFrom()[0].toString()).contains("catcheck@example.com");
-        // Kiểm dạng thật sẽ đi trên dây SMTP, không kiểm getContentType() của đối tượng trong bộ nhớ.
         var wire = new java.io.ByteArrayOutputStream();
         message.writeTo(wire);
         String raw = wire.toString(java.nio.charset.StandardCharsets.UTF_8);

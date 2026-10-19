@@ -11,16 +11,6 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-/**
- * Hiện thực {@link PdfRenderer} bằng {@code openhtmltopdf-pdfbox} + {@code openhtmltopdf-svg-support}
- * (Batik) — đúng phương án đã chốt ở p13 §13.7 (server tự vẽ SVG string, không dùng thư viện chart).
- *
- * <p><b>Font (xem docs/handovers/A6.md):</b> p13 §13.5 chọn Be Vietnam Pro, nhưng file font đó
- * KHÔNG có sẵn trong môi trường build này (không có quyền tải tệp ngoài). Dùng tạm
- * {@code DejaVu Sans} (bundled sẵn trong {@code src/main/resources/fonts/}, giấy phép Bitstream
- * Vera — được phép nhúng lại), phủ đủ dấu tiếng Việt (Latin Extended Additional). Đổi sang Be
- * Vietnam Pro thật trước go-live chỉ cần thay 2 file .ttf, không đổi logic.</p>
- */
 @Component
 public class OpenHtmlToPdfRenderer implements PdfRenderer {
 

@@ -16,26 +16,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bài viết chăm sóc mèo — ánh xạ 1-1 với bảng {@code care_tip} (p4 H1).
- *
- * <p>Kiểu dữ liệu: dùng <b>một bảng duy nhất</b> cho cả ba loại nội dung. p4 §4.1.7 cấm
- * {@code content_article}/{@code content_category}; {@link CareTipKind} và {@link CareTipCategory}
- * là CỘT, không phải bảng.</p>
- *
- * <p>Đây là aggregate gốc của module content: {@code author_id} và {@code reviewed_by} là cột UUID
- * thuần trỏ sang {@code app_user} (module identity) — KHÔNG dùng {@code @ManyToOne} (R6: cấm
- * association JPA trỏ ra ngoài module; p7 §7.3: kiểu domain không đi qua biên module).</p>
- *
- * <p>Không có cột {@code version}: p4 định nghĩa {@code care_tip} không có version, nên
- * {@code If-Match}/{@code ETag} của PATCH lấy từ {@code updated_at}. Thêm cột version sẽ làm
- * {@code spring.jpa.hibernate.ddl-auto=validate} fail.</p>
- */
 @Entity
 @Table(name = "care_tip")
 public class CareTip {
 
-    /** p4 H1: độ dài tối đa của tiêu đề, ràng buộc {@code ck_care_tip_title}. */
     public static final int TITLE_MAX_LENGTH = 200;
 
     private static final int SLUG_MAX_LENGTH = 120;
@@ -47,7 +31,6 @@ public class CareTip {
     @Column(name = "slug", nullable = false, length = SLUG_MAX_LENGTH)
     private String slug;
 
-    /** Nhóm bản dịch: cùng một bài ở nhiều {@link #locale} dùng chung {@code translation_group}. */
     @Column(name = "translation_group", nullable = false)
     private UUID translationGroup;
 
@@ -116,15 +99,9 @@ public class CareTip {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    /** Bắt buộc cho JPA; không dùng trực tiếp — hãy gọi {@link #createDraft}. */
     protected CareTip() {
     }
 
-    /**
-     * Tạo bản nháp mới. Chỉ {@link CareTipStatus#DRAFT} được tạo trực tiếp: muốn công bố phải đi
-     * qua {@link #submitReview()} rồi {@link #publish}, để mỗi bước đều để lại dấu vết ai làm gì
-     * (p14 §14.3.5).
-     */
     public static CareTip createDraft(
             UUID id,
             String slug,
@@ -156,9 +133,7 @@ public class CareTip {
         return tip;
     }
 
-    // -------------------------------------------------------------- chuyển trạng thái
 
-    /** Bản nháp hoặc bản đã gửi duyệt lại được sửa tiếp; bài đã công bố thì phải tạo bản dịch mới. */
     public void revise(String title, String summary, String bodyMd, ClaimType claimType,
                       String sourceReference, Integer sortWeight, Instant now) {
         requireEditable();
@@ -191,11 +166,6 @@ public class CareTip {
         touch(now);
     }
 
-    /**
-     * Chuyển sang {@link CareTipStatus#PUBLISHED}. Người duyệt phải khác người soạn — quy tắc
-     * {@code CONTENT_SELF_APPROVAL_FORBIDDEN} của L44 được kiểm ở tầng application vì cần so sánh
-     * với danh tính người gọi, mà domain không biết người gọi là ai.
-     */
     public void publish(UUID reviewerId, String reviewNote, Instant now) {
         if (status != CareTipStatus.IN_REVIEW) {
             throw new IllegalStateException("Chỉ bài đang chờ duyệt mới công bố được, hiện tại: " + status);
@@ -229,13 +199,11 @@ public class CareTip {
         touch(now);
     }
 
-    /** Gỡ khỏi hiển thị bằng xoá mềm — {@code deleted_at} (p4 H1). */
     public void softDelete(Instant now) {
         this.deletedAt = now;
         touch(now);
     }
 
-    // ---------------------------------------------------------------- getters
 
     public UUID getId() {
         return id;
@@ -337,7 +305,6 @@ public class CareTip {
         return deletedAt != null;
     }
 
-    /** Bài đã công bố thì sửa tại chỗ sẽ làm nội dung đang hiển thị đổi mà không qua duyệt. */
     public boolean isEditable() {
         return status == CareTipStatus.DRAFT || status == CareTipStatus.IN_REVIEW;
     }
@@ -346,7 +313,6 @@ public class CareTip {
         return isBlank(sourceReference) ? Optional.empty() : Optional.of(sourceReference);
     }
 
-    // ---------------------------------------------------------------- internals
 
     private void requireEditable() {
         if (!isEditable()) {

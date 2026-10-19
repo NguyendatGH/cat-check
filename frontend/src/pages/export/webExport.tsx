@@ -16,31 +16,6 @@ import {
 } from "@/features/export";
 import { resolveExportRange } from "./rangeLabel";
 
-/**
- * Bố cục DESKTOP (>= lg) cho màn Xuất Hồ sơ Sức khoẻ — dựng từ mockup gốc
- * `10. Xuất Hồ sơ Sức khỏe (Export Health Record)`: ba mục cấu hình bên trái, cột phải giữ
- * khối "Xem trước báo cáo" + lưu ý thú y + CTA. Bản mobile dùng CÙNG các component này, chỉ
- * khác ở chỗ xếp một cột (xem `ExportPage.tsx`).
- *
- * Frame web `Web - 08 & 10` chỉ đặt lối vào export dưới dạng nút "Xuất Excel / PDF" ở màn
- * Xu hướng (đã dựng trong `pages/trends/webTrends.tsx`) — không có panel wizard nào trong
- * frame đó, nên màn này KHÔNG trùng nội dung với `webTrends.tsx`.
- *
- * Route `/export` nằm trong `TaskLayout` (KHÔNG phải `AppLayout`): `main` của nó đã cấp
- * `px-4 py-6` ở mọi breakpoint và khung nội dung 944px ở `lg` — trang KHÔNG tự thêm padding.
- *
- * DỮ LIỆU THẬT: D1 `GET /cats` (chọn mèo) + J1 `POST /exports` (tạo job). Ba mã lỗi nghiệp vụ
- * của J1 đều được vẽ thành trạng thái thật: `EXPORT_RANGE_INVALID` (400),
- * `EXPORT_NO_DATA` (422), `EXPORT_JOB_IN_PROGRESS` (409).
- *
- * Tiêu đề/nhãn ở khối xem trước khớp CHÍNH file PDF backend sinh ra (`PdfDocumentBuilder`:
- * "HỒ SƠ THEO DÕI SỨC KHỎE TIẾT NIỆU", logo "CatCheck") — không còn "CATCHECK VET" của mockup.
- *
- * ĐÃ BỎ so với mockup: nút "Gửi Email trực tiếp đến Phòng khám" và "In tóm tắt" (không có
- * endpoint, module phòng khám thuộc phase sau), badge "Đạt chuẩn hồ sơ thú y", dòng
- * "Báo cáo đã mã hoá" và "Dung lượng ~1.8 MB" (tuyên bố/dữ liệu chưa được owner xác nhận và
- * backend không trả dung lượng trước khi job chạy — xem `W2`/`M2` §10 "Ghi chú").
- */
 
 function Panel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-2xl bg-surface p-5 shadow-xs ${className}`}>{children}</div>;
@@ -67,7 +42,6 @@ export interface WebExportScreenProps {
   onSelectAllSections: () => void;
 
   isSubmitting: boolean;
-  /** `code` của `ApiError` khi J1 trả lỗi nghiệp vụ; `undefined` nếu chưa gọi hoặc lỗi lạ. */
   submitErrorCode: string | undefined;
   hasSubmitError: boolean;
   onSubmit: () => void;
@@ -163,7 +137,6 @@ export function WebExportScreen({
       {header}
 
       <div className="grid grid-cols-12 gap-4">
-        {/* ── Cột trái: 3 mục cấu hình ───────────────────────────────────────────────── */}
         <div className="col-span-12 flex flex-col gap-4 xl:col-span-7">
           <Panel className="flex flex-col gap-3">
             <ExportSectionHeading index="1." title={t("web.step1")} hint={t("web.step1Hint")} />
@@ -182,7 +155,6 @@ export function WebExportScreen({
                 primaryLabel={t("wizard.step1.primaryLabel")}
                 secondaryLabel={t("wizard.step1.secondaryLabel")}
                 ageLabelFor={(cat) => formatAge(cat.ageMonths) ?? undefined}
-                // 1 bé mèo mà vẫn ép 2 cột thì tên/giống bị cắt — xem `ExportPage.tsx`.
                 className={cats.length > 1 ? "grid grid-cols-2 gap-3" : undefined}
               />
             )}
@@ -241,7 +213,6 @@ export function WebExportScreen({
           </Panel>
         </div>
 
-        {/* ── Cột phải: xem trước, lưu ý thú y, CTA ──────────────────────────────────── */}
         <div className="col-span-12 xl:col-span-5">
           <div className="flex flex-col gap-4 xl:sticky xl:top-20">
             <Panel className="flex flex-col gap-3">

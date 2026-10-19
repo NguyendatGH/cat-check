@@ -8,23 +8,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-/**
- * Đối chiếu CIEDE2000 với <b>toàn bộ 34 cặp tham chiếu</b> của Sharma, Wu &amp; Dalal (2005) —
- * "The CIEDE2000 Color-Difference Formula: Implementation Notes, Supplementary Test Data, and
- * Mathematical Observations", Color Research &amp; Application 30(1).
- *
- * <p>Sai số chấp nhận <b>&lt; 1e-4</b> (p6 §6.13.2 tầng 1 — ghi rõ "không thương lượng"). Lý do chọn
- * ngưỡng này: công thức có bẫy wrap-around hue quanh 0°/360° và thành phần {@code R_T}; bảng tham
- * chiếu chỉ chứa số làm tròn 4 chữ số thập phân, nên 1e-4 vừa đủ bắt lỗi thật mà không đòi hỏi
- * khớp tuyệt đối với bản in.
- *
- * <p>⚠ Bảng 34 cặp được sinh với {@code kL = kC = kH = 1}. Mọi phép khớp bảng màu của CatCheck lại
- * dùng {@code kL = 2} (p6 §6.5.1 (a)). Vì vậy test này <b>luôn</b> truyền
- * {@link DeltaE2000Params#STANDARD} — xem {@link #catCheckParamsHalveTheLightnessWeight()}.
- */
 class DeltaE2000Test {
 
-    // ------------------------------------------------------------------ 34 cặp chuẩn Sharma et al.
 
     @ParameterizedTest(name = "Sharma #{index}: ΔE00 mong doi {8}, that {9}")
     @CsvSource(textBlock = """
@@ -74,7 +59,6 @@ class DeltaE2000Test {
                 .isCloseTo(expected, within(1e-4));
     }
 
-    // ------------------------------------------------------------------ bẫy đã biết
 
     @Test
     @DisplayName("Bẫy 1 — màu trung tính: C' = 0 thì ΔH' phải bằng 0, không được NaN")
@@ -83,7 +67,6 @@ class DeltaE2000Test {
                 DeltaE2000Params.STANDARD);
 
         assertThat(de).isCloseTo(0.0, within(1e-12));
-        // Cặp đối xứng trong bảng chuẩn: màu trung tính ↔ màu có a*, b*.
         assertThat(DeltaE2000.deltaE(new Lab(50.0, 0.0, 0.0), new Lab(50.0, -1.0, 2.0),
                 DeltaE2000Params.STANDARD)).isCloseTo(2.3669, within(1e-4));
     }
@@ -91,7 +74,6 @@ class DeltaE2000Test {
     @Test
     @DisplayName("Bẫy 2 — wrap-around hue quanh 0/360 độ: 2.4900/-0.0010 phải khớp 7.1792")
     void hueWrapAroundIsHandled() {
-        // Trục đỏ (hue ≈ 0°) nằm ngay ranh giới atan2; nếu quên cộng 360° thì kết quả lệch hàng chục.
         double de = DeltaE2000.deltaE(new Lab(50.0, 2.49, -0.001), new Lab(50.0, -2.49, 0.0009),
                 DeltaE2000Params.STANDARD);
 
@@ -126,7 +108,6 @@ class DeltaE2000Test {
         assertThat(DeltaE2000.deltaE(lab, lab, DeltaE2000Params.CAT_CHECK)).isCloseTo(0.0, within(1e-12));
     }
 
-    // ------------------------------------------------------------------ tham số sản phẩm
 
     @Test
     @DisplayName("kL = 2 giảm ảnh hưởng của L*: ΔE00 nhỏ hơn, và phải = 5.0 khi chỉ khác L*")
@@ -140,7 +121,6 @@ class DeltaE2000Test {
         assertThat(catCheck)
                 .as("kL=2 phai cho ΔE00 nho hon ban chuan")
                 .isLessThan(standard);
-        // Với ΔL' = 10, sL = 1 tại L̄' = 50: chuẩn cho 10.0000, kL=2 cho 5.0000.
         assertThat(catCheck).isCloseTo(5.0, within(1e-9));
     }
 

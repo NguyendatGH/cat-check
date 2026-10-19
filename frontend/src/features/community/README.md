@@ -4,7 +4,9 @@
   phân trang offset), chi tiết bài, bình luận, thích/lưu (cập nhật lạc quan), báo cáo vi phạm.
 - Route dùng: /community, /community/new, /community/posts/:postId
 - Endpoint: `GET|POST /api/v1/community/posts`, `GET /api/v1/community/posts/{id}`,
-  `POST /api/v1/community/posts/{id}/comments`, `POST /api/v1/community/posts/{id}/reactions`,
+  `POST /api/v1/community/posts/{id}/comments` (JSON, hoặc multipart `body`/`parentCommentId`/`file` khi kèm ảnh),
+  `GET /api/v1/community/posts/{id}/comments/{commentId}/replies?offset&limit` (phản hồi 1 cấp, phân trang),
+  `GET /api/v1/community/posts/{id}/comments/{commentId}/image`, `POST /api/v1/community/posts/{id}/reactions`,
   `POST /api/v1/community/reports`
 - Entitlement: feature flag `community`
 - Trạng thái: UI render 100% từ API thật; không còn dữ liệu dựng tay trong `pages/community`.

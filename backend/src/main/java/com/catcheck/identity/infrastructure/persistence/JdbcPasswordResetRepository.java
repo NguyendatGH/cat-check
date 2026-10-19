@@ -13,18 +13,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-/**
- * {@link PasswordResetRepository} tren {@code JdbcTemplate}.
- *
- * <p>Luong hien tai theo p11 §11.2.6 dung OTP + {@code otp_ticket}, khong dung magic
- * link. Bang nay giu lai bang chung {@code PASSWORD_RESET}: {@code token_hash} =
- * SHA-256 cua ticket, {@code consumed_at} = luc doi mat khau. Xem {@code V5__identity.sql}
- * va {@code docs/handovers/A1.md}.</p>
- */
 @Repository
 public class JdbcPasswordResetRepository implements PasswordResetRepository {
 
-    /** Khong ghi `created_at`: de DB gan `DEFAULT now()` de thoi diem mang theo server. */
     private static final String INSERT = """
             INSERT INTO password_reset (id, user_id, token_hash, expires_at, request_ip)
             VALUES (?, ?, ?, ?, ?::inet)

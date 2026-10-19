@@ -51,57 +51,13 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Toàn bộ mục (f) "Vận hành" của p8 §8.4.12 — L63, L64, L65, L66, L67, L68, L69, L70, L71, L72.
- *
- * <p><b>H15.106 đã xong (W5-D).</b> Trước đây lớp này chỉ-đọc, với lý do đúng: L65 (chạy job
- * bằng tay) và L67 (gửi lại bản ghi {@code FAILED}) là hành động GHI vào miền của module khác,
- * nên <b>không</b> được làm bằng một câu {@code UPDATE} từ {@code admin} — làm vậy sẽ bỏ qua toàn
- * bộ luật retry/backoff/dedupe của p12 §12.8 và cơ chế một-dòng-{@code job_run} của p12 §12.6.1.
- * Cách nối đúng đã được dựng: L65 đi qua {@code shared.job.ManualJobTrigger} +
- * {@code ManualJobLauncher} (ghi {@code trigger_type = MANUAL}), L67/L72 đi qua named interface
- * {@code notification::api} ({@code OutboxAdminGateway}, {@code SystemBroadcastGateway}).</p>
- *
- * <p><b>Vai trò</b> theo cột Auth của p8, ánh xạ 1-1 sang ô p14 §14.2.2 — không cấp quyền nào
- * p11 chưa cho:</p>
- * <table>
- *   <caption>Vai trò theo endpoint</caption>
- *   <tr><th>Endpoint</th><th>Ô</th><th>Auth (p8)</th></tr>
- *   <tr><td>L63 {@code GET /metrics/dashboard}</td><td>Q23</td><td>mọi role admin</td></tr>
- *   <tr><td>L64 {@code GET /jobs/runs}</td><td>Q26</td><td>{@code ADMIN_SUPER,DPO}</td></tr>
- *   <tr><td>L65 {@code POST /jobs/{jobName}/run}</td><td>Q26</td><td>{@code ADMIN_SUPER} + {@code Rsn} + {@code Aud}</td></tr>
- *   <tr><td>L66 {@code GET /notifications/outbox}</td><td>Q26</td><td>{@code ADMIN_SUPER} + {@code Aud}</td></tr>
- *   <tr><td>L67 {@code POST /notifications/outbox/{id}/resend}</td><td>Q26</td><td>{@code ADMIN_SUPER} + {@code Aud}; <b>không</b> step-up, <b>không</b> {@code reason}</td></tr>
- *   <tr><td>L68 {@code GET /audit-logs}</td><td>Q24</td><td>mọi role admin, phạm vi tự thu hẹp</td></tr>
- *   <tr><td>L69 {@code GET /settings}</td><td>—</td><td>{@code ADMIN_SUPER}</td></tr>
- *   <tr><td>L70 {@code PATCH /settings/{key}}</td><td>—</td><td>{@code ADMIN_SUPER} + {@code S1:TOTP} + {@code Rsn} + {@code Aud}</td></tr>
- *   <tr><td>L71 {@code PUT /system/maintenance}</td><td>Q30</td><td>{@code ADMIN_SUPER} + {@code S1:TOTP} + {@code Rsn} + {@code Aud}</td></tr>
- *   <tr><td>L72 {@code POST /system/broadcast}</td><td>Q30</td><td>{@code ADMIN_SUPER}; {@code DPO} cho {@code PRIVACY_INCIDENT_NOTICE}</td></tr>
- * </table>
- *
- * <p><b>Còn thiếu so với cột Auth, và đây là hiện trạng của CẢ repo chứ không riêng lớp này:</b>
- * step-up {@code S1:TOTP} (p8 §8.3.3) chưa được thực thi ở bất kỳ endpoint admin nào —
- * {@code AdminColorChartController} và {@code AdminActivationCodeController} đã ghi nhận cùng
- * điều đó. Cơ chế có tồn tại ({@code POST /auth/reauth} + {@code identity}
- * {@code StepUpVerificationPort}) nhưng cổng đọc được từ ngoài {@code identity} thì chưa, và
- * {@code admin} không được phép phụ thuộc {@code identity}. Lớp bảo vệ ĐANG hoạt động là điều
- * kiện chung #1 của p8 §8.4.12: phiên phải có {@code mfaLevel = TOTP}
- * ({@code AdminMfaGateFilter}) — tức là admin vẫn phải qua TOTP để vào, chỉ chưa phải nhập lại
- * cho từng hành động. Handoff H15.184.</p>
- *
- * <p><b>Idempotency-Key</b> ({@code Idem = !} ở L65, L67, L70, L71, L72): header được <b>đòi và
- * kiểm định dạng</b>, nhưng chưa có lớp phát lại qua bảng {@code idempotency_record} (p8 §8.1.8)
- * — repo chưa có lớp đó ở bất kỳ module nào. Handoff H15.185.</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin")
 @Tag(name = "Quản trị vận hành", description = "L63–L72 — job_run, outbox, audit, app_setting, bảo trì, broadcast")
 public class AdminOpsController {
 
-    /** p8 L64: {@code R:ADMIN_SUPER,DPO}. */
     static final Set<String> JOB_READ_ROLES = Set.of("ADMIN_SUPER", "DPO");
 
-    /** p8 L66: {@code R:ADMIN_SUPER} — bảng này chứa địa chỉ email người dùng. */
     static final Set<String> OUTBOX_READ_ROLES = Set.of("ADMIN_SUPER");
     static final Set<String> AUDIT_READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
 
@@ -110,30 +66,15 @@ public class AdminOpsController {
     private static final List<String> ADMIN_ROLE_PRIORITY =
             List.of("ADMIN_SUPER", "DPO", "ADMIN_SUPPORT", "ADMIN_CATALOG");
 
-    /**
-     * p8 L63 cột Auth: {@code "mọi role admin"} (Q23); endpoint không bao gồm PII hay nội dung chi
-     * tiết. {@code MODERATOR} không nằm trong danh sách vì chỉ có hiệu lực ở endpoint kiểm duyệt
-     * cộng đồng, giống {@link #ADMIN_ROLE_PRIORITY} ("vai trò quản trị nghiệp vụ").
-     */
     static final Set<String> DASHBOARD_METRICS_ROLES = Set.copyOf(ADMIN_ROLE_PRIORITY);
 
-    /** p8 L65/L66/L67/L69/L70/L71/L72: {@code R:ADMIN_SUPER}. */
     static final Set<String> SUPER_ONLY = Set.of("ADMIN_SUPER");
 
-    /**
-     * p8 L72 cột Auth: {@code R:ADMIN_SUPER} (và {@code DPO} cho
-     * {@code PRIVACY_INCIDENT_NOTICE}).
-     *
-     * <p>{@code DPO} được mở <b>chỉ</b> cho template thông báo sự cố là có căn cứ, không phải nới
-     * lỏng: p15 §15.9.5 REQ-INC-03 giao nghĩa vụ thông báo trong 72 giờ cho DPO, và p12 §12.2.5
-     * xếp {@code PRIVACY_INCIDENT_NOTICE} vào nhóm nghĩa vụ luật định. Nếu chỉ
-     * {@code ADMIN_SUPER} bấm được thì người chịu trách nhiệm pháp lý phải đi xin người khác bấm,
-     * đúng lúc đồng hồ 72 giờ đang chạy. Ngược lại, {@code DPO} <b>không</b> được bấm
-     * {@code SYSTEM_MAINTENANCE} — đó là thông báo dịch vụ, thuộc Q30 của {@code ADMIN_SUPER}.</p>
-     */
+    /** Trùng quyền đọc danh sách người dùng (AdminUserController.READ_ROLES). */
+    static final Set<String> USER_SUMMARY_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
+
     static final Set<String> BROADCAST_INCIDENT_ROLES = Set.of("ADMIN_SUPER", "DPO");
 
-    /** p8 L72 chốt đúng hai template; giá trị lạ ⇒ {@code 422}. */
     static final String TEMPLATE_PRIVACY_INCIDENT = "PRIVACY_INCIDENT_NOTICE";
 
     private final AdminOpsQueryService opsQueryService;
@@ -160,8 +101,6 @@ public class AdminOpsController {
                                                  @Valid @RequestBody AdminMaintenanceRequest body,
                                                  HttpServletRequest request) {
         AdminGuard.requireAnyRole(principal, Set.of("ADMIN_SUPER"));
-        // L71 cùng ký hiệu Rsn với L65/L70/L72: lý do tối thiểu AdminGuard.REASON_MIN_LENGTH ký tự
-        // qua AdminGuard.requireReason (@NotBlank của AdminMaintenanceRequest chỉ chặn chuỗi rỗng).
         String reason = AdminGuard.requireReason(body.reason());
         AdminMaintenanceService.Result result = maintenanceService.update(body.active(), body.until(),
                 principal.userId(), actorRole(principal), reason, request.getHeader("X-Request-Id"),
@@ -170,7 +109,6 @@ public class AdminOpsController {
                 result.until().isBlank() ? null : result.until(), result.updatedAt());
     }
 
-    // ------------------------------------------------------------------ L64
 
     @Operation(
             operationId = "listAdminJobRuns",
@@ -194,7 +132,6 @@ public class AdminOpsController {
                 safePage, safeSize, result.totalElements());
     }
 
-    // ------------------------------------------------------------------ L66
 
     @Operation(
             operationId = "listAdminNotificationOutbox",
@@ -258,7 +195,19 @@ public class AdminOpsController {
         return AdminMetricsResponse.from(opsQueryService.metrics());
     }
 
-    // ------------------------------------------------------------------ L65
+
+    @Operation(
+            operationId = "getAdminUserStatusSummary",
+            summary = "L1b — đếm tài khoản theo trạng thái",
+            description = "Chỉ đọc, trên toàn bộ người dùng (không riêng trang đang xem); chỉ trả số đếm, không PII.")
+    @GetMapping("/users/summary")
+    public UserStatusSummaryResponse userStatusSummary(@CurrentUser SecurityPrincipal principal) {
+        AdminGuard.requireAnyRole(principal, USER_SUMMARY_ROLES);
+        return new UserStatusSummaryResponse(opsQueryService.userStatusCounts());
+    }
+
+    public record UserStatusSummaryResponse(java.util.Map<String, Long> byStatus) { }
+
 
     @Operation(
             operationId = "runAdminJob",
@@ -289,7 +238,6 @@ public class AdminOpsController {
                 outcome.errorSummary());
     }
 
-    // ------------------------------------------------------------------ L67
 
     @Operation(
             operationId = "resendAdminOutboxEntry",
@@ -314,7 +262,6 @@ public class AdminOpsController {
         return ResponseEntity.noContent().build();
     }
 
-    // ------------------------------------------------------------------ L69
 
     @Operation(
             operationId = "listAdminSettings",
@@ -332,7 +279,6 @@ public class AdminOpsController {
                 .toList());
     }
 
-    // ------------------------------------------------------------------ L70
 
     @Operation(
             operationId = "updateAdminSetting",
@@ -361,14 +307,11 @@ public class AdminOpsController {
                 request.getHeader("X-Request-Id"), request.getRemoteAddr(),
                 request.getHeader("User-Agent"));
         String etag = AdminSettingsService.etagOf(updated);
-        // Trả ETag MỚI ở header: client vừa sửa thì thường sửa tiếp, và không có header này nó
-        // phải gọi lại L69 chỉ để lấy một con số.
         return ResponseEntity.ok()
                 .eTag(etag)
                 .body(AppSettingResponse.from(updated, etag));
     }
 
-    // ------------------------------------------------------------------ L72
 
     @Operation(
             operationId = "broadcastAdminSystemNotification",
@@ -405,13 +348,7 @@ public class AdminOpsController {
         return SystemBroadcastResponse.from(templateCode, body.dryRunOrFalse(), result);
     }
 
-    /* ---------------------------------------------------------------- helper */
 
-    /**
-     * Chuẩn hoá bộ lọc enum về chữ hoa. KHÔNG tự loại giá trị lạ: cả hai cột là
-     * {@code VARCHAR + CHECK} nên một giá trị không tồn tại chỉ trả 0 dòng, không gây lỗi, và
-     * đó là câu trả lời đúng cho "lọc theo một trạng thái không có".
-     */
     private static String upper(String value) {
         return value == null || value.isBlank() ? null : value.strip().toUpperCase(Locale.ROOT);
     }

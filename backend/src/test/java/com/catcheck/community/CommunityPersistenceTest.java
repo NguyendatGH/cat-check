@@ -1,5 +1,6 @@
 package com.catcheck.community;
 
+import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.community.api.CommunityErrorCode;
 import com.catcheck.community.application.CommunityService;
 import com.catcheck.community.application.spi.AccountStatus;
@@ -28,12 +29,11 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** V27 + community/shop repository tren PostgreSQL that. */
 @Testcontainers
 class CommunityPersistenceTest {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     private static JdbcTemplate jdbc;
     private static CommunityService community;
@@ -51,8 +51,6 @@ class CommunityPersistenceTest {
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         ds.setDriverClassName("org.postgresql.Driver");
         jdbc = new JdbcTemplate(ds);
-        // Test này kiểm persistence, không kiểm I19/rate limit: tài khoản luôn ACTIVE, limiter luôn
-        // cho qua (CommunityService#requireWriteAllowed/#requireRateLimit có test riêng).
         CommunityRateLimiter alwaysAllow = new CommunityRateLimiter() {
             @Override
             public boolean tryConsume(CommunityRateLimitRule rule, String subject) {
@@ -107,7 +105,6 @@ class CommunityPersistenceTest {
         community.report(user, post.id(), null, "SPAM", null);
         assertThatThrownBy(() -> community.report(user, post.id(), null, "OTHER", null))
                 .isInstanceOf(ConflictException.class);
-        // nguoi khac (khong phai tac gia) van bao cao duoc
         community.report(other, post.id(), null, "SPAM", null);
         jdbc.update("UPDATE community_report SET status = 'DISMISSED' WHERE reporter_user_id = ?", user);
         community.report(user, post.id(), null, "SPAM", null);
@@ -132,6 +129,68 @@ class CommunityPersistenceTest {
     @DisplayName("Bao cao doi tuong khong ton tai -> 404, khong phai loi FK")
     void reportUnknownTargetIsNotFound() {
         assertThatThrownBy(() -> community.report(user, UUID.randomUUID(), null, "SPAM", null))
+                .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Tra loi mot cap, binh luan chi co anh, an binh luan goc an ca phan hoi")
+    void repliesImagesAndModeration() {
+        var post = community.createPost(other, "QA", "Tieu de", "Noi dung", List.of());
+        var root = community.createComment(user, post.id(), "Goc");
+        var r1 = community.createComment(other, post.id(), root.id(), "R1", null);
+        var r2 = community.createComment(user, post.id(), r1.id(), "", "community-comment/2026/10/14/a.png");
+        for (int i = 3; i <= 5; i++) community.createComment(other, post.id(), root.id(), "R" + i, null);
+
+        assertThat(r2.parentCommentId()).isEqualTo(root.id());
+        assertThat(r2.replyToName()).isEqualTo("T");
+        assertThat(r2.body()).isEmpty();
+
+        var detail = community.detail(user, post.id());
+        assertThat(detail.post().commentCount()).isEqualTo(6);
+        assertThat(detail.comments()).hasSize(1);
+        var thread = detail.comments().getFirst();
+        assertThat(thread.comment().replyCount()).isEqualTo(5);
+        assertThat(thread.replies()).extracting(c -> c.body()).containsExactly("R1", "", "R3");
+
+        var rest = community.replies(null, post.id(), root.id(), 3, 20);
+        assertThat(rest.items()).extracting(c -> c.body()).containsExactly("R4", "R5");
+        assertThat(rest.totalElements()).isEqualTo(5);
+        assertThat(rest.hasMore()).isFalse();
+
+        assertThatThrownBy(() -> jdbc.update(
+                "INSERT INTO community_comment (post_id, author_user_id, body) VALUES (?, ?, '  ')", post.id(), user))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        // Reports on a reply still work; hiding the top-level comment hides its whole thread.
+        community.report(other, null, r2.id(), "SPAM", null);
+        jdbc.update("UPDATE community_comment SET status = 'HIDDEN' WHERE id = ?", root.id());
+        assertThat(community.detail(user, post.id()).comments()).isEmpty();
+        assertThat(community.detail(user, post.id()).post().commentCount()).isZero();
+        assertThatThrownBy(() -> community.createComment(user, post.id(), r1.id(), "x", null))
+                .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Thich binh luan: idempotent, dem dung, chi danh dau cho nguoi da thich")
+    void commentLikes() {
+        var post = community.createPost(other, "QA", "Tieu de", "Noi dung", List.of());
+        var root = community.createComment(other, post.id(), "Goc");
+        var reply = community.createComment(other, post.id(), root.id(), "R1", null);
+
+        assertThat(community.likeComment(user, post.id(), root.id(), true)).isTrue();
+        community.likeComment(user, post.id(), root.id(), true);
+        community.likeComment(other, post.id(), root.id(), true);
+        community.likeComment(user, post.id(), reply.id(), true);
+
+        var thread = community.detail(user, post.id()).comments().getFirst();
+        assertThat(thread.comment().likeCount()).isEqualTo(2);
+        assertThat(thread.comment().likedByCurrentUser()).isTrue();
+        assertThat(thread.replies().getFirst().likedByCurrentUser()).isTrue();
+        assertThat(community.detail(null, post.id()).comments().getFirst().comment().likedByCurrentUser()).isFalse();
+
+        assertThat(community.likeComment(user, post.id(), root.id(), false)).isFalse();
+        assertThat(community.detail(user, post.id()).comments().getFirst().comment().likeCount()).isEqualTo(1);
+        assertThatThrownBy(() -> community.likeComment(user, UUID.randomUUID(), root.id(), true))
                 .isInstanceOf(com.catcheck.shared.error.NotFoundException.class);
     }
 

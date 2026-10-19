@@ -15,11 +15,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * docs/scan-production-plan.md GĐ7 — metrics quanh lệnh gọi {@code ColorPipelineService.analyze}.
- * Dùng {@link SimpleMeterRegistry} (Micrometer test fixture, không cần Actuator/DB thật) để xác
- * nhận tên metric + tag đúng như báo cáo, và rằng không có tag cardinality cao/PII nào bị gắn.
- */
 class ScanPipelineMetricsTest {
 
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();

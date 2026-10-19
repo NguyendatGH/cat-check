@@ -7,35 +7,34 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import {
+  COMMUNITY_REPLY_PAGE_SIZE,
   createCommunityComment,
+  listCommunityCommentReplies,
   createCommunityPost,
   getCommunityPost,
   listCommunityPosts,
   reportCommunityContent,
+  setCommunityCommentLike,
   setCommunityReaction,
   type CommunityCategory,
   type CommunityPageApi,
   type CommunityPostApi,
   type CommunityPostDetailApi,
   type CommunityReaction,
+  type CreateCommunityCommentPayload,
 } from "./api";
 
-/**
- * Query-key factory cho Community API. Gốc `["community"]`, nhánh `posts` (bảng tin, theo
- * chuyên mục) và `post` (chi tiết + bình luận) để invalidate theo cụm.
- */
 export const communityKeys = {
   all: ["community"] as const,
   feeds: () => [...communityKeys.all, "posts"] as const,
   feed: (category: CommunityCategory | "ALL") => [...communityKeys.feeds(), category] as const,
   detail: (postId: string) => [...communityKeys.all, "post", postId] as const,
+  replies: (postId: string, commentId: string) => [...communityKeys.detail(postId), "replies", commentId] as const,
 };
 
-/** Bảng tin đổi theo hoạt động người dùng — 30s đủ tươi mà không gọi lại liên tục. */
 const COMMUNITY_STALE_TIME = 30_000;
 export const COMMUNITY_PAGE_SIZE = 10;
 
-/** Bảng tin phân trang offset (`page`/`size`/`hasMore`) — lọc chuyên mục ở SERVER (`?category=`). */
 export function useCommunityFeed(category: CommunityCategory | "ALL") {
   return useInfiniteQuery({
     queryKey: communityKeys.feed(category),
@@ -55,7 +54,6 @@ export function useCommunityPost(postId: string) {
   return useQuery({
     queryKey: communityKeys.detail(postId),
     queryFn: () => getCommunityPost(postId),
-    // 404 (bài không tồn tại / đã bị ẩn) không bị thử lại: `queryClient` mặc định bỏ retry với 4xx.
     staleTime: COMMUNITY_STALE_TIME,
   });
 }
@@ -74,19 +72,38 @@ export function useCreateCommunityPost() {
 export function useCreateCommunityComment(postId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: string) => createCommunityComment(postId, body),
+    mutationFn: (payload: CreateCommunityCommentPayload) => createCommunityComment(postId, payload),
     onSuccess: (comment) => {
-      queryClient.setQueryData<CommunityPostDetailApi>(communityKeys.detail(postId), (old) =>
-        old
-          ? {
-              post: { ...old.post, commentCount: old.post.commentCount + 1 },
-              comments: [...old.comments, comment],
-            }
-          : old,
-      );
-      void queryClient.invalidateQueries({ queryKey: communityKeys.detail(postId) });
+      queryClient.setQueryData<CommunityPostDetailApi>(communityKeys.detail(postId), (old) => {
+        if (!old) return old;
+        const post = { ...old.post, commentCount: old.post.commentCount + 1 };
+        const parentId = comment.parentCommentId;
+        if (!parentId) return { post, comments: [...old.comments, { ...comment, replyCount: 0, replies: [] }] };
+        return {
+          post,
+          comments: old.comments.map((item) =>
+            item.id === parentId ? { ...item, replyCount: (item.replyCount ?? 0) + 1 } : item,
+          ),
+        };
+      });
+      void queryClient.invalidateQueries({ queryKey: communityKeys.detail(postId), exact: true });
       void queryClient.invalidateQueries({ queryKey: communityKeys.feeds() });
     },
+  });
+}
+
+/**
+ * Replies of one top-level comment beyond the preview embedded in the post detail. Disabled until
+ * the reader expands the thread; pages continue from {@code startOffset}.
+ */
+export function useCommunityReplies(postId: string, commentId: string, startOffset: number, enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: [...communityKeys.replies(postId, commentId), startOffset] as const,
+    queryFn: ({ pageParam }) => listCommunityCommentReplies(postId, commentId, pageParam, COMMUNITY_REPLY_PAGE_SIZE),
+    initialPageParam: startOffset,
+    getNextPageParam: (last) => (last.hasMore ? last.offset + last.items.length : undefined),
+    enabled,
+    staleTime: COMMUNITY_STALE_TIME,
   });
 }
 
@@ -119,10 +136,6 @@ function applyEverywhere(
   );
 }
 
-/**
- * Thích / lưu bài. Cập nhật lạc quan ở MỌI cache đang chứa bài (chi tiết + mọi trang bảng
- * tin), rồi luôn refetch khi xong để giao diện khớp đúng trạng thái server trả về.
- */
 export function useCommunityReaction() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -147,6 +160,38 @@ export function useCommunityReaction() {
   });
 }
 
+/** Likes/unlikes a comment; the caller shows the change optimistically until the refetch lands. */
+export function useCommunityCommentLike(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { commentId: string; active: boolean }) =>
+      setCommunityCommentLike(postId, vars.commentId, vars.active),
+    // Replies queries live under the detail key, so this refreshes both.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: communityKeys.detail(postId) }),
+  });
+}
+
 export function useReportCommunityContent() {
   return useMutation({ mutationFn: reportCommunityContent });
+}
+
+export function useCommunityTagSuggestions(limit = 12): string[] {
+  const queryClient = useQueryClient();
+  const counts = new Map<string, number>();
+  for (const [, data] of queryClient.getQueriesData<InfiniteData<CommunityPageApi>>({
+    queryKey: communityKeys.feeds(),
+  })) {
+    data?.pages.forEach((page) => {
+      page.items.forEach((post) => {
+        post.tags.forEach((tag) => {
+          const key = tag.replace(/^#+/, "").trim().toLowerCase();
+          if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+        });
+      });
+    });
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([tag]) => tag);
 }

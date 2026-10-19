@@ -5,6 +5,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
+import { loadSession, useSessionStore } from "@/entities/user";
 import { apiFetch, apiUploadAvatar } from "./api";
 import type {
   ActivationResult,
@@ -19,11 +20,6 @@ import type {
 } from "./types";
 import { SURVEY_QUESTIONNAIRE_VERSION } from "./types";
 
-/**
- * Hooks react-query cho onboarding — mọi call đi qua `apiFetch` (features/onboarding/api.ts)
- * theo hợp đồng p8. W3 nối API thật: thay `apiFetch` bằng `apiClient` + type OpenAPI,
- * hooks không đổi chữ ký.
- */
 
 export function useBreeds(): UseQueryResult<BreedListResponse> {
   return useQuery({
@@ -41,12 +37,6 @@ export function usePhBands(): UseQueryResult<PhBandListResponse> {
   });
 }
 
-/**
- * F6 — định nghĩa bộ câu hỏi khảo sát. Cần phiên đăng nhập (SecurityConfig đặt matcher
- * `/reference/health-survey/**` TRƯỚC `/reference/**` permitAll), nội dung tĩnh theo version
- * nên cache dài. Đây là NGUỒN DUY NHẤT của danh sách câu hỏi/lựa chọn — màn khảo sát không
- * giữ mảng `QUESTION_NAMES` cứng nữa.
- */
 export function useHealthSurveyDefinition(
   version: string = SURVEY_QUESTIONNAIRE_VERSION,
 ): UseQueryResult<HealthSurveyDefinition> {
@@ -55,6 +45,15 @@ export function useHealthSurveyDefinition(
     queryFn: () => apiFetch<HealthSurveyDefinition>(`/reference/health-survey/${version}`),
     staleTime: 30 * 60 * 1000,
   });
+}
+
+/**
+ * Onboarding status lives in the session; reload it after each server-side milestone
+ * (cat created, survey submitted/skipped) so RequireOnboarding doesn't act on a stale step.
+ */
+export async function refreshOnboardingSession(): Promise<void> {
+  const user = await loadSession();
+  if (user) useSessionStore.getState().setSession(user);
 }
 
 export function useCreateCat(): UseMutationResult<CreatedCat, Error, CatProfileDraft> {
@@ -72,6 +71,9 @@ export function useCreateCat(): UseMutationResult<CreatedCat, Error, CatProfileD
           isPrimary: true,
         }),
       }),
+    onSuccess: () => {
+      void refreshOnboardingSession();
+    },
   });
 }
 
@@ -107,6 +109,9 @@ export function useSubmitSurvey(
         method: "POST",
         body: JSON.stringify({ questionnaireVersion: SURVEY_QUESTIONNAIRE_VERSION, answers, skipped }),
       }),
+    onSuccess: () => {
+      void refreshOnboardingSession();
+    },
   });
 }
 
@@ -119,7 +124,6 @@ export function useActivateCode(): UseMutationResult<ActivationResult, Error, st
         body: JSON.stringify({ code }),
       }),
     onSuccess: () => {
-      // Số dư đã đổi — màn Hoàn tất (và gợi ý lượt thử ở màn này) phải đọc lại, không dùng cache.
       void queryClient.invalidateQueries({ queryKey: ["onboarding", "credit-balance"] });
     },
   });
@@ -148,11 +152,6 @@ interface CatListItem {
   isPrimary?: boolean;
 }
 
-/**
- * D3 `GET /cats` — dùng ở màn Hoàn tất khi store onboarding trống (tải lại trang, mở thẳng
- * `/onboarding/success`): lấy hồ sơ chính (`isPrimary`) thay vì báo "Đã có lỗi xảy ra".
- * Server bỏ key null (`non_null`) nên các field tuỳ chọn khai `?`.
- */
 export function usePrimaryCat(enabled: boolean): UseQueryResult<CreatedCat | null> {
   return useQuery({
     queryKey: ["onboarding", "primary-cat"],

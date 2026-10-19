@@ -49,25 +49,12 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Quản trị bảng màu pH — L27 đến L37 (p8 §8.4.12 mục (c)).
- *
- * <p>Kiểm tra vai trò nằm trong controller (tầng api) — đây là quyết định "ai được gọi API này"
- * (p8 §8.3). Tên vai trò cụ thể do {@link ColorChartRoleGuard} giữ.
- *
- * <p>Chưa gắn {@code Aud} (ghi {@code audit_log}) và {@code S1:TOTP} (step-up) — thuộc W3 nối
- * SecurityConfig. Xem docs/handovers/A5.md.
- */
 @RestController
 @RequestMapping("/api/v1/admin")
 @Tag(name = "Quản trị bảng màu pH",
         description = "L27–L37 — CRUD bảng màu, backfill kết quả cũ, dải phân loại")
 public class AdminColorChartController {
 
-    /**
-     * Vai trò ghi {@code audit_log.actor_role} — vai trò MẠNH NHẤT đã cho phép hành động đi qua
-     * (p4 §4.6.3). Một tài khoản có thể giữ nhiều vai trò nhưng cột chỉ chứa một.
-     */
     private static final List<String> ADMIN_ROLE_PRIORITY = List.of("ADMIN_SUPER", "ADMIN_CATALOG");
 
     private final ColorChartAdminService adminService;
@@ -85,7 +72,6 @@ public class AdminColorChartController {
         this.roleGuard = roleGuard;
     }
 
-    // ------------------------------------------------------------------ L27
 
     @Operation(
             operationId = "listAdminColorCharts",
@@ -109,7 +95,6 @@ public class AdminColorChartController {
                 result.hasMore());
     }
 
-    // ------------------------------------------------------------------ L28
 
     @Operation(
             operationId = "createColorChartDraft",
@@ -127,7 +112,6 @@ public class AdminColorChartController {
                 .body(ColorChartDetailResponse.from(adminService.findDetail(chart.getId())));
     }
 
-    // ------------------------------------------------------------------ L29
 
     @Operation(
             operationId = "getColorChartDetail",
@@ -144,7 +128,6 @@ public class AdminColorChartController {
                 .body(detail);
     }
 
-    // ------------------------------------------------------------------ L30
 
     @Operation(
             operationId = "updateColorChartDraft",
@@ -166,7 +149,6 @@ public class AdminColorChartController {
                 .body(ColorChartDetailResponse.from(adminService.findDetail(chartId)));
     }
 
-    // ------------------------------------------------------------------ L31
 
     @Operation(
             operationId = "replaceColorChartPoints",
@@ -191,7 +173,6 @@ public class AdminColorChartController {
                 .body(ColorChartDetailResponse.from(adminService.replacePoints(chartId, inputs)));
     }
 
-    // ------------------------------------------------------------------ L32
 
     @Operation(
             operationId = "publishColorChart",
@@ -208,7 +189,6 @@ public class AdminColorChartController {
                 .body(ColorChartDetailResponse.from(adminService.findDetail(chartId)));
     }
 
-    // ------------------------------------------------------------------ L33
 
     @Operation(
             operationId = "startColorChartBackfillPreview",
@@ -233,7 +213,6 @@ public class AdminColorChartController {
                 .body(new BackfillAcceptedResponse(chartId.toString(), window.toString(), statusUrl));
     }
 
-    // ------------------------------------------------------------------ L34
 
     @Operation(
             operationId = "getColorChartBackfillPreview",
@@ -249,7 +228,6 @@ public class AdminColorChartController {
         return BackfillPreviewResponse.from(chartId.toString(), backfillService.impact(chartId));
     }
 
-    // ------------------------------------------------------------------ L35
 
     @Operation(
             operationId = "applyColorChartBackfill",
@@ -271,7 +249,6 @@ public class AdminColorChartController {
                 .body(new BackfillAcceptedResponse(chartId.toString(), null, statusUrl));
     }
 
-    // ------------------------------------------------------------------ L36
 
     @Operation(
             operationId = "listAdminPhBands",
@@ -279,19 +256,18 @@ public class AdminColorChartController {
             description = "L36. 6 dải toàn cục (đủ cả hai locale) + ETag.")
     @GetMapping("/ph-classification-bands")
     public ResponseEntity<List<PhBandResponse>> listBands(
-            @CurrentUser SecurityPrincipal principal,
-            @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, defaultValue = "vi") String acceptLanguage) {
+            @CurrentUser SecurityPrincipal principal, Locale locale) {
         roleGuard.requireChartAdmin(principal);
-        Locale locale = Locale.forLanguageTag(acceptLanguage);
         List<PhBandResponse> bands = phBandAdminService.listBands().stream()
                 .map(band -> PhBandResponse.from(band, locale.getLanguage()))
                 .toList();
         return ResponseEntity.ok()
                 .eTag(ETag.ofBands(phBandAdminService.listBands()))
+                // ETag chỉ băm id + updatedAt, còn nhãn đổi theo Accept-Language.
+                .varyBy(HttpHeaders.ACCEPT_LANGUAGE)
                 .body(bands);
     }
 
-    // ------------------------------------------------------------------ L37
 
     @Operation(
             operationId = "updatePhBand",
@@ -302,13 +278,10 @@ public class AdminColorChartController {
             @CurrentUser SecurityPrincipal principal,
             @PathVariable String code,
             @RequestHeader(name = "If-Match", required = false) String ifMatch,
-            @RequestHeader(name = HttpHeaders.ACCEPT_LANGUAGE, defaultValue = "vi") String acceptLanguage,
+            Locale locale,
             @Valid @RequestBody UpdatePhBandRequest request) {
         roleGuard.requireChartAdmin(principal);
-        PhClassificationBand band = phBandAdminService.listBands().stream()
-                .filter(b -> b.getCode().equals(code))
-                .findFirst()
-                .orElseThrow();
+        PhClassificationBand band = phBandAdminService.getBand(code);
         ETag.requireMatch(ifMatch, band);
         PhBandAdminService.BandUpdate update = new PhBandAdminService.BandUpdate(
                 request.minPh(), request.maxPh(), request.minInclusive(), request.maxInclusive(),
@@ -316,17 +289,11 @@ public class AdminColorChartController {
                 request.severity(), request.colorToken(), request.iconName(),
                 request.triggersAlert(), request.sortOrder(), request.active());
         PhClassificationBand updated = phBandAdminService.updateBand(code, update);
-        Locale locale = Locale.forLanguageTag(acceptLanguage);
         return ResponseEntity.ok()
                 .eTag(ETag.of(updated))
                 .body(PhBandResponse.from(updated, locale.getLanguage()));
     }
 
-    /**
-     * Gộp "kiểm {@code reason}" và "dựng ngữ cảnh audit" vào một lời gọi — tách ra thì một
-     * endpoint mới có thể dựng ngữ cảnh mà quên kiểm {@code reason}, và lỗi đó chỉ lộ ra khi
-     * có người đọc lại {@code audit_log} nhiều tháng sau.
-     */
     private static AdminAction adminAction(SecurityPrincipal principal, String reason,
                                            HttpServletRequest request) {
         return new AdminAction(

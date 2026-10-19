@@ -4,10 +4,6 @@ import { useNavigate } from "react-router";
 import { Button } from "@/shared/ui";
 import { Checkbox, DisclaimerScroll, OnboardingShell, useOnboardingStore } from "@/features/onboarding";
 
-/**
- * Bước 3/5 — Miễn trừ trách nhiệm y tế (p15 §15.7.2 P1: D-LONG, bắt buộc tương tác,
- * không cho bỏ qua, không pre-check). Nội dung lấy từ p15 §15.7.3, nằm trong i18n.
- */
 export function OnboardingDisclaimerPage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();

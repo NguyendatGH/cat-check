@@ -6,18 +6,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Tien ich doc cot dung chung cho cac repository JDBC cua module identity.
- *
- * <p>Moi cot {@code TIMESTAMPTZ} deu doc qua {@code getObject(col, OffsetDateTime.class)}
- * roi chuyen sang {@link Instant}. KHONG dung {@code getTimestamp()} — driver se suy
- * ra muc gio hieu dua theo {@code user.timezone} cua JVM nen gia tri doc duoc phu
- * thuoc moi thiet bi chay app. {@code OffsetDateTime} giu nguyen muc UTC.</p>
- *
- * <p>R13 cam phu thuoc vao {@code java.sql.Timestamp}/{@code java.util.Date}/
- * {@code java.util.Calendar} o bat ky dau — ham nay la noi hop le duy nhat de cham
- * vao JDBC.</p>
- */
 final class RowReaders {
 
     private RowReaders() {
@@ -28,7 +16,6 @@ final class RowReaders {
         return value == null ? null : value.toInstant();
     }
 
-    /** Cho cot NOT NULL nhu {@code created_at}. */
     static Instant requiredInstant(ResultSet rs, String column) throws SQLException {
         Instant value = instant(rs, column);
         if (value == null) {
@@ -64,7 +51,6 @@ final class RowReaders {
         return rs.wasNull() ? null : value;
     }
 
-    /** Cho cot BIGINT co the NULL nhu {@code user_mfa_totp.last_used_step}. */
     static Long longOrNull(ResultSet rs, String column) throws SQLException {
         long value = rs.getLong(column);
         return rs.wasNull() ? null : value;
@@ -78,12 +64,6 @@ final class RowReaders {
         return rs.getBoolean(column);
     }
 
-    /**
-     * Cho cot boolean co the NULL — vi du co doc ra tu JSONB ({@code app_user.notification_prefs}):
-     * key thieu thi SQL tra NULL, va NULL o day nghia la "lay mac dinh cua mien", KHONG phai
-     * {@code false} ({@code getBoolean} tra {@code false} cho ca hai nen phai hoi
-     * {@code wasNull}).
-     */
     static boolean boolOrDefault(ResultSet rs, String column, boolean fallback) throws SQLException {
         boolean value = rs.getBoolean(column);
         return rs.wasNull() ? fallback : value;
@@ -93,11 +73,6 @@ final class RowReaders {
         return rs.getBytes(column);
     }
 
-    /**
-     * Doc enum tu {@code VARCHAR} cua DB. Tra {@code null} cho cot NULL; nem
-     * {@link IllegalStateException} khi DB chua gia tri ma code khong biet —
-     * {@link ClassCastException} se lam thong bao loi kho doc.
-     */
     static <E extends Enum<E>> E enumValue(ResultSet rs, String column, Class<E> type) throws SQLException {
         String value = rs.getString(column);
         if (value == null) {

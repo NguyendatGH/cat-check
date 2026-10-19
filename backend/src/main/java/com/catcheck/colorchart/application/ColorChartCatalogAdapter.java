@@ -19,16 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Hiện thực {@link ChartCatalog} (cổng do scan tuyên bố) bằng dữ liệu của module {@code colorchart}.
- *
- * <p>Đây là điểm nối duy nhất giữa hai module: scan không import bất kỳ class nào của
- * colorchart, chỉ biết {@code ChartCatalog}. Chiều phụ thuộc compile-time là
- * colorchart → scan (xem {@code package-info} của colorchart).
- *
- * <p>Map entity → mô hình nội bộ của scan ({@link PhChart}, {@link PhBandClassifier.Band}) tại
- * đây để A6 không phải biết về entity của colorchart.
- */
 @Component
 public class ColorChartCatalogAdapter implements ChartCatalog {
 
@@ -55,7 +45,6 @@ public class ColorChartCatalogAdapter implements ChartCatalog {
                 .map(this::toPhChart);
     }
 
-    /** Backfill L33–L35: bảng màu theo id, không lọc trạng thái (xem javadoc của cổng). */
     @Override
     public Optional<PhChart> findChartById(UUID chartId) {
         return colorChartRepository.findById(chartId).map(this::toPhChart);

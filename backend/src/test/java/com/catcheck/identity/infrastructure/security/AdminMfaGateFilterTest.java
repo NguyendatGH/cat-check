@@ -32,15 +32,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * p8 §8.4.12 điều kiện chung #1 + p11 §11.12.1: mọi {@code /api/v1/admin/**} đòi phiên có
- * {@code mfaLevel = TOTP}.
- *
- * <p>Ba nhánh phải phân biệt được, vì FE xử lý khác nhau: đã enroll mà phiên chưa qua TOTP ⇒
- * {@code ADMIN_TOTP_REQUIRED} (chỉ cần mở hộp nhập mã); chưa enroll ⇒
- * {@code TOTP_SETUP_REQUIRED} (điều hướng cứng sang {@code /admin/setup-2fa}, p14 §14.5.3); đã
- * qua TOTP ⇒ đi tiếp.</p>
- */
 class AdminMfaGateFilterTest {
 
     private static final UUID ADMIN_ID = UUID.fromString("00000000-0000-7000-8000-00000000a001");
@@ -141,7 +132,6 @@ class AdminMfaGateFilterTest {
         assertThat(response.getContentAsString()).contains("\"errorCode\":\"TOTP_SETUP_REQUIRED\"");
     }
 
-    /* ---------------------------------------------------------------- helper */
 
     private MockHttpServletResponse filter(String path) throws Exception {
         RecordingChain chain = new RecordingChain();
@@ -160,7 +150,7 @@ class AdminMfaGateFilterTest {
     private static void authenticate(MfaLevel mfaLevel) {
         AuthPrincipal principal = new AuthPrincipal(
                 ADMIN_ID, "admin@catcheck.vn", Set.of("ADMIN_SUPER"),
-                Instant.parse("2026-10-03T07:00:00Z"), false, mfaLevel);
+                Instant.parse("2026-10-03T07:00:00Z"), null, mfaLevel);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null,
                         List.of(new SimpleGrantedAuthority("ROLE_ADMIN_SUPER"))));
@@ -177,7 +167,6 @@ class AdminMfaGateFilterTest {
         }
     }
 
-    /** {@code user_mfa_totp} một dòng — chỉ hai phương thức mà bộ gác dùng là có nghĩa. */
     private static final class FakeTotpRepository implements MfaTotpRepository {
 
         private final java.util.Map<UUID, MfaTotp> rows = new java.util.HashMap<>();

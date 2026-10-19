@@ -47,27 +47,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * <b>Hồi quy H15.75 — health flag phải nổ ở CHÍNH lần quét kích hoạt nó.</b>
- *
- * <p>{@code ScanSavedEvent} được xử lý đồng bộ, cùng transaction (p7 §7.4.2/§7.4.5), và
- * {@code RuleEvaluationService} đọc lịch sử qua {@link ScanHistoryQuery} — tức bằng SQL thô
- * trên cùng connection, không qua persistence context. Lệnh ghi ORM chỉ xuống DB lúc flush,
- * nên nếu {@code ScanPersistenceService} không gọi
- * {@link ScanRepository#flushPendingWrites()} TRƯỚC khi phát event thì câu SQL đó thiếu đúng
- * scan vừa tạo: R4 {@code streak = 2} cần tới ba lần quét mới nổ.</p>
- *
- * <p>Fake ở đây mô phỏng đúng ranh giới đó: {@link FakeScanStore} chỉ cho
- * {@link ScanHistoryQuery} thấy những hàng ĐÃ flush. Bỏ lời gọi flush trong
- * {@code ScanPersistenceService} là test này đỏ ngay.</p>
- */
 class ScanSavedEventRuleVisibilityTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
     private static final UUID CAT_ID = UUID.fromString("00000000-0000-0000-0000-0000000000c1");
     private static final Instant T0 = Instant.parse("2026-10-03T02:00:00Z");
 
-    /** p6 §6.9.5 R4: hai lần liên tiếp confidence < 0,50 — đúng cặp 0.45/0.45 đã đo thật. */
     private static final BigDecimal LOW_CONFIDENCE = new BigDecimal("0.450");
 
     private final FakeScanStore store = new FakeScanStore();
@@ -118,7 +103,6 @@ class ScanSavedEventRuleVisibilityTest {
                 .containsExactly(scanId);
     }
 
-    // ------------------------------------------------------------------ dàn dựng
 
     private void persistScan(Instant capturedAt, BigDecimal confidence) {
         Clock clock = Clock.fixed(capturedAt, ZoneOffset.UTC);
@@ -140,10 +124,6 @@ class ScanSavedEventRuleVisibilityTest {
                 true, false, false, Optional.empty());
     }
 
-    /**
-     * {@code @EventListener} thường = gọi đồng bộ trong cùng transaction (p7 §7.4.2). Publisher
-     * này mô phỏng đúng vậy: không hoãn, không đổi luồng.
-     */
     private static ApplicationEventPublisher syncPublisherTo(RuleEvaluationService rules) {
         return event -> {
             if (event instanceof ScanSavedEvent saved) {
@@ -152,15 +132,7 @@ class ScanSavedEventRuleVisibilityTest {
         };
     }
 
-    // ------------------------------------------------------------------ fake
 
-    /**
-     * Ba cổng ghi của {@code scan} + cổng đọc mà {@code insight} dùng, chung một "DB" giả.
-     *
-     * <p>Điểm mấu chốt: hàng chỉ sang vùng "nhìn thấy được" khi
-     * {@link #flushPendingWrites()} được gọi — đúng ranh giới giữa persistence context của ORM
-     * và câu SQL thô mà {@code JdbcScanQueryRepository} chạy.</p>
-     */
     private static final class FakeScanStore
             implements ScanRepository, ScanImageRepository, ScanHistoryQuery {
 
@@ -192,8 +164,6 @@ class ScanSavedEventRuleVisibilityTest {
 
         @Override
         public List<RecentScan> recentValidScans(UUID catId, Instant since, int limit) {
-            // Chép đúng bộ lọc của JdbcScanQueryRepository.findRecentForRules: ASSIGNED,
-            // ANALYZED, có current_analysis_id, captured_at >= since, mới nhất trước.
             return visibleScans.values().stream()
                     .filter(s -> catId.equals(s.getCatId()))
                     .filter(s -> s.getAssignment() == ScanAssignment.ASSIGNED)
@@ -233,11 +203,6 @@ class ScanSavedEventRuleVisibilityTest {
             return Optional.empty();
         }
 
-        /**
-         * {@code ScanRepository.findById} và {@code ScanAnalysisRepository.findById} có cùng
-         * chữ ký nhưng khác kiểu trả về, nên một lớp Java không thể hiện thực cả hai — tách
-         * thành cổng con ghi vào đúng vùng pending của store cha.
-         */
         ScanAnalysisRepository analyses() {
             return new ScanAnalysisRepository() {
 
@@ -257,7 +222,6 @@ class ScanSavedEventRuleVisibilityTest {
                     return List.of();
                 }
 
-                /** Backfill L33-L35 khong lien quan test nay — cong van phai hien thuc. */
                 @Override
                 public List<ScanAnalysis> findBackfillCandidates(UUID chartId, Instant computedFrom,
                                                                  String engineVersionPrefix,
@@ -331,7 +295,6 @@ class ScanSavedEventRuleVisibilityTest {
         }
     }
 
-    /** Chỉ bật R4; R1–R3 tắt để test nói về đúng một rule. */
     private record FixedRuleRepository(Instant now) implements MonitoringRuleRepository {
 
         @Override
@@ -361,14 +324,12 @@ class ScanSavedEventRuleVisibilityTest {
             return findAllEnabled();
         }
 
-        /** L39 khong lien quan test nay — cong van phai hien thuc. */
         @Override
         public MonitoringRule saveAndReload(MonitoringRule rule) {
             return rule;
         }
     }
 
-    /** Chế độ trial: không đụng {@code credit_batch}, không ghi ledger (p5 R6). */
     private static final class TrialOnlyCreditConsumption implements CreditConsumption {
 
         @Override
@@ -397,7 +358,6 @@ class ScanSavedEventRuleVisibilityTest {
         }
     }
 
-    /** Bảng màu tối thiểu — chép từ {@code ManualPipelineOutcomeFactoryTest}. */
     private static final class FixedChartCatalog implements ChartCatalog {
 
         @Override
@@ -411,7 +371,6 @@ class ScanSavedEventRuleVisibilityTest {
                     PhChart.Status.ACTIVE, "D65", 2, true, points, DeltaE2000Params.CAT_CHECK));
         }
 
-        /** Backfill L33-L35 khong dung o hai test nay — cong van phai hien thuc. */
         @Override
         public Optional<PhChart> findChartById(java.util.UUID chartId) {
             return findActiveChart("STANDARD", null);

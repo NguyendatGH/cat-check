@@ -1,0 +1,182 @@
+{
+  "disclaimer": "CatCheck helps you track litter color and pH readings at home. It does not replace a veterinarian. If your cat shows unusual signs, take them to a vet clinic.",
+  "category": {
+    "ALL": "All",
+    "QA": "Q&A",
+    "TIP": "Care tips",
+    "EXPERIENCE": "Experiences"
+  },
+  "rules": {
+    "title": "Community rules",
+    "intro": "A few things that keep the community helpful:",
+    "respect": "Be respectful and don't judge how others care for their cats.",
+    "noDiagnosis": "Share what you observe; don't diagnose in place of a vet.",
+    "privacy": "Don't share your own or other people's personal information."
+  },
+  "feed": {
+    "title": "CatCheck Community",
+    "subtitle": "Where cat owners share experiences observing litter color and pH readings at home.",
+    "postCount": "{{formattedCount}} posts",
+    "newPostCta": "New post",
+    "filterLabel": "Filter by category",
+    "composeFab": "Create post",
+    "composerPlaceholder": "Share an observation or ask the community a question…",
+    "composerSubmit": "Post discussion",
+    "loadMore": "Show more posts",
+    "loadingMore": "Loading more…",
+    "loadMoreError": "Couldn't load more posts. Please try again."
+  },
+  "empty": {
+    "title": "No posts yet",
+    "body": "The community is still empty. Be the first to share — a question, an observation about litter color, or a small tip you've picked up caring for your cat.",
+    "cta": "Write the first post",
+    "filterTitle": "No posts in this category yet",
+    "filterBody": "Try the “All” category, or start a new discussion yourself."
+  },
+  "post": {
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share",
+    "bookmark": "Save",
+    "bookmarked": "Saved",
+    "bookmarkLabel": "Save post",
+    "postedAt": "Posted {{time}}",
+    "more": "More options",
+    "shareCopied": "Post link copied.",
+    "shareFailed": "Couldn't copy the link. Please try again.",
+    "reactionError": "Couldn't update like/save. Please try again."
+  },
+  "detail": {
+    "pageTitle": "Community post",
+    "backToFeed": "Back to community",
+    "breadcrumb": "Breadcrumb",
+    "commentsTitle": "Community discussion",
+    "commentCount": "{{formattedCount}} comments",
+    "noComments": "No comments yet. Be the first to share your thoughts on this post.",
+    "commentLabel": "Your comment",
+    "commentPlaceholder": "Share your experience or ask the author a question…",
+    "commentPlaceholderShort": "Write a comment…",
+    "commentSend": "Post comment",
+    "commentSending": "Sending…",
+    "commentTooLong": "Comments can be up to {{max}} characters.",
+    "commentError": "Couldn't post your comment. Please try again.",
+    "notFoundTitle": "Post not found",
+    "notFoundBody": "This post doesn't exist or has been removed from the community.",
+    "errorTitle": "Couldn't load the post",
+    "errorBody": "Something went wrong while loading the content. Please try again later.",
+    "commentImageOnly": "Attached image",
+    "reply": "Reply",
+    "replyTo": "replied to {{name}}",
+    "replyingTo": "Replying to {{name}}",
+    "replyCancel": "Cancel reply",
+    "replyLabel": "Your reply",
+    "replyPlaceholder": "Write a reply…",
+    "replySend": "Send reply",
+    "repliesLabel": "Replies to {{name}}'s comment",
+    "showMoreReplies": "Show {{count}} more replies",
+    "hideReplies": "Hide replies",
+    "loadingReplies": "Loading replies…",
+    "repliesError": "Couldn't load replies. Please try again.",
+    "attachImage": "Attach image",
+    "removeImage": "Remove image",
+    "imagePreviewAlt": "Image to attach to your comment",
+    "commentImageAlt": "Image in {{name}}'s comment",
+    "viewImage": "View full size",
+    "imageViewerTitle": "Comment image",
+    "commentErrors": {
+      "parentGone": "The comment you're replying to is no longer visible.",
+      "postGone": "This post no longer exists.",
+      "imageType": "Only JPG, PNG or WebP images are supported.",
+      "imageSize": "Image exceeds {{max}} MB.",
+      "rateLimited": "You're commenting too quickly. Please try again later.",
+      "generic": "Couldn't post your comment. Please try again."
+    },
+    "likeComment": "Like comment"
+  },
+  "report": {
+    "action": "Report",
+    "titlePost": "Report post",
+    "titleComment": "Report comment",
+    "description": "Our moderators will review this content against the community rules.",
+    "reasonLabel": "Reason for report",
+    "reasons": {
+      "SPAM": "Spam or advertising",
+      "MISLEADING": "False or misleading information",
+      "HARASSMENT": "Insults or harassment",
+      "PRIVACY": "Exposes personal information",
+      "OTHER": "Other reason"
+    },
+    "detailsLabel": "Additional details",
+    "detailsOptional": "Optional",
+    "detailsRequired": "Required when “Other reason” is selected",
+    "detailsPlaceholder": "How does this content break the rules?",
+    "reasonMissing": "Please choose a reason.",
+    "detailsMissing": "Please briefly describe the reason.",
+    "detailsTooLong": "Details can be up to {{max}} characters.",
+    "cancel": "Cancel",
+    "submit": "Submit report",
+    "submitting": "Sending…",
+    "success": "Report sent to our moderators. Thank you.",
+    "errors": {
+      "duplicate": "You've already reported this content.",
+      "notFound": "This content no longer exists.",
+      "ownContent": "You can't report your own content.",
+      "generic": "Couldn't send the report. Please try again."
+    }
+  },
+  "newPost": {
+    "title": "New post",
+    "subtitle": "Describe your observation in detail so the community can help.",
+    "publishNotice": "Posts are public as soon as they're published and may be removed if they break the rules.",
+    "categoryLabel": "Category",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Summarize what you want to share",
+    "bodyLabel": "Content",
+    "bodyPlaceholder": "What did you notice? Has your cat changed anything in eating, drinking or daily habits?",
+    "counter": "{{count}}/{{max}}",
+    "errors": {
+      "titleRequired": "Please enter a title.",
+      "bodyRequired": "Please enter some content.",
+      "tagTooLong": "Each hashtag can be up to {{max}} characters.",
+      "submit": "Couldn't publish the post. Please check the content and try again.",
+      "session": "Your session has expired. Please sign in again and retry.",
+      "tooManyTags": "Up to {{max}} hashtags."
+    },
+    "submit": "Publish",
+    "submitting": "Publishing…",
+    "cancel": "Cancel",
+    "hashtag": {
+      "label": "Hashtags",
+      "hint": "Add topics so people can find your post. Press Enter or comma to add, up to {{max}}, optional.",
+      "placeholder": "Type a topic, e.g. litter color",
+      "suggested": "Suggestions",
+      "add": "Add #{{tag}}",
+      "remove": "Remove #{{tag}}",
+      "count": "{{count}}/{{max}}"
+    },
+    "suggestedTags": {
+      "QA": "q&a,litter color,switching litter,urine ph,litter habits",
+      "TIP": "care tips,litter box cleaning,choosing litter,hydration,nutrition",
+      "EXPERIENCE": "experience,kitten,senior cat,changing litter,ph tracking"
+    },
+    "image": {
+      "label": "Image",
+      "optional": "optional",
+      "add": "Add image",
+      "dropHint": "Drag and drop or choose a JPG, PNG or WebP image, up to {{max}} MB",
+      "remove": "Remove image",
+      "change": "Change image",
+      "previewAlt": "Image preview",
+      "uploading": "Uploading image… {{percent}}%",
+      "errors": {
+        "type": "Only JPG, PNG or WebP images are supported.",
+        "size": "Image exceeds {{max}} MB.",
+        "upload": "Your post was published, but the image couldn't be uploaded."
+      }
+    }
+  },
+  "api": {
+    "error": "Couldn't load the community feed.",
+    "errorBody": "Please check your connection and try again."
+  }
+}

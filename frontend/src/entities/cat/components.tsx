@@ -4,11 +4,6 @@ import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui";
 import type { Cat } from "./model";
 
-/**
- * UI dùng chung cho mèo (p10 §5.2 `CatAvatar`/`CatCard`, p9 §9.2.4 `entities/cat/ui`).
- * Dùng bởi `features/cat` và các feature khác cần hiển thị mèo (`scan`, `history`, `trends`).
- * Component thuần hiển thị — không gọi API, không đọc store.
- */
 
 const AVATAR_SIZE_CLASS = {
   sm: "size-8 text-caption",
@@ -24,7 +19,6 @@ export interface CatAvatarProps {
   className?: string;
 }
 
-/** Ảnh đại diện mèo — fallback chữ cái đầu tên khi chưa có ảnh (không có ảnh mặc định giả). */
 export function CatAvatar({ src, name, size = "md", className }: CatAvatarProps) {
   const initial = name.trim().charAt(0).toUpperCase();
   const [imageFailed, setImageFailed] = useState(false);
@@ -67,16 +61,11 @@ export interface CatCardProps {
   primaryLabel?: string;
   archivedLabel?: string;
   ageLabel?: string;
-  /**
-   * Nhãn vai trò hiện thành badge dưới tên (mockup `10`: "Mèo chính" / "Mèo phụ") — tính từ
-   * `isPrimary` ở nơi gọi. Bỏ trống thì không vẽ badge.
-   */
   roleLabel?: string;
   onSelect?: (cat: Cat) => void;
   className?: string;
 }
 
-/** Thẻ tóm tắt 1 con mèo — dùng cho `/cats`, Select Cat, dashboard. */
 export function CatCard({
   cat,
   selected = false,
@@ -105,8 +94,6 @@ export function CatCard({
         className,
       )}
     >
-      {/* Thẻ đang chọn có nền `chip-bg` trùng nền avatar chữ cái — đổi avatar sang nền trắng
-          để vòng tròn không "biến mất". */}
       <CatAvatar
         src={cat.avatarUrl}
         name={cat.name}

@@ -1,14 +1,17 @@
 package com.catcheck.place.api;
 
 import com.catcheck.place.application.PlaceService;
+import com.catcheck.place.domain.ExternalPlace;
 import com.catcheck.place.domain.port.NearbyPlaceSource;
 import com.catcheck.place.domain.port.PlaceRepository;
+import com.catcheck.shared.i18n.MessageResolver;
 import com.catcheck.shared.testing.AdminApiMockMvc;
 import com.catcheck.shared.testing.TestPrincipal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -16,6 +19,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,11 +31,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PlaceControllerTest {
 
     private final PlaceService service = Mockito.mock(PlaceService.class);
+    private final MessageResolver messageResolver = unnamedMessageResolver();
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = AdminApiMockMvc.build(new PlaceController(service));
+        mockMvc = AdminApiMockMvc.build(new PlaceController(service, messageResolver));
         AdminApiMockMvc.authenticate(TestPrincipal.withRoles("USER"));
     }
 
@@ -54,10 +59,6 @@ class PlaceControllerTest {
         Mockito.verifyNoInteractions(service);
     }
 
-    /**
-     * {@code uq_place_booking_slot} so khớp chuỗi {@code time_slot} nguyên văn: "9:00" và "09:00"
-     * là hai khoá khác nhau, nên cùng một khung giờ đặt được hai lần nếu API nhận chuỗi tự do.
-     */
     @Test
     void timeSlotMustBeCanonicalHourMinuteSoTheSlotUniqueKeyCannotBeBypassed() throws Exception {
         String tomorrow = LocalDate.now().plusDays(1).toString();
@@ -73,7 +74,6 @@ class PlaceControllerTest {
         Mockito.verifyNoInteractions(service);
     }
 
-    /** {@code service_code VARCHAR(48)}: chuỗi dài hơn phải là 400, không được rơi xuống DB thành 500. */
     @Test
     void serviceCodeLongerThanTheColumnIsRejectedAsValidationError() throws Exception {
         String tomorrow = LocalDate.now().plusDays(1).toString();
@@ -102,7 +102,6 @@ class PlaceControllerTest {
                 Mockito.eq(tomorrow), Mockito.eq("09:00"), Mockito.isNull());
     }
 
-    // --- GET /places/nearby: kiểm tham số ở biên API và ánh xạ lỗi nguồn OSM thành 503 nghiệp vụ ---
 
     private ResultActions nearby(MockMvc target, String latitude, String longitude, String radiusKm) throws Exception {
         var request = get("/api/v1/places/nearby").param("latitude", latitude).param("longitude", longitude);
@@ -110,7 +109,6 @@ class PlaceControllerTest {
         return target.perform(request);
     }
 
-    /** Bán kính (mét) service nhận ở lần gọi duy nhất; đọc qua {@link Number} để không phụ thuộc int/long. */
     private long radiusMetersPassedToService() {
         var invocations = Mockito.mockingDetails(service).getInvocations();
         assertThat(invocations).hasSize(1);
@@ -149,7 +147,6 @@ class PlaceControllerTest {
         Mockito.verifyNoInteractions(service);
     }
 
-    /** Toạ độ là dữ liệu vị trí: thân lỗi 400 không được phản hồi lại giá trị client gửi. */
     @Test
     void nonNumericValuesAre400AndTheBodyDoesNotEchoThem() throws Exception {
         String body = nearby(mockMvc, "10.77,106.70", "105.8", "mười")
@@ -187,7 +184,28 @@ class PlaceControllerTest {
     }
 
     private MockMvc mvcWithUpstream(NearbyPlaceSource source) {
-        return AdminApiMockMvc.build(new PlaceController(new PlaceService(Mockito.mock(PlaceRepository.class), source)));
+        return AdminApiMockMvc.build(new PlaceController(
+                new PlaceService(Mockito.mock(PlaceRepository.class), source), messageResolver));
+    }
+
+    private static MessageResolver unnamedMessageResolver() {
+        StaticMessageSource messages = new StaticMessageSource();
+        messages.addMessage("place.unnamed", Locale.forLanguageTag("vi"), "Phòng khám thú y (chưa rõ tên)");
+        messages.addMessage("place.unnamed", Locale.ENGLISH, "Veterinary clinic (name unknown)");
+        return new MessageResolver(messages);
+    }
+
+    @Test
+    void osmPlaceWithoutANameGetsTheUnnamedLabelInTheRequestLanguage() throws Exception {
+        MockMvc realService = mvcWithUpstream((lat, lon, radius) -> java.util.List.of(
+                new ExternalPlace("osm:node/1", null, "CLINIC", "", "", 10.77, 106.7, null, java.util.List.of())));
+
+        nearby(realService, "10.77", "106.7", null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Veterinary clinic (name unknown)"));
+        realService.perform(get("/api/v1/places/nearby").param("latitude", "10.77").param("longitude", "106.7")
+                        .locale(Locale.forLanguageTag("vi")))
+                .andExpect(jsonPath("$[0].name").value("Phòng khám thú y (chưa rõ tên)"));
     }
 
     @Test

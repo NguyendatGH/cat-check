@@ -2,12 +2,6 @@ import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 
-/**
- * Fetch wrapper tối thiểu cho `features/credit` — cùng quy ước với
- * `features/onboarding/api.ts` / `features/cat/api.ts` (base `/api/v1`, CSRF,
- * Idempotency-Key, ProblemDetail → `ApiError`). W3 nối API thật: thay bằng `apiClient`
- * khi `schema.d.ts` sinh thật, giữ nguyên chữ ký hàm exported từ `hooks.ts`.
- */
 const BASE_URL = "/api/v1";
 
 interface ProblemDetail {
@@ -18,7 +12,6 @@ interface ProblemDetail {
   instance: string;
   code?: string;
   params?: Record<string, unknown>;
-  /** Backend set đúng field này (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
   errorCode?: string;
 }
 
@@ -53,7 +46,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // body không phải JSON — bỏ qua, dùng message mặc định
+      // Non-JSON error body: fall back to the HTTP status below.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

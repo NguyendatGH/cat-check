@@ -21,15 +21,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Trùng {@code dedupe_key} trong transaction của {@code POST /scans} không được làm hỏng
- * transaction đó.
- *
- * <p>Bản cũ INSERT rồi bắt {@code DataIntegrityViolationException}; trên Postgres thật câu lệnh
- * kế tiếp nhận "current transaction is aborted" (đã thử bằng psql) nên lần quét thứ ba liên tiếp
- * cùng cooldown trả 500. Không Docker — nối Postgres local như
- * {@code JdbcShopRepositoryCheckoutRaceIntegrationTest}.</p>
- */
 class HealthFlagDedupeIntegrationTest {
 
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
@@ -74,7 +65,6 @@ class HealthFlagDedupeIntegrationTest {
             assertThat(adapter.saveIfNotDuplicate(flag(dedupeKey))).isPresent();
             Optional<HealthFlag> second = adapter.saveIfNotDuplicate(flag(dedupeKey));
             assertThat(second).isEmpty();
-            // Câu lệnh tiếp theo trong CÙNG transaction — đúng chỗ rule kế tiếp đọc lịch sử scan.
             return jdbc.queryForObject("SELECT count(*) FROM health_flag WHERE cat_id = ?", Long.class, catId);
         });
 
@@ -91,7 +81,6 @@ class HealthFlagDedupeIntegrationTest {
                 "test", dedupeKey, now);
     }
 
-    /** {@code ck_cat_public_code}: {@code CC-VN-} + 6 ký tự Crockford Base32. */
     private static String publicCode() {
         String alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
         StringBuilder code = new StringBuilder("CC-VN-");

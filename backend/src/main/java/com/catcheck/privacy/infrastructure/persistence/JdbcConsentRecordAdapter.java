@@ -19,17 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link ConsentRecordPort} trên {@code JdbcTemplate}.
- *
- * <p>Bảng append-only (bất biến I16): adapter CHỈ có INSERT + SELECT, không có
- * UPDATE/DELETE — V6 đã REVOKE quyền đó khỏi {@code catcheck_app}. Rút đồng ý = INSERT
- * dòng {@code WITHDRAWN} + {@code supersedes_id} (p15 §15.3.5).</p>
- *
- * <p>Trạng thái hiện hành đọc qua view {@code consent_current} (DISTINCT ON — p4 B2),
- * KHÔNG đọc rồi tự tính trong code: view là nguồn sự thật duy nhất, lệch ở đây là lệch
- * bằng chứng pháp lý.</p>
- */
 @Repository
 public class JdbcConsentRecordAdapter implements ConsentRecordPort {
 
@@ -109,9 +98,6 @@ public class JdbcConsentRecordAdapter implements ConsentRecordPort {
 
     @Override
     public List<ConsentRecord> findHistoryByUser(UUID userId, Instant before, UUID beforeId, int limit) {
-        // Keyset theo CẶP (occurred_at, id): nhiều mục đích được ghi trong cùng transaction nên
-        // trùng occurred_at tới microsecond — chỉ so occurred_at sẽ bỏ sót dòng ở biên trang.
-        // ORDER BY phải khớp đúng cặp đó, nếu không LIMIT cắt sai dòng.
         return jdbc.query("""
                 SELECT\s""" + COLUMNS + """
                   FROM consent_record

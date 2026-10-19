@@ -2,23 +2,25 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import {
-  Activity,
   ArrowRight,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   ClipboardPaste,
-  FileText,
   HelpCircle,
+  MessageCircle,
   PartyPopper,
+  ScanLine,
   ShieldAlert,
   ShoppingBag,
   Sparkles,
   Ticket,
   X,
 } from "lucide-react";
-import { Badge, Button, Card } from "@/shared/ui";
+import { Badge, Button, Card, SkeletonLoader, celebrate } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { isApiError } from "@/shared/api";
 import {
   ActivationCodeField,
@@ -26,25 +28,12 @@ import {
   formatActivationCode,
   useActivateCode,
   useCreditBalance,
+  usePackageCatalog,
   type ActivationResult,
+  type PackagePlan,
 } from "@/features/credit";
 import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
 
-/**
- * `/credits/activate` — p5 R1 · C05 (p9 §9.4.6).
- *
- * Màn kích hoạt mã credit độc lập trong tài khoản/settings — KHÔNG phải bước onboarding.
- *
- * MOTION & HIỆU ỨNG NỔI BẬT:
- * - GSAP Staggered Entrance (`usePageReveal` + `data-reveal`): trượt mượt mà theo tầng thứ tự khi vào trang.
- * - Ambient Glow Backdrops: 2 vầng sáng nền mềm mại (`animate-pulse-glow`) tạo chiều sâu thị giác.
- * - Float Badge: Biểu tượng vé (`Ticket`) lơ lửng nhẹ nhàng (`animate-float-slow`) trên nền gradient.
- * - Tactile Focus: Form card nhận diện focus với vòng sáng thương hiệu (`focus-within:ring-4`).
- * - Pop Spring Badge: Huy hiệu kiểm tra định dạng bật nảy tự nhiên (`animate-pop-spring`) khi mã hợp lệ.
- * - Smooth Accordion: Thao tác mở/đóng hướng dẫn mượt mà không giật layout qua CSS grid rows.
- * - Shimmer Sweep: Hiệu ứng tia sáng quét ngang nút CTA chính và thẻ thưởng kết quả (`shimmer-effect`).
- * - Hover & Lift: Tương tác nhấc nhẹ thẻ quyền lợi và xoay góc icon khi hover/chạm.
- */
 export function CreditsActivatePage() {
   const { t } = useTranslation(["credit", "common"]);
   const navigate = useNavigate();
@@ -77,7 +66,7 @@ export function CreditsActivatePage() {
         }, 2000);
       }
     } catch {
-      // Bỏ qua nếu trình duyệt chặn quyền đọc clipboard
+      // Clipboard access denied or unavailable: the user can still type the code.
     }
   };
 
@@ -101,6 +90,7 @@ export function CreditsActivatePage() {
     try {
       const result = await activateCode.mutateAsync(formatActivationCode(code));
       setSuccess(result);
+      celebrate();
     } catch (error) {
       if (isApiError(error)) {
         switch (error.code) {
@@ -129,7 +119,6 @@ export function CreditsActivatePage() {
     return (
       <div ref={pageRef} className="mx-auto flex w-full max-w-md flex-col gap-6 lg:max-w-[560px]">
         <Card data-reveal padding="lg" elevated className="relative flex flex-col items-center gap-5 overflow-hidden text-center">
-          {/* Vầng sáng nền chúc mừng */}
           <div
             className="pointer-events-none absolute -top-12 size-48 rounded-full bg-success/20 blur-3xl animate-pulse-glow"
             aria-hidden="true"
@@ -148,7 +137,6 @@ export function CreditsActivatePage() {
             </p>
           </div>
 
-          {/* Badge nhận credit nổi bật với hiệu ứng quét tia sáng shimmer */}
           <div className="shimmer-effect flex w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-r from-primary to-primary-dark p-5 text-white shadow-brand-md animate-pop-spring">
             <span className="text-overline font-semibold uppercase tracking-wider text-on-primary-subtle">
               {t("activate.success.creditsLabel")}
@@ -158,7 +146,6 @@ export function CreditsActivatePage() {
             </span>
           </div>
 
-          {/* Chi tiết giao dịch dạng vé bảo mật */}
           <div className="w-full rounded-xl border border-dashed border-border-strong bg-background-alt p-4">
             <dl className="flex flex-col gap-3 text-left">
               <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-2.5">
@@ -170,7 +157,7 @@ export function CreditsActivatePage() {
               <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-2.5">
                 <dt className="text-caption font-medium text-text-secondary">{t("activate.success.expiresLabel")}</dt>
                 <dd className="text-caption font-semibold text-text-primary">
-                  {new Date(success.expiresAt).toLocaleDateString("vi-VN")}
+                  {new Date(success.expiresAt).toLocaleDateString(intlLocale())}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4">
@@ -182,7 +169,6 @@ export function CreditsActivatePage() {
             </dl>
           </div>
 
-          {/* Nút hành động */}
           <div className="flex w-full flex-col gap-3 pt-2">
             <Button
               type="button"
@@ -214,12 +200,10 @@ export function CreditsActivatePage() {
 
   return (
     <div ref={pageRef} className="mx-auto flex w-full max-w-md flex-col gap-5 pb-8 lg:max-w-[560px] lg:gap-6">
-      {/* 1. Header Hero Card với vầng sáng nền và icon trôi nổi */}
       <div
         data-reveal
         className="relative overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/10 via-background-alt to-secondary/15 p-5 shadow-xs"
       >
-        {/* Vầng sáng nền mềm mại */}
         <div
           className="pointer-events-none absolute -right-8 -top-8 size-40 rounded-full bg-secondary/25 blur-2xl animate-pulse-glow"
           aria-hidden="true"
@@ -241,7 +225,6 @@ export function CreditsActivatePage() {
           </div>
         </div>
 
-        {/* Số dư khả dụng hiện tại */}
         {balance ? (
           <div className="relative mt-4 flex items-center justify-between rounded-xl border border-primary/10 bg-surface/90 px-3.5 py-2.5 backdrop-blur-xs transition-shadow hover:shadow-xs">
             <div className="flex items-center gap-2">
@@ -255,7 +238,6 @@ export function CreditsActivatePage() {
         ) : null}
       </div>
 
-      {/* 2. Form nhập mã kích hoạt với micro-interactions */}
       <Card
         data-reveal
         padding="md"
@@ -369,7 +351,6 @@ export function CreditsActivatePage() {
         </div>
       </Card>
 
-      {/* 3. Hướng dẫn lấy mã kích hoạt với chuyển động mượt mà (smooth grid transition) */}
       <div data-reveal className="overflow-hidden rounded-2xl border border-border/70 bg-surface shadow-xs transition-all">
         <button
           type="button"
@@ -426,7 +407,6 @@ export function CreditsActivatePage() {
               </div>
             </div>
 
-            {/* Lối tắt đến Cửa hàng */}
             <div className="mt-3 flex items-center justify-between rounded-xl border border-secondary/40 bg-secondary/10 p-3 transition-colors hover:bg-secondary/15">
               <div>
                 <p className="text-caption font-semibold text-text-primary">{t("activate.shopPrompt")}</p>
@@ -449,55 +429,84 @@ export function CreditsActivatePage() {
         </div>
       </div>
 
-      {/* 4. Quyền lợi tính năng dạng thẻ nổi bật với hover lift và icon pop */}
       <section data-reveal className="flex flex-col gap-3">
         <h2 className="text-overline font-bold uppercase tracking-wider text-text-tertiary">
           {t("activate.perksTitle")}
         </h2>
-        <div className="flex flex-col gap-2.5">
-          <div className="group flex items-start gap-3.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-brand-md">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
-              <Activity className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-body font-bold text-text-primary transition-colors group-hover:text-primary">
-                {t("activate.perk1Title")}
-              </p>
-              <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
-                {t("activate.perk1Desc")}
-              </p>
-            </div>
-          </div>
-
-          <div className="group flex items-start gap-3.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-warning/40 hover:shadow-brand-md">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning-bg text-warning-text transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
-              <ShieldAlert className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-body font-bold text-text-primary transition-colors group-hover:text-warning-text">
-                {t("activate.perk2Title")}
-              </p>
-              <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
-                {t("activate.perk2Desc")}
-              </p>
-            </div>
-          </div>
-
-          <div className="group flex items-start gap-3.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-brand-md">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-chip-bg text-primary-dark transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
-              <FileText className="size-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-body font-bold text-text-primary transition-colors group-hover:text-primary-dark">
-                {t("activate.perk3Title")}
-              </p>
-              <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
-                {t("activate.perk3Desc")}
-              </p>
-            </div>
-          </div>
-        </div>
+        <PackagePerks />
       </section>
+    </div>
+  );
+}
+
+// Mirrors backend AiChatRateLimitRule.AI_CHAT_BY_USER ("20/1h"); chat does not consume credits.
+const AI_CHAT_MESSAGES_PER_HOUR = 20;
+
+function PackagePerks() {
+  const { t } = useTranslation("credit");
+  const { data: packages, isPending, isError } = usePackageCatalog();
+
+  const featuresOf = (plan: PackagePlan) =>
+    [
+      plan.historyLevel === "ADVANCED"
+        ? t("activate.perks.historyAdvanced")
+        : plan.historyLevel === "BASIC"
+          ? t("activate.perks.historyBasic")
+          : null,
+      plan.hasTrend ? t("activate.perks.trend") : null,
+      plan.hasReminder ? t("activate.perks.reminder") : null,
+      plan.hasExport ? t("activate.perks.export") : null,
+      plan.storeImage ? t("activate.perks.storeImage") : null,
+      plan.maxCatProfiles === null
+        ? t("activate.perks.catsUnlimited")
+        : t("activate.perks.cats", { count: plan.maxCatProfiles }),
+    ].filter((item): item is string => item !== null);
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-start gap-3.5 rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <MessageCircle className="size-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-body font-bold text-text-primary">{t("activate.perks.aiTitle")}</p>
+          <p className="mt-0.5 text-caption leading-relaxed text-text-secondary">
+            {t("activate.perks.aiDesc", { count: AI_CHAT_MESSAGES_PER_HOUR })}
+          </p>
+        </div>
+      </div>
+
+      {isPending ? (
+        <SkeletonLoader shape="card" />
+      ) : isError ? (
+        <p className="text-caption text-text-secondary">{t("activate.perks.loadError")}</p>
+      ) : (
+        packages.map((plan) => (
+          <div key={plan.code} className="flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-surface p-3.5 shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 text-body font-bold text-text-primary">{plan.name}</p>
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-secondary-light px-2.5 py-1 text-caption font-bold text-secondary-text-on">
+                <ScanLine className="size-3.5" aria-hidden="true" />
+                {t("activate.perks.scans", { count: plan.creditAmount })}
+              </span>
+            </div>
+            <p className="text-caption text-text-secondary">
+              {t("activate.perks.validity", { count: plan.creditValidityDays })}
+            </p>
+            <ul className="flex flex-wrap gap-1.5">
+              {featuresOf(plan).map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-center gap-1 rounded-full bg-chip-bg px-2.5 py-1 text-small font-medium text-text-primary"
+                >
+                  <Check className="size-3 text-primary" aria-hidden="true" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
     </div>
   );
 }

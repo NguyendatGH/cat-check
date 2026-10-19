@@ -15,7 +15,6 @@ export function validCoordinates(latitude: unknown, longitude: unknown): boolean
   );
 }
 
-/** One bounded request. Only commit the best fresh fix when acquisition finishes. */
 export function acquireLocation(
   geolocation: Geolocation,
   onSuccess: (location: UserLocation) => void,
@@ -40,7 +39,6 @@ export function acquireLocation(
   try {
     watchId = geolocation.watchPosition(
       (position) => {
-        // Providers may timestamp a fresh fix just before the watch was registered.
         if (!active || !Number.isFinite(position.timestamp) || position.timestamp < startedAt - 5_000) return;
         const { latitude, longitude, accuracy } = position.coords;
         if (!validCoordinates(latitude, longitude) || !Number.isFinite(accuracy) || accuracy <= 0) return;
@@ -53,7 +51,6 @@ export function acquireLocation(
           cancel();
           onFailure("denied");
         }
-        // Temporary errors need not terminate the watch; it may still obtain a fix.
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 },
     );

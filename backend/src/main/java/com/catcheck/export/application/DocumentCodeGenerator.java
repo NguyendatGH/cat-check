@@ -7,11 +7,6 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.ZoneOffset;
 
-/**
- * Sinh mã tài liệu {@code CC-EXP-{năm}-{6 chữ số}} in ở chân trang PDF (p4 G1, p13 §13.6.2,
- * p8 §8.1.3). Thử lại tối đa vài lần nếu trùng {@code UNIQUE(document_code)} — không gian
- * 900.000 tổ hợp/năm đủ để va chạm gần như không xảy ra, nhưng vẫn kiểm tường minh.
- */
 @Component
 public class DocumentCodeGenerator {
 

@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, KeyRound, Loader2, Monitor, ShieldCheck } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   RecoveryCodeGrid,
   useChangePassword,
@@ -17,19 +18,9 @@ import {
   useTotpStatus,
 } from "@/features/auth";
 
-/**
- * `/settings/security` — mật khẩu, xác thực hai lớp, thiết bị đăng nhập.
- *
- * Nối API thật: `POST /account/password` (B6), `GET|POST|DELETE /account/mfa/totp*`
- * (B13-B17), `GET|DELETE /auth/sessions` + `POST /auth/sessions/revoke-all` (A14-A16).
- * Thiết kế `Web - 16` chỉ có một lối vào "Bảo mật tài khoản" ở cột điều hướng, không có frame
- * chi tiết — trang này dựng theo đúng tone card/token của bộ thiết kế.
- *
- * Trang nằm trong `TaskLayout`: layout cấp `px-4 py-6` + hộp 944px, trang không tự thêm.
- */
 
 function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  return new Date(value).toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" });
 }
 
 export function SettingsSecurityPage() {
@@ -39,7 +30,6 @@ export function SettingsSecurityPage() {
   const changePassword = useChangePassword();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  // Khớp ràng buộc backend `ChangePasswordRequest.newPassword` (8..72 ký tự).
   const newPasswordInvalid = newPassword.length > 0 && (newPassword.length < 8 || newPassword.length > 72);
 
   const { data: totp } = useTotpStatus();
@@ -70,7 +60,6 @@ export function SettingsSecurityPage() {
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
-          {/* ---------- Đổi mật khẩu (B6) ---------- */}
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -80,7 +69,6 @@ export function SettingsSecurityPage() {
                   onSuccess: () => {
                     setCurrentPassword("");
                     setNewPassword("");
-                    // Server thu hồi mọi phiên khác — danh sách thiết bị đã khác.
                     invalidateSessions();
                   },
                 },
@@ -141,7 +129,6 @@ export function SettingsSecurityPage() {
             </div>
           </form>
 
-          {/* ---------- Thiết bị đăng nhập (A14-A16) ---------- */}
           <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
@@ -213,10 +200,7 @@ export function SettingsSecurityPage() {
           </section>
         </div>
 
-        {/* ---------- TOTP (B13-B17) ---------- */}
         <section className="flex w-full flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md xl:w-[360px] xl:shrink-0">
-          {/* Tiêu đề một dòng riêng, nhãn trạng thái xuống dòng dưới: cột 360px không đủ chỗ
-              cho cả hai trên một hàng — để chung thì tiêu đề bị bẻ đôi. */}
           <h2 className="flex items-center gap-2 text-h3 font-bold text-text-primary">
             <ShieldCheck size={18} className="shrink-0 text-primary-dark" aria-hidden="true" />
             {t("security.sectionMfa")}

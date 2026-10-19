@@ -14,17 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Spring Data repository cho {@code care_tip}.
- *
- * <p>Nằm ở {@code infrastructure.persistence} vì R7 chỉ cho phép class trong package này phụ thuộc
- * {@code org.springframework.data..} và {@code jakarta.persistence.criteria..}. Tầng application
- * không được biết tới interface này — nó chỉ biết {@code CareTipRepository} ở
- * {@code content.domain.port} (R2).</p>
- *
- * <p>Mọi truy vấn đều lọc {@code deleted_at IS NULL} ở tầng DB, không lọc ở tầng Java: nếu lọc
- * sau khi lấy, trang cuối sẽ thiếu bản ghi và client phải load nhiều hơn một vòng.</p>
- */
 interface CareTipJpaRepository extends JpaRepository<CareTip, UUID> {
 
     @Query("""

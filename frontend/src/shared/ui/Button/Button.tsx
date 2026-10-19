@@ -6,7 +6,6 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, Bu
   leftIcon?: ReactNode;
 }
 
-/** Button nền tảng — variant primary/secondary/tertiary, size, leftIcon, loading, disabled. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, loading, leftIcon, disabled, children, ...props }, ref) => {
     return (

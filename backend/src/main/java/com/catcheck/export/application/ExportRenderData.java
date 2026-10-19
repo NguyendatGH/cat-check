@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Dữ liệu đã gom đủ để dựng HTML PDF (p13 §13.3) — tách khỏi truy vấn để {@code PdfDocumentBuilder} thuần string-building. */
 record ExportRenderData(
         String documentCode,
         String catName,
@@ -29,8 +28,18 @@ record ExportRenderData(
         boolean anyNonCardCcm,
         List<FlagRow> flags,
         Integer chartVersionSnapshot,
-        String effectiveDateLabel
+        String effectiveDateLabel,
+        List<String> sections
 ) {
+
+    /**
+     * Khối tuỳ chọn user đã chọn ({@code export_job.sections}: TREND/SCAN_LOG/NOTES/PROFILE).
+     * {@code null}/rỗng (dòng cũ) coi như chọn tất cả. Các khối bắt buộc của p13 §13.3 (bìa,
+     * disclaimer, tóm tắt, phương pháp, chân trang) luôn render, không phụ thuộc giá trị này.
+     */
+    boolean includes(String section) {
+        return sections == null || sections.isEmpty() || sections.contains(section);
+    }
 
     record ScanRow(
             String capturedAtLabel,

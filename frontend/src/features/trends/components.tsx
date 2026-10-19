@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import {
   Area,
   CartesianGrid,
@@ -13,15 +12,11 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/shared/lib/cn";
+import { formatDate } from "@/shared/lib/format/formatDate";
 import type { PhBand } from "@/entities/ph-bands";
 import { phTokenStyle } from "@/entities/ph-bands";
 import type { DistributionBucket, TrendRange } from "./types";
 
-/**
- * `phTokenStyle` trả class Tailwind (dùng cho `className`), nhưng recharts (SVG) cần GIÁ TRỊ màu
- * thật cho `stroke`/`fill`. Ánh xạ riêng sang chính biến CSS `--color-ph-*` mà `phTokenStyle`
- * cũng trỏ vào (không hard-code hex, không lệch nguồn với `entities/ph-bands`).
- */
 const PH_CSS_VAR: Record<string, string> = {
   "color-ph-normal": "var(--color-ph-normal)",
   "color-ph-mild": "var(--color-ph-mild)",
@@ -33,31 +28,17 @@ function phCssVar(colorToken: string | undefined): string {
   return PH_CSS_VAR[colorToken ?? ""] ?? PH_CSS_VAR["color-ph-unknown"];
 }
 
-/**
- * UI cho `features/trends` — recharts CHỈ được import ở đây (eslint override cho
- * `features/trends`/`features/export`, xem `eslint.config.js` mục 5). Ghép `entities/ph-bands`
- * (vùng mục tiêu/màu) + chuỗi điểm pH do page truyền vào (E2 ở mobile, D13 ở desktop).
- */
 
-/* ---------------- Tiện ích dải pH ---------------- */
 
-/**
- * BẪY ĐÃ GẶP THẬT: dải mở đầu/cuối (`LOW`, `HIGH`, `INCONCLUSIVE`) KHÔNG có `phMin`/`phMax`
- * và server BỎ HẲN key đó khỏi JSON thay vì trả `null`. Lọc bằng `!== null` thì `undefined`
- * lọt qua, `Math.min(…, undefined)` ra `NaN` và toàn bộ toạ độ biểu đồ thành `NaN` (đường cong
- * biến mất không báo lỗi — đúng triệu chứng của bản desktop trước đây). Luôn lọc bằng guard này.
- */
 function isFiniteNumber(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-/** Toàn bộ biên hữu hạn của các dải pH, đã sắp tăng dần — dùng làm vạch chia trục Y. */
 export function phBandBoundaries(bands: PhBand[]): number[] {
   const values = [...bands.map((b) => b.phMin), ...bands.map((b) => b.phMax)].filter(isFiniteNumber);
   return [...new Set(values)].sort((a, b) => a - b);
 }
 
-/** Lấy tối đa `max` mốc trên trục X, luôn giữ mốc đầu và mốc cuối. */
 function pickTicks(values: number[], max: number): number[] {
   if (values.length <= max) return values;
   const step = (values.length - 1) / (max - 1);
@@ -69,7 +50,6 @@ function pickTicks(values: number[], max: number): number[] {
   return [...picked].sort((a, b) => a - b);
 }
 
-/* ---------------- RangeSegmentedControl ---------------- */
 
 export interface RangeSegmentedControlProps {
   value: TrendRange;
@@ -78,7 +58,6 @@ export interface RangeSegmentedControlProps {
   className?: string;
 }
 
-/** Bộ chọn khoảng thời gian — 3 tab chia đều bề ngang, tab đang chọn nền `primary-dark`. */
 export function RangeSegmentedControl({ value, onChange, labels, className }: RangeSegmentedControlProps) {
   const options: TrendRange[] = ["7D", "30D", "90D"];
   return (
@@ -93,8 +72,10 @@ export function RangeSegmentedControl({ value, onChange, labels, className }: Ra
             onChange(option);
           }}
           className={cn(
-            "min-h-[var(--touch-target-min)] flex-1 rounded-lg px-2 py-1.5 text-caption font-semibold transition-colors",
-            value === option ? "bg-primary-dark text-white shadow-xs" : "text-text-secondary",
+            "tab-pill-animated min-h-[var(--touch-target-min)] flex-1 rounded-lg px-2 py-1.5 text-caption font-semibold",
+            value === option
+              ? "bg-primary-dark text-white shadow-xs"
+              : "text-text-secondary hover:text-text-primary hover:bg-surface/50",
           )}
         >
           {labels[option]}
@@ -104,29 +85,20 @@ export function RangeSegmentedControl({ value, onChange, labels, className }: Ra
   );
 }
 
-/* ---------------- PhTrendChart ---------------- */
 
-/** Hình dạng tối thiểu để vẽ — mobile map từ `TrendPoint` (E2), desktop từ `CatTrendPoint` (D13). */
 export interface PhSeriesPoint {
-  /** ISO-8601. */
   date: string;
   phValue: number;
 }
 
 export interface PhTrendChartProps {
   points: PhSeriesPoint[];
-  /** Nguồn DUY NHẤT của ngưỡng/màu — `GET /reference/ph-bands`. */
   bands: PhBand[];
-  /** Dải được tô nền làm mốc tham chiếu (thường là dải `severity === "NORMAL"`). */
   referenceBand?: PhBand | undefined;
   emptyLabel: string;
-  /** Pattern date-fns cho nhãn trục X (đặt ở i18n để không nhúng chữ Việt vào .tsx). */
   dateFormat: string;
-  /** Pattern date-fns cho nhãn trong tooltip. */
   tooltipDateFormat: string;
-  /** Nhãn thay cho mốc cuối cùng trên trục X. */
   todayLabel: string;
-  /** Tên series hiện trong tooltip. */
   phLabel: string;
   height?: number;
   className?: string;
@@ -134,13 +106,6 @@ export interface PhTrendChartProps {
 
 const AREA_FILL_ID = "ph-trend-area-fill";
 
-/**
- * Đường cong pH ĐẦY ĐỦ TRỤC theo mockup `08`: vạch chia trục Y đặt đúng các biên dải pH thật,
- * nhãn ngày trên trục X (mốc cuối là "hôm nay"), vùng tham chiếu tô nền + 2 đường đứt ở biên,
- * lưới ngang, mảng gradient dưới đường, điểm dữ liệu rõ và điểm gần nhất được làm nổi.
- *
- * Mọi con số pH đều suy từ `bands` (API) và chính dữ liệu — KHÔNG hard-code ngưỡng nào.
- */
 export function PhTrendChart({
   points,
   bands,
@@ -183,7 +148,6 @@ export function PhTrendChart({
     data.map((d) => d.x),
     5,
   );
-  // Một điểm duy nhất ⇒ miền thời gian rộng 0, recharts không vẽ được: nới ra ±1 ngày.
   const oneDayMs = 24 * 60 * 60 * 1000;
   const xDomain: [number, number] =
     data.length === 1 ? [data[0].x - oneDayMs, data[0].x + oneDayMs] : [data[0].x, last.x];
@@ -221,7 +185,7 @@ export function PhTrendChart({
             scale="time"
             domain={xDomain}
             ticks={xTicks}
-            tickFormatter={(value: number) => (value === last.x ? todayLabel : format(new Date(value), dateFormat))}
+            tickFormatter={(value: number) => (value === last.x ? todayLabel : formatDate(value, dateFormat))}
             tickLine={false}
             axisLine={{ stroke: "var(--color-border)" }}
             stroke="var(--color-text-tertiary)"
@@ -241,7 +205,7 @@ export function PhTrendChart({
             width={34}
           />
           <Tooltip
-            labelFormatter={(value) => format(new Date(value as number), tooltipDateFormat)}
+            labelFormatter={(value) => formatDate(value as number, tooltipDateFormat)}
             formatter={(value) => [Number(value).toFixed(2), phLabel]}
             contentStyle={{
               borderRadius: 12,
@@ -285,25 +249,16 @@ export function PhTrendChart({
   );
 }
 
-/* ---------------- DistributionBar ---------------- */
 
 export interface DistributionBarProps {
   buckets: DistributionBucket[];
   bands: PhBand[];
-  /** VD "30 lần". */
   countLabel: (bucket: DistributionBucket) => string;
-  /** VD "88%". */
   percentLabel: (bucket: DistributionBucket) => string;
-  /** VD "(pH 6.3 – 6.6)" — trả `null` cho dải mở không có đủ hai biên. */
   rangeLabel?: (band: PhBand) => string | null;
   className?: string;
 }
 
-/**
- * `band.description` của một số dải là TEMPLATE của backend (chứa `{0}` để điền giá trị pH của
- * MỘT lần quét). Ở đây là thống kê nhiều lần quét nên không có giá trị để điền — bỏ qua mô tả
- * dạng template thay vì in ra "{0}".
- */
 function plainDescription(description: string | undefined): string | null {
   if (!description || description.includes("{0}")) return null;
   return description;

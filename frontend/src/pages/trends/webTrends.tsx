@@ -14,32 +14,11 @@ import {
   ScanLine,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { PhBadge, PhGaugeBar, findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import { PhTrendChart, type CatTrendPoint, type CatTrendsResponse, type TrendRange } from "@/features/trends";
 
-/**
- * Bố cục DESKTOP (>= lg) cho màn Xu hướng & Phân tích — dựng từ bản export gốc của Figma
- * `Web - 08 & 10. Xu hướng & Phân tích Chuyên sâu (Trends & Export Analytics)` (node
- * `17:10514`).
- *
- * KHÔNG tự thêm padding ngang ở `lg` — `AppLayout` đã cấp khung nội dung 944px có sẵn padding.
- *
- * DỮ LIỆU: lấy từ D13 `GET /cats/{id}/trends` (endpoint thật). Màn có BA trạng thái:
- * khoá gói (403 `FEATURE_NOT_IN_PLAN`), rỗng (chưa có lần quét nào trong kỳ), và có dữ liệu.
- * Ngưỡng/màu dải pH luôn đến từ API (`entities/ph-bands` + `bands` trong response) — tuyệt đối
- * không hard-code số pH.
- *
- * ĐÃ BỎ so với Figma (không có dữ liệu/tính năng thật đứng sau):
- *  - ảnh "mẫu hạt chụp thực tế" gắn cho từng dòng nhật ký (`DESIGN_MOCK_BEADS`) — D13 không trả
- *    ảnh, 4 ảnh minh hoạ xoay vòng trông như ảnh quét thật; cột này nay là độ tin cậy thật;
- *  - pill "v3.4 MedTech AI", nút "Chia sẻ Bác sĩ" (không có tính năng chia sẻ), "Xuất Excel"
- *    (backend chỉ sinh PDF), dòng phụ "Quét tự động" (mọi lần quét đều do người dùng chụp);
- *  - eyebrow "HỆ THỐNG PHÂN TÍCH ISFM", "cảm biến Bio-Colorimeter", "phản ứng phân tử" — claim
- *    không có bằng chứng (p15 REQ-CLAIM-02) và không đúng cách sản phẩm đo;
- *  - thẻ "Nguy cơ FLUTD", "Hồng cầu ẩn & protein", "AI Vet Assistant" — chẩn đoán/không có API.
- */
 
-/** Thứ Hai → Chủ nhật. `Date.UTC(2024, 0, 1)` là một thứ Hai, dùng làm mốc sinh nhãn thứ. */
 const WEEK_REF_UTC = Date.UTC(2024, 0, 1);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -54,17 +33,14 @@ function formatPh(value: number | null | undefined, fallback: string): string {
   return value === null || value === undefined ? fallback : value.toFixed(2);
 }
 
-/** API BỎ HẲN key `phMin`/`phMax` ở dải mở — `!== null` không đủ, phải kiểm tra kiểu. */
 function finiteBound(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-/** Số NGÀY lịch (theo giờ máy) có ít nhất một lần quét — mẫu số của "lần quét / ngày có quét". */
 function countActiveDays(points: CatTrendPoint[]): number {
   return new Set(points.map((p) => new Date(p.capturedAt).toDateString())).size;
 }
 
-/** Gom số lần quét theo thứ trong tuần, giữ đủ 7 cột kể cả thứ không có lần quét nào. */
 function buildWeekdayBars(points: CatTrendPoint[]): { day: number; count: number; height: number }[] {
   const counts = new Map<number, number>();
   for (const p of points) {
@@ -80,7 +56,7 @@ function buildWeekdayBars(points: CatTrendPoint[]): { day: number; count: number
 
 function weekdayLabel(day: number): string {
   const offset = WEEKDAY_ORDER.indexOf(day);
-  return new Intl.DateTimeFormat("vi-VN", { weekday: "short", timeZone: "UTC" }).format(
+  return new Intl.DateTimeFormat(intlLocale(), { weekday: "short", timeZone: "UTC" }).format(
     new Date(WEEK_REF_UTC + offset * DAY_MS),
   );
 }
@@ -92,7 +68,6 @@ export interface WebTrendsScreenProps {
   bands: PhBand[];
   data: CatTrendsResponse | undefined;
   isPending: boolean;
-  /** 403 `FEATURE_NOT_IN_PLAN` — gói hiện tại không có tính năng xu hướng. */
   locked: boolean;
   isError: boolean;
   range: TrendRange;
@@ -114,7 +89,6 @@ export function WebTrendsScreen({
   onRetry,
 }: WebTrendsScreenProps) {
   const { t } = useTranslation(["trends", "common"]);
-  /** Lọc nhật ký theo dải pH — thuần client, D13 trả trọn kỳ trong một response. */
   const [logBandFilter, setLogBandFilter] = useState<string>("ALL");
 
   const points = data?.points ?? [];
@@ -123,7 +97,6 @@ export function WebTrendsScreen({
   const dash = t("web.valueUnavailable");
 
   const referenceBand = bands.find((b) => b.severity === "NORMAL");
-  /** Dải cảnh báo cao nhất (sortOrder lớn nhất trong nhóm `WATCH`) — cặp chú giải như Figma. */
   const watchBand = bands
     .filter((b) => b.severity === "WATCH" && finiteBound(b.phMin) !== null)
     .sort((a, b) => b.sortOrder - a.sortOrder)[0];
@@ -131,8 +104,6 @@ export function WebTrendsScreen({
 
   const medianBand = findBandForPh(bands, stats?.median);
   const passPercent = stats && stats.count > 0 ? Math.round((stats.inRangeCount / stats.count) * 100) : null;
-  // Trước đây mẫu số là số THỨ có quét (tối đa 7), không phải số NGÀY có quét — kỳ 30/90 ngày
-  // vì vậy ra con số phóng đại. Nay chia đúng cho số ngày lịch có ít nhất một lần quét.
   const activeDays = countActiveDays(points);
   const avgPerDay = activeDays > 0 ? (points.length / activeDays).toFixed(1) : dash;
 
@@ -142,12 +113,6 @@ export function WebTrendsScreen({
     : null;
   const chartVersions = data?.chartVersions ?? [];
 
-  /**
-   * Dải của MỘT lần quét = `classification` backend đã gán, không suy lại từ con số pH:
-   * `findBandForPh` so `band.phMin === null` nhưng API BỎ HẲN key ở dải mở (`LOW`/`HIGH`) nên
-   * `undefined !== null` ⇒ hai dải đó không bao giờ khớp và ô trạng thái in ra mã thô
-   * (`SLIGHTLY_HIGH`). Chỉ suy lại khi gặp mã lạ.
-   */
   const bandForPoint = (p: CatTrendPoint): PhBand | undefined =>
     bands.find((b) => b.code === p.classification) ?? findBandForPh(bands, p.phValue);
 
@@ -163,7 +128,6 @@ export function WebTrendsScreen({
   };
 
   const header = (
-    // Frame Figma đặt khối tiêu đề + 2 CTA TRONG một thẻ trắng, không trôi trên nền trang.
     <Card className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-[620px]">
         <p className="text-overline font-bold uppercase tracking-[0.4px] text-primary-dark">
@@ -172,8 +136,6 @@ export function WebTrendsScreen({
         <h1 className="pt-1 text-[28px] font-bold leading-9 tracking-[-0.5px] text-primary-dark">{t("web.title")}</h1>
         <p className="pt-2 text-caption leading-relaxed text-text-secondary">{t("web.subtitle")}</p>
       </div>
-      {/* Hai nút đúng vị trí Figma, nhưng đều là tính năng CÓ THẬT: lịch sử quét của bé và
-          xuất hồ sơ PDF (J1, chọn sẵn bé này). */}
       <div className="flex shrink-0 flex-col gap-2">
         <Link
           to={`/cats/${catId}/history`}
@@ -194,7 +156,6 @@ export function WebTrendsScreen({
     </Card>
   );
 
-  // ── Trạng thái 1: gói không có tính năng xu hướng (403) ───────────────────────────────
   if (locked) {
     return (
       <div className="flex flex-col gap-4">
@@ -216,7 +177,6 @@ export function WebTrendsScreen({
     );
   }
 
-  // ── Trạng thái 2: lỗi tải ─────────────────────────────────────────────────────────────
   if (isError) {
     return (
       <div className="flex flex-col gap-4">
@@ -263,7 +223,6 @@ export function WebTrendsScreen({
     <div className="flex flex-col gap-4">
       {header}
 
-      {/* 4 KPI — số liệu thật từ `stats` */}
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <Card className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
@@ -340,7 +299,6 @@ export function WebTrendsScreen({
         </Card>
       </div>
 
-      {/* Biểu đồ + cột phải */}
       <div className="grid grid-cols-12 gap-4">
         <Card className="col-span-12 flex flex-col gap-3 xl:col-span-8">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -381,7 +339,6 @@ export function WebTrendsScreen({
             />
           )}
 
-          {/* Chân biểu đồ — số liệu THẬT: độ tin cậy trung bình + phiên bản bảng màu từ D13. */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background-alt p-3">
             <p className="max-w-[260px] text-[11px] font-semibold leading-snug text-text-primary">
               {t("web.chartFootTitle")}
@@ -435,9 +392,6 @@ export function WebTrendsScreen({
             )}
           </Card>
 
-          {/* Tóm tắt kỳ — toàn bộ số liệu lấy từ `stats` của D13, không có khối "AI Vet"
-              nào trong MVP (không có backend, và câu chữ mẫu nhắc tới phát hiện máu —
-              trái quyết định #8 "Chỉ số đo: Chỉ pH. Không phát hiện máu"). */}
           <Card className="flex flex-col gap-3 bg-background-alt">
             <div className="flex items-start gap-2">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-dark text-white">
@@ -475,7 +429,6 @@ export function WebTrendsScreen({
         </div>
       </div>
 
-      {/* Nhật ký — mỗi dòng là một điểm quét thật */}
       <Card className="flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-2">
@@ -518,7 +471,6 @@ export function WebTrendsScreen({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-left">
               <thead>
-                {/* Mockup: hàng tiêu đề bảng có nền nhạt, không trùng nền thẻ. */}
                 <tr className="border-b border-border bg-background-alt">
                   {["web.colTime", "web.colSample", "web.colPh", "web.colStatus"].map((k) => (
                     <th key={k} className="px-3 py-2.5 text-[10px] font-bold tracking-[0.4px] text-text-secondary">
@@ -532,21 +484,18 @@ export function WebTrendsScreen({
                   const band = bandForPoint(p);
                   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
                   const captured = new Date(p.capturedAt);
-                  // Dòng phụ chỉ in cờ THẬT của điểm (D13): gần ranh giới dải / chủ nuôi báo sai.
                   const flags = [
                     p.nearBoundary ? t("web.logNearBoundary") : null,
                     p.disputed ? t("web.logDisputed") : null,
                   ].filter(Boolean);
                   return (
-                    // Mockup tô nền cả hàng cho lần quét "cần lưu ý" — dùng cờ `triggersAlert`
-                    // THẬT của dải (API), không tự đặt ngưỡng.
                     <tr
                       key={`${p.capturedAt}-${String(i)}`}
                       className={cn("border-b border-border", band?.triggersAlert && style.bg)}
                     >
                       <td className="px-3 py-3">
                         <p className="text-caption font-bold text-text-primary">
-                          {new Intl.DateTimeFormat("vi-VN", {
+                          {new Intl.DateTimeFormat(intlLocale(), {
                             day: "2-digit",
                             month: "2-digit",
                             hour: "2-digit",
@@ -558,7 +507,6 @@ export function WebTrendsScreen({
                         ) : null}
                       </td>
                       <td className="px-3 py-3">
-                        {/* Thanh độ tin cậy dựng từ `confidence` (0–1) của chính lần quét. */}
                         {p.confidence == null ? (
                           <span className="text-[11px] text-text-secondary">{dash}</span>
                         ) : (
@@ -580,8 +528,6 @@ export function WebTrendsScreen({
                         <span className="text-[11px] text-text-secondary">{t("web.phUnit")}</span>
                       </td>
                       <td className="px-3 py-3">
-                        {/* `PhBadge` (entities) đã kèm icon theo `band.iconName` như mockup —
-                            a11y không dựa màu đơn thuần. */}
                         {band ? (
                           <PhBadge band={band} className="text-[11px]" />
                         ) : (

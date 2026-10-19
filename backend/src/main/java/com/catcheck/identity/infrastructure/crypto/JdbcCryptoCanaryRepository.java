@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** {@link CryptoCanaryRepository} tren {@code JdbcTemplate}. */
 @Repository
 public class JdbcCryptoCanaryRepository implements CryptoCanaryRepository {
 
@@ -65,7 +64,6 @@ public class JdbcCryptoCanaryRepository implements CryptoCanaryRepository {
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.getFirst());
     }
 
-    /** Giu lai vi {@link Types} can khi ghi UUID null o cac adapter khac cua module. */
     static void setNullUuid(PreparedStatement ps, int index) throws java.sql.SQLException {
         ps.setNull(index, Types.OTHER);
     }

@@ -8,7 +8,6 @@ export interface ListItemProps extends Omit<ButtonHTMLAttributes<HTMLButtonEleme
   trailing?: ReactNode;
 }
 
-/** ListItem — leading/title/subtitle/trailing, dùng cho danh sách mèo/lịch sử/nhắc lịch... */
 export const ListItem = forwardRef<HTMLButtonElement, ListItemProps>(
   ({ className, leading, title, subtitle, trailing, ...props }, ref) => {
     return (

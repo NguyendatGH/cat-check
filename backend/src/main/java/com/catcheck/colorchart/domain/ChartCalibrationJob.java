@@ -13,12 +13,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Job hiệu chuẩn bảng màu — ánh xạ 1-1 với bảng {@code chart_calibration_job} (p4 D10).
- *
- * <p>Luồng 2 (hiệu chuẩn từ ảnh mẫu) là <b>P1</b> — MVP chỉ bắt buộc luồng 1 (nhập tay hex).
- * Entity tồn tại sẵn để schema đúng p4, nhưng job thật chỉ được thêm ở M7.
- */
 @Entity
 @Table(name = "chart_calibration_job")
 public class ChartCalibrationJob {

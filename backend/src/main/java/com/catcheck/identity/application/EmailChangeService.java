@@ -17,13 +17,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Doi email (p8 B7 + B8, p11 §11.2.1).
- *
- * <p>OTP {@code EMAIL_CHANGE} gui toi <b>dia chi moi</b>; thong bao gui toi dia chi
- * <b>cu</b> (p8 B7: {@code POST /account/email-change/request}). Xac nhan bang
- * {@code otp_ticket} — email la khoa dang nhap nen khong the tu tay.</p>
- */
 @Service
 public class EmailChangeService {
 
@@ -45,7 +38,6 @@ public class EmailChangeService {
         this.clock = clock;
     }
 
-    /** B7 — gui OTP {@code EMAIL_CHANGE} toi dia chi moi. */
     @Transactional
     public OtpService.OtpRequestResult requestChange(UUID userId, String rawNewEmail,
                                                      AuthRequestContext context) {
@@ -68,7 +60,7 @@ public class EmailChangeService {
         }
 
         OtpService.OtpRequestResult result =
-                otpService.requestOtp(newEmail.value(), OtpPurpose.EMAIL_CHANGE, userId, context);
+                otpService.requestOtp(newEmail.value(), OtpPurpose.EMAIL_CHANGE, userId, null, context);
 
         auditLogService.record(AuditEvent.builder()
                 .subjectUser(userId)
@@ -81,12 +73,9 @@ public class EmailChangeService {
         return result;
     }
 
-    /** B8 — xac nhan doi email bang {@code otp_ticket}. */
     @Transactional
     public void confirmChange(UUID userId, String rawOtpTicket, AuthRequestContext context) {
         var challenge = otpService.consumeTicket(rawOtpTicket, OtpPurpose.EMAIL_CHANGE);
-        // userId.equals(...) chu khong phai challenge.userId().equals(...): ticket EMAIL_CHANGE xin
-        // qua A4 cong khai co userId = null => truoc day NullPointerException => 500.
         if (!userId.equals(challenge.userId())) {
             throw new BusinessRuleException(IdentityErrorCode.OTP_TICKET_INVALID);
         }

@@ -1,28 +1,3 @@
-/**
- * MSW handlers + worker cho auth — chế độ degraded khi backend Java chưa chạy cùng máy
- * (cùng vai trò với `features/onboarding/mocks.ts`). Backend thật (A1) đã có sẵn với
- * đúng hợp đồng này — xem `docs/handovers/A1-fe.md` để nối thật khi có docker-compose.
- *
- * Endpoint mock (khớp `AuthController`/`AccountController` thật):
- *  - GET  /api/v1/auth/csrf
- *  - POST /api/v1/auth/register                          (A3)
- *  - POST /api/v1/auth/otp/request                        (A4)
- *  - POST /api/v1/auth/otp/verify                         (A5)
- *  - POST /api/v1/auth/login                               (A6)
- *  - POST /api/v1/auth/logout                              (A7)
- *  - POST /api/v1/auth/password-reset/request              (A8)
- *  - POST /api/v1/auth/password-reset/confirm              (A9)
- *  - POST /api/v1/auth/totp/verify                         (A10)
- *  - POST /api/v1/auth/totp/recovery                       (A11)
- *  - GET  /api/v1/auth/sessions                            (A13)
- *  - DELETE /api/v1/auth/sessions/:id                      (A14)
- *  - POST /api/v1/auth/sessions/revoke-all                 (A15)
- *  - GET  /api/v1/privacy/purposes                         (C1, dùng cho consent ở đăng ký)
- *  - GET/PATCH /api/v1/users/me                            (B1/B2)
- *  - GET  /api/v1/account/mfa/totp                         (B14)
- *  - POST /api/v1/account/mfa/totp/init                    (B15)
- *  - POST /api/v1/account/mfa/totp/confirm                 (B16)
- */
 
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";
@@ -36,9 +11,6 @@ function problem(status: number, code: string, detail: string, extra?: Record<st
       status,
       detail,
       instance: "",
-      // Tên field là `errorCode`, KHÔNG phải `code`: `GlobalExceptionHandler` của backend gọi
-      // `problemDetail.setProperty("errorCode", ...)`. Mock từng phát `code` nên khớp với
-      // wrapper client cũng đang đọc sai — hai cái sai che nhau, chỉ lộ ra khi chạy server thật.
       errorCode: code,
       ...extra,
     },

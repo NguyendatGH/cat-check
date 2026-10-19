@@ -23,7 +23,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/** Nghiệp vụ L51/L54 — xử lý DSAR từ hàng chờ quản trị. */
 @Service
 public class AdminDsarService {
 
@@ -45,6 +44,12 @@ public class AdminDsarService {
         this.clock = clock;
     }
 
+    /** KPI admin trên toàn bộ DSAR; chỉ đọc, không ghi audit (không lộ PII, chỉ số đếm). */
+    @Transactional(readOnly = true)
+    public DsarRequestPort.AdminSummary summary(DsarRequestType requestType) {
+        return dsarPort.summarizeForAdmin(requestType, clock.instant());
+    }
+
     @Transactional
     public DsarRequest create(
             UUID actorId,
@@ -55,11 +60,6 @@ public class AdminDsarService {
             String reason,
             RequestEvidence evidence) {
         DsarRequest created = dsarService.createAdminRequest(userId, requestType, channel);
-        // Chốt NGƯỜI ĐỀ XUẤT vào handled_by ngay lúc tạo. Đây là nửa đầu của quy tắc hai
-        // người L53: p4 B5 không có cột `proposed_by` và CLAUDE.md cấm thêm migration ngoài
-        // danh mục p4 §4.9.2, nên handled_by là chỗ duy nhất ghi được ai mở hồ sơ này —
-        // không ghi thì L53 không có gì để đối chiếu và quy tắc hai người thành khẩu hiệu.
-        // Cũng đúng điều kiện p14 Q10 (ADMIN_SUPER chỉ xuất được yêu cầu mình là handled_by).
         DsarRequest owned = created.withHandledBy(actorId);
         dsarPort.update(owned);
         audit(actorId, actorRole, owned, "DSAR_CREATED_ADMIN", reason, evidence,
@@ -95,10 +95,6 @@ public class AdminDsarService {
             case "ASSIGN" -> {
                 DsarStatus next = request.requiresIdentityVerification() && request.identityVerifiedAt() == null
                         ? DsarStatus.IDENTITY_PENDING : DsarStatus.IN_PROGRESS;
-                // KHÔNG ghi đè handled_by của một yêu cầu ERASE do admin nhập: trên loại yêu
-                // cầu đó handled_by là người ĐỀ XUẤT, là dữ kiện duy nhất mà L53 dùng để chặn
-                // tự duyệt (p15 REQ-RBAC-03). Cho ASSIGN đổi nó nghĩa là người đề xuất chỉ cần
-                // bấm "nhận xử lý" là vượt được quy tắc hai người.
                 yield preservesProposer(request)
                         ? request.withStatus(next)
                         : request.withHandledBy(actorId).withStatus(next);
@@ -114,10 +110,6 @@ public class AdminDsarService {
         return updated;
     }
 
-    /**
-     * Yêu cầu {@code ERASE} do admin nhập đã có người đề xuất — {@code handled_by} trên dòng
-     * này là bằng chứng của quy tắc hai người, không phải ô phân công.
-     */
     private static boolean preservesProposer(DsarRequest request) {
         return request.requestType() == DsarRequestType.ERASE
                 && request.channel() != com.catcheck.privacy.domain.DsarChannel.SELF_SERVICE
@@ -141,7 +133,6 @@ public class AdminDsarService {
             throw new BusinessRuleException(PrivacyErrorCode.DSAR_EXPORT_NOT_READY, request.status().name());
         }
         if (request.requestType() == DsarRequestType.ERASE) {
-            // L53 must run the two-person erasure executor before ERASE can become complete.
             throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "erasureApprovalRequired");
         }
         return request.withStatus(DsarStatus.COMPLETED).withCompletedAt(now);

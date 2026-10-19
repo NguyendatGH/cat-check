@@ -67,7 +67,6 @@ class CloudinaryStorageTest {
         assertThat(chosen).isInstanceOf(RoutingImageStorage.class);
         assertThat(chosen.provider()).isEqualTo("CLOUDINARY");
 
-        // Media kiểm magic bytes: phải là đầu tệp PNG thật, không phải byte tuỳ ý.
         byte[] png = LocalImageStorageTest.PNG;
         var stored = local.put("cat-avatar", new ImageUpload(
                 new ByteArrayInputStream(png), "a.png", "image/png", png.length));

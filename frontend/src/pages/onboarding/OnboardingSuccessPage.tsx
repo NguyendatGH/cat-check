@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   BadgeCheck,
@@ -14,9 +15,11 @@ import {
 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, SkeletonLoader } from "@/shared/ui";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   OnboardingShell,
   PhBandBar,
+  refreshOnboardingSession,
   useCreditBalance,
   useOnboardingStore,
   usePhBands,
@@ -25,13 +28,6 @@ import {
 
 const ROADMAP_STEPS = ["step1", "step2", "step3"] as const;
 
-/**
- * Cột phải desktop (W1 Web-01c-5) — "Lộ trình 3 bước tiếp theo".
- *
- * KHÔNG dựng khối QR tải app iOS/Android của mockup: sản phẩm là một web app responsive
- * (PWA), không có app store build — W1 §6 đã nêu đây là mâu thuẫn cần owner xác nhận.
- * Bước 2 cũng bỏ vế "cảnh báo hồng cầu vi thể" của mockup (mâu thuẫn quyết định #8).
- */
 function SuccessRoadmap({ catName }: { catName: string }) {
   const { t } = useTranslation("onboarding");
   return (
@@ -63,27 +59,22 @@ function SuccessRoadmap({ catName }: { catName: string }) {
   );
 }
 
-/**
- * Bước 5/5 — Hoàn tất (M1 01d, W1 Web-01c-5; p2 US-E2-03). Tóm tắt hồ sơ + dải pH
- * tham chiếu lấy từ `GET /reference/ph-bands` (US-E2-03 AC2 — không hard-code số
- * trong design gốc). CTA về Dashboard.
- *
- * Desktop (`lg:`): hero chúc mừng chiếm trọn bề ngang, bên dưới là 2 cột ~7/5 — thẻ hồ sơ
- * + lượt quét bên trái, lộ trình 3 bước bên phải. Mobile giữ nguyên 1 cột.
- */
 export function OnboardingSuccessPage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { createdCat, activation, surveySkipped } = useOnboardingStore();
+  // Refresh the session first so RequireOnboarding sees onboarding as finished.
+  const leaveOnboarding = async (path: string) => {
+    await refreshOnboardingSession();
+    queryClient.removeQueries({ queryKey: ["cat", "list"] });
+    await navigate(path);
+  };
   const { data: bands } = usePhBands();
   const { data: balance } = useCreditBalance();
 
-  // Nguồn chính là `createdCat` của store (vừa tạo ở bước 1). Store chỉ sống trong phiên
-  // trang: tải lại / mở thẳng `/onboarding/success` thì store trống — khi đó đọc hồ sơ chính
-  // từ `GET /cats` thay vì báo lỗi chung chung như trước.
   const primaryCat = usePrimaryCat(!createdCat);
   const cat = createdCat ?? primaryCat.data ?? null;
-  // Trạng thái khảo sát chỉ biết chắc khi đi qua bước 2 trong phiên này.
   const surveyKnown = Boolean(createdCat);
   const normalBand = bands?.find((b) => b.severity === "NORMAL");
   const rangedBands = (bands ?? []).filter((b) => typeof b.phMin === "number" || typeof b.phMax === "number");
@@ -100,7 +91,7 @@ export function OnboardingSuccessPage() {
             size="lg"
             className="w-full"
             onClick={() => {
-              void navigate("/dashboard");
+              void leaveOnboarding("/dashboard");
             }}
           >
             {t("success.cta")}
@@ -179,7 +170,7 @@ export function OnboardingSuccessPage() {
             size="lg"
             className="w-full"
             onClick={() => {
-              void navigate("/dashboard");
+              void leaveOnboarding("/dashboard");
             }}
           >
             {t("success.cta")}
@@ -192,7 +183,7 @@ export function OnboardingSuccessPage() {
             className="w-full"
             leftIcon={<ScanLine className="size-5" aria-hidden="true" />}
             onClick={() => {
-              void navigate("/scan/select-cat");
+              void leaveOnboarding("/scan/select-cat");
             }}
           >
             {t("success.ctaScan")}
@@ -200,8 +191,6 @@ export function OnboardingSuccessPage() {
         </div>
       }
     >
-      {/* M1 01d: hàng nhận diện (ảnh + tên + cân nặng, dòng tuổi · giới tính) rồi tới
-          BẢNG THÔNG SỐ nền nhạt, mỗi dòng có icon dẫn bên trái. */}
       <Card padding="lg" className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <span className="relative shrink-0">
@@ -277,8 +266,6 @@ export function OnboardingSuccessPage() {
             </div>
           </dl>
 
-          {/* W1 Web-01c-5 "Ngưỡng pH Nước tiểu Dự kiến": dải màu + nhãn 2 đầu, số lấy từ
-              `GET /reference/ph-bands` nên không hard-code ngưỡng nào. */}
           {rangedBands.length > 0 ? (
             <div className="flex flex-col gap-1.5 border-t border-border pt-3">
               <PhBandBar bands={rangedBands} />
@@ -301,7 +288,7 @@ export function OnboardingSuccessPage() {
             {activation
               ? t("success.credit.activated", {
                   credits: activation.balanceAfter,
-                  date: new Date(activation.expiresAt).toLocaleDateString("vi-VN"),
+                  date: new Date(activation.expiresAt).toLocaleDateString(intlLocale()),
                 })
               : (balance?.availableBalance ?? 0) > 0
                 ? t("success.credit.available", { count: balance?.availableBalance })
@@ -319,7 +306,6 @@ export function OnboardingSuccessPage() {
         </Badge>
       </Card>
 
-      {/* Desktop: disclaimer đã nằm cuối cột phải, tránh lặp 2 lần trên cùng màn. */}
       <p className="text-center text-small text-text-tertiary lg:hidden">{t("success.footer")}</p>
     </OnboardingShell>
   );

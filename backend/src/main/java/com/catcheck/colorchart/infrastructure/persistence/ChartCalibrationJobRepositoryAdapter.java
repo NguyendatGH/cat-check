@@ -7,9 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bộ chuyển đổi từ cổng {@link ChartCalibrationJobRepository} sang Spring Data (R2).
- */
 @Repository
 class ChartCalibrationJobRepositoryAdapter implements ChartCalibrationJobRepository {
 

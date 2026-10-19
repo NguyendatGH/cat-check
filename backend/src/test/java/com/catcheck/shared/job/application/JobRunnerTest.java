@@ -26,11 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Khuôn chạy chung của job — điều quan trọng nhất ở đây là <b>một job ném ngoại lệ vẫn để lại
- * một dòng {@code job_run} đã đóng</b>, vì nếu không thì "job chết" là thứ không ai nhìn thấy
- * (p12 §12.6.1 quy tắc 4, §12.8.2).
- */
 class JobRunnerTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T05:05:00Z");
@@ -83,8 +78,6 @@ class JobRunnerTest {
 
     @Test
     void failureSummaryAndLogDoNotCarryPiiFromTheExceptionMessage() {
-        // job_run.error_summary hien o man admin L64; message cua MailSendException/JDBC co
-        // the mang dia chi email hay gia tri cot cua nguoi dung.
         Logger logger = (Logger) LoggerFactory.getLogger(JobRunner.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
@@ -131,8 +124,6 @@ class JobRunnerTest {
 
     @Test
     void masterSwitchOffWritesNoRowAtAll() {
-        // Một dòng "đã chạy nhưng không làm gì" sẽ khiến JobHeartbeatCheckJob báo job khoẻ
-        // mạnh trong khi nó đang bị tắt chủ ý.
         runner(false).runScheduled("ExpireCreditBatchesJob", false,
                 context -> {
                     throw new AssertionError("than job khong duoc chay khi cong tac tong tat");

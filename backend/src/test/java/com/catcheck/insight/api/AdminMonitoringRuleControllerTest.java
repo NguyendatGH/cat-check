@@ -26,18 +26,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * L38–L39 ở tầng api.
- *
- * <p>Ba nhánh quan trọng nhất: {@code ADMIN_CATALOG} đọc được nhưng KHÔNG ghi được (p8 L39 chỉ
- * cho {@code ADMIN_SUPER}), thiếu {@code If-Match} ⇒ {@code 428}, lệch {@code If-Match} ⇒
- * {@code 412} (p8 §8.1.11).</p>
- */
 class AdminMonitoringRuleControllerTest {
 
     private static final String CODE = MonitoringRuleCode.REPEATED_OUT_OF_RANGE.name();
     private static final Instant UPDATED_AT = Instant.parse("2026-10-06T09:00:00Z");
-    /** {@code W/"<updatedAt epoch ms>-<khoá>"} — đúng định dạng của {@code shared.api.AdminETag}. */
     private static final String ETAG = "W/\"" + UPDATED_AT.toEpochMilli() + "-" + CODE + "\"";
 
     private final MonitoringRuleAdminService adminService = Mockito.mock(MonitoringRuleAdminService.class);
@@ -149,11 +141,6 @@ class AdminMonitoringRuleControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    /**
-     * Thiếu một field kiểu bọc KHÔNG được thành {@code 500} (handoff H15.99): với {@code record},
-     * Jackson truyền {@code null} cho property vắng mặt và kiểu nguyên thuỷ sẽ ném ngay ở bước
-     * bind — trước cả khi controller kịp kiểm {@code If-Match}.
-     */
     @Test
     void aBodyWithOnlyReasonBindsCleanlyInsteadOfFailingOnNullPrimitives() throws Exception {
         AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_SUPER"));

@@ -16,33 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Gửi web push qua {@code firebase-admin} 9.11.0.
- *
- * <p><b>Ba quyết định cài đặt, kèm lý do:</b></p>
- * <ol>
- *   <li><b>{@code sendEachForMulticast}, không loop từng thiết bị</b> (p12 §12.3.2). Một user
- *       có thể có điện thoại + desktop Chrome; loop tuần tự là N round-trip.</li>
- *   <li><b>Tách HAI lượt multicast: một cho FID, một cho registration token.</b>
- *       {@code MulticastMessage.Builder} giữ FID và token trong hai danh sách riêng, và
- *       {@code BatchResponse.getResponses()} khớp theo thứ tự {@code getMessageList()} — trộn
- *       hai loại trong một message làm việc map kết quả → thiết bị phụ thuộc vào thứ tự nội bộ
- *       của builder, thứ không có trong hợp đồng công khai. Hai lượt thì thứ tự là hiển
- *       nhiên.</li>
- *   <li><b>Payload dạng {@code data} thuần</b>, KHÔNG dùng {@code setNotification(...)}
- *       (p12 §12.3.6): service worker tự quyết định hiển thị, tránh trình duyệt render mặc định
- *       một nội dung mà p12 §12.2.1 cấm đưa lên màn khoá.</li>
- * </ol>
- *
- * <p><b>Không log nội dung, FID hay token</b> — chỉ log mã lỗi và số lượng (p17 §17.10b;
- * ArchUnit R16 cũng chặn đọc field tên khớp {@code fid}/{@code token} trong method có gọi
- * logger).</p>
- */
 class FirebaseCloudMessagingSender implements PushMessageSender {
 
     private static final Logger log = LoggerFactory.getLogger(FirebaseCloudMessagingSender.class);
 
-    /** Trần của một lần {@code sendEachForMulticast} theo tài liệu FCM. */
     private static final int MAX_TARGETS_PER_MULTICAST = 500;
 
     private final FirebaseMessaging messaging;
@@ -90,8 +67,6 @@ class FirebaseCloudMessagingSender implements PushMessageSender {
             BatchResponse response = messaging.sendEachForMulticast(builder.build());
             return mapResponses(chunk, response);
         } catch (FirebaseMessagingException ex) {
-            // Lỗi của CẢ lượt gọi (hết hạn credential, mạng...) — lỗi tạm cho mọi đích, đừng
-            // thu hồi subscription nào.
             log.warn("sendEachForMulticast thất bại cho {} thiết bị: {}", chunk.size(),
                     ex.getMessagingErrorCode());
             String code = ex.getMessagingErrorCode() == null ? "UNKNOWN" : ex.getMessagingErrorCode().name();
@@ -126,10 +101,6 @@ class FirebaseCloudMessagingSender implements PushMessageSender {
         return results;
     }
 
-    /**
-     * p12 §12.3.9 / research §5.5: {@code UNREGISTERED} và {@code INVALID_ARGUMENT} là chết hẳn
-     * ⇒ thu hồi ngay, không retry. Còn lại coi là lỗi tạm.
-     */
     private Status statusOf(MessagingErrorCode errorCode) {
         if (errorCode == MessagingErrorCode.UNREGISTERED || errorCode == MessagingErrorCode.INVALID_ARGUMENT) {
             return Status.PERMANENT_FAILURE;

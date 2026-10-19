@@ -30,15 +30,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Tầng API của L9/L10 — <b>nhánh phân quyền</b> và <b>nhánh lỗi</b>, thứ p14 §14.5.1 mục 2 nói
- * server phải tự kiểm độc lập với UI.
- *
- * <p>Gọi thẳng method của controller chứ không qua {@code MockMvc}: điều cần neo là
- * {@code AdminGuard} chạy <b>trước</b> service (và service không bị gọi khi vai trò sai), cộng
- * với việc {@code reason} là ràng buộc API — hai thứ không cần dựng cả HTTP stack để chứng minh.
- * Phần bind/validate của body do bean validation lo và có test riêng ở tầng DTO.</p>
- */
 class AdminUserCreditControllerTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -66,7 +57,6 @@ class AdminUserCreditControllerTest {
                 .extracting(ex -> ((CatCheckException) ex).errorCode())
                 .isEqualTo(AdminApiErrorCode.ACCESS_DENIED);
 
-        // Quan trọng hơn cả mã lỗi: service KHÔNG được chạm tới khi vai trò sai.
         verifyNoInteractions(service);
     }
 
@@ -137,7 +127,6 @@ class AdminUserCreditControllerTest {
         verifyNoInteractions(service);
     }
 
-    /* --------------------------------------------------------------- helper */
 
     private static CreditAdjustmentRequest grantRequest() {
         return new CreditAdjustmentRequest(

@@ -13,12 +13,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link UserEntitlementPort} trên {@code JdbcTemplate}.
- *
- * <p>Cột {@code features} là JSONB, đọc/ghi qua {@code ?::jsonb} — cùng cách {@code ?::inet}
- * cho cột mạng trong module identity.</p>
- */
 @Repository
 public class JdbcUserEntitlementAdapter implements UserEntitlementPort {
 
@@ -51,12 +45,6 @@ public class JdbcUserEntitlementAdapter implements UserEntitlementPort {
         return find(userId).orElseGet(() -> Entitlement.defaults(userId, now));
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>{@code ON CONFLICT DO NOTHING} thay vì kiểm tra-rồi-ghi: hai request song song tạo dòng
-     * mặc định sẽ chạy đua ở ràng buộc PK và chỉ một cái thắng, thay vì một cái ném lỗi.</p>
-     */
     @Override
     public void ensureRow(UUID userId, Instant now) {
         jdbc.update("""
@@ -72,12 +60,6 @@ public class JdbcUserEntitlementAdapter implements UserEntitlementPort {
         jdbc.query("SELECT 1 FROM user_entitlement WHERE user_id = ? FOR UPDATE", rs -> { }, userId);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Upsert bằng {@code ON CONFLICT DO UPDATE} để gọi được cả khi dòng chưa tồn tại —
-     * kích hoạt gói có thể là thao tác ghi đầu tiên của user vào bảng này.</p>
-     */
     @Override
     public void save(Entitlement entitlement) {
         jdbc.update("""
@@ -102,13 +84,6 @@ public class JdbcUserEntitlementAdapter implements UserEntitlementPort {
                 RowReaders.utc(entitlement.recomputedAt()));
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Điều kiện {@code trial_scans_used < ?} nằm TRONG câu UPDATE, không phải kiểm tra ở Java:
-     * đây là cách duy nhất chặn được hai lượt trial song song vượt hạn mức. Câu trả về 0 dòng
-     * nghĩa là đã hết lượt — bên gọi coi là {@code false}, không phải lỗi.</p>
-     */
     @Override
     public boolean incrementTrialScansUsed(UUID userId, int trialScanLimit, Instant now) {
         return jdbc.update("""
@@ -140,11 +115,6 @@ public class JdbcUserEntitlementAdapter implements UserEntitlementPort {
         return jsonMapper.writeValueAsString(features);
     }
 
-    /**
-     * Đọc JSONB thành {@link PlanFeatures}. JSON hỏng KHÔNG ném lỗi mà hạ về tập quyền tối
-     * thiểu: quyền hơn là quyền ĐỌC và user mất lịch sử sức khoẻ của con mèo mình, còn quyền
-     * thấp hơn chỉ chặn ghi. Nghiêng về phía an toàn.
-     */
     private PlanFeatures readFeatures(String json) {
         if (json == null || json.isBlank()) {
             return PlanFeatures.none();

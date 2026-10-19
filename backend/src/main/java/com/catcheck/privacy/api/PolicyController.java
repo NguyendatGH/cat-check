@@ -30,13 +30,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * C16–C17 — văn bản pháp lý công khai + ghi nhận "đã đọc" (p8 §8.4.3).
- *
- * <p>Path là {@code /api/v1/policies} (không có tiền tố {@code /privacy}) — đúng bảng
- * endpoint của p8. C16 công khai; C17 cần đăng nhập. Controller không chạm type
- * {@code ..domain..} (ArchUnit R4) — chuyển đổi domain↔DTO nằm ở service/mapper.</p>
- */
 @RestController
 @RequestMapping("/api/v1/policies")
 @Tag(name = "Policies", description = "Văn bản pháp lý công khai và ghi nhận đã đọc")
@@ -48,10 +41,6 @@ public class PolicyController {
         this.policyService = policyService;
     }
 
-    /**
-     * C16 — bản hiện hành của TERMS|PRIVACY|COOKIE|MEDICAL_DISCLAIMER (công khai).
-     * Rate limit 300/phút do lớp Bucket4j của W3 ép (p8 §8.3.5).
-     */
     @Operation(
             operationId = "getCurrentPolicy",
             summary = "Bản hiện hành của một tài liệu pháp lý",
@@ -81,12 +70,6 @@ public class PolicyController {
                 policy.affectedPurposes()));
     }
 
-    /**
-     * F9 — danh sách phiên bản của một tài liệu (p15 REQ-LEGAL-02).
-     *
-     * <p>Công khai, trả CẢ bản đã hết hiệu lực: màn "Xem các phiên bản trước" tồn tại để
-     * chứng minh user đã đồng ý với nội dung nào. Không kèm nội dung markdown — xem F10.</p>
-     */
     @Operation(
             operationId = "listPolicyVersions",
             summary = "Danh sách phiên bản của một tài liệu pháp lý",
@@ -119,14 +102,6 @@ public class PolicyController {
         return ResponseEntity.ok(new PolicyVersionListResponse(type.name(), items));
     }
 
-    /**
-     * F10 — permalink một phiên bản cụ thể (p15 REQ-LEGAL-03).
-     *
-     * <p><b>URL này phải sống vĩnh viễn</b>: {@code consent_record.policy_version} trỏ thẳng
-     * vào đây làm bằng chứng pháp lý. Vì vậy KHÔNG lọc theo thời gian hiệu lực (bản cũ vẫn
-     * mở được) và không bao giờ trả 410 — chỉ 404 khi phiên bản chưa từng tồn tại. Nội dung
-     * đã publish là bất biến (REQ-VER-07) nên đặt {@code Cache-Control: public} dài hạn.</p>
-     */
     @Operation(
             operationId = "getPolicyVersionPermalink",
             summary = "Permalink một phiên bản chính sách",
@@ -146,8 +121,6 @@ public class PolicyController {
                 .orElseThrow(() -> new BusinessRuleException(
                         PrivacyErrorCode.POLICY_VERSION_NOT_FOUND, policyCode + "/" + version));
         return ResponseEntity.ok()
-                // Bản đã publish là bất biến (REQ-VER-07) nên cache được lâu; p8 §8.3 mặc định
-                // `private, no-store` chỉ áp cho dữ liệu user, đây là văn bản công khai.
                 .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable())
                 .body(new PolicyView(
                         policy.policyType().name(),
@@ -162,10 +135,6 @@ public class PolicyController {
                         policy.affectedPurposes()));
     }
 
-    /**
-     * C17 — ghi {@code policy_acknowledgment} (disclaimer onboarding — KHÔNG phải
-     * consent). Idempotent: một bản chỉ ghi một lần cho một điểm chạm (p4 B4).
-     */
     @Operation(
             operationId = "acknowledgePolicy",
             summary = "Ghi nhận đã đọc văn bản pháp lý",

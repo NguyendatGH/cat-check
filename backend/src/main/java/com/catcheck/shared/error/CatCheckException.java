@@ -1,10 +1,5 @@
 package com.catcheck.shared.error;
 
-/**
- * Lớp cha trừu tượng cho mọi exception nghiệp vụ trong CatCheck. Mang theo {@link ErrorCode}
- * (để {@link GlobalExceptionHandler} quyết định HTTP status + type URI) và {@code args} (tham
- * số dùng để nội suy message đã dịch qua {@code MessageResolver} — KHÔNG đưa PII vào args).
- */
 public abstract class CatCheckException extends RuntimeException {
 
     private final ErrorCode errorCode;

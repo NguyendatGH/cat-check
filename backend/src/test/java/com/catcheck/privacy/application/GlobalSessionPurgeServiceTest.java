@@ -29,14 +29,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L62 — runbook R1 (p11 §11.13.4).
- *
- * <p>Hai khẳng định quan trọng nhất: (1) {@code incidentId} không trỏ tới hồ sơ thật thì
- * <b>không xoá gì cả</b> — hành động này đăng xuất mọi người dùng nên không được có đường
- * "purge trước, điền hồ sơ sau"; (2) audit ghi đủ {@code revokedCount}, {@code reason},
- * {@code incidentId} đúng như §11.13.4 đòi.</p>
- */
 class GlobalSessionPurgeServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T03:00:00Z");
@@ -100,8 +92,6 @@ class GlobalSessionPurgeServiceTest {
         service.purgeAll(ADMIN_ID, "ADMIN_SUPER", INCIDENT_ID, "Kiem thu tu thao tac",
                 RequestEvidence.system());
 
-        // Nếu transaction vỡ ở giữa, trạng thái còn lại phải là "link đã chết, phiên còn sống",
-        // không phải chiều ngược lại.
         org.mockito.InOrder order = org.mockito.Mockito.inOrder(dsarExportJobPort, purgePort);
         order.verify(dsarExportJobPort).revokeAllDownloadLinks(NOW);
         order.verify(purgePort).purgeEverySession();

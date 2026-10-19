@@ -9,8 +9,8 @@ import com.catcheck.credit.api.dto.IssuedActivationBatchResponse;
 import com.catcheck.credit.application.ActivationCodeAdminService;
 import com.catcheck.credit.domain.ActivationBatchSummary;
 import com.catcheck.credit.domain.ActivationCode;
+import com.catcheck.credit.domain.ActivationCodeEffectiveStatus;
 import com.catcheck.credit.domain.ActivationCodeFilter;
-import com.catcheck.credit.domain.ActivationCodeStatus;
 import com.catcheck.shared.security.AdminGuard;
 import com.catcheck.shared.security.CurrentUser;
 import com.catcheck.shared.security.SecurityPrincipal;
@@ -35,29 +35,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Quản trị mã kích hoạt — L19–L24 (p8 §8.4.12 mục (b)).
- *
- * <p>Điều kiện chung của {@code /api/v1/admin/**} (phiên {@code mfaLevel = TOTP}) do
- * {@code shared.security.AdminAccessGate} lo, đặt trong chuỗi filter — không lặp lại ở đây.
- * Phần controller kiểm là <b>cột {@code R:} của từng endpoint</b>: L19/L21 cho
- * {@code ADMIN_SUPER} + {@code ADMIN_SUPPORT} (tổng đài tra cứu trạng thái một mã), còn mọi
- * hành động ghi chỉ {@code ADMIN_SUPER} (p11 §11.5.4 dòng "Mã kích hoạt": Support chỉ
- * <i>"tra cứu theo prefix"</i>, Super <i>"sinh lô, huỷ mã"</i>).</p>
- *
- * <p><b>Chưa có:</b> step-up re-auth ({@code S1:TOTP} của p8 — một lớp NGOÀI {@code mfaLevel},
- * đòi nhập lại mã trong 5 phút gần nhất) và {@code Idempotency-Key}. Cả hai là filter dùng
- * chung chưa viết; xem handoff H15.102.</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/activation-codes")
 @Tag(name = "Quản trị mã kích hoạt", description = "L19–L24 — sinh lô, tải CSV một lần, void mã/lô")
 public class AdminActivationCodeController {
 
-    /** p11 §11.5.4: Support được tra cứu, Super được tra cứu + ghi. */
     static final Set<String> READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT");
 
-    /** p11 §11.5.4 + p14 §14.3.2 mục 4: sinh lô / tải CSV / void là {@code ADMIN_SUPER} duy nhất. */
     static final Set<String> WRITE_ROLES = Set.of("ADMIN_SUPER");
 
     private static final int MAX_PAGE_SIZE = 200;
@@ -68,13 +52,13 @@ public class AdminActivationCodeController {
         this.adminService = adminService;
     }
 
-    // ------------------------------------------------------------------ L19
 
     @Operation(
             operationId = "listAdminActivationCodes",
             summary = "L19 — tra cứu mã kích hoạt",
-            description = "Lọc theo prefix/gói/trạng thái/lô. KHÔNG tra theo mã đầy đủ: DB chỉ có "
-                    + "`code_hash` (p8 §8.4.12). Phân trang offset.")
+            description = "Lọc theo prefix/gói/trạng thái/lô. `status` nhận ISSUED (chưa dùng, còn hạn), "
+                    + "EXPIRED (chưa dùng nhưng quá hạn kích hoạt — suy diễn, không lưu DB), REDEEMED, VOID. "
+                    + "KHÔNG tra theo mã đầy đủ: DB chỉ có `code_hash` (p8 §8.4.12). Phân trang offset.")
     @GetMapping
     public AdminPageResponse<ActivationCodeAdminResponse> list(
             @CurrentUser SecurityPrincipal principal,
@@ -85,16 +69,37 @@ public class AdminActivationCodeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         AdminGuard.requireAnyRole(principal, READ_ROLES);
-        ActivationCodeFilter filter = new ActivationCodeFilter(
-                prefix, packageCode, parseStatus(status), batchId);
+        ActivationCodeFilter filter = adminService.filterOf(prefix, packageCode, parseStatus(status), batchId);
         ActivationCodeAdminService.Page<ActivationCode> result =
                 adminService.search(filter, normalizePage(page), normalizeSize(size));
         return AdminPageResponse.of(
-                result.items().stream().map(ActivationCodeAdminResponse::from).toList(),
+                result.items().stream().map(this::toResponse).toList(),
                 normalizePage(page), normalizeSize(size), result.totalElements());
     }
 
-    // ------------------------------------------------------------------ L20
+
+    @Operation(
+            operationId = "getAdminActivationCodeSummary",
+            summary = "L19b — đếm mã theo trạng thái",
+            description = "Chỉ đọc. Dùng cùng bộ lọc prefix/gói/lô với L19 (bỏ qua trạng thái) và trả "
+                    + "tổng số mã cho từng trạng thái (ISSUED còn hạn, EXPIRED, REDEEMED, VOID) trên toàn "
+                    + "bộ dữ liệu, không riêng trang đang xem.")
+    @GetMapping("/summary")
+    public ActivationCodeSummaryResponse summary(
+            @CurrentUser SecurityPrincipal principal,
+            @RequestParam(required = false) String prefix,
+            @RequestParam(required = false) String packageCode,
+            @RequestParam(required = false) String batchId) {
+        AdminGuard.requireAnyRole(principal, READ_ROLES);
+        java.util.Map<ActivationCodeEffectiveStatus, Long> counts =
+                adminService.countByStatus(prefix, packageCode, batchId);
+        java.util.Map<String, Long> byStatus = new java.util.LinkedHashMap<>();
+        counts.forEach((status, count) -> byStatus.put(status.name(), count));
+        return new ActivationCodeSummaryResponse(byStatus);
+    }
+
+    public record ActivationCodeSummaryResponse(java.util.Map<String, Long> byStatus) { }
+
 
     @Operation(
             operationId = "issueAdminActivationBatch",
@@ -122,7 +127,6 @@ public class AdminActivationCodeController {
                 csvPath(batch.productionBatch())));
     }
 
-    // ------------------------------------------------------------------ L21
 
     @Operation(
             operationId = "listAdminActivationBatches",
@@ -145,15 +149,7 @@ public class AdminActivationCodeController {
                 normalizePage(page), normalizeSize(size), result.totalElements());
     }
 
-    // ------------------------------------------------------------------ L22
 
-    /**
-     * {@code reason} là <b>query param</b>, không phải body: đây là {@code GET} và một
-     * {@code GET} có body thì nhiều proxy/thư viện HTTP lặng lẽ bỏ qua. Đánh đổi đã biết:
-     * {@code reason} xuất hiện trong access log của reverse proxy — p16 §16.6.7 cấm gửi query
-     * string vào log ứng dụng, còn log của proxy thuộc cấu hình hạ tầng (p18). Ghi handoff
-     * H15.101.
-     */
     @Operation(
             operationId = "downloadAdminActivationBatchCsv",
             summary = "L22 — tải CSV mã thô (một lần duy nhất)",
@@ -174,12 +170,10 @@ public class AdminActivationCodeController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename("activation-codes-" + sanitizeFilename(batchId) + ".csv")
                         .build().toString())
-                // Mã thô tuyệt đối không được nằm trong cache của trình duyệt hay proxy.
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(body);
     }
 
-    // ------------------------------------------------------------------ L23
 
     @Operation(
             operationId = "voidAdminActivationCode",
@@ -193,11 +187,10 @@ public class AdminActivationCodeController {
             @Valid @RequestBody AdminReasonRequest request,
             HttpServletRequest httpRequest) {
         AdminGuard.requireAnyRole(principal, WRITE_ROLES);
-        return ActivationCodeAdminResponse.from(adminService.voidCode(
+        return toResponse(adminService.voidCode(
                 codeId, AdminContext.of(principal, request.reason(), httpRequest)));
     }
 
-    // ------------------------------------------------------------------ L24
 
     @Operation(
             operationId = "voidAdminActivationBatch",
@@ -216,24 +209,24 @@ public class AdminActivationCodeController {
                 .orElseThrow();
     }
 
-    /* ---------------------------------------------------------------- helper */
+
+    private ActivationCodeAdminResponse toResponse(ActivationCode code) {
+        return ActivationCodeAdminResponse.from(code, adminService.effectiveStatusOf(code));
+    }
 
     private static String csvPath(String batchId) {
         return "/api/v1/admin/activation-codes/batches/" + batchId + "/csv";
     }
 
-    /** Tên tệp tải về — bỏ mọi ký tự có thể bị hiểu là đường dẫn hoặc header injection. */
     private static String sanitizeFilename(String batchId) {
         return batchId.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
-    private static ActivationCodeStatus parseStatus(String status) {
+    private static ActivationCodeEffectiveStatus parseStatus(String status) {
         if (status == null || status.isBlank()) {
             return null;
         }
-        // Giá trị lạ ⇒ IllegalArgumentException ⇒ 400 VALIDATION_FAILED (GlobalExceptionHandler),
-        // không phải 500 và cũng không im lặng bỏ lọc.
-        return ActivationCodeStatus.valueOf(status.strip().toUpperCase(java.util.Locale.ROOT));
+        return ActivationCodeEffectiveStatus.valueOf(status.strip().toUpperCase(java.util.Locale.ROOT));
     }
 
     private static int normalizePage(int page) {

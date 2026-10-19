@@ -17,20 +17,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 
-/**
- * Ghi email ra file thay vi gui SMTP — cho may dev va cho test khong can mang.
- *
- * <p><b>Khong ghi vao log.</b> Ma OTP va link kich hoat la du lieu nhay cam; p17
- * §17.10b co test CI chan PII trong log. Ghi ra file {@code target/dev-mail/} vua
- * dung cho dev (mo bang trinh duyet), vua khong bien log thanh vector DoS.</p>
- *
- * <p>Mac dinh la kich hoat ({@code catcheck.notification.email-sink=file}) de app luon
- * co dung mot {@link EmailSender}. O prod/staging, W3 chuyen sang
- * {@code catcheck.notification.email-sink=smtp}.</p>
- *
- * <p>{@link #deliver} NEM {@link UncheckedIOException} khi khong ghi duoc, con {@link #send}
- * nuot — xem javadoc {@code SmtpEmailSender} ve ly do hai hop dong khac nhau.</p>
- */
 @Component
 @ConditionalOnProperty(
         name = "catcheck.notification.email-sink",
@@ -56,8 +42,6 @@ public class FileEmailSender implements EmailSender, EmailTransport {
             deliver(new OutgoingEmail(message.recipientEmail(), message.templateKey(),
                     message.locale(), message.variables()));
         } catch (RuntimeException ex) {
-            // Khong nem: module gui email khong duoc lam do mat luong dang ky.
-            // Chi ghi loai loi (khong PII, khong noi dung email).
             log.warn("Ghi email ra file that bai (template={}): {}",
                     message.templateKey(), ex.getMessage());
         }

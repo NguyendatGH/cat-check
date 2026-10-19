@@ -36,15 +36,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * L9 ({@code GET /admin/users/{userId}/credits}) và L10
- * ({@code POST /admin/users/{userId}/credit-adjustments}) — p8 §8.4.12 mục (a), p14 §14.4.4.
- *
- * <p>Những tính chất được neo ở đây là những tính chất <b>sai thì mất tiền thật của người dùng</b>:
- * FEFO đúng thứ tự khi thu hồi, một dòng ledger cho mỗi lô bị trừ, {@code note} không rỗng (ràng
- * buộc DB {@code ck_credit_ledger_adjust_note}), trần an toàn chặn được, và một
- * {@code Idempotency-Key} không bao giờ cấp credit hai lần.</p>
- */
 class AdminCreditServiceTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -75,7 +66,6 @@ class AdminCreditServiceTest {
                 auditLog, new UuidV7(clock), clock);
     }
 
-    /* ------------------------------------------------------------------ L9 */
 
     @Test
     @DisplayName("L9: trả CẢ lô đã cạn/hết hạn (p5 R3 — chứng từ đối soát) + ghi audit dù chỉ đọc")
@@ -103,7 +93,6 @@ class AdminCreditServiceTest {
         assertThat(overview.ledgerPage()).isZero();
     }
 
-    /* ----------------------------------------------------------------- L10 */
 
     @Test
     @DisplayName("L10 GRANT: tạo lô mới + đúng MỘT dòng GRANT, số dư tăng, entitlement mở lại quyền ghi")
@@ -123,7 +112,6 @@ class AdminCreditServiceTest {
         assertThat(grants.getFirst().refId()).isEqualTo(ADMIN_ID);
         assertThat(grants.getFirst().idempotencyKey()).isEqualTo("key-grant-1");
 
-        // Không tính lại entitlement thì credit vừa cấp vô dụng: consume() đòi hasWriteAccessAt().
         Entitlement entitlement = entitlementPort.rows.get(USER_ID);
         assertThat(entitlement).isNotNull();
         assertThat(entitlement.hasWriteAccessAt(NOW)).isTrue();
@@ -169,11 +157,9 @@ class AdminCreditServiceTest {
         assertThat(adjusts).hasSize(2);
         assertThat(adjusts).allSatisfy(entry -> {
             assertThat(entry.amount()).isNegative();
-            // ck_credit_ledger_adjust_note: note NOT NULL và không rỗng cho mọi dòng ADJUST.
             assertThat(entry.note()).isNotBlank();
             assertThat(entry.refType()).isEqualTo(CreditLedgerRefType.ADMIN);
         });
-        // UNIQUE(idempotency_key) là một cột ⇒ chỉ dòng ĐẦU mang khoá.
         assertThat(adjusts.stream().filter(e -> e.idempotencyKey() != null)).hasSize(1);
     }
 
@@ -226,7 +212,6 @@ class AdminCreditServiceTest {
                 .extracting(ex -> ((CatCheckException) ex).errorCode())
                 .isEqualTo(CreditErrorCode.CREDIT_ADJUST_LIMIT_EXCEEDED);
 
-        // Cùng số lượng, admin khác ⇒ đi qua: trần là "mỗi admin mỗi ngày", không phải toàn hệ thống.
         AdminCreditAdjustmentResult other = service.adjust(
                 USER_ID, AdjustmentDirection.GRANT, 15, "PLUS", null, null, context(OTHER_ADMIN));
         assertThat(other.amount()).isEqualTo(15);
@@ -240,7 +225,6 @@ class AdminCreditServiceTest {
         service.adjust(USER_ID, AdjustmentDirection.GRANT, 20, "PLUS", null, null, context(ADMIN_ID));
         service.adjust(USER_ID, AdjustmentDirection.REVOKE, 5, null, null, null, context(ADMIN_ID));
 
-        // 20 + 5 = 25 đã dùng; còn 5. Xin 6 phải bị chặn (nếu cộng đại số thì còn 15 và sẽ cho qua).
         assertThatThrownBy(() -> service.adjust(
                 USER_ID, AdjustmentDirection.GRANT, 6, "PLUS", null, null, context(ADMIN_ID)))
                 .isInstanceOf(BusinessRuleException.class)
@@ -258,7 +242,6 @@ class AdminCreditServiceTest {
         assertThat(replay.replayed()).isTrue();
         assertThat(creditStore.batches).hasSize(1);
         assertThat(creditStore.entriesOfType(CreditLedgerType.GRANT)).hasSize(1);
-        // Replay không được sinh dòng audit thứ hai: side effect không xảy ra thì không có gì để ghi.
         assertThat(auditLog.actions()).containsExactly("CREDIT_ADJUST");
     }
 
@@ -270,7 +253,6 @@ class AdminCreditServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    /* --------------------------------------------------------------- helper */
 
     private static AdminActionContext context(UUID adminId) {
         return context(adminId, "Bồi hoàn do lỗi hệ thống, ticket #482");
@@ -280,7 +262,6 @@ class AdminCreditServiceTest {
         return new AdminActionContext(adminId, "ADMIN_SUPER", reason, "req-1", "203.0.113.9", "junit");
     }
 
-    /** {@code credit_ledger} đọc theo offset, dựng từ chính các dòng mà store đã ghi. */
     private static final class FakeLedgerQueryPort implements CreditLedgerQueryPort {
 
         private final InMemoryCreditStore store;
@@ -308,7 +289,6 @@ class AdminCreditServiceTest {
         }
     }
 
-    /** {@code app_setting} sửa được trong test — mặc định rỗng ⇒ dùng mặc định trong mã. */
     private static final class MutableAppSettingPort implements AppSettingPort {
 
         private final Map<String, Integer> values = new HashMap<>();
@@ -320,12 +300,6 @@ class AdminCreditServiceTest {
         }
     }
 
-    /**
-     * {@code user_entitlement} trong bộ nhớ, {@code maxActivatedBatchExpiry} tính THẬT từ các lô
-     * của store — khác {@code AdminActivationTestDoubles.FakeEntitlementPort} (luôn trả rỗng).
-     * Nếu trả rỗng thì {@code write_access_until} luôn null và test "credit admin cấp dùng được"
-     * sẽ xanh một cách vô nghĩa.
-     */
     private static final class StoreBackedEntitlementPort implements UserEntitlementPort {
 
         private final Map<UUID, Entitlement> rows = new HashMap<>();

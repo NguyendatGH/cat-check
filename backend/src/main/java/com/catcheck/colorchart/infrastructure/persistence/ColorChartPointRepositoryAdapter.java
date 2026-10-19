@@ -7,9 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Bộ chuyển đổi từ cổng {@link ColorChartPointRepository} sang Spring Data (R2).
- */
 @Repository
 class ColorChartPointRepositoryAdapter implements ColorChartPointRepository {
 

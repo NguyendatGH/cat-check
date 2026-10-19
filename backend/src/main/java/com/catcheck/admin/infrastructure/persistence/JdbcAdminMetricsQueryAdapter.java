@@ -5,7 +5,6 @@ import com.catcheck.admin.domain.port.AdminMetricsQueryPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-/** Đọc snapshot metrics bằng các câu count độc lập, không tải dữ liệu nghiệp vụ vào memory. */
 @Repository
 public class JdbcAdminMetricsQueryAdapter implements AdminMetricsQueryPort {
     private final JdbcTemplate jdbc;
@@ -18,12 +17,19 @@ public class JdbcAdminMetricsQueryAdapter implements AdminMetricsQueryPort {
     public AdminMetrics read() {
         return new AdminMetrics(
                 count("SELECT count(*) FROM app_user"),
-                // Xoá mềm chỉ đặt deleted_at, status vẫn ACTIVE (V8, Cat.softDelete).
                 count("SELECT count(*) FROM cat WHERE status = 'ACTIVE' AND deleted_at IS NULL"),
                 count("SELECT count(*) FROM scan"),
                 count("SELECT count(*) FROM job_run WHERE status IN ('FAILED', 'TIMEOUT')"),
                 count("SELECT count(*) FROM email_outbox WHERE status = 'PENDING'")
                         + count("SELECT count(*) FROM notification_outbox WHERE status = 'PENDING'"));
+    }
+
+    @Override
+    public java.util.Map<String, Long> countUsersByStatus() {
+        java.util.Map<String, Long> counts = new java.util.LinkedHashMap<>();
+        jdbc.query("SELECT status, count(*) AS n FROM app_user GROUP BY status ORDER BY status",
+                rs -> { counts.put(rs.getString("status"), rs.getLong("n")); });
+        return counts;
     }
 
     private long count(String sql) {

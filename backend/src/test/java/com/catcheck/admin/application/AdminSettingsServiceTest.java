@@ -21,14 +21,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * L69 {@code GET /admin/settings} va L70 {@code PATCH /admin/settings/{key}} (p8 §8.4.12 muc (f)).
- *
- * <p>Ba dieu p8 chot tuong minh cho L70 va deu duoc kiem o day: {@code If-Match} <b>bat buoc</b>
- * (thieu ⇒ {@code 428}), khoa la ⇒ {@code 404 SETTING_KEY_UNKNOWN}, va gia tri {@code secret} bi
- * che — p4 §H3 noi che "trong UI <b>va trong audit</b>", nen ca {@code before}/{@code after} cua
- * {@code audit_log} cung phai che.</p>
- */
 class AdminSettingsServiceTest {
 
     private static final UUID ADMIN = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -52,7 +44,6 @@ class AdminSettingsServiceTest {
                 .as("p8 L69: gia tri secret = true bi che")
                 .isEqualTo(AppSettingRow.MASK)
                 .isNotEqualTo("s3cr3t-hint");
-        // Metadata van phai hien: admin can thay "khoa nay ton tai va vua bi doi luc nao".
         assertThat(byKey.get("integration.webhook_signing_hint").valueType()).isEqualTo("STRING");
         assertThat(byKey.get("integration.webhook_signing_hint").updatedAt()).isEqualTo(UPDATED_AT);
     }
@@ -141,7 +132,6 @@ class AdminSettingsServiceTest {
         return new AppSettingRow(key, value, type, "mo ta", secret, null, UPDATED_AT);
     }
 
-    /** Khong dung Testcontainers: dieu can kiem la LUAT (che, If-Match, 404), khong phai SQL. */
     private static final class FakeAppSettingPort implements AppSettingAdminPort {
 
         private final Map<String, AppSettingRow> rows = new LinkedHashMap<>();

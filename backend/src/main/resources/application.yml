@@ -4,16 +4,12 @@ spring:
 
   servlet:
     multipart:
-      # Mặc định của Spring là 1MB — ảnh chụp điện thoại luôn vượt nên quét/upload avatar hỏng.
-      # Trần thô cao hơn mức nghiệp vụ lớn nhất (scan 8MB: ScanThresholds.MAX_UPLOAD_BYTES);
-      # từng service vẫn tự kiểm và trả mã lỗi riêng (IMAGE_TOO_LARGE, PAYLOAD_TOO_LARGE...).
       max-file-size: 9MB
       max-request-size: 10MB
 
   datasource:
     hikari:
       data-source-properties:
-        # Lỗi PostgreSQL mặc định kèm dòng dữ liệu lỗi ("Failing row contains (...)"), trong đó có email và tên mèo.
         logServerErrorDetail: false
 
   security:
@@ -28,9 +24,9 @@ spring:
               - email
               - profile
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-        provider:
-          google:
-            issuer-uri: https://accounts.google.com
+        # Không đặt provider.google.issuer-uri: khi có, Spring gọi accounts.google.com lúc khởi động
+        # để lấy cấu hình và backend không chạy được khi mất mạng/DNS. Registration id "google" đã dùng
+        # endpoint + issuer cố định của CommonOAuth2Provider.GOOGLE.
   
   jpa:
     open-in-view: false
@@ -41,13 +37,6 @@ spring:
         jdbc:
           time_zone: UTC
 
-  # spring.jackson.serialization.write-dates-as-timestamps đã bị xoá: Jackson 3.1.5
-  # (tools.jackson.databind.SerializationFeature) không còn hằng WRITE_DATES_AS_TIMESTAMPS —
-  # nhóm tính năng ngày/giờ đã dời khỏi SerializationFeature dùng chung. Property này khiến
-  # ApplicationContext không khởi động được (ConversionFailedException lúc bind
-  # spring.jackson.serialization). Xác nhận qua javap trực tiếp trên jackson-databind:3.1.5:
-  # KHÔNG còn hằng nào chứa "timestamp". Ngày giờ (java.time.*) mặc định serialize dạng
-  # ISO-8601 qua JsonMapper.Builder, không cần bật cờ này nữa.
   jackson:
     time-zone: UTC
     default-property-inclusion: non_null
@@ -59,15 +48,8 @@ spring:
   session:
     store-type: jdbc
     jdbc:
-      # Bảng SPRING_SESSION/SPRING_SESSION_ATTRIBUTES đã tạo ở migration V3 - KHONG để
-      # spring-session tự tạo lại schema lúc khởi động.
       initialize-schema: never
 
-  # spring.modulith.events.jdbc.use-legacy-structure=true là BẮT BUỘC: bảng event_publication
-  # (migration V4) chỉ có 6 cột theo yêu cầu nhiệm vụ M0 (cấu trúc "legacy"/schema v1 của
-  # spring-modulith-events-jdbc:2.1.1), không có 3 cột mới (status, completion_attempts,
-  # last_resubmission_date) của schema v2 mặc định. Đã xác nhận tên property này bằng cách giải
-  # nén jar spring-modulith-events-jdbc:2.1.1 (META-INF/spring-configuration-metadata.json).
   modulith:
     events:
       jdbc:
@@ -81,6 +63,9 @@ spring:
 
 server:
   port: 8080
+  # Tin X-Forwarded-Host/Proto tu proxy noi bo (Caddy, Vite dev proxy cho tunnel) de {baseUrl}
+  # cua OAuth redirect_uri la domain cong khai, khong phai localhost:8080.
+  forward-headers-strategy: native
 
 management:
   endpoint:
@@ -90,13 +75,10 @@ management:
   endpoints:
     web:
       exposure:
-        # Mặc định tối thiểu (health, info) - profile local mở rộng thêm, staging/prod giữ
-        # nguyên mức tối thiểu này (xem application-prod.yml).
         include: health,info
 
 catcheck:
   storage:
-    # local | cloudinary | auto (auto: Cloudinary khi đủ 3 biến CLOUDINARY_*, ngược lại local)
     provider: ${CATCHECK_STORAGE_PROVIDER:auto}
     cloudinary:
       cloud-name: ${CLOUDINARY_CLOUD_NAME:}
@@ -104,32 +86,49 @@ catcheck:
       api-secret: ${CLOUDINARY_API_SECRET:}
       folder: ${CLOUDINARY_FOLDER:catcheck}
 
+  auth:
+    # Temporarily raised from the default 5; set CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS to change.
+    max-concurrent-sessions: ${CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS:20}
+
+  credit:
+    # Quà chào mừng cho mỗi tài khoản người mua mới (đăng ký email đã xác minh / Google OAuth).
+    welcome-bonus:
+      enabled: ${CATCHECK_WELCOME_BONUS_ENABLED:true}
+      amount: ${CATCHECK_WELCOME_BONUS_AMOUNT:10}
+      validity: ${CATCHECK_WELCOME_BONUS_VALIDITY:5d}
+
   oauth2:
     mock-enabled: false
     frontend-success-url: ${CATCHECK_OAUTH2_FRONTEND_SUCCESS_URL:http://localhost:5173/auth/oauth/complete}
 
   ai:
-    # Mặc định TẮT: MVP chỉ ghép nguyên văn tài liệu đã duyệt (retrieval-fallback), không gửi câu
-    # hỏi ra nhà cung cấp LLM. Có OPENAI_API_KEY thôi chưa đủ; muốn gọi LLM phải đặt thêm
-    # CATCHECK_AI_ENABLED=true (OpenAiCompatibleClient.complete() kiểm cả hai).
     enabled: ${CATCHECK_AI_ENABLED:false}
-    base-url: ${CATCHECK_AI_BASE_URL:https://api.openai.com/v1}
-    api-key: ${OPENAI_API_KEY:}
-    chat-model: ${CATCHECK_AI_CHAT_MODEL:gpt-4o-mini}
+    # OpenRouter (OpenAI-compatible). Model là cấu hình: chạy smoke test với openrouter/free, rồi ghim
+    # một model ":free" cố định sau golden set (docs/AI_HYBRID_RAG_PLAN.md mục 2, 5).
+    base-url: ${CATCHECK_AI_BASE_URL:https://openrouter.ai/api/v1}
+    # Biến riêng của CatCheck; OPENAI_API_KEY chỉ còn là tên cũ được chấp nhận để không gãy cấu hình cũ.
+    api-key: ${CATCHECK_AI_API_KEY:${OPENAI_API_KEY:}}
+    chat-model: ${CATCHECK_AI_CHAT_MODEL:openrouter/free}
     max-context-chunks: 6
     max-history-messages: 8
     max-tokens: 700
-  # Job nền. Tên job và giờ chạy TRÍCH NGUYÊN từ p12 §12.6 — p12 là danh mục job duy nhất của
-  # dự án và §12.6.1 quy tắc 1 ghi "con số trong các bảng dưới là con số duy nhất trong toàn bộ
-  # SPEC". Đổi `cron` ở đây là đổi spec, không phải tinh chỉnh cấu hình.
-  # Giờ theo `zone` dưới đây (ICT) chứ KHÔNG theo UTC của JVM: p12 §12.6.1 quy tắc 1.
+    # Timeout HTTP tới provider LLM — provider treo không được giữ luồng request vô hạn.
+    connect-timeout: ${CATCHECK_AI_CONNECT_TIMEOUT:5s}
+    read-timeout: ${CATCHECK_AI_READ_TIMEOUT:30s}
+    # Ngân sách toàn hệ thống cho provider: số lời gọi đồng thời tối đa và thời gian ngắt sau 429/5xx/timeout.
+    max-concurrent-calls: ${CATCHECK_AI_MAX_CONCURRENT_CALLS:2}
+    circuit-open-for: ${CATCHECK_AI_CIRCUIT_OPEN_FOR:60s}
+    # Đồng bộ kho tri thức (chỉ phần đổi hash) ngay khi app khởi động, chạy nền.
+    index-on-startup: ${CATCHECK_AI_INDEX_ON_STARTUP:true}
+    # Thư mục model embedding cục bộ (tools/fetch-embedding-model.sh). Trống = chỉ retrieval lexical.
+    embedding-model-dir: ${CATCHECK_AI_EMBEDDING_MODEL_DIR:}
+    # Cosine tối thiểu để chunk chỉ-vector vào context (e5: cặp đúng ≥ 0.90, sai ≤ 0.86 trên seed);
+    # đo lại bằng golden set trước khi bật provider.
+    min-vector-similarity: ${CATCHECK_AI_MIN_VECTOR_SIMILARITY:0.88}
   jobs:
-    # Công tắc tổng. Tắt là không job nào chạy và KHÔNG job nào ghi `job_run` — dùng cho
-    # instance chỉ phục vụ request. Không dùng để "tạm tắt một job": mỗi job có cờ riêng.
     enabled: true
     zone: Asia/Ho_Chi_Minh
 
-    # p12 §12.6.2 nhóm A — mỗi giờ phút :05, lockAtMostFor 50m.
     expire-credit-batches:
       enabled: true
       cron: "0 5 * * * *"
@@ -138,10 +137,6 @@ catcheck:
       max-items-per-run: 5000
       dry-run: false
 
-    # p12 §12.6.2 nhóm A — mỗi giờ phút :15, lockAtMostFor 50m.
-    # BẬT từ W2-B (H15.46): adapter credit.infrastructure.notification.NotificationGatewayExpiry
-    # Adapter đã hiện thực CreditExpiryNotificationPort bằng notification::api NotificationGateway,
-    # nên job đẩy được CREDIT_EXPIRING_T48H/T6H vào outbox đúng p12 §12.6.1 quy tắc 8.
     credit-expiring-reminder:
       enabled: true
       cron: "0 15 * * * *"
@@ -150,10 +145,6 @@ catcheck:
       max-items-per-run: 5000
       dry-run: false
 
-    # Lưới an toàn cho ReportPdfJob (p13 §13.6.1: timeout 15m mỗi instance) — đặt export_job
-    # kẹt QUEUED/RUNNING quá hạn thành FAILED. p12 §12.6 KHÔNG có dòng nào cho job này: tên,
-    # cron và lockAtMostFor là quy ước của repo, cần p12 chốt (handoffs.md H15.78). Job đọc các
-    # khoá này bằng placeholder có giá trị mặc định nên khối dưới chỉ để ghi rõ, không bắt buộc.
     report-pdf-timeout:
       enabled: true
       cron: "0 */15 * * * *"
@@ -161,8 +152,6 @@ catcheck:
       stale-after: PT15M
       dry-run: false
 
-    # p12 §12.6.6 nhóm E — mỗi 10 phút, lockAtMostFor 5m. Chỉ đọc job_run và phát
-    # catcheck.job.overdue_count (p12 §12.10); không tự giám sát chính mình.
     job-heartbeat-check:
       enabled: true
       cron: "0 */10 * * * *"
@@ -171,9 +160,6 @@ catcheck:
       max-items-per-run: 100
       dry-run: false
 
-    # p12 §12.6.3 nhóm B — mỗi 5 phút, lockAtMostFor 4m30s. Quét `reminder` tới hạn, đẩy
-    # thông báo qua notification::api rồi tính lại `next_run_at`. batch-size 200 = đúng
-    # `LIMIT 200` mà p12 §12.5.5(a) ghi.
     send-due-reminders:
       enabled: true
       cron: "0 */5 * * * *"
@@ -182,9 +168,6 @@ catcheck:
       max-items-per-run: 1000
       dry-run: false
 
-    # p12 §12.6.3 nhóm B — mỗi 30 giây, lockAtMostFor 25s. Cron 6 trường (có trường giây).
-    # batch-size ở đây KHÔNG dùng: kích thước lô của email outbox là
-    # `catcheck.notification.outbox.email-batch-size` (thuộc dispatcher, không thuộc job).
     send-email-outbox:
       enabled: true
       cron: "*/30 * * * * *"
@@ -193,7 +176,6 @@ catcheck:
       max-items-per-run: 50
       dry-run: false
 
-    # p12 §12.6.3 nhóm B — mỗi 15 phút, lockAtMostFor 14m.
     retry-failed-notifications:
       enabled: true
       cron: "0 */15 * * * *"
@@ -202,8 +184,6 @@ catcheck:
       max-items-per-run: 100
       dry-run: false
 
-    # p12 §12.6.3 nhóm B — Chủ Nhật 04:00, lockAtMostFor 30m. Xoá `push_subscription` đã thu
-    # hồi > 30 ngày HOẶC không thấy mặt > 180 ngày (retention D16, p15 §15.5.1).
     cleanup-dead-push-tokens:
       enabled: true
       cron: "0 0 4 * * SUN"
@@ -214,36 +194,19 @@ catcheck:
 
   notification:
     push:
-      # FCM web push (quyết định #16). Tên biến môi trường theo p18 §18.9 — không tự đặt tên mới.
-      # `service-account-path` là ĐƯỜNG DẪN tới file service account JSON mount read-only, KHÔNG
-      # phải nội dung JSON (research §15.3 cấm nhét cả JSON vào env var).
-      # Để TRỐNG ⇒ push bị vô hiệu hoá CÓ KIỂM SOÁT: app vẫn khởi động, G9–G11 vẫn chạy,
-      # `notification_outbox` giữ nguyên PENDING (không tiêu `attempts`) và sẽ được đẩy khi cấu
-      # hình xong. Đây là trạng thái mặc định của máy dev và CI.
       service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
       project-id: ${FIREBASE_PROJECT_ID:}
-      # Trần 10 thiết bị/user — p4 F3 (`push.max_subscriptions_per_user`) + p8 PUSH_SUBSCRIPTION_LIMIT.
       max-devices-per-user: 10
     outbox:
-      # p12 §12.8.1: tối đa 5 lần thử, backoff 1m/5m/30m/2h/12h rồi vào dead letter.
       max-attempts: 5
       email-batch-size: 50
       push-batch-size: 100
-      # Công tắc hai job outbox đã CHUYỂN sang `catcheck.jobs.send-email-outbox.enabled` và
-      # `catcheck.jobs.retry-failed-notifications.enabled` ở W2-B (H15.73) — hai job nay chạy
-      # trên nền `shared/job` và ghi `job_run` như mọi job khác.
 
   i18n:
     default-locale: vi
     supported-locales: vi,en
 
   dev:
-    # POST /api/v1/dev/scans — nhập một kết quả quét bằng tay (đã biết pH, không có ảnh) để
-    # các tính năng hạ nguồn (lịch sử, xu hướng, export PDF, nhắc nhở, health flag, credit
-    # FEFO) chạy được trên dữ liệu thật khi chưa có bảng màu hiệu chuẩn + ảnh ground truth
-    # (p20 X1/X2). TẮT ở MỌI profile kể cả local/dev — bật bằng biến môi trường
-    # CATCHECK_DEV_MANUAL_SCAN_ENABLED=true cho đúng phiên chạy cần nó. Ở profile `prod` bean
-    # của endpoint không tồn tại (@Profile("!prod")) nên cờ này cũng không bật lại được.
     manual-scan-enabled: false
 
 springdoc:

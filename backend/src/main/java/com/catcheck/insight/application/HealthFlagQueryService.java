@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.util.UUID;
 
-/** {@code GET /health-flags}, {@code GET /health-flags/{id}}, {@code POST .../acknowledge} (p8 §8.4.7 G1-G3). */
 @Service
 public class HealthFlagQueryService {
 
@@ -43,7 +42,6 @@ public class HealthFlagQueryService {
         HealthFlag flag = healthFlagRepository.findById(flagId)
                 .orElseThrow(() -> new NotFoundException(InsightErrorCode.HEALTH_FLAG_NOT_FOUND));
         if (!healthFlagRepository.isCatOwnedByUser(flag.getCatId(), userId)) {
-            // 404 chứ không 403 (p8 §8.3.4) - không tiết lộ flag của người khác tồn tại.
             throw new NotFoundException(InsightErrorCode.HEALTH_FLAG_NOT_FOUND);
         }
         return flag;

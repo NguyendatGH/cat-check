@@ -1,6 +1,5 @@
 package com.catcheck.shared.error;
 
-/** Vượt giới hạn tần suất (Bucket4j) - thường HTTP 429. Mang kèm retryAfterSeconds nếu biết. */
 public class RateLimitedException extends CatCheckException {
 
     private final Long retryAfterSeconds;

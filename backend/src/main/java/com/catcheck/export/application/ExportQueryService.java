@@ -13,7 +13,6 @@ import java.io.InputStream;
 import java.time.Clock;
 import java.util.UUID;
 
-/** {@code GET /exports}, {@code GET /exports/{id}}, {@code GET /exports/{id}/download} (p8 §8.4.10 J2-J4). */
 @Service
 public class ExportQueryService {
 

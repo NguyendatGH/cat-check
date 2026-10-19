@@ -9,12 +9,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-/**
- * Một mức pH trong body L31 ({@code PUT /admin/color-charts/{chartId}/points}).
- *
- * <p>Admin nhập {@code hexSrgb} (luồng 1) hoặc {@code labL/labA/labB} trực tiếp (luồng 2). Khi
- * nhập hex, server tự tính Lab bằng {@code ColorSpace.hexToLab} (p6 §6.6.3).
- */
 public record PointInput(
         @NotNull
         @DecimalMin("0.0")
@@ -36,11 +30,11 @@ public record PointInput(
         @DecimalMin("0.01")
         BigDecimal toleranceDeltaE,
 
-        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "hexSrgb phải là #RRGGBB")
+        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "{validation.colorchart.hexSrgb.format}")
         String hexSrgb,
 
         @NotBlank
-        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "displayHex phải là #RRGGBB")
+        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "{validation.colorchart.displayHex.format}")
         String displayHex,
 
         @NotBlank

@@ -14,16 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bảng {@code push_subscription} (V13, p4 F3).
- *
- * <p><b>Lệch spec cần biết:</b> p12 §12.6.4a xếp {@code push_subscription.fid} và
- * {@code legacy_token} vào phạm vi {@code ReencryptPiiColumnsJob} — tức coi chúng là cột PII
- * được mã hoá ở tầng ứng dụng. Nhưng V13 khai hai cột là {@code VARCHAR}, không phải
- * {@code BYTEA}, và không có cột {@code *_key_version} đi kèm như {@code app_user.phone}, nên
- * KHÔNG mã hoá được nếu không đổi schema (danh mục migration p4 §4.9.2 đã đóng). Repo này lưu
- * nguyên văn đúng theo DDL; việc dung hoà hai chỗ phải do p4 + p12 quyết, không phải chỗ này.</p>
- */
 @Repository
 class JdbcPushSubscriptionRepository implements PushSubscriptionRepository {
 
@@ -73,8 +63,6 @@ class JdbcPushSubscriptionRepository implements PushSubscriptionRepository {
 
     @Override
     public PushSubscription upsert(PushSubscription subscription) {
-        // Suy index từ biểu thức của uq_push_subscription_device — Postgres khớp được
-        // ON CONFLICT với unique index trên biểu thức khi biểu thức viết y hệt.
         UUID id = jdbc.queryForObject("""
                 INSERT INTO push_subscription (user_id, fid, legacy_token, platform, device_label,
                                                user_agent, last_seen_at)
@@ -110,6 +98,16 @@ class JdbcPushSubscriptionRepository implements PushSubscriptionRepository {
                  WHERE fid = ? AND user_id <> ? AND revoked_at IS NULL
                 """, NotificationRowReaders.offset(now), PushRevokeReason.USER_DISABLED.name(),
                 installationId, newOwnerId);
+    }
+
+    @Override
+    public int revokeLegacyTokenOwnedByOtherUser(String legacyToken, UUID newOwnerId, Instant now) {
+        return jdbc.update("""
+                UPDATE push_subscription
+                   SET revoked_at = ?, revoke_reason = ?
+                 WHERE legacy_token = ? AND user_id <> ? AND revoked_at IS NULL
+                """, NotificationRowReaders.offset(now), PushRevokeReason.USER_DISABLED.name(),
+                legacyToken, newOwnerId);
     }
 
     @Override
@@ -150,7 +148,6 @@ class JdbcPushSubscriptionRepository implements PushSubscriptionRepository {
         return updated == null ? 0 : updated;
     }
 
-    /* --------------------------------------------------- CleanupDeadPushTokensJob (p12 §12.3.9) */
 
     @Override
     public long countAll() {
@@ -170,8 +167,6 @@ class JdbcPushSubscriptionRepository implements PushSubscriptionRepository {
 
     @Override
     public int deleteDead(Instant revokedBefore, Instant lastSeenBefore, int limit) {
-        // FOR UPDATE SKIP LOCKED o subquery: lop bao ve thu hai cua p12 §12.6.1 quy tac 3b —
-        // hai instance chay chong nhau khong gianh cung mot dong.
         return jdbc.update("""
                 DELETE FROM push_subscription
                  WHERE id IN (

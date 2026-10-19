@@ -11,14 +11,6 @@ import iconAvatar from "@/shared/assets/icons/web-dashboard/header-avatar.svg";
 import { ROUTE_PATTERNS } from "../../router/routes";
 import { HeaderSearch } from "./HeaderSearch";
 
-/**
- * Pill trạng thái ở header (vị trí chip "Hệ vi sinh & pH ổn định" của Figma 16:7475).
- *
- * Chip của thiết kế là một tuyên bố sức khoẻ TĨNH, sáng xanh ở mọi trang dù dữ liệu ra sao.
- * Nay nó là lần quét gần nhất thật: `GET /scans` trang đầu (CÙNG query key với Trang chủ và
- * Lịch sử nên không thêm request) + nhãn/màu của dải từ `GET /reference/ph-bands`. Chưa có lần
- * quét nào ⇒ không hiện gì, không dựng câu thay thế.
- */
 function LatestScanPill({ enabled }: { enabled: boolean }) {
   const { t } = useTranslation("common");
   const { data } = useScanHistory(undefined, "ALL", enabled);
@@ -49,18 +41,13 @@ function LatestScanPill({ enabled }: { enabled: boolean }) {
   );
 }
 
-/**
- * Header desktop — Figma node 16:7475, cao đúng 64px: ô tìm kiếm · pill lần quét gần nhất ·
- * chuông · user. `onBack` chỉ TaskLayout dùng: trang tác vụ (sửa hồ sơ, chi tiết lần quét…)
- * vẫn cần đường quay lại khi đã có sidebar.
- */
 export function DesktopHeader({ showBack = false }: { showBack?: boolean }) {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
   const user = useSessionStore((s) => s.user);
 
   return (
-    <header className="sticky top-0 z-[var(--z-sticky-header)] hidden h-16 w-full shrink-0 items-center gap-4 border-b border-border bg-surface px-6 lg:flex">
+    <header className="header-glass sticky top-0 z-[var(--z-sticky-header)] hidden h-16 w-full shrink-0 items-center gap-4 border-b border-border/60 px-6 lg:flex">
       {showBack ? (
         <button
           type="button"
@@ -68,7 +55,7 @@ export function DesktopHeader({ showBack = false }: { showBack?: boolean }) {
             void navigate(-1);
           }}
           aria-label={t("actions.back")}
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-text-secondary hover:bg-background-alt"
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-all duration-200 hover:bg-background-alt active:scale-95"
         >
           <ArrowLeft size={20} aria-hidden="true" />
         </button>
@@ -85,22 +72,20 @@ export function DesktopHeader({ showBack = false }: { showBack?: boolean }) {
             void navigate(ROUTE_PATTERNS.notifications);
           }}
           aria-label={t("nav.notifications")}
-          className="relative flex size-10 items-center justify-center rounded-xl hover:bg-background-alt"
+          data-tour="notifications"
+          className="relative flex size-10 items-center justify-center rounded-xl transition-all duration-200 hover:bg-background-alt active:scale-95"
         >
           <img src={iconBell} alt="" className="h-[16.667px] w-[13.333px]" />
-          {/* Số chưa đọc thật từ G5 `GET /notifications/unread-count`, tự ẩn khi bằng 0. */}
           <NotificationUnreadBadge enabled={Boolean(user)} />
         </button>
 
-        {/* Trang chủ xem được ở chế độ khách — chưa đăng nhập thì hiện CTA đăng nhập thay vì ô
-            hồ sơ (bấm vào sẽ bị RequireAuth đá về login, gây cụt luồng). */}
         {user ? (
           <button
             type="button"
             onClick={() => {
               void navigate(ROUTE_PATTERNS.settingsProfile);
             }}
-            className="flex max-w-[260px] items-center gap-3 rounded-xl py-1 pl-2 hover:bg-background-alt"
+            className="flex max-w-[260px] items-center gap-3 rounded-xl py-1 pl-2 transition-all duration-200 hover:bg-background-alt active:scale-[0.98]"
           >
             <span className="min-w-0 text-right">
               <span className="block truncate text-caption font-bold text-text-primary">{user.displayName}</span>
@@ -120,7 +105,7 @@ export function DesktopHeader({ showBack = false }: { showBack?: boolean }) {
             onClick={() => {
               void navigate(ROUTE_PATTERNS.login);
             }}
-            className="flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-caption font-semibold text-white"
+            className="flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-caption font-semibold text-white transition-all duration-200 hover:bg-primary-dark active:scale-95"
           >
             {t("dashboard.guestBanner.login")}
           </button>
@@ -129,3 +114,4 @@ export function DesktopHeader({ showBack = false }: { showBack?: boolean }) {
     </header>
   );
 }
+

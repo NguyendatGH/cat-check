@@ -3,8 +3,11 @@ package com.catcheck.colorchart.api;
 import com.catcheck.colorchart.application.ChartBackfillAdminService;
 import com.catcheck.colorchart.application.ColorChartAdminService;
 import com.catcheck.colorchart.application.PhBandAdminService;
+import com.catcheck.colorchart.domain.BandSeverity;
+import com.catcheck.colorchart.domain.PhClassificationBand;
 import com.catcheck.scan.api.ChartBackfill;
 import com.catcheck.shared.error.BusinessRuleException;
+import com.catcheck.shared.error.NotFoundException;
 import com.catcheck.shared.testing.AdminApiMockMvc;
 import com.catcheck.shared.testing.TestPrincipal;
 import org.junit.jupiter.api.AfterEach;
@@ -15,33 +18,32 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * L33–L35 ở tầng api: vai trò, hình dạng response {@code 202}, và hai mã lỗi mà p8 §8.4.12 nêu
- * đích danh ({@code 409 COLOR_CHART_IN_USE}, {@code 422 COLOR_CHART_INCOMPLETE}).
- */
 class AdminColorChartControllerTest {
 
     private static final UUID CHART_ID = UUID.fromString("00000000-0000-0000-0000-0000000000c1");
 
     private final ChartBackfillAdminService backfillService = Mockito.mock(ChartBackfillAdminService.class);
+    private final PhBandAdminService phBandService = Mockito.mock(PhBandAdminService.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = AdminApiMockMvc.build(new AdminColorChartController(
                 Mockito.mock(ColorChartAdminService.class),
-                Mockito.mock(PhBandAdminService.class),
+                phBandService,
                 backfillService,
                 new ColorChartRoleGuard()));
     }
@@ -144,5 +146,44 @@ class AdminColorChartControllerTest {
                         .content("{\"reason\":\"Ap dung bang mau da duyet\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("ADMIN_ROLE_REQUIRED"));
+    }
+
+    @Test
+    void bandLabelFollowsABrowserAcceptLanguageWithQualityValues() throws Exception {
+        AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_CATALOG"));
+        Instant now = Instant.parse("2026-10-09T10:00:00Z");
+        Mockito.when(phBandService.listBands()).thenReturn(List.of(new PhClassificationBand(
+                UUID.randomUUID(), null, "NORMAL", null, null, true, true, "Binh thuong", "Normal", null, null,
+                BandSeverity.NORMAL, "color-ph-normal", "check-circle", false, 1, true, now, now)));
+
+        mockMvc.perform(get("/api/v1/admin/ph-classification-bands").header("Accept-Language", "en-US,en;q=0.9"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].label").value("Normal"));
+    }
+
+    @Test
+    void inactiveBandIsResolvedByCodeForTheETagCheckAndAnUnknownCodeIsNotFound() throws Exception {
+        AdminApiMockMvc.authenticate(TestPrincipal.withRoles("ADMIN_CATALOG"));
+        Instant now = Instant.parse("2026-10-09T10:00:00Z");
+        PhClassificationBand inactive = new PhClassificationBand(UUID.randomUUID(), null, "LEGACY", null, null,
+                true, true, "Cu", "Old", null, null, BandSeverity.NORMAL, "color-ph-normal", "check-circle",
+                false, 9, false, now, now);
+        Mockito.when(phBandService.getBand("LEGACY")).thenReturn(inactive);
+        Mockito.when(phBandService.updateBand(eq("LEGACY"), any())).thenReturn(inactive);
+        Mockito.when(phBandService.getBand("MISSING"))
+                .thenThrow(new NotFoundException(ColorChartErrorCode.PH_BAND_NOT_FOUND, "MISSING"));
+
+        mockMvc.perform(patch("/api/v1/admin/ph-classification-bands/{code}", "LEGACY")
+                        .header("If-Match", ETag.of(inactive))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"active\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("LEGACY"));
+        mockMvc.perform(patch("/api/v1/admin/ph-classification-bands/{code}", "MISSING")
+                        .header("If-Match", "*")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"active\":true}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("PH_BAND_NOT_FOUND"));
     }
 }

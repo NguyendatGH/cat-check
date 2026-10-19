@@ -41,9 +41,7 @@ import java.util.UUID;
 public class AdminPrivacyController {
     private static final Set<String> READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
     private static final int MAX_PAGE_SIZE = 100;
-    /** L52: p8 cho {@code DPO,ADMIN_SUPER}; p14 Q10 siết ADMIN_SUPER lại ở tầng service. */
     private static final Set<String> EXPORT_ROLES = Set.of("ADMIN_SUPER", "DPO");
-    /** L53: {@code R:DPO} — p14 Q9 để ADMIN_SUPER là ❌ (quy tắc hai người, p15 REQ-RBAC-03). */
     private static final Set<String> ERASURE_APPROVAL_ROLES = Set.of("DPO");
 
     private final DsarRequestPort dsarRequestPort;
@@ -93,6 +91,19 @@ public class AdminPrivacyController {
         return PageResponse.of(items, safePage, safeSize, total);
     }
 
+    @Operation(operationId = "getAdminPrivacyRequestSummary",
+            summary = "L49b — đếm DSAR đang mở/quá hạn/gia hạn",
+            description = "Chỉ đọc, trên toàn bộ DSAR (lọc tuỳ chọn theo loại), không riêng trang đang xem.")
+    @GetMapping("/summary")
+    public SummaryResponse summary(@CurrentUser SecurityPrincipal principal,
+                                   @RequestParam(required = false) String requestType) {
+        AdminGuard.requireAnyRole(principal, READ_ROLES);
+        DsarRequestPort.AdminSummary summary = adminDsarService.summary(parseType(requestType));
+        return new SummaryResponse(summary.open(), summary.overdue(), summary.extended());
+    }
+
+    public record SummaryResponse(long open, long overdue, long extended) { }
+
     @Operation(operationId = "getAdminPrivacyRequest", summary = "L50 — chi tiết DSAR admin")
     @GetMapping("/{requestId}")
     public AdminDsarRequestResponse detail(@CurrentUser SecurityPrincipal principal,
@@ -117,13 +128,6 @@ public class AdminPrivacyController {
                 principal.userId(), actorRole(principal), requestId, action, reason, body.extendedTo(), evidence(request)));
     }
 
-    /**
-     * L52 — sinh gói dữ liệu cá nhân thay mặt chủ thể, {@code 202 Accepted}.
-     *
-     * <p>Điều kiện hẹp hơn của p14 Q10 (ADMIN_SUPER chỉ xuất yêu cầu mình là
-     * {@code handled_by}) nằm ở service: ở đây chưa đọc {@code dsar_request} nên chưa biết
-     * ai đang xử lý.</p>
-     */
     @Operation(operationId = "exportAdminPrivacyRequest", summary = "L52 — xuất gói dữ liệu cá nhân thay user")
     @PostMapping("/{requestId}/export")
     @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.ACCEPTED)
@@ -138,7 +142,6 @@ public class AdminPrivacyController {
                 requestId, principal.userId(), actorRole(principal), reason, evidence(request)));
     }
 
-    /** L53 — phê duyệt + thực thi xoá tài khoản, quy tắc hai người (p15 REQ-RBAC-03). */
     @Operation(operationId = "approveAdminPrivacyErasure", summary = "L53 — duyệt và thực thi xoá tài khoản")
     @PostMapping("/{requestId}/approve-erasure")
     public AdminErasureApprovalResponse approveErasure(

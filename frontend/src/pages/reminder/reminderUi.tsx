@@ -17,6 +17,7 @@ import {
   Sun,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   INTERVAL_DAYS_MAX,
   INTERVAL_DAYS_MIN,
@@ -29,27 +30,13 @@ import {
 } from "@/features/reminder";
 import vetFollowupPhoto from "@/shared/assets/images/web-reminder/vet-followup.jpg";
 
-/**
- * Mảnh dùng chung của ba trang `/reminders*` — formatter, chip trạng thái, khối form lịch,
- * và ba trạng thái lỗi nghiệp vụ. Đặt cạnh trang (không nhét vào `features/reminder`) theo
- * đúng tiền lệ `pages/trends/webTrends.tsx`: đây là lớp trình bày riêng của màn này, còn
- * feature chỉ giữ hợp đồng API + hook.
- *
- * Nguồn thiết kế: frame `09. Nhắc nhở Theo dõi` (mobile 390px) và
- * `Web - 09. Trung tâm Nhắc nhở & Lịch Y tế` (desktop 1280px).
- */
-
-// ─── Formatter ───────────────────────────────────────────────────────────────────────────
-
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-/** Khoảng cách ngày ứng với 3 ô preset của frame 09 ("Mỗi ngày" / "Mỗi 3 ngày" / "Hàng tuần"). */
 export const PRESET_INTERVALS = [1, 3, 7] as const;
 
-/** `08:00 09/10/2026` — gọn hơn `dateStyle: "medium"` ("08:00 9 thg 10, 2026") vốn bị cắt `…` trong ô 390px. */
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("vi-VN", {
+  return new Date(iso).toLocaleString(intlLocale(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -58,20 +45,11 @@ export function formatDateTime(iso: string): string {
   });
 }
 
-/**
- * Nhãn "lần … tiếp theo" theo LOẠI lịch: chỉ `SCAN_ROUTINE` là nhắc QUÉT; `CREDIT_EXPIRY` /
- * `SURVEY_FOLLOWUP` là nhắc hệ thống — gọi chúng là "Lần quét tiếp theo" là nói sai.
- */
 export function useNextRunLabel(): (reminder: Pick<Reminder, "type">) => string {
   const { t } = useTranslation("reminder");
   return (reminder) => (reminder.type === "SCAN_ROUTINE" ? t("list.nextRunLabel") : t("list.nextReminderLabel"));
 }
 
-/**
- * Hành động chính của một lịch đến hạn, theo loại lịch: nhắc quét → `/scan`; nhắc hạn gói →
- * `/credits`; nhắc khảo sát → trang chi tiết lịch. Trước đây mọi thẻ đều "Quét ngay", kể cả
- * lịch nhắc hạn gói.
- */
 export function reminderAction(reminder: Pick<Reminder, "type" | "id">): { to: string; labelKey: string } {
   if (reminder.type === "SCAN_ROUTINE") return { to: "/scan", labelKey: "web.scanNowCta" };
   if (reminder.type === "CREDIT_EXPIRY") return { to: "/credits", labelKey: "web.viewCreditsCta" };
@@ -79,7 +57,7 @@ export function reminderAction(reminder: Pick<Reminder, "type" | "id">): { to: s
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  return new Date(iso).toLocaleDateString(intlLocale(), { day: "2-digit", month: "2-digit" });
 }
 
 export type DueState =
@@ -88,11 +66,6 @@ export type DueState =
   | { kind: "hours"; hours: number }
   | { kind: "days"; days: number };
 
-/**
- * Trạng thái "còn bao lâu tới hạn" suy từ `nextRunAt`.
- *
- * `nextRunAt` VẮNG MẶT khi lịch đang tắt (server bỏ field null) — trả `none`, KHÔNG đoán mốc.
- */
 export function dueState(nextRunAt: string | undefined, now: number = Date.now()): DueState {
   if (nextRunAt === undefined) return { kind: "none" };
   const delta = new Date(nextRunAt).getTime() - now;
@@ -102,11 +75,34 @@ export function dueState(nextRunAt: string | undefined, now: number = Date.now()
   return { kind: "days", days: Math.round(delta / DAY_MS) };
 }
 
-/** Câu mô tả nhịp lặp — ưu tiên nhãn quen thuộc cho 1 ngày / 7 ngày. */
+// RRULE codes in display order; web.weekday1..7 hold the short labels (Mon..Sun).
+const WEEKDAY_CODES = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
+const WEEKLY_RULE = /^FREQ=WEEKLY;BYDAY=([A-Z]{2}(?:,[A-Z]{2})*)$/;
+
+/** Days picked in a simple "FREQ=WEEKLY;BYDAY=.." rule, or null when the rule is anything else. */
+export function weekdaysOf(rrule: string): string[] | null {
+  const match = WEEKLY_RULE.exec(rrule.trim());
+  if (!match?.[1]) return null;
+  const days = match[1].split(",");
+  return days.every((day) => (WEEKDAY_CODES as readonly string[]).includes(day)) ? days : null;
+}
+
+export function weeklyRule(days: readonly string[]): string {
+  const ordered = WEEKDAY_CODES.filter((code) => days.includes(code));
+  return ordered.length === 0 ? "" : `FREQ=WEEKLY;BYDAY=${ordered.join(",")}`;
+}
+
 export function useScheduleLabel(): (reminder: Reminder) => string {
   const { t } = useTranslation("reminder");
   return (reminder) => {
-    if (reminder.scheduleKind === "RRULE") return t("schedule.rrule");
+    if (reminder.scheduleKind === "RRULE") {
+      const days = weekdaysOf(reminder.rrule ?? "");
+      if (!days) return t("schedule.rrule");
+      const labels = days.map((day) =>
+        t(`web.weekday${String((WEEKDAY_CODES as readonly string[]).indexOf(day) + 1)}`),
+      );
+      return t("schedule.weekdays", { days: labels.join(", ") });
+    }
     const days = reminder.intervalDays;
     if (days === undefined) return t("schedule.unknown");
     if (days === 1) return t("schedule.intervalDaily");
@@ -115,14 +111,11 @@ export function useScheduleLabel(): (reminder: Reminder) => string {
   };
 }
 
-/** Khung giờ ưu tiên dạng `08:00 – 10:00`, hoặc `null` nếu chưa đặt. */
 export function timeWindow(reminder: Reminder): { from: string; to: string } | null {
   const { preferredTimeStart, preferredTimeEnd } = reminder;
   if (preferredTimeStart === undefined || preferredTimeEnd === undefined) return null;
   return { from: preferredTimeStart.slice(0, 5), to: preferredTimeEnd.slice(0, 5) };
 }
-
-// ─── Chip / nhãn ─────────────────────────────────────────────────────────────────────────
 
 export function StatusChip({ reminder, due }: { reminder: Reminder; due: DueState }) {
   const { t } = useTranslation("reminder");
@@ -149,7 +142,6 @@ export function StatusChip({ reminder, due }: { reminder: Reminder; due: DueStat
   );
 }
 
-/** Viên "Còn 18 giờ" / "Đã quá hạn 4 ngày" của frame 09. */
 export function DueChip({ due }: { due: DueState }) {
   const { t } = useTranslation("reminder");
   if (due.kind === "none") return null;
@@ -169,12 +161,6 @@ export function DueChip({ due }: { due: DueState }) {
   );
 }
 
-/**
- * Pill cạnh tên mèo trong frame 09 (`#EBEDFF` = token `deco-backdrop`).
- *
- * Nội dung do nơi gọi quyết định và luôn là dữ liệu THẬT: giống mèo của D1
- * (`cat.breedName`/`breedOther`) nếu có, không thì loại lịch. KHÔNG bịa giống.
- */
 export function BreedChip({ label }: { label: string }) {
   return (
     <span className="inline-flex shrink-0 items-center rounded-full bg-deco-backdrop px-2.5 py-0.5 text-small font-semibold text-text-secondary">
@@ -183,7 +169,6 @@ export function BreedChip({ label }: { label: string }) {
   );
 }
 
-/** Pill đỏ "Cần quét kiểm tra" của thẻ quá hạn trong frame 09. */
 export function NeedScanChip() {
   const { t } = useTranslation("reminder");
   return (
@@ -193,10 +178,6 @@ export function NeedScanChip() {
   );
 }
 
-/**
- * Dòng trạng thái MỘT DÒNG của thẻ mèo trong frame 09 ("✓ Đang theo dõi • Mỗi 3 ngày",
- * "Lịch: Hàng tuần (Tạm dừng)") — thay cho cặp chip + chữ rời trước đây.
- */
 export function ReminderStatusLine({
   reminder,
   due,
@@ -231,12 +212,6 @@ export function ReminderStatusLine({
   );
 }
 
-// ─── Trạng thái lỗi nghiệp vụ ────────────────────────────────────────────────────────────
-
-/**
- * 403 `FEATURE_NOT_IN_PLAN` — dùng lại đúng cách xử lý của `pages/trends/webTrends.tsx`:
- * chip + câu `common:upsell.*` + CTA sang `/credits`.
- */
 export function FeatureLockedCard() {
   const { t } = useTranslation(["reminder", "common"]);
   return (
@@ -257,10 +232,6 @@ export function FeatureLockedCard() {
   );
 }
 
-/**
- * 409 `REMINDER_LIMIT_REACHED` — mèo đã có lịch cùng loại đang bật. KHÔNG hiện như lỗi hệ
- * thống: dẫn thẳng sang lịch đang có để sửa (nếu tìm được id trong danh sách đã tải).
- */
 export function LimitReachedNotice({ existingReminderId }: { existingReminderId?: string }) {
   const { t } = useTranslation("reminder");
   return (
@@ -277,7 +248,6 @@ export function LimitReachedNotice({ existingReminderId }: { existingReminderId?
   );
 }
 
-/** 400 `REMINDER_SCHEDULE_INVALID` — server từ chối cấu hình lịch. */
 export function ScheduleInvalidNotice() {
   const { t } = useTranslation("reminder");
   return (
@@ -291,7 +261,6 @@ export function ScheduleInvalidNotice() {
   );
 }
 
-/** Lỗi lưu không rơi vào 3 mã trên. */
 export function GenericSaveError({ message }: { message?: string }) {
   const { t } = useTranslation("reminder");
   return (
@@ -302,16 +271,6 @@ export function GenericSaveError({ message }: { message?: string }) {
   );
 }
 
-// ─── Khối nội dung tĩnh ──────────────────────────────────────────────────────────────────
-
-/**
- * Khối giải thích ở chân frame 09 và cột phải của `Web - 09`.
- *
- * KHÔNG phải dữ liệu giả: ảnh lấy từ chính file thiết kế, câu chữ do dự án viết lại. Bản
- * mockup gốc hứa phát hiện tinh thể/tắc nghẽn và dẫn một tổ chức y khoa không có thật —
- * cả hai đều vi phạm quyết định #8 (chỉ đo pH) và luật câu chữ p17 §17.10b nên bị thay bằng
- * mô tả thuần quan sát + liên kết tới tuyên bố miễn trừ y tế.
- */
 export function EducationCard({ withPhoto = false }: { withPhoto?: boolean }) {
   const { t } = useTranslation("reminder");
   return (
@@ -334,18 +293,8 @@ export function EducationCard({ withPhoto = false }: { withPhoto?: boolean }) {
   );
 }
 
-// ─── Schema form ─────────────────────────────────────────────────────────────────────────
-
 const channelEnum = z.enum(REMINDER_CHANNELS);
 
-/**
- * Giá trị form của cả trang tạo mới lẫn trang chi tiết. `message` là KEY i18n namespace
- * `reminder` (dịch lúc render bằng `t(message)`) — cùng quy ước `features/cat/schemas.ts`.
- *
- * Các ràng buộc ở đây PHẢN CHIẾU ràng buộc server (`@Min(1) @Max(90)`, `preferredTimeEnd >
- * preferredTimeStart`, phải có `catId` với `SCAN_ROUTINE`) để báo sớm, KHÔNG thay thế:
- * server vẫn là nơi quyết định và `REMINDER_SCHEDULE_INVALID` vẫn được render thành trạng thái.
- */
 export const reminderFormSchema = z
   .object({
     catId: z.string(),
@@ -356,7 +305,6 @@ export const reminderFormSchema = z
     preferredTimeEnd: z.string(),
     channels: z.array(channelEnum).min(1, "form.channelRequired"),
     active: z.boolean(),
-    /** `false` ở trang chi tiết: mèo đã gắn, không đổi được nên không bắt buộc chọn lại. */
     requireCat: z.boolean(),
   })
   .superRefine((values, ctx) => {
@@ -391,7 +339,6 @@ export type ReminderFormValues = z.infer<typeof reminderFormSchema>;
 export const DEFAULT_REMINDER_FORM: ReminderFormValues = {
   catId: "",
   scheduleMode: "INTERVAL",
-  // Ô "Mỗi 3 ngày" là lựa chọn nổi bật của frame 09; không phải ngưỡng lâm sàng, chỉ là mặc định UI.
   intervalDays: "3",
   rrule: "",
   preferredTimeStart: "08:00",
@@ -401,7 +348,6 @@ export const DEFAULT_REMINDER_FORM: ReminderFormValues = {
   requireCat: true,
 };
 
-/** Giá trị form suy từ một lịch nhắc đã lưu (dùng ở trang chi tiết và khối sửa nhanh). */
 export function toReminderForm(reminder: Reminder): ReminderFormValues {
   return {
     catId: reminder.catId ?? "",
@@ -412,7 +358,6 @@ export function toReminderForm(reminder: Reminder): ReminderFormValues {
     preferredTimeEnd: apiTimeToInput(reminder.preferredTimeEnd),
     channels: reminder.channels ?? [],
     active: reminder.active,
-    // Mèo đã gắn lúc tạo và server không cho đổi — không bắt buộc chọn lại khi sửa.
     requireCat: false,
   };
 }
@@ -422,13 +367,6 @@ function sameChannels(a: ReminderChannel[], b: ReminderChannel[]): boolean {
   return a.every((channel) => b.includes(channel));
 }
 
-/**
- * Dựng merge-patch TỐI THIỂU: chỉ field thật sự đổi mới có mặt (RFC 7396 — field vắng = giữ nguyên).
- *
- * HẠN CHẾ CÓ CHỦ Ý: không XOÁ được khung giờ đã đặt. Merge-patch cần `null` tường minh để xoá,
- * nhưng `PatchReminderRequest` phía server nhận `LocalTime` và không mô hình hoá `null`, nên UI
- * chỉ cho đổi khung giờ chứ không cho bỏ trống lại.
- */
 export function buildReminderPatch(values: ReminderFormValues, reminder: Reminder): PatchReminderPayload {
   const patch: PatchReminderPayload = {};
 
@@ -458,13 +396,6 @@ export function buildReminderPatch(values: ReminderFormValues, reminder: Reminde
   return patch;
 }
 
-/**
- * Lỗi đầu tiên của mỗi field, dạng `{ field: <key i18n> }`.
- *
- * Khối sửa nhanh ở `/reminders` không dùng react-hook-form (state của nó phải nhảy theo lịch
- * đang chọn, derive thẳng từ dữ liệu server gọn hơn là reset form), nên validate bằng chính
- * `reminderFormSchema` rồi gom lỗi ở đây để tái dùng đúng các key câu chữ sẵn có.
- */
 export function firstFieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};
   for (const issue of error.issues) {
@@ -474,14 +405,6 @@ export function firstFieldErrors(error: z.ZodError): Record<string, string> {
   return result;
 }
 
-// ─── Mảnh form ───────────────────────────────────────────────────────────────────────────
-
-/**
- * `<legend>` mặc định được trình duyệt vẽ ĐÈ lên mép trên của `<fieldset>` (nằm ngoài padding)
- * ⇒ tiêu đề "Tần suất theo dõi" lòi nửa ra ngoài thẻ trắng. `float-left` biến nó thành phần tử
- * thường (không còn là "rendered legend"), nên trong fieldset `flex-col` nó nằm gọn trong thẻ
- * như frame 09 — vẫn giữ đúng ngữ nghĩa nhóm cho trình đọc màn hình.
- */
 const LEGEND_CLASS = "float-left flex w-full flex-wrap items-center justify-between gap-2";
 
 function FieldError({ messageKey }: { messageKey?: string }) {
@@ -500,14 +423,12 @@ export interface FrequencyPickerProps {
   rrule: string;
   errorKeyInterval?: string;
   errorKeyRrule?: string;
-  /** Góc phải tiêu đề — frame 09 đặt "Kế hoạch cho {tên mèo}" ở đây. */
   headerAction?: ReactNode;
   onIntervalChange: (value: string) => void;
   onRruleChange: (value: string) => void;
   onModeChange: (mode: ReminderFormValues["scheduleMode"]) => void;
 }
 
-/** 4 ô "Tần suất Theo dõi" của frame 09 + ô nhập số ngày + lối thoát RRULE. */
 export function FrequencyPicker({
   scheduleMode,
   intervalDays,
@@ -523,6 +444,7 @@ export function FrequencyPicker({
   const customId = useId();
   const rruleId = useId();
   const advancedId = useId();
+  const pickedDays = weekdaysOf(rrule);
 
   const numeric = Number(intervalDays);
   const isPreset = PRESET_INTERVALS.some((value) => value === numeric);
@@ -652,20 +574,39 @@ export function FrequencyPicker({
           <span className="text-caption font-semibold text-text-primary">{t("form.advancedToggle")}</span>
         </label>
         {scheduleMode === "RRULE" ? (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor={rruleId} className="text-caption font-semibold text-text-secondary">
+          <div className="flex flex-col gap-2" role="group" aria-labelledby={rruleId}>
+            <p id={rruleId} className="text-caption font-semibold text-text-secondary">
               {t("form.rruleLabel")}
-            </label>
-            <input
-              id={rruleId}
-              type="text"
-              value={rrule}
-              onChange={(event) => {
-                onRruleChange(event.target.value);
-              }}
-              aria-invalid={errorKeyRrule === undefined ? undefined : true}
-              className="h-12 w-full rounded-xl bg-surface px-4 font-mono text-caption text-text-primary focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)]"
-            />
+            </p>
+            {rrule.trim() !== "" && pickedDays === null ? (
+              <p className="text-small text-text-tertiary">
+                {t("form.rruleCustomNote")} <code className="font-mono">{rrule}</code>
+              </p>
+            ) : null}
+            <div className="grid grid-cols-7 gap-1.5">
+              {WEEKDAY_CODES.map((code, index) => {
+                const on = pickedDays?.includes(code) ?? false;
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      const current = pickedDays ?? [];
+                      onRruleChange(weeklyRule(on ? current.filter((day) => day !== code) : [...current, code]));
+                    }}
+                    className={cn(
+                      "flex h-11 items-center justify-center rounded-xl text-caption font-bold transition-colors",
+                      on
+                        ? "bg-primary-dark text-white shadow-brand-lg"
+                        : "bg-surface text-text-primary hover:bg-chip-bg",
+                    )}
+                  >
+                    {t(`web.weekday${String(index + 1)}`)}
+                  </button>
+                );
+              })}
+            </div>
             <p className="text-small text-text-tertiary">{t("form.advancedHint")}</p>
             <FieldError messageKey={errorKeyRrule} />
           </div>
@@ -685,7 +626,6 @@ export interface TimeWindowPickerProps {
   onEndChange: (value: string) => void;
 }
 
-/** Khối "Khung giờ Ưu tiên" của frame 09 — hai mốc `HH:mm`, server kiểm end > start. */
 export function TimeWindowPicker({
   start,
   end,
@@ -775,13 +715,6 @@ export interface ChannelPickerProps {
   onChange: (next: ReminderChannel[]) => void;
 }
 
-/**
- * "Kênh nhận thông báo" — CHỈ 3 kênh backend nhận (`PUSH`/`EMAIL`/`IN_APP`).
- *
- * Mockup còn vẽ "Rung nhẹ trên Đồng hồ thông minh" và "Tin nhắn SMS dự phòng": enum phía
- * server không có hai giá trị đó (gửi lên ⇒ `REMINDER_SCHEDULE_INVALID`), nên bỏ hẳn thay
- * vì vẽ ô bị khoá — vẽ ra sẽ hứa một tính năng không tồn tại.
- */
 export function ChannelPicker({ value, errorKey, onChange }: ChannelPickerProps) {
   const { t } = useTranslation("reminder");
   return (
@@ -841,7 +774,6 @@ export interface CatSelectProps {
   onChange: (catId: string) => void;
 }
 
-/** "Hồ sơ Mèo của bạn" ở đầu frame 09 — danh sách mèo lấy từ `features/cat` (D1), không endpoint mới. */
 export function CatSelect({ value, options, disabled = false, loading = false, errorKey, onChange }: CatSelectProps) {
   const { t } = useTranslation("reminder");
   const selectId = useId();
@@ -889,10 +821,7 @@ export function CatSelect({ value, options, disabled = false, loading = false, e
   );
 }
 
-/** Tiêu đề trang dùng chung — mobile dùng `text-h2`, desktop nở lên `text-h1`. */
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
-  // Nút phụ (VD "+ Thêm lịch nhắc") đứng cùng hàng với TIÊU ĐỀ; mô tả trải hết bề ngang bên
-  // dưới. Trước đây mô tả nằm chung cột với tiêu đề nên ở 390px bị ép còn ~200px, xuống 4 dòng.
   return (
     <header className="flex flex-col gap-1">
       <div className="flex items-center justify-between gap-3">
@@ -904,12 +833,6 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
   );
 }
 
-/**
- * Nút "Thêm vào lịch" (I6) — `<a download>` để trình duyệt giữ `Content-Disposition` của server.
- *
- * `label` cho phép dùng lại đúng nút này làm "Đồng bộ vào Lịch Apple / Google" ở chân frame 09:
- * cùng một file `.ics`, chỉ khác câu chữ — không có endpoint đồng bộ hai chiều nào ở Phase 1.
- */
 export function AddToCalendarLink({ href, className, label }: { href: string; className?: string; label?: string }) {
   const { t } = useTranslation("reminder");
   return (

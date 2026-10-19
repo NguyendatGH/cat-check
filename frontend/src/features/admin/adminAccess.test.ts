@@ -12,7 +12,6 @@ import {
   type RoleCheck,
 } from "./adminAccess";
 
-/** Kiểm quyền giống `hasAnyRole` của shared/auth/roles.ts. */
 function rolesCheck(userRoles: readonly string[]): RoleCheck {
   return (allowed) => userRoles.some((role) => allowed.includes(role));
 }

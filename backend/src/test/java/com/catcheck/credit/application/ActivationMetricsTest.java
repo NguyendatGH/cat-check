@@ -6,11 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * G9 ({@code docs/cat-rag-credit-pipeline.md} B2) — đếm kết quả {@code POST /activations}, cùng
- * kiểu test với {@code scan.application.ScanPipelineMetricsTest}: dùng {@link SimpleMeterRegistry}
- * (không cần Actuator/DB thật) để xác nhận tên metric + tag.
- */
 class ActivationMetricsTest {
 
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();

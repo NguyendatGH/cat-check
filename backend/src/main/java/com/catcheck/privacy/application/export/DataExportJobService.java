@@ -13,6 +13,7 @@ import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.PermissionDeniedException;
+import com.catcheck.shared.i18n.MessageResolver;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,16 +40,15 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-/** Dedicated asynchronous DSAR archive flow; deliberately separate from ReportPdfJob. */
 @Service
 public class DataExportJobService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    /** Trạng thái job mà L52 được phép đẩy lại hàng đợi — các trạng thái khác giữ nguyên gói đã có. */
     private static final java.util.Set<String> RESTARTABLE_JOB_STATUS = java.util.Set.of("QUEUED", "FAILED");
     private final DsarExportJobPort jobs;
     private final DsarExportSnapshotPort snapshot;
@@ -60,6 +60,7 @@ public class DataExportJobService {
     private final JdbcTemplate jdbc;
     private final AuditLogService auditLog;
     private final NotificationGateway notificationGateway;
+    private final MessageResolver messages;
     private final String webBaseUrl;
     private final TransactionTemplate transactionTemplate;
 
@@ -67,12 +68,12 @@ public class DataExportJobService {
                                 DsarExportStorage storage, DsarRequestPort requests,
                                 @Qualifier("dsarExportExecutor") TaskExecutor executor,
                                 Clock clock, JdbcTemplate jdbc, AuditLogService auditLog,
-                                NotificationGateway notificationGateway,
+                                NotificationGateway notificationGateway, MessageResolver messages,
                                 @Value("${catcheck.privacy.export.web-base-url:http://localhost:5173}") String webBaseUrl,
                                 PlatformTransactionManager transactionManager) {
         this.jobs = jobs; this.snapshot = snapshot; this.storage = storage; this.requests = requests;
         this.executor = executor; this.clock = clock; this.jdbc = jdbc; this.auditLog = auditLog;
-        this.notificationGateway = notificationGateway;
+        this.notificationGateway = notificationGateway; this.messages = messages;
         this.webBaseUrl = webBaseUrl == null ? "http://localhost:5173" : webBaseUrl.replaceAll("/+$", "");
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -95,29 +96,6 @@ public class DataExportJobService {
         return token;
     }
 
-    /**
-     * L52 — DPO/ADMIN_SUPER sinh gói dữ liệu cá nhân <b>thay mặt</b> chủ thể (p8 §8.4.12 ô
-     * L52, ma trận p14 §14.2.2 ô Q10), trả {@code 202}.
-     *
-     * <p><b>Tái dùng nguyên đường export tự phục vụ</b> — cùng {@code dsar_export_job}, cùng
-     * {@link #generate(UUID)}, cùng email {@code PRIVACY_EXPORT_READY}, cùng hạn 72 giờ và
-     * link một lần. Dựng một đường thứ hai cho admin nghĩa là có hai nơi quyết định "gói dữ
-     * liệu cá nhân gồm những gì" và hai nơi quyết định khi nào nó bị xoá.</p>
-     *
-     * <p><b>Q10 chặt hơn cột {@code R:} của p8:</b> p8 ghi {@code R:DPO,ADMIN_SUPER} nhưng
-     * p14 Q10 cho {@code ADMIN_SUPER} dấu ✅* <i>"chỉ khi là handled_by của yêu cầu đó"</i>.
-     * p11/p14 sở hữu miền phân quyền nên điều kiện hẹp hơn thắng.</p>
-     *
-     * <p><b>Không trả token thô cho admin</b> (có chủ ý): token tải một lần được sinh, chỉ
-     * lưu SHA-256 rồi bỏ giá trị thô đi, nên đường tải duy nhất là link trong email
-     * {@code PRIVACY_EXPORT_READY} gửi tới {@code dsar_request.contact_email} — nếu trả token
-     * cho người gọi thì một DPO tải được trọn bộ dữ liệu cá nhân của người khác mà chủ thể
-     * không hề biết, trong khi p15 §15.4.5 đòi "link yêu cầu đăng nhập". Cách giao gói cho
-     * chủ thể không đăng nhập được (kênh POST/EMAIL) p8 chưa quy định — handoff H15.172.</p>
-     *
-     * @return trạng thái job sau lệnh; {@code dispatched = false} nghĩa là đã có job đang
-     *         chạy/đã xong nên lệnh này KHÔNG sinh gói thứ hai
-     */
     @Transactional
     public AdminDispatch enqueueOnBehalf(UUID requestId, UUID actorId, String actorRole,
                                          String reason, RequestEvidence evidence) {
@@ -127,16 +105,13 @@ public class DataExportJobService {
             throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "requestType");
         }
         if (!"DPO".equals(actorRole) && !actorId.equals(request.handledBy())) {
-            // p14 Q10: ADMIN_SUPER chỉ xuất được yêu cầu mà chính mình đang xử lý.
             throw new PermissionDeniedException(PrivacyErrorCode.FORBIDDEN, "handledBy");
         }
         if (request.identityVerifiedAt() == null) {
-            // p15 REQ-DSAR-04: không bao giờ xuất dữ liệu chỉ vì "email gửi tới trông giống".
             throw new BusinessRuleException(
                     PrivacyErrorCode.DSAR_IDENTITY_VERIFICATION_REQUIRED, request.publicRef());
         }
         if (request.userId() == null) {
-            // user_id đã bị ẩn danh hoá (ON DELETE SET NULL) — không còn dữ liệu nào để xuất.
             throw new BusinessRuleException(PrivacyErrorCode.VALIDATION_FAILED, "userId");
         }
         Optional<DsarExportJob> existing = jobs.findByRequestId(request.id());
@@ -175,7 +150,11 @@ public class DataExportJobService {
             DsarRequest request = requests.findById(requestId)
                     .filter(r -> r.requestType() == DsarRequestType.ACCESS_EXPORT && r.userId() != null)
                     .orElseThrow();
-            byte[] zip = archive(request.userId());
+            // Null (không có dòng) để TransactionalEmailRequest hạ về mặc định vi.
+            String locale = jdbc.queryForList("SELECT locale FROM app_user WHERE id=?", String.class,
+                    request.userId()).stream().findFirst().orElse(null);
+            Locale userLocale = Locale.forLanguageTag(locale == null ? "vi" : locale);
+            byte[] zip = archive(request.userId(), userLocale);
             String key = storage.put(request.publicRef(), zip);
             storedKey = key;
             var expiresAt = clock.instant().plus(Duration.ofHours(72));
@@ -190,13 +169,12 @@ public class DataExportJobService {
                 jdbc.update("UPDATE dsar_export_job SET status='COMPLETED', storage_key=?, expires_at=?, email_download_token_hash=?, last_error_code=NULL WHERE dsar_request_id=? AND status='RUNNING'", key, expiresAt, sha256(emailToken), requestId);
                 requests.update(completed);
                 notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
-                        request.contactEmail(), "PRIVACY_EXPORT_READY", "vi",
+                        request.contactEmail(), "PRIVACY_EXPORT_READY", locale,
                         java.util.Map.of("publicRef", request.publicRef(), "downloadUrl", downloadLink,
-                                "expiresAt", expiresAt.toString(), "attachments", "Không có tệp đính kèm."),
+                                "expiresAt", expiresAt.toString(), "attachments", messages.resolve("privacy.export.attachments.none", userLocale)),
                         "PRIVACY_EXPORT_READY:" + request.id()));
             });
         } catch (Exception ex) {
-            // Do not persist PII or exception messages in operational records/logs.
             if (storedKey != null) storage.delete(storedKey);
             jobs.fail(requestId, "DSAR_EXPORT_GENERATION_FAILED");
             jobs.findByRequestId(requestId).filter(job -> "QUEUED".equals(job.status()))
@@ -257,7 +235,7 @@ public class DataExportJobService {
         return cleaned;
     }
 
-    private byte[] archive(UUID userId) throws IOException {
+    private byte[] archive(UUID userId, Locale locale) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
             entry(zip, "profile.json", snapshot.profile(userId));
@@ -270,7 +248,7 @@ public class DataExportJobService {
             entry(zip, "notifications.json", jsonArray(snapshot.notifications(userId)));
             entry(zip, "orders.json", jsonArray(snapshot.orders(userId)));
             entry(zip, "ai_conversations.json", jsonArray(snapshot.aiMessages(userId)));
-            entry(zip, "README.vi.md", "# Gói dữ liệu cá nhân CatCheck\n\nGói này chứa thông tin hồ sơ, mèo, kết quả quét, credit, consent, thông báo, đơn hàng và lịch sử trò chuyện với trợ lý AI hiện có trong hệ thống. Ảnh đã hết hạn retention 14 ngày hoặc đã bị xoá không thể khôi phục và không có trong gói này. Nội dung do người khác tạo và dữ liệu cộng đồng không được xuất trong phiên bản hiện tại. Các số điện thoại được mã hoá ở hệ thống không được đưa ra dưới dạng ciphertext.\n");
+            entry(zip, "README." + locale.getLanguage() + ".md", messages.resolve("privacy.export.readme", locale));
         }
         return bytes.toByteArray();
     }
@@ -311,7 +289,6 @@ public class DataExportJobService {
         });
     }
     public record Download(InputStream stream, String filename) { }
-    /** Kết quả L52 — {@code dispatched = false} nghĩa là tái dùng gói/job đã có. */
     public record AdminDispatch(String publicRef, String status, boolean dispatched) { }
     private record ExpiredFile(UUID requestId, String storageKey) { }
 }

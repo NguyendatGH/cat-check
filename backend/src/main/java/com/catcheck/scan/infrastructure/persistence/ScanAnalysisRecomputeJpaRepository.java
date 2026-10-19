@@ -16,11 +16,6 @@ interface ScanAnalysisRecomputeJpaRepository extends JpaRepository<ScanAnalysisR
     @Query("DELETE FROM ScanAnalysisRecompute r WHERE r.chartId = :chartId")
     int deleteByChartId(@Param("chartId") UUID chartId);
 
-    /**
-     * Ba con số của L34 trong một lượt đi DB: đã xét, bị lật phân loại, {@code |deltaPh|} lớn
-     * nhất. Nạp hết dòng về rồi đếm trong Java là cách nhanh nhất biến một màn admin thành một
-     * lần OOM — cửa sổ mặc định P90D trên hệ thống thật là hàng chục nghìn dòng.
-     */
     @Query("SELECT count(r), sum(CASE WHEN r.flippedClassification = true THEN 1 ELSE 0 END),"
             + " max(abs(r.deltaPh))"
             + " FROM ScanAnalysisRecompute r WHERE r.chartId = :chartId")

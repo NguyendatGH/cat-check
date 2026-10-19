@@ -41,15 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Phần TRONG transaction của luồng {@code POST /scans} (p7 §7.4.5, TD-02) — {@code INSERT scan}
- * + {@code scan_analysis} (+{@code scan_image}) + trừ credit trong MỘT giao dịch.
- *
- * <p>Gọi {@link CreditConsumption#consume}/{@link CreditConsumption#consumeTrialScan} ở ĐÂY vì
- * hai hàm đó là {@code Propagation.MANDATORY} — bắt buộc có transaction đang mở, và class này là
- * nơi transaction được mở ({@code @Transactional} chỉ hợp lệ trong {@code ..application..},
- * R12).</p>
- */
 @Service
 public class ScanPersistenceService {
 
@@ -84,15 +75,6 @@ public class ScanPersistenceService {
         this.clock = clock;
     }
 
-    /**
-     * @param cat           chụp hồ sơ mèo (null khi {@code assignment = SHARED_UNKNOWN})
-     * @param trialRegime   {@code true} nếu tài khoản đang ở chế độ trial (chưa từng kích hoạt gói,
-     *                      xác định TRƯỚC khi chạy pipeline — p7 §7.4.5)
-     * @param storeImageAllowed gói + not-trial cho phép lưu ảnh (đã kiểm entitlement TRƯỚC khi gọi)
-     * @param imageConsentGranted consent {@code SCAN_IMAGE_RETAIN} đang hiệu lực
-     * @param storedImage   ảnh ĐÃ ghi ra {@code ImageStorage} TRƯỚC khi mở transaction này
-     *                      (rỗng nếu không lưu ảnh)
-     */
     @Transactional(timeout = 5)
     public ScanSubmitResult persist(SubmitScanCommand cmd, PipelineOutcome outcome,
                                      CatOwnershipPort.CatSnapshot cat, boolean trialRegime,
@@ -166,16 +148,7 @@ public class ScanPersistenceService {
                 .build());
 
         if (!inconclusive) {
-            // Cot moc cuoi cua onboarding (p4 §4.4: COMPLETED = "da quet lan dau"). Goi thang
-            // qua SPI chu khong dua vao ScanSavedEvent ngay duoi: event do khong co listener
-            // nao, va identity khong duoc phep phu thuoc scan nen khong dat listener ben do.
             onboardingProgressPort.markFirstScanCompleted(cmd.userId());
-            // H15.75 — BẮT BUỘC đứng trước publishEvent. Listener rule của `insight` chạy đồng
-            // bộ trong CHÍNH transaction này (p7 §7.4.2/§7.4.5) và đọc lịch sử bằng SQL thô
-            // (ScanQueryRepository.findRecentForRules). Lệnh ghi ORM ở trên mới nằm trong
-            // persistence context, chưa xuống DB, nên không đẩy trước thì câu SQL đó thiếu đúng
-            // scan vừa tạo: R4 streak=2 cần 3 lần quét mới nổ thay vì 2 (đã đo thật).
-            // Đây chỉ là flush, KHÔNG phải commit — rollback vẫn cuốn cả health_flag lẫn scan.
             scanRepository.flushPendingWrites();
             eventPublisher.publishEvent(new ScanSavedEvent(
                     scanId, cat == null ? null : cat.catId(), cmd.userId(), cmd.assignment().name(),
@@ -204,7 +177,6 @@ public class ScanPersistenceService {
                 false);
     }
 
-    /** Trả nguyên kết quả cũ khi client retry cùng {@code Idempotency-Key} (p5 R8). */
     public ScanSubmitResult replay(Scan existing, ScanAnalysis analysis, CatOwnershipPort.CatSnapshot cat) {
         boolean inconclusive = analysis.getClassification().name().equals("INCONCLUSIVE");
         PipelineOutcome outcome = PipelineOutcomeMapper.fromEntity(analysis);

@@ -5,14 +5,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Bo loc PII cua K1/L73 — p16 §16.6.3 (bang "TUYET DOI khong duoc log") + §16.6.7 (bo
- * {@code beforeSend}).
- *
- * <p>Day la <b>test tuan thu</b>: p16 §16.6.3 goi bang do la "hop dong tuan thu, khong phai
- * khuyen nghi" va noi ro vi pham la su co du lieu ca nhan theo p15. Moi assertion duoi day
- * tuong ung mot dong cua bang do.</p>
- */
 class TelemetryScrubberTest {
 
     @Test
@@ -24,7 +16,6 @@ class TelemetryScrubberTest {
         assertThat(out).doesNotContain("nguyen.van.a@gmail.com").doesNotContain("b_c@sub.domain.vn");
         assertThat(out).doesNotContain("@gmail.com").doesNotContain("@sub.domain.vn");
         assertThat(out).contains(TelemetryScrubber.REDACTED);
-        // Phan khong phai PII phai con lai, neu khong thi log vo dung.
         assertThat(out).contains("TypeError");
     }
 
@@ -33,7 +24,6 @@ class TelemetryScrubberTest {
     void removesSixDigitCodesButKeepsLongerNumbers() {
         assertThat(TelemetryScrubber.scrubText("ma xac thuc 483912 het han", 0))
                 .doesNotContain("483912");
-        // 13 chu so = epoch millis trong mot stack trace; cat doi se tao ra rac vo nghia.
         assertThat(TelemetryScrubber.scrubText("ts=1760000000000 ok", 0))
                 .contains("1760000000000");
     }
@@ -49,15 +39,11 @@ class TelemetryScrubberTest {
     @Test
     @DisplayName("§16.6.3 dong 5+7 — chuoi base64/token dai va data: URI bi xoa")
     void removesLongOpaqueBlobsAndInlineData() {
-        // JWT: tung doan ngan hon nguong 40 ky tu nen chi LONG_OPAQUE_BLOB thi khong bat duoc —
-        // can pattern neo vao tien to `eyJ` (xem javadoc JWT_LIKE).
         String jwtLike = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0";
         assertThat(TelemetryScrubber.scrubText("Authorization bearer " + jwtLike, 0))
                 .doesNotContain(jwtLike)
                 .doesNotContain("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
 
-        // Ten lop day du trong stack trace PHAI con lai — no dai hon 40 ky tu nhung co dau cham,
-        // va che no di se pha huy chinh thu khien stack trace co ich.
         assertThat(TelemetryScrubber.scrubText(
                 "at com.catcheck.scan.application.SubmitScanService.submit(SubmitScanService.java:88)", 0))
                 .contains("com.catcheck.scan.application.SubmitScanService");
@@ -74,8 +60,6 @@ class TelemetryScrubberTest {
                 "submit failed password=Hunter2! otp=112233 sessionId=abc123def", 0);
 
         assertThat(out).doesNotContain("Hunter2!").doesNotContain("112233").doesNotContain("abc123def");
-        // Giu ten key: "co mot mat khau o day va no da bi loc" la thong tin huu ich cho nguoi
-        // debug; gia tri thi khong.
         assertThat(out).contains("password=").contains("otp=").contains("sessionId=");
     }
 
@@ -105,8 +89,6 @@ class TelemetryScrubberTest {
     @Test
     @DisplayName("Tran do dai duoc ap dung sau khi loc")
     void truncatesAfterScrubbing() {
-        // Dung chuoi NHIEU TU ngan: mot chuoi 100 ky tu lien se khop LONG_OPAQUE_BLOB va bi che
-        // het truoc khi den buoc cat — tuc la test se khong kiem duoc dieu no muon kiem.
         String longText = "at foo ".repeat(30);
 
         assertThat(TelemetryScrubber.scrubText(longText, 10)).hasSize(11).endsWith("…");
@@ -126,7 +108,6 @@ class TelemetryScrubberTest {
     void scrubOriginKeepsOnlySchemeAndHost() {
         assertThat(TelemetryScrubber.scrubOrigin("https://evil.example.com/a/b/c?u=123456"))
                 .isEqualTo("https://evil.example.com");
-        // Gia tri tu khoa cua CSP di nguyen.
         assertThat(TelemetryScrubber.scrubOrigin("inline")).isEqualTo("inline");
         assertThat(TelemetryScrubber.scrubOrigin("eval")).isEqualTo("eval");
     }

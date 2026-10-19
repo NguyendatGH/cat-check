@@ -30,14 +30,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L57 (trần cứng I15) + L58 (dry-run) của p8 §8.4.12.
- *
- * <p>Bất biến <b>I15</b> (p4 §4.5.1) là một trong 9 bất biến mà p4 OQ4-13 ghi là "p17 còn
- * thiếu test" — đây là bài đó. Hai nửa của nó: {@code SCAN_IMAGE ≤ 14} ngày (quyết định owner
- * #9, con số đã in vào copy hiển thị cho user) và grace xoá tài khoản {@code ≤ 7} ngày (TD-05,
- * điều kiện để hoàn tất xoá trong hạn luật định 20 ngày).</p>
- */
 class RetentionServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T03:00:00Z");
@@ -50,12 +42,6 @@ class RetentionServiceTest {
     private final RetentionService service = new RetentionService(
             policyPort, userAccountPort, dryRunPort, auditLogService, Clock.fixed(NOW, ZoneOffset.UTC));
 
-    /**
-     * Mã dùng ở đây là {@code SCAN_IMAGE_RAW} — tên THẬT trong
-     * {@code db/seed/R__seed_retention_policy.sql}, không phải {@code SCAN_IMAGE} mà p4 B6 ghi
-     * làm ví dụ. Bản trước của service so khớp chính xác {@code "SCAN_IMAGE"} nên trần cứng
-     * I15 chưa bao giờ chạm được dòng nào trong DB.
-     */
     @Test
     void scanImageRetentionAbove14DaysIsRejectedWith422RetentionLimitExceeded() {
         givenDpo();
@@ -124,7 +110,6 @@ class RetentionServiceTest {
 
         assertThat(result.candidateCount()).isEqualTo(1_234L);
         assertThat(result.cutoff()).isEqualTo(NOW.minusSeconds(90L * 86_400));
-        // L58: "không ghi, không xoá" — cổng đếm là cổng DUY NHẤT được gọi vào bảng mục tiêu.
         verify(policyPort, never()).save(any());
 
         ArgumentCaptor<AuditEvent> audit = ArgumentCaptor.forClass(AuditEvent.class);
@@ -147,7 +132,6 @@ class RetentionServiceTest {
                 RetentionAction.HARD_DELETE, "ScanImageRetentionJob", 20, true, null, DPO_ID, NOW);
     }
 
-    /** L56 — nguồn dữ liệu cho dashboard {@code /admin/privacy/retention} (REQ-RET-05). */
     @Test
     void listPoliciesDelegatesToThePort() {
         when(policyPort.findAll()).thenReturn(List.of(policy("SCAN_IMAGE_RAW", 14)));

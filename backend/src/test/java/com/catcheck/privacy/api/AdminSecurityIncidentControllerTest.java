@@ -29,13 +29,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L59/L60/L61 — ô {@code Q27}: <b>{@code DPO} ghi, {@code ADMIN_SUPER} đọc</b>.
- *
- * <p>Đây là endpoint duy nhất của gói này có hai mức quyền khác nhau trên cùng một tài nguyên,
- * nên hai nhánh phải được kiểm riêng: {@code ADMIN_SUPER} đọc được danh sách nhưng không mở và
- * không sửa được hồ sơ.</p>
- */
 class AdminSecurityIncidentControllerTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T03:00:00Z");

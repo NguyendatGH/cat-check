@@ -7,13 +7,6 @@ import com.catcheck.scan.domain.port.ScanQueryRepository.Row;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/**
- * Một dòng {@code GET /api/v1/scans} (p8 §8.5.4).
- *
- * <p>{@code hasNote} luôn {@code false} ở M3: {@code cat_note} thuộc module {@code cat}, chưa
- * công bố query port cross-module (xem {@code docs/handovers/A6.md}) — client vẫn xem ghi chú
- * qua {@code GET /cats/{catId}/notes} riêng.</p>
- */
 public record ScanListItemResponse(
         String scanId,
         String catId,

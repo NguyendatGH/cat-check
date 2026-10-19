@@ -1,0 +1,100 @@
+{
+  "pages": {
+    "catTrends": {
+      "title": "Urinary Health Trends"
+    }
+  },
+  "range": {
+    "7D": "Last 7 days",
+    "30D": "Last 30 days",
+    "90D": "Last 3 months"
+  },
+  "chart": {
+    "title": "Urine pH Curve",
+    "subtitle": "pH values from litter color scans in this period",
+    "averageLabel": "Period average",
+    "empty": "Not enough data to chart a trend for this time range yet.",
+    "dateFormat": "MMM dd",
+    "latestMetaFormat": "MMM dd, HH:mm",
+    "tooltipDateFormat": "MMM dd, HH:mm",
+    "today": "Today",
+    "latestMeta": "Latest reading: {{date}}",
+    "phValue": "pH {{value}}",
+    "referenceLegend": "{{label}} (pH {{min}} – {{max}})",
+    "latestLegend": "{{date}}: latest reading"
+  },
+  "distribution": {
+    "title": "pH category distribution",
+    "description": "Cumulative categories across scans in the selected period",
+    "totalChip": "{{count}} scans total",
+    "countLabel": "{{count}} times",
+    "percentLabel": "{{percent}}%",
+    "rangeLabel": "(pH {{min}} – {{max}})",
+    "rangeLabelBelow": "(pH < {{max}})",
+    "rangeLabelAbove": "(pH > {{min}})",
+    "empty": "No scans in this period yet."
+  },
+  "actions": {
+    "scheduleCheck": "Set a recurring scan reminder"
+  },
+  "export": {
+    "cta": "Export a PDF record to bring to the vet"
+  },
+  "state": {
+    "emptyTitle": "Not enough data yet",
+    "emptyDescription": "Scan a few more times to see pH trends over time.",
+    "loadError": "Couldn't load trend data. Please try again."
+  },
+  "web": {
+    "eyebrow": "pH trends over time",
+    "title": "Urine pH Trends & Analysis",
+    "subtitle": "A summary of pH values read from indicator litter color across scans in the selected period. These are at-home observations and do not replace a veterinarian's advice.",
+    "exportCta": "Export PDF record",
+    "kpiAvgLabel": "MEDIAN PH",
+    "kpiAvgFootReal": "Median pH of scans in this period",
+    "kpiPassLabel": "SHARE WITHIN REFERENCE RANGE",
+    "kpiPassFootReal": "{{inRange}}/{{count}} scans within the reference range",
+    "kpiScansLabel": "SCANS IN PERIOD",
+    "kpiScansFoot": "Based on the selected time range",
+    "kpiLowConfLabel": "LOW-CONFIDENCE READINGS",
+    "kpiLowConfFoot": "Rescan in good light for better accuracy",
+    "chartTitle": "pH variation over time",
+    "chartSubtitle": "Each point is a scan with a result in the selected period",
+    "chartFootTitle": "Reading quality in this period",
+    "chartConfidenceReal": "Average confidence: {{percent}}%",
+    "chartConfidenceEmpty": "No confidence readings in this period yet",
+    "chartVersions": "Calibration color chart: v{{versions}}",
+    "freqTitle": "Weekly scan frequency",
+    "freqSubtitle": "Scans recorded by day of week in the selected period",
+    "freqUnit": "scans / scan day",
+    "summaryTitle": "Period summary",
+    "summarySubtitle": "Compiled from scans in the selected range",
+    "summaryMin": "Lowest pH",
+    "summaryMax": "Highest pH",
+    "summaryMedian": "Median pH",
+    "summaryInRange": "Within reference range",
+    "summaryInRangeValue": "{{inRange}}/{{count}} times",
+    "logTitle": "Scan log for this period",
+    "logSubtitle": "Each row is a scan with a result, newest first",
+    "logFilter": "All statuses",
+    "logFilterLabel": "Filter log by pH band",
+    "logRefresh": "Refresh",
+    "colTime": "SCAN TIME",
+    "colSample": "CONFIDENCE",
+    "colPh": "PH",
+    "colStatus": "CATEGORY",
+    "logFooterReal": "Showing {{shown}} of {{total}} scans in this period",
+    "logNearBoundary": "Near band boundary",
+    "logConfidence": "{{percent}}%",
+    "phUnit": "pH",
+    "valueUnavailable": "—",
+    "lockedCta": "View packages",
+    "lockedNote": "pH trends over time are included in packages with trend tracking.",
+    "emptyHint": "Scan a few more times to build a pH variation curve.",
+    "retry": "Try again",
+    "logEmpty": "No scans in this period yet.",
+    "eyebrowNamed": "{{name}}'s pH trends",
+    "historyCta": "Scan history",
+    "logDisputed": "Owner reported the result as incorrect"
+  }
+}

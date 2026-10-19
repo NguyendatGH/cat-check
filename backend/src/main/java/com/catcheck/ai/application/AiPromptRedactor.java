@@ -2,7 +2,6 @@ package com.catcheck.ai.application;
 
 import java.util.regex.Pattern;
 
-/** Redacts common contact PII before conversation text leaves CatCheck for an AI provider. */
 final class AiPromptRedactor {
     private static final Pattern EMAIL = Pattern.compile(
             "(?i)(?<![A-Z0-9._%+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}(?![A-Z0-9.-])");

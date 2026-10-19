@@ -1,15 +1,5 @@
 import { create } from "zustand";
 
-/**
- * Store zustand cho luồng chụp quét — session-only (KHÔNG persist localStorage): giữ file ảnh +
- * mèo đã chọn giữa 2 bước điều hướng (`/scan/select-cat` → `/scan`) trong 1 phiên chụp.
- *
- * Quyết định thứ tự luồng (khác mockup gốc `05. Chọn Mèo` vốn đặt bước chọn mèo SAU khi có kết
- * quả — xem `docs/handovers/A6.md`): hợp đồng BE TD-02 (`POST /scans`) đòi `catId`/`assignment`
- * NGAY TRONG request đầu tiên (một bước: phân tích + lưu + trừ credit cùng transaction), nên
- * việc chọn mèo BẮT BUỘC xảy ra TRƯỚC khi gọi camera, không phải sau. Đổi mèo SAU khi đã có kết
- * quả dùng route riêng `/scan/:scanId/reassign-cat` (E9, ≤24h/≤3 lần) — không dùng store này.
- */
 
 export type CaptureAssignment = "ASSIGNED" | "SHARED_UNKNOWN";
 
@@ -25,7 +15,6 @@ interface ScanCaptureStore {
   setFile: (file: File | null) => void;
   resetCapture: () => void;
   startNewRequest: () => void;
-  /** Lượt thử MỚI cho cùng bé/khay đang chọn (sau INCONCLUSIVE hoặc "Quét lần mới"): đổi `scanRequestId`, bỏ ảnh cũ. */
   startNewAttempt: () => void;
 }
 

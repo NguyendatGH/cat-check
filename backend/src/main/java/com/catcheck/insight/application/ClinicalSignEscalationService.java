@@ -19,10 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Hiện thực {@link ClinicalSignEscalation} — cảnh báo khẩn p6 §6.9.6. Xem javadoc cổng về việc
- * chưa có nơi gọi thật trong MVP (thiếu endpoint ở module {@code cat}).
- */
 @Service
 public class ClinicalSignEscalationService implements ClinicalSignEscalation {
 
@@ -63,8 +59,6 @@ public class ClinicalSignEscalationService implements ClinicalSignEscalation {
                 + "cát và không thể đánh giá tình trạng này. Thông tin trên không thay thế việc thăm khám.")
                 .formatted(descriptions);
 
-        // p6 §6.9.6 + p4 D12: URGENT_CLINICAL_SIGN không cooldown - dedupe_key dùng
-        // clinical_sign_report_id (duy nhất mỗi lần khai) thay vì bucket giờ.
         String dedupeKey = rule.getCode() + ":" + catId + ":" + clinicalSignReportId;
         Instant now = clock.instant();
         HealthFlag flag = new HealthFlag(

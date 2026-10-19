@@ -1,0 +1,33 @@
+{
+  "welcome": {
+    "title": "Chào mừng bạn đến với CatCheck",
+    "body": "Cùng xem nhanh các chức năng chính để bắt đầu theo dõi màu cát của bé mèo. Bạn có thể bỏ qua bất cứ lúc nào."
+  },
+  "steps": {
+    "dashboard": "Tổng quan về các bé mèo, lần quét gần nhất và lịch nhắc quét của bạn.",
+    "scan": "Chụp ảnh cát chỉ thị màu kèm bảng màu để ghi lại độ pH cho bé mèo.",
+    "history": "Xem lại các lần quét và xu hướng pH theo thời gian của từng bé.",
+    "cats": "Quản lý hồ sơ các bé mèo: giống, tuổi và ảnh đại diện.",
+    "community": "Đọc mẹo chăm sóc và chia sẻ kinh nghiệm với những người nuôi mèo khác.",
+    "map": "Tìm phòng khám thú y và cơ sở cấp cứu gần bạn.",
+    "shop": "Mua cát chỉ thị màu và phụ kiện khay cát.",
+    "credits": "Kích hoạt mã in trên bao cát để nhận credit cho các lần quét.",
+    "assistant": "Hỏi về chăm sóc mèo, câu trả lời có dẫn nguồn để bạn kiểm tra lại. Thông tin chỉ mang tính tham khảo, không thay thế bác sĩ thú y.",
+    "notifications": "Nhận nhắc lịch quét và cập nhật quan trọng tại đây.",
+    "profile": "Cập nhật tài khoản, quản lý thông báo, bảo mật và xem lại hướng dẫn này."
+  },
+  "actions": {
+    "next": "Tiếp",
+    "back": "Quay lại",
+    "skip": "Bỏ qua",
+    "finish": "Bắt đầu dùng",
+    "dontShowAgain": "Không hiển thị lại"
+  },
+  "progress": "{{current}}/{{total}}",
+  "settings": {
+    "title": "Hướng dẫn tính năng",
+    "note": "Tự hiện hướng dẫn ngắn khi mở Trang chủ. Tắt nếu bạn không muốn xem lại.",
+    "toggle": "Tự hiện hướng dẫn tính năng",
+    "replay": "Xem lại hướng dẫn"
+  }
+}

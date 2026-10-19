@@ -28,13 +28,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * L46–L48 ở tầng api.
- *
- * <p>Nhánh phân quyền quan trọng nhất của cả gói: <b>{@code ADMIN_SUPER} đọc được nhưng KHÔNG
- * publish được</b> — p14 §14.2.2 ô {@code Q22} ghi {@code ADMIN_SUPER = ❌} tường minh và
- * p11 §11.5.4 cho {@code DPO} là vai trò duy nhất "Đọc + publish" {@code policy_version}.</p>
- */
 class AdminPolicyVersionControllerTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T10:00:00Z");
@@ -167,7 +160,6 @@ class AdminPolicyVersionControllerTest {
                 .andExpect(jsonPath("$.errorCode").value("POLICY_VERSION_ALREADY_PUBLISHED"));
     }
 
-    // ------------------------------------------------------------------ fixtures
 
     private static String draftBody() {
         return "{\"policyType\":\"PRIVACY\",\"version\":\"2.0\",\"locale\":\"vi\","

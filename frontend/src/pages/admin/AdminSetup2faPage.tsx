@@ -8,16 +8,6 @@ import { cn } from "@/shared/lib/cn";
 import { ApiErrorNote } from "@/features/admin";
 import { RecoveryCodeGrid, useTotpConfirm, useTotpInit, useTotpStatus } from "@/features/auth";
 
-/**
- * `/admin/setup-2fa` — cổng bật TOTP bắt buộc trước khi vào khu quản trị.
- *
- * p17 §17.3.8 TF1: tài khoản admin chưa có bản ghi TOTP `ACTIVE` bị chặn **mọi** route
- * `/api/v1/admin/**`, kể cả endpoint chỉ đọc; ngoại lệ duy nhất là `/account/mfa/totp/*`
- * của chính mình. Trang này đứng NGOÀI `AdminLayout` trong router (chỉ `RequireAuth`)
- * nên nó tự lo padding và chiều rộng, và nó chỉ gọi đúng nhóm endpoint ngoại lệ đó:
- * `GET /account/mfa/totp`, `POST /account/mfa/totp/init`, `POST /account/mfa/totp/confirm`
- * (B13–B15, `identity/api/AccountController`).
- */
 export function AdminSetup2faPage() {
   const { t } = useTranslation("admin");
   const queryClient = useQueryClient();

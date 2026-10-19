@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { AlertTriangle, ArrowRight, Camera, ChevronRight, ImageOff, Info, Lock, ScanLine } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import type { ScanListItem, ScanResult } from "@/entities/scan-result";
-import { PhScale, QualityFlagList, TriggeredFlagList, useRecentCatScans } from "@/features/scan";
+import { PhGaugeCircular, QualityFlagList, TriggeredFlagList, useRecentCatScans } from "@/features/scan";
 
 import iconBanner from "@/shared/assets/icons/web-scan/imgContainer.svg";
 import iconCatLabel from "@/shared/assets/icons/web-scan/imgContainer3.svg";
@@ -17,32 +18,11 @@ import iconTip2 from "@/shared/assets/icons/web-scan/imgMargin1.svg";
 import iconResultBadge from "@/shared/assets/icons/web-scan/imgContainer12.svg";
 import iconPdf from "@/shared/assets/icons/web-scan/imgContainer16.svg";
 
-/**
- * Bố cục DESKTOP (>= lg) cho màn Quét & Kết quả — khung lấy từ `Web - 03 & 04. Quét & Kết
- * quả phân tích cát` (lưới 2 cột: trái 5/12 ảnh & bé mèo, phải 7/12 kết quả) cùng các biến thể
- * `Web - 03a` (đang phân tích), `Web - 03b` (INCONCLUSIVE) và `Web - Sys - 06` (hết credit).
- *
- * Mobile KHÔNG dùng file này — các page chỉ render nó từ breakpoint `lg` trở lên.
- *
- * MỌI con số trên màn đều truy được về một field API. Những khối của bản thiết kế KHÔNG có
- * nguồn dữ liệu đã bị bỏ hẳn (không thay bằng chữ mẫu):
- *  - badge "AI LAB DIAGNOSTIC V3.4", "Quang phổ kế sẵn sàng", pill "Chứng chỉ thú y ISO/Vet" —
- *    claim không có bằng chứng; thay bằng hai pill dữ liệu thật do page truyền vào (lần quét gần
- *    nhất của bé — E2; số dư credit — C3).
- *  - ảnh cát mẫu + hai điểm đo "RGB #8FE3AA", "482 điểm hạt (độ tin cậy 99.4%)" — ảnh stock và
- *    số bịa; khung ảnh giờ chỉ hiện ảnh người dùng chọn hoặc ảnh đã lưu của lần quét.
- *  - thẻ "Cân chỉnh ánh sáng (+12% / Chuẩn / 5400K)" và dòng "hoàn tất 100% trong 0.8s" — số
- *    bịa; thay bằng thẻ "Thông tin lần quét" đọc từ `ScanResultResponse`.
- *  - ma trận bệnh lý (FLUTD, sỏi, "vi máu") và "Lời khuyên bác sĩ" — chẩn đoán, trái quyết định
- *    "không chẩn đoán"; vị trí đó nay là khối "Bạn nên làm gì?" dùng chung với mobile.
- *  - nút "Lưu vào lịch sử" (E1 đã lưu ngay khi phân tích) và "Hỏi bác sĩ" (không có tính năng).
- */
 
 function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={cn("rounded-lg border border-border/70 bg-surface p-4", className)}>{children}</div>;
 }
 
-/* ---------------- Đầu trang ---------------- */
 
 export interface HeaderPill {
   key: string;
@@ -51,7 +31,6 @@ export interface HeaderPill {
   value: string;
 }
 
-/** Banner đầu trang (Figma `16:6337`): icon + tiêu đề + tối đa 2 pill dữ liệu THẬT. */
 export function WebScanHeader({
   title,
   subtitle,
@@ -91,17 +70,14 @@ export function WebScanHeader({
   );
 }
 
-/* ---------------- Thẻ bé mèo ---------------- */
 
 export interface WebCatCardProps {
-  /** `null` = khay dùng chung (không có hồ sơ). */
   name: string | null;
   meta?: string | null;
   avatarUrl?: string | null;
   action?: ReactNode;
 }
 
-/** "Bé mèo đang quét" (Figma `16:6370`) — chỉ hiện dữ liệu hồ sơ thật, thiếu field thì bỏ dòng. */
 export function WebCatCard({ name, meta, avatarUrl, action }: WebCatCardProps) {
   const { t } = useTranslation("scan");
   return (
@@ -136,7 +112,6 @@ export function WebCatCard({ name, meta, avatarUrl, action }: WebCatCardProps) {
   );
 }
 
-/* ---------------- Cột trái màn chụp ---------------- */
 
 export interface CaptureErrorMessage {
   tone: "danger" | "warning";
@@ -145,19 +120,15 @@ export interface CaptureErrorMessage {
 
 interface WebCapturePanelProps {
   catCard: ReactNode;
-  /** Ảnh người dùng vừa chọn — chưa có thì khung trống (KHÔNG dựng ảnh mẫu). */
   previewUrl?: string | null;
   onPickFile: (file: File, source: "CAMERA" | "GALLERY") => void;
   onSubmit: () => void;
   submitDisabled?: boolean;
-  /** Hết credit (Sys-06): nút phân tích bị khoá và hiện biểu tượng khoá. */
   locked?: boolean;
-  /** Đang gửi/phân tích — khoá cả hai nút chọn ảnh. */
   busy?: boolean;
   error?: CaptureErrorMessage | null;
 }
 
-/** Góc khung ngắm — 4 chữ L ở 4 góc (giống khung mobile `03`). */
 const FRAME_CORNERS = [
   "left-3 top-3 rounded-tl-lg border-l-[3px] border-t-[3px]",
   "right-3 top-3 rounded-tr-lg border-r-[3px] border-t-[3px]",
@@ -203,7 +174,6 @@ function FilePickButton({
   );
 }
 
-/** Cột TRÁI desktop `/scan`: bé mèo, khung ảnh, CTA phân tích, mẹo chụp (Figma `16:6369`). */
 export function WebCapturePanel({
   catCard,
   previewUrl,
@@ -292,7 +262,6 @@ export function WebCapturePanel({
   );
 }
 
-/** "Mẹo chụp màu cát" (Figma `16:6489`) — nội dung hướng dẫn tĩnh, không phải dữ liệu. */
 export function TipsCard() {
   const { t } = useTranslation("scan");
   return (
@@ -316,9 +285,7 @@ export function TipsCard() {
   );
 }
 
-/* ---------------- Cột phải: kết quả ---------------- */
 
-/** `band.description` của server là TEMPLATE chứa `{0}` để điền chính giá trị pH đó. */
 function bandSentence(band: PhBand | undefined, phValue: number | null): string | null {
   if (!band?.description) return null;
   if (!band.description.includes("{0}")) return band.description;
@@ -331,25 +298,13 @@ function finite(value: number | null | undefined): number | null {
 
 interface WebResultPanelProps {
   bands: PhBand[];
-  /** pH THẬT của lần quét; `null`/bỏ trống = chưa có kết quả kết luận được. */
   phValue?: number | null;
-  /** `classification` server đã gán cho lần quét — ưu tiên hơn việc suy lại từ con số pH. */
   bandCode?: string | null;
-  /** Lần quét đầy đủ (màn kết quả) — có thì hiện khoảng ước lượng, cờ chất lượng, cờ xu hướng. */
   result?: ScanResult;
-  /** Khối chèn giữa thang pH và hàng hành động (VD "Bạn nên làm gì?"). */
   children?: ReactNode;
-  /** Hàng hành động cuối cột; bỏ trống ở màn chụp (chưa có gì để xuất). */
   actions?: ReactNode;
 }
 
-/**
- * Cột PHẢI desktop: kết quả + thang pH (Figma `16:6508`).
- *
- * Nhãn phân loại LUÔN là `band.label` do `GET /reference/ph-bands` trả (đi từ `label_key`
- * của server) — không có chuỗi "Khỏe mạnh"/"BÌNH THƯỜNG" nào viết cứng ở client, và khoảng
- * tham chiếu in ra cũng lấy từ dải `severity === "NORMAL"` chứ không phải số trong Figma.
- */
 export function WebResultPanel({
   bands,
   phValue = null,
@@ -387,8 +342,6 @@ export function WebResultPanel({
               <span className="text-overline font-bold tracking-[0.4px] text-text-secondary">
                 {t("web.overallLabel")}
               </span>
-              {/* Nhãn dải (`band.label` từ API) là TIÊU ĐỀ, tô màu theo `colorToken` của dải —
-                  không lặp thêm một pill cùng chữ ngay phía trên như bản trước. */}
               <p className={cn("pt-1 text-[22px] font-bold leading-7", style ? style.text : "text-text-primary")}>
                 {hasResult ? (band?.label ?? t("web.resultUnknown")) : t("web.awaitingTitle")}
               </p>
@@ -431,8 +384,9 @@ export function WebResultPanel({
             {hasResult ? t("web.spectrumSubtitle") : t("web.spectrumSubtitleAwaiting")}
           </p>
         </div>
-        {/* Dải màu + nhãn ngưỡng lấy TỪ API (entities/ph-bands) — không hard-code ngưỡng pH. */}
-        <PhScale bands={bands} value={value} activeBand={band} showBandLegend />
+        <div className="flex justify-center py-2">
+          <PhGaugeCircular bands={bands} value={value} activeBand={band} showBandLegend size="md" />
+        </div>
       </Panel>
 
       {children}
@@ -442,7 +396,6 @@ export function WebResultPanel({
   );
 }
 
-/** Nút xuất PDF (Figma "Xuất phiếu PDF") — trang `/export` tự xử lý quyền theo gói. */
 export function ExportPdfLink({ className }: { className?: string }) {
   const { t } = useTranslation("scan");
   return (
@@ -459,9 +412,7 @@ export function ExportPdfLink({ className }: { className?: string }) {
   );
 }
 
-/* ---------------- Ảnh + thông tin lần quét ---------------- */
 
-/** Ảnh đã lưu của lần quét; không có ảnh thì nói rõ LÝ DO server trả (`storeImageReason`). */
 export function ScanImageCard({ result }: { result: ScanResult }) {
   const { t } = useTranslation("scan");
   const reason = result.storeImageReason ?? null;
@@ -504,7 +455,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 }
 
 export function formatScanTime(iso: string): string {
-  return new Date(iso).toLocaleString("vi-VN", {
+  return new Date(iso).toLocaleString(intlLocale(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -513,7 +464,6 @@ export function formatScanTime(iso: string): string {
   });
 }
 
-/** "Thông tin lần quét" — chỉ các field `ScanResultResponse` thật sự có; vắng thì bỏ dòng. */
 export function ScanMetaCard({ result, title }: { result: ScanResult; title?: string }) {
   const { t } = useTranslation("scan");
   const confidence = finite(result.confidence);
@@ -571,12 +521,7 @@ export function ScanMetaCard({ result, title }: { result: ScanResult; title?: st
   );
 }
 
-/* ---------------- Dải "các lần quét gần đây" ---------------- */
 
-/**
- * Thay cho dải "Xu hướng pH 14 ngày" của Figma: ba lần quét THẬT gần nhất của cùng bé (E2),
- * mỗi ô dẫn sang chi tiết. Biểu đồ xu hướng đầy đủ đã có ở `/cats/:catId/trends`.
- */
 export function RecentScansStrip({
   catId,
   catName,
@@ -649,12 +594,7 @@ export function RecentScansStrip({
   );
 }
 
-/* ---------------- Hết credit (Sys-06) ---------------- */
 
-/**
- * Trạng thái hết credit ngay trong luồng Quét (`Web - Sys - 06`). Số dư/lượt thử lấy từ
- * C3 `GET /credits/balance`; page chỉ render khối này khi CẢ HAI đều bằng 0.
- */
 export function OutOfCreditPanel({
   availableBalance,
   trialScansRemaining,

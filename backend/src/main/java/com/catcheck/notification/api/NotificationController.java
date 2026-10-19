@@ -22,14 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Nhóm G — hộp thư thông báo in-app (p8 §8.4.7, G4–G8).
- *
- * <p>Auth của cả 5 endpoint là {@code U} / {@code U:own}; không có cổng entitlement
- * ({@code E:}) nào, nên {@code SecurityConfig.anyRequest().authenticated()} là đủ. Quy tắc sở
- * hữu tài nguyên của p8 §8.3.4 ("404 thay vì 403") được ép ở tầng service: mọi truy vấn đều
- * mang {@code user_id}.</p>
- */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Notification", description = "Hộp thư thông báo trong app (channel = IN_APP)")
@@ -43,7 +35,6 @@ public class NotificationController {
         this.service = service;
     }
 
-    /** G4 — {@code GET /notifications}. */
     @Operation(operationId = "listNotifications", summary = "Hộp thư thông báo trong app",
             description = "Chỉ trả `channel = IN_APP` và bỏ các dòng đã ẩn/bị bỏ qua. "
                     + "Phân trang con trỏ `(created_at, id)` giảm dần; `limit` mặc định 20, tối đa 100 "
@@ -62,7 +53,6 @@ public class NotificationController {
                 new CursorPage(effectiveLimit, page.nextCursor(), page.hasMore()));
     }
 
-    /** G5 — {@code GET /notifications/unread-count}. */
     @Operation(operationId = "getUnreadNotificationCount", summary = "Số thông báo chưa đọc",
             description = "Đếm nhanh cho badge chuông — dùng partial index của p4 F2.")
     @GetMapping("/notifications/unread-count")
@@ -70,7 +60,6 @@ public class NotificationController {
         return new UnreadCountResponse(service.countUnread(user.userId()));
     }
 
-    /** G6 — {@code POST /notifications/{notificationId}/read}. */
     @Operation(operationId = "markNotificationRead", summary = "Đánh dấu một thông báo đã đọc",
             description = "`204`. Idempotent: gọi lại trên thông báo đã đọc vẫn `204`.")
     @PostMapping("/notifications/{notificationId}/read")
@@ -80,7 +69,6 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
-    /** G7 — {@code POST /notifications/read-all}. */
     @Operation(operationId = "markAllNotificationsRead", summary = "Đánh dấu toàn bộ đã đọc",
             description = "`204`.")
     @PostMapping("/notifications/read-all")
@@ -89,7 +77,6 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
-    /** G8 — {@code DELETE /notifications/{notificationId}}. */
     @Operation(operationId = "hideNotification", summary = "Ẩn thông báo khỏi hộp thư",
             description = "Xoá mềm: bản ghi vẫn còn để giải thích \"vì sao tôi nhận được thông báo này\".")
     @DeleteMapping("/notifications/{notificationId}")

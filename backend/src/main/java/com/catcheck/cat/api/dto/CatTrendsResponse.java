@@ -7,13 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * D13 {@code GET /cats/{catId}/trends} — hop dong o p8 §8.9 dong 1186:
- * {@code {range, points: [...], stats: {...}, bands: [...], chartVersions: [...]}}.
- *
- * <p>Them {@code from}/{@code to} so voi hop dong goc: client can biet cua so thuc te da duoc
- * server giai ra tu {@code range} de ve truc thoi gian ma khong phai tu suy.</p>
- */
 public record CatTrendsResponse(
         String range,
         Instant from,
@@ -23,7 +16,6 @@ public record CatTrendsResponse(
         List<Band> bands,
         List<Integer> chartVersions) {
 
-    /** @param phValue {@code null} khi lan quet do {@code INCONCLUSIVE} */
     public record Point(
             Instant capturedAt,
             BigDecimal phValue,
@@ -42,7 +34,6 @@ public record CatTrendsResponse(
             long lowConfidenceCount) {
     }
 
-    /** Dai phan loai pH tu {@code ph_classification_band} — nguon nguong duy nhat cho bieu do. */
     public record Band(
             String code,
             BigDecimal minPh,

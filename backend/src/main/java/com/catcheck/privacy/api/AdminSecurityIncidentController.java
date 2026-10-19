@@ -33,28 +33,12 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * L59/L60/L61 — hồ sơ sự cố lộ/mất dữ liệu ({@code security_incident}, p4 B9,
- * quy trình p15 §15.9.5).
- *
- * <p><b>Hai mức quyền khác nhau trong một lớp</b>, đúng ô {@code Q27} của p14 §14.2.2
- * (<i>{@code DPO} đọc + ghi, {@code ADMIN_SUPER} 👁</i>) và cột Auth của p8 L59
- * (<i>{@code R:DPO} (ghi), {@code ADMIN_SUPER} (đọc)</i>): {@code GET} cho cả hai,
- * {@code POST}/{@code PATCH} chỉ {@code DPO}. Đây là lý do {@code READ_ROLES} và
- * {@code WRITE_ROLES} là hai tập, không phải một.</p>
- *
- * <p><b>Không có endpoint xoá</b>, cố ý: {@code security_incident} bị REVOKE DELETE ở tầng
- * DB (V6) vì hồ sơ phải giữ ≥ 05 năm kể từ ngày khắc phục (Đ29.1.c NĐ356, p15 §15.5.1 dòng
- * "Hồ sơ sự cố": <i>"không tự xoá — rà soát thủ công hằng năm"</i>).</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/security/incidents")
 @Tag(name = "Quản trị sự cố bảo mật", description = "Hồ sơ sự cố lộ/mất dữ liệu cá nhân")
 public class AdminSecurityIncidentController {
 
-    /** p8 L59: {@code ADMIN_SUPER} đọc, {@code DPO} đọc + ghi. */
     private static final Set<String> READ_ROLES = Set.of("DPO", "ADMIN_SUPER");
-    /** p8 L60/L61 + p14 Q27: chỉ {@code DPO} ghi. */
     private static final Set<String> WRITE_ROLES = Set.of("DPO");
 
     private static final int MAX_PAGE_SIZE = 100;
@@ -170,7 +154,6 @@ public class AdminSecurityIncidentController {
                 request.getHeader("User-Agent"));
     }
 
-    /** Envelope offset theo cột "Trang = {@code O}" của ô L59 (p8 §8.1.4). */
     public record PageResponse(List<AdminSecurityIncidentResponse> items, int page, int size,
                                long totalElements, int totalPages, boolean hasMore) {
 

@@ -3,20 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, Languages } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { SUPPORTED_LOCALES } from "@/shared/config/constants";
+import { setStoredLocale } from "@/shared/i18n/i18n";
 import { useProfile, useUpdateProfile } from "@/features/auth";
 
-/**
- * `/settings/language` — ngôn ngữ hiển thị.
- *
- * Đổi ngôn ngữ làm HAI việc, không chỉ một:
- *   1. `i18n.changeLanguage` — đổi ngay giao diện (i18next tự lưu vào localStorage theo
- *      cấu hình `detection.caches` ở `shared/i18n/i18n.ts`);
- *   2. `PATCH /users/me { locale }` — để email/thông báo server gửi đi cũng đúng ngôn ngữ.
- *      Cột `app_user.locale` có CHECK chỉ nhận 'vi' | 'en'.
- * Nếu bước 2 lỗi thì giao diện vẫn đổi và báo rõ là mới chỉ đổi trên thiết bị này.
- *
- * Trang nằm trong `TaskLayout`: layout cấp `px-4 py-6` + hộp 944px, trang không tự thêm.
- */
 export function SettingsLanguagePage() {
   const { t, i18n } = useTranslation("settings");
   const queryClient = useQueryClient();
@@ -26,7 +15,12 @@ export function SettingsLanguagePage() {
   const active = i18n.resolvedLanguage ?? profile?.locale ?? SUPPORTED_LOCALES[0];
 
   const choose = (locale: string) => {
-    void i18n.changeLanguage(locale);
+    setStoredLocale(locale);
+    // `i18n.language` (nguồn của Accept-Language) chỉ đổi sau khi tải xong bản dịch, nên làm mới dữ liệu sau đó.
+    // Bỏ nhóm "auth": làm mới hồ sơ lúc PATCH đang chạy có thể ghi đè locale mới bằng giá trị cũ.
+    void i18n
+      .changeLanguage(locale)
+      .then(() => queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "auth" }));
     updateProfile.mutate(
       { locale },
       {
@@ -89,7 +83,6 @@ export function SettingsLanguagePage() {
           );
         })}
 
-        {/* Vùng thông báo chỉ chiếm chỗ khi có nội dung — để trống thì thẻ không bị dư đáy. */}
         <p aria-live="polite" className="text-caption empty:hidden">
           {updateProfile.isError ? (
             <span className="flex items-start gap-1.5 text-warning-text">

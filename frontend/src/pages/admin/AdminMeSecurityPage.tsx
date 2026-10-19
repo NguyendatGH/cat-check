@@ -17,21 +17,6 @@ import {
   useTotpStatus,
 } from "@/features/auth";
 
-/**
- * `/admin/me/security` — bảo mật của CHÍNH tài khoản quản trị đang đăng nhập.
- *
- * NỐI API THẬT (đã đọc `identity/api/AccountController` và `identity/api/AuthController`):
- * `GET|DELETE /account/mfa/totp`, `POST /account/mfa/totp/init|confirm`,
- * `POST /account/mfa/totp/recovery-codes/regenerate` (B13–B17) và
- * `GET|DELETE /auth/sessions`, `POST /auth/sessions/revoke-all` (A14–A16).
- *
- * Đây KHÔNG phải endpoint `/api/v1/admin/**` nên không thuộc bảng `ADMIN_CAPABILITIES`;
- * p17 §17.3.8 TF1 còn nêu đích danh `/account/mfa/totp/*` là **ngoại lệ duy nhất** không
- * bị chặn khi admin chưa bật TOTP — đúng là chỗ admin tự bật 2FA cho mình.
- *
- * Trùng chức năng với `/settings/security` là CỐ Ý: admin bị chặn mọi route admin khi
- * chưa có TOTP `ACTIVE`, nên khu quản trị phải có lối tự khắc phục ngay trong sidebar.
- */
 export function AdminMeSecurityPage() {
   const { t } = useTranslation("admin");
   const queryClient = useQueryClient();
@@ -61,11 +46,7 @@ export function AdminMeSecurityPage() {
 
   return (
     <div className="flex max-w-4xl flex-col gap-5">
-      <AdminPageHeader
-        title={t("pages.meSecurity.title")}
-        description={t("pages.meSecurity.description")}
-        specRef="GET|POST|DELETE /api/v1/account/mfa/totp* (B13–B17) · /api/v1/auth/sessions (A14–A16)"
-      />
+      <AdminPageHeader title={t("pages.meSecurity.title")} description={t("pages.meSecurity.description")} />
 
       <p className="flex items-start gap-2 rounded-xl bg-info px-4 py-3 text-caption text-info-text">
         <ShieldAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />

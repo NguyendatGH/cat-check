@@ -13,16 +13,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
 
-/**
- * Render email HTML từ {@code classpath:email/<mã template>.html}.
- *
- * <p>Mỗi template có {@code <title>} (tiêu đề thư) và các biến dạng {@code {{tên}}}. Giá trị biến
- * luôn được escape HTML, còn tiêu đề thì không (tiêu đề là header thư, không phải HTML). Biến không
- * có giá trị được thay bằng chuỗi rỗng, không để lại {@code {{...}}} trong thư.</p>
- *
- * <p>Biến {@code appUrl} luôn có sẵn, lấy từ {@code catcheck.notification.app-url}, để template
- * tạo được link tuyệt đối.</p>
- */
 @Component
 public class EmailTemplateRenderer {
 
@@ -30,6 +20,8 @@ public class EmailTemplateRenderer {
             Pattern.compile("<title>(.*?)</title>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{(\\w+)}}");
     private static final Pattern TEMPLATE_CODE = Pattern.compile("[A-Z0-9_]+");
+    private static final Pattern LANGUAGE = Pattern.compile("[a-z]{2}");
+    private static final String DEFAULT_LANGUAGE = "vi";
 
     private final String appUrl;
 
@@ -38,25 +30,27 @@ public class EmailTemplateRenderer {
         this.appUrl = appUrl;
     }
 
-    /** Thư đã render: tiêu đề và thân HTML. Rỗng nếu chưa có template cho mã này. */
-    public Optional<RenderedEmail> render(String templateCode, Map<String, ?> variables) {
-        String source = load(templateCode);
+    public Optional<RenderedEmail> render(String templateCode, String locale, Map<String, ?> variables) {
+        String source = load(templateCode, locale);
         if (source == null) {
             return Optional.empty();
         }
         Map<String, Object> values = new HashMap<>(variables);
         values.put("appUrl", appUrl);
-        // Tiêu đề là header thư: bỏ xuống dòng để giá trị biến (tên mèo do người dùng nhập) không
-        // chèn được header mới.
         String subject = fill(titleOf(source), values, false).replaceAll("[\\r\\n]+", " ").strip();
         return Optional.of(new RenderedEmail(subject, fill(source, values, true)));
     }
 
-    private static String load(String templateCode) {
+    private static String load(String templateCode, String locale) {
         if (templateCode == null || !TEMPLATE_CODE.matcher(templateCode).matches()) {
             return null;
         }
-        ClassPathResource resource = new ClassPathResource("email/" + templateCode + ".html");
+        // Kiểm locale trước khi ghép vào đường dẫn classpath (locale có thể đến từ payload ngoài).
+        String language = locale != null && LANGUAGE.matcher(locale).matches() ? locale : DEFAULT_LANGUAGE;
+        ClassPathResource resource = templateFile(templateCode, language);
+        if (!resource.exists()) {
+            resource = templateFile(templateCode, DEFAULT_LANGUAGE);
+        }
         if (!resource.exists()) {
             return null;
         }
@@ -65,6 +59,10 @@ public class EmailTemplateRenderer {
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
+    }
+
+    private static ClassPathResource templateFile(String templateCode, String language) {
+        return new ClassPathResource("email/" + templateCode + "_" + language + ".html");
     }
 
     private static String titleOf(String source) {

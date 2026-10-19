@@ -16,7 +16,6 @@ import {
   useScan,
 } from "@/features/scan";
 
-/** Mã lỗi E9 → câu chữ (409 cửa sổ đóng / hết lượt có câu riêng, còn lại dùng câu chung). */
 function reassignErrorKey(error: unknown): string {
   if (isApiError(error)) {
     if (error.code === "SCAN_REASSIGN_WINDOW_CLOSED") return "reassignCat.windowClosed";
@@ -25,14 +24,6 @@ function reassignErrorKey(error: unknown): string {
   return "scanDetail.actionError";
 }
 
-/**
- * `/scan/:scanId/reassign-cat` (E9) — gán lại kết quả cho mèo khác, ≤24h/≤3 lần. Dùng lại
- * đúng thẻ chọn mèo của mockup `05` (`SelectCatOption`) như bước chọn mèo trước khi quét.
- *
- * Trang nằm trong `AppLayout`: mobile tự chừa lề `px-4`; nút xác nhận nằm TRONG luồng trang
- * (trước đây là thanh `fixed bottom-0` — bị thanh tab dưới che trên mobile và trải ngang cả
- * sidebar trên desktop).
- */
 export function ScanReassignCatPage() {
   const { t } = useTranslation(["scan", "common"]);
   const { scanId } = useParams<{ scanId: string }>();

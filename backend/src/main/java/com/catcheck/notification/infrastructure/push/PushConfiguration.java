@@ -17,24 +17,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/**
- * Dựng {@link PushMessageSender}.
- *
- * <p><b>Bật/tắt bằng đúng một thứ: có hay không file service account.</b>
- * {@code catcheck.notification.push.service-account-path} (biến môi trường
- * {@code FIREBASE_SERVICE_ACCOUNT_PATH}, p18 §18.9) — là <b>đường dẫn</b> tới file JSON mount
- * read-only, KHÔNG phải nội dung JSON (research §15.3 cấm nhét cả JSON vào env var).</p>
- *
- * <p><b>Thiếu/không đọc được ⇒ KHÔNG ném.</b> App phải khởi động được trên máy dev và trong CI,
- * nơi không bao giờ có khoá Firebase. Khi đó bean là {@link DisabledPushMessageSender}: log một
- * cảnh báo, các dòng {@code notification_outbox} giữ nguyên {@code PENDING}. Dựng
- * {@code FirebaseApp} thất bại cũng rơi về nhánh này — một khoá sai định dạng không được làm
- * sập cả ứng dụng, trong khi in-app và email vẫn chạy bình thường.</p>
- *
- * <p>Tên app Firebase đặt riêng ({@code catcheck}) thay vì {@code [DEFAULT]} để không tranh với
- * bất kỳ {@code FirebaseApp.initializeApp()} nào khác, và để khởi động lại context trong test
- * không ném {@code IllegalStateException} "app already exists".</p>
- */
 @Configuration
 public class PushConfiguration {
 

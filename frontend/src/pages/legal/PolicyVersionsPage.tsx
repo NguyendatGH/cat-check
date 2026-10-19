@@ -13,19 +13,6 @@ const SLUG_TO_CODE: Record<string, PolicyCode> = {
   "medical-disclaimer": "MEDICAL_DISCLAIMER",
 };
 
-/**
- * `/legal/:policyCode/versions` (p9 §9.4.3 #15, REQ-LEGAL-02).
- *
- * Nguồn dữ liệu là **F9 `GET /policies/{code}/versions`** — endpoint liệt kê MỌI phiên bản
- * kể cả đã hết hiệu lực. Trước đây trang gọi C16 (`/policies/{code}`, chỉ bản hiện hành) nên
- * lịch sử luôn hiện đúng một dòng; đó là hiển thị SAI, không phải giới hạn backend.
- *
- * Không có trường nào trong response cho biết "ai duyệt"/"lý do sửa" nên trang không vẽ cột
- * đó — chỉ phiên bản, hiệu lực, cờ xin lại đồng ý và tóm tắt thay đổi (`summaryOfChanges`).
- *
- * DESKTOP (>= lg): danh sách phiên bản ở cột chính 560px, ghi chú + lối quay lại tài liệu ở
- * cột phụ 360px — cùng idiom với `settings`.
- */
 export function PolicyVersionsPage() {
   const { t, i18n } = useTranslation(["legal", "common"]);
   const { policyCode: slug } = useParams<{ policyCode: string }>();
@@ -119,7 +106,6 @@ export function PolicyVersionsPage() {
 
           {body}
 
-          {/* Ở mobile ghi chú nằm ngay dưới danh sách, ở desktop chuyển sang cột phụ. */}
           <div className="flex flex-col gap-6 lg:hidden">
             <p className="rounded-lg border border-border bg-background-alt p-3 text-caption text-text-tertiary">
               {t("versions.permalinkNote")}

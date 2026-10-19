@@ -44,15 +44,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Nhom A — Xac thuc & phien (p8 §8.4.1, 15 endpoint).
- *
- * <p>Phien that su nam o Spring Session; {@code user_device_session} la ban sao de
- * hien thi. Controller chi goi tang {@code application}, khong cham truc tiep DB.</p>
- */
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -87,20 +82,6 @@ public class AuthController {
         this.clock = clock;
     }
 
-    /**
-     * A1 — phat cookie XSRF-TOKEN.
-     *
-     * <p><b>Bug thật đã sửa:</b> {@code CsrfToken} do Spring Security 6+ nạp là
-     * {@code DeferredCsrfToken} — {@code CsrfFilter} KHÔNG tự ghi cookie chỉ vì request đi qua
-     * filter chain; cookie chỉ được {@code CookieCsrfTokenRepository} ghi khi có nơi nào đó THẬT
-     * SỰ gọi {@link CsrfToken#getToken()} để lấy giá trị (vd Thymeleaf render {@code _csrf}). App
-     * này không có template render nào — nếu để method rỗng như bản gốc, deferred token không
-     * bao giờ resolve, {@code CsrfFilter.saveToken()} không bao giờ chạy, và SPA gọi endpoint này
-     * xong vẫn KHÔNG nhận được cookie {@code XSRF-TOKEN} — xác nhận bằng {@code curl -v}: hoàn
-     * toàn không có header {@code Set-Cookie}. Chặn MỌI request ghi (POST/PUT/PATCH/DELETE) toàn
-     * app, không riêng gì local. Fix: tiêm {@link CsrfToken} qua tham số (Spring tự resolve từ
-     * request attribute) rồi gọi {@code .getToken()} để buộc resolve ngay trong request này.</p>
-     */
     @Operation(operationId = "getAuthCsrf", summary = "Phat cookie XSRF-TOKEN")
     @GetMapping("/csrf")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -108,14 +89,9 @@ public class AuthController {
         csrfToken.getToken();
     }
 
-    /** A2 — bootstrap SPA. Chua dang nhap => 200 {@code {authenticated: false}}, KHONG phai 401. */
     @Operation(operationId = "getAuthSession", summary = "Bootstrap SPA — trang thai phien")
     @GetMapping("/session")
     public SessionResponse session(@AuthenticationPrincipal Object principal) {
-        // Bug that da sua: truoc day luon tra user=null du da dang nhap — FE (SessionProvider)
-        // ep nguyen response nay thanh SessionUser (ep kieu khong kiem tra), field
-        // "onboarding" khong ton tai => RequireOnboarding crash "Cannot read properties of
-        // undefined (reading 'completed')" ngay lan dau mo app that. Phai tra ho so that.
         if (principal instanceof com.catcheck.identity.application.AuthPrincipal auth) {
             ProfileService.ProfileView profile = profileService.profile(auth.userId());
             SessionUser user = new SessionUser(
@@ -134,7 +110,6 @@ public class AuthController {
         return new SessionResponse(false, null, List.of(), null, Instant.now(clock).toString());
     }
 
-    /** A3 — dang ky. Tra 202, FE chuyen sang man xac thuc OTP. */
     @Operation(operationId = "postAuthRegister", summary = "Dang ky tai khoan")
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -144,12 +119,6 @@ public class AuthController {
         RegistrationService.RegistrationResult result = registrationService.register(
                 request.email(), request.password(), request.fullName(), request.locale(),
                 request.otpTicket(), mapConsents(request.consents()), context);
-        // Bug that da sua: nhanh kich hoat bang ticket tra ve authenticated=true trong body
-        // nhung KHONG BAO GIO thuc su mo phien (khong co Set-Cookie session nao ca — xac nhan
-        // that: goi lai /auth/session ngay sau do van tra authenticated=false). login() da lam
-        // dung (goi sessionGateway.establish), register() thi quen. Vai tro luon la USER cho
-        // tai khoan moi tu dang ky (roleRepository.grant(..., UserRole.USER, ...) o
-        // RegistrationService, khong co duong nao khac gan vai tro luc dang ky).
         if (result.authenticated()) {
             sessionGateway.establish(result.userId(), result.email().value(),
                     Set.of(UserRole.USER.name()), false);
@@ -161,23 +130,22 @@ public class AuthController {
                 "authenticated", result.authenticated());
     }
 
-    /** A4 — gui/gui lai OTP theo purpose. */
     @Operation(operationId = "postAuthOtpRequest", summary = "Gui OTP theo muc dich")
     @PostMapping("/otp/request")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Map<String, Object> requestOtp(@Valid @RequestBody OtpRequestRequest request,
+                                          @AuthenticationPrincipal Object principal,
                                           HttpServletRequest httpRequest) {
         AuthRequestContext context = context(httpRequest);
         OtpPurpose purpose = OtpPurpose.valueOf(request.purpose());
         OtpService.OtpRequestResult result = otpService.requestOtp(
-                request.email(), purpose, null, context);
+                request.email(), purpose, otpOwner(purpose, request.email(), principal), request.locale(), context);
         return Map.of(
                 "otpExpiresAt", result.expiresAt().toString(),
                 "canResendInSeconds", result.ttlSeconds(),
                 "maskedEmail", maskEmail(request.email()));
     }
 
-    /** A5 — xac thuc OTP. Voi REGISTER_VERIFY => tao phien, tra session. */
     @Operation(operationId = "postAuthOtpVerify", summary = "Xac thuc ma OTP")
     @PostMapping("/otp/verify")
     public Map<String, Object> verifyOtp(@Valid @RequestBody OtpVerifyRequest request,
@@ -192,7 +160,6 @@ public class AuthController {
                 "purpose", purpose.name());
     }
 
-    /** A6 — dang nhap email + mat khau. Tra session hoac mfaRequired. */
     @Operation(operationId = "postAuthLogin", summary = "Dang nhap email + mat khau")
     @PostMapping("/login")
     public Map<String, Object> login(@Valid @RequestBody LoginRequest request,
@@ -203,10 +170,11 @@ public class AuthController {
                 request.email(), request.password(),
                 request.rememberMe() == null || request.rememberMe(), context);
 
-        // Admin co TOTP ACTIVE: tao phien nhung yeu cau buoc 2 (mfaLevel = NONE).
         if (mfaService.totpEnabled(result.userId())) {
-            sessionGateway.establish(result.userId(), result.email().value(), result.roles(),
+            // Chua mo phien truoc khi qua TOTP — phien that mo o A10/A11.
+            sessionGateway.beginPendingMfa(result.userId(), result.email().value(), result.roles(),
                     request.rememberMe() == null || request.rememberMe());
+            mfaService.logCurrentTotpForDev(result.userId(), result.email().value());
             return Map.of(
                     "mfaRequired", true,
                     "mfaMethods", List.of("TOTP"));
@@ -220,7 +188,6 @@ public class AuthController {
                 "roles", result.roles());
     }
 
-    /** A7 — dang xuat. 204. */
     @Operation(operationId = "postAuthLogout", summary = "Dang xuat")
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -233,7 +200,6 @@ public class AuthController {
         }
     }
 
-    /** A8 — yeu cau dat lai mat khau. LUON 202, khong tiet lo email ton tai. */
     @Operation(operationId = "postAuthPasswordResetRequest", summary = "Yeu cau dat lai mat khau")
     @PostMapping("/password-reset/request")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -242,7 +208,6 @@ public class AuthController {
         passwordResetService.request(request.email(), context(httpRequest));
     }
 
-    /** A9 — dat mat khau moi bang otp_ticket. Thu hoi moi phien. */
     @Operation(operationId = "postAuthPasswordResetConfirm", summary = "Dat mat khau moi")
     @PostMapping("/password-reset/confirm")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -251,38 +216,47 @@ public class AuthController {
         passwordResetService.confirm(request.token(), request.newPassword(), context(httpRequest));
     }
 
-    /** A10 — buoc 2 khi dang nhap: xac thuc TOTP, nang mfaLevel len TOTP. */
     @Operation(operationId = "postAuthTotpVerify", summary = "Buoc 2 dang nhap — xac thuc TOTP")
     @PostMapping("/totp/verify")
     public Map<String, Object> verifyTotp(@Valid @RequestBody TotpVerifyRequest request,
                                           @AuthenticationPrincipal Object principal,
                                           HttpServletRequest httpRequest) {
+        Optional<UUID> pending = sessionGateway.pendingMfaUserId();
+        if (pending.isPresent()) {
+            loginService.requireSessionAllowed(pending.get());
+            mfaService.verifyForLogin(pending.get(), request.code(), context(httpRequest));
+            sessionGateway.completePendingMfa();
+            return Map.of("mfaLevel", "TOTP");
+        }
         UUID userId = requireUserId(principal);
         mfaService.verifyForLogin(userId, request.code(), context(httpRequest));
-        // p11 §11.12.1: mfaLevel la THUOC TINH PHIEN. Truoc ban sua nay no chi la mot chuoi
-        // trong JSON tra ve, nen khong co cach nao biet phien da qua TOTP hay chua va bo gac
-        // /api/v1/admin/** (p8 §8.4.12) khong the ton tai.
         sessionGateway.markMfaTotpVerified();
         return Map.of("mfaLevel", "TOTP");
     }
 
-    /** A11 — dung ma khoi phuc thay ma TOTP. Bat buoc dan toi enroll lai. */
     @Operation(operationId = "postAuthTotpRecovery", summary = "Dung ma khoi phuc")
     @PostMapping("/totp/recovery")
     public Map<String, Object> totpRecovery(@Valid @RequestBody TotpRecoveryRequest request,
                                             @AuthenticationPrincipal Object principal,
                                             HttpServletRequest httpRequest) {
-        UUID userId = requireUserId(principal);
+        Optional<UUID> pending = sessionGateway.pendingMfaUserId();
+        UUID userId = pending.isPresent() ? pending.get() : requireUserId(principal);
+        if (pending.isPresent()) {
+            loginService.requireSessionAllowed(userId);
+        }
         MfaService.RecoveryResult result = mfaService.verifyRecovery(
                 userId, request.recoveryCode(), context(httpRequest));
-        sessionGateway.markMfaTotpVerified();
+        if (pending.isPresent()) {
+            sessionGateway.completePendingMfa();
+        } else {
+            sessionGateway.markMfaTotpVerified();
+        }
         return Map.of(
                 "mfaLevel", "TOTP",
                 "enrollmentRequired", result.enrollmentRequired(),
                 "recoveryCodesRemaining", result.recoveryCodesRemaining());
     }
 
-    /** A12 — step-up re-authentication. */
     @Operation(operationId = "postAuthReauth", summary = "Step-up re-authentication")
     @PostMapping("/reauth")
     public Map<String, Object> reauth(@Valid @RequestBody ReauthRequest request,
@@ -297,7 +271,6 @@ public class AuthController {
                 "method", request.method());
     }
 
-    /** A13 — danh sach thiet bi dang dang nhap. */
     @Operation(operationId = "getAuthSessions", summary = "Danh sach thiet bi dang dang nhap")
     @GetMapping("/sessions")
     public Map<String, Object> listSessions(@AuthenticationPrincipal Object principal) {
@@ -311,7 +284,6 @@ public class AuthController {
         return Map.of("items", items);
     }
 
-    /** A14 — thu hoi mot phien khac. */
     @Operation(operationId = "deleteAuthSession", summary = "Thu hoi mot phien")
     @DeleteMapping("/sessions/{sessionId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -322,7 +294,6 @@ public class AuthController {
         sessionService.revokeSession(userId, sessionId, context(httpRequest));
     }
 
-    /** A15 — dang xuat moi thiet bi (phai co phien hien tai). */
     @Operation(operationId = "postAuthSessionsRevokeAll", summary = "Dang xuat moi thiet bi")
     @PostMapping("/sessions/revoke-all")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -332,10 +303,7 @@ public class AuthController {
         sessionService.revokeOtherSessions(userId, context(httpRequest));
     }
 
-    /* ---------- Helpers ---------- */
 
-    /** Chuyen {@code RegisterRequest.ConsentGrant} (api.dto) sang {@code RegistrationConsentEvent.ConsentGrant}
-     * (api) — application layer khong nhan thang DTO request (quy uoc chung cua controller nay). */
     private static List<RegistrationConsentEvent.ConsentGrant> mapConsents(
             List<RegisterRequest.ConsentGrant> consents) {
         if (consents == null) {
@@ -344,6 +312,30 @@ public class AuthController {
         return consents.stream()
                 .map(c -> new RegistrationConsentEvent.ConsentGrant(c.purposeCode(), c.granted()))
                 .toList();
+    }
+
+    private static final Set<OtpPurpose> ANONYMOUS_OTP_PURPOSES =
+            Set.of(OtpPurpose.REGISTER_VERIFY, OtpPurpose.PASSWORD_RESET);
+
+    private static final Set<OtpPurpose> SESSION_OTP_PURPOSES = Set.of(
+            OtpPurpose.LOGIN_STEPUP, OtpPurpose.DSAR_VERIFY,
+            OtpPurpose.ACCOUNT_DELETE_CONFIRM, OtpPurpose.DATA_EXPORT_CONFIRM);
+
+    /** A4 cong khai: chi hai purpose an danh; purpose step-up gan voi user + email cua phien; EMAIL_CHANGE chi qua B7. */
+    private UUID otpOwner(OtpPurpose purpose, String email, Object principal) {
+        if (ANONYMOUS_OTP_PURPOSES.contains(purpose)) {
+            return null;
+        }
+        if (!SESSION_OTP_PURPOSES.contains(purpose)) {
+            throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.VALIDATION_FAILED);
+        }
+        if (!(principal instanceof com.catcheck.identity.application.AuthPrincipal auth)) {
+            throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.UNAUTHENTICATED);
+        }
+        if (email == null || !email.trim().equalsIgnoreCase(profileService.currentEmail(auth.userId()))) {
+            throw new com.catcheck.shared.error.BusinessRuleException(IdentityErrorCode.FORBIDDEN);
+        }
+        return auth.userId();
     }
 
     private UUID requireUserId(Object principal) {

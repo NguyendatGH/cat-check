@@ -12,13 +12,6 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link MfaTotpRepository} tren {@code JdbcTemplate}.
- *
- * <p>{@code secret_enc} la ciphertext AES-256-GCM — repository tra ve nguyen vien,
- * giai ma chi xay ra o tang application khi can verify ma (p4 §A7: secret khong bao
- * gio vao {@code audit_log.before/after}).</p>
- */
 @Repository
 public class JdbcMfaTotpRepository implements MfaTotpRepository {
 

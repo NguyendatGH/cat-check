@@ -1,6 +1,7 @@
 package com.catcheck.community.infrastructure.persistence;
 
 import com.catcheck.community.domain.CommunityComment;
+import com.catcheck.community.domain.CommunityCommentRef;
 import com.catcheck.community.domain.CommunityPost;
 import com.catcheck.community.domain.CommunityReport;
 import com.catcheck.community.domain.port.CommunityRepository;
@@ -32,7 +33,10 @@ public class JdbcCommunityRepository implements CommunityRepository {
         return jdbc.query("""
                 SELECT p.id, p.author_user_id, u.full_name, p.category, p.title, p.body, p.tags, p.image_url,
                        (SELECT count(*) FROM community_reaction r WHERE r.post_id = p.id AND r.reaction = 'LIKE') AS like_count,
-                       (SELECT count(*) FROM community_comment c WHERE c.post_id = p.id AND c.status = 'PUBLISHED') AS comment_count,
+                       (SELECT count(*) FROM community_comment c
+                          LEFT JOIN community_comment parent ON parent.id = c.parent_comment_id
+                         WHERE c.post_id = p.id AND c.status = 'PUBLISHED'
+                           AND (c.parent_comment_id IS NULL OR parent.status = 'PUBLISHED')) AS comment_count,
                        EXISTS (SELECT 1 FROM community_reaction r WHERE r.post_id = p.id AND r.user_id = ?::uuid AND r.reaction = 'LIKE') AS liked,
                        EXISTS (SELECT 1 FROM community_reaction r WHERE r.post_id = p.id AND r.user_id = ?::uuid AND r.reaction = 'BOOKMARK') AS bookmarked,
                        p.created_at
@@ -53,7 +57,10 @@ public class JdbcCommunityRepository implements CommunityRepository {
         return jdbc.query("""
                 SELECT p.id, p.author_user_id, u.full_name, p.category, p.title, p.body, p.tags, p.image_url,
                        (SELECT count(*) FROM community_reaction r WHERE r.post_id = p.id AND r.reaction = 'LIKE') AS like_count,
-                       (SELECT count(*) FROM community_comment c WHERE c.post_id = p.id AND c.status = 'PUBLISHED') AS comment_count,
+                       (SELECT count(*) FROM community_comment c
+                          LEFT JOIN community_comment parent ON parent.id = c.parent_comment_id
+                         WHERE c.post_id = p.id AND c.status = 'PUBLISHED'
+                           AND (c.parent_comment_id IS NULL OR parent.status = 'PUBLISHED')) AS comment_count,
                        EXISTS (SELECT 1 FROM community_reaction r WHERE r.post_id = p.id AND r.user_id = ?::uuid AND r.reaction = 'LIKE') AS liked,
                        EXISTS (SELECT 1 FROM community_reaction r WHERE r.post_id = p.id AND r.user_id = ?::uuid AND r.reaction = 'BOOKMARK') AS bookmarked,
                        p.created_at
@@ -62,17 +69,75 @@ public class JdbcCommunityRepository implements CommunityRepository {
                 """, (rs, row) -> post(rs), viewerId, viewerId, postId).stream().findFirst();
     }
 
+    private static final String COMMENT_COLUMNS = """
+            SELECT c.id, c.post_id, c.author_user_id, u.full_name, c.body, c.created_at,
+                   c.parent_comment_id, reply_to.full_name AS reply_to_name, c.image_url,
+                   (SELECT count(*) FROM community_comment_reaction cr WHERE cr.comment_id = c.id) AS like_count,
+            """;
+
+    private static final String COMMENT_JOINS = """
+              FROM community_comment c
+              JOIN app_user u ON u.id = c.author_user_id
+              LEFT JOIN app_user reply_to ON reply_to.id = c.reply_to_user_id
+            """;
+
     @Override
     public List<CommunityComment> findComments(UUID postId, int limit) {
-        return jdbc.query("""
-                SELECT c.id, c.post_id, c.author_user_id, u.full_name, c.body, c.created_at
-                  FROM community_comment c JOIN app_user u ON u.id = c.author_user_id
-                 WHERE c.post_id = ? AND c.status = 'PUBLISHED'
+        return jdbc.query(COMMENT_COLUMNS + """
+                       (SELECT count(*) FROM community_comment r
+                         WHERE r.parent_comment_id = c.id AND r.status = 'PUBLISHED') AS reply_count
+                """ + COMMENT_JOINS + """
+                 WHERE c.post_id = ? AND c.parent_comment_id IS NULL AND c.status = 'PUBLISHED'
                  ORDER BY c.created_at ASC, c.id ASC LIMIT ?
-                """, (rs, row) -> new CommunityComment(
-                rs.getObject("id", UUID.class), rs.getObject("post_id", UUID.class),
-                rs.getObject("author_user_id", UUID.class), rs.getString("full_name"),
-                rs.getString("body"), instant(rs, "created_at")), postId, limit);
+                """, (rs, row) -> comment(rs), postId, limit);
+    }
+
+    @Override
+    public List<CommunityComment> findReplyPreviews(List<UUID> parentCommentIds, int perParent) {
+        if (parentCommentIds.isEmpty() || perParent <= 0) return List.of();
+        return jdbc.query("""
+                SELECT * FROM (
+                """ + COMMENT_COLUMNS + """
+                       0 AS reply_count,
+                       row_number() OVER (PARTITION BY c.parent_comment_id ORDER BY c.created_at ASC, c.id ASC) AS rn
+                """ + COMMENT_JOINS + """
+                 WHERE c.parent_comment_id = ANY (?::uuid[]) AND c.status = 'PUBLISHED'
+                ) ranked
+                 WHERE ranked.rn <= ?
+                 ORDER BY ranked.created_at ASC, ranked.id ASC
+                """, (rs, row) -> comment(rs), "{" + String.join(",", parentCommentIds.stream().map(UUID::toString).toList()) + "}", perParent);
+    }
+
+    @Override
+    public List<CommunityComment> findReplies(UUID parentCommentId, int offset, int limit) {
+        return jdbc.query(COMMENT_COLUMNS + """
+                       0 AS reply_count
+                """ + COMMENT_JOINS + """
+                 WHERE c.parent_comment_id = ? AND c.status = 'PUBLISHED'
+                 ORDER BY c.created_at ASC, c.id ASC OFFSET ? LIMIT ?
+                """, (rs, row) -> comment(rs), parentCommentId, offset, limit);
+    }
+
+    @Override
+    public long countReplies(UUID parentCommentId) {
+        return jdbc.queryForObject(
+                "SELECT count(*) FROM community_comment WHERE parent_comment_id = ? AND status = 'PUBLISHED'",
+                Long.class, parentCommentId);
+    }
+
+    @Override
+    public java.util.Optional<CommunityCommentRef> findComment(UUID commentId) {
+        return jdbc.query("""
+                SELECT c.id, c.post_id, c.author_user_id, c.parent_comment_id, c.image_url
+                  FROM community_comment c
+                  JOIN community_post p ON p.id = c.post_id
+                  LEFT JOIN community_comment parent ON parent.id = c.parent_comment_id
+                 WHERE c.id = ? AND c.status = 'PUBLISHED' AND p.status = 'PUBLISHED'
+                   AND (c.parent_comment_id IS NULL OR parent.status = 'PUBLISHED')
+                """, (rs, row) -> new CommunityCommentRef(rs.getObject("id", UUID.class),
+                rs.getObject("post_id", UUID.class), rs.getObject("author_user_id", UUID.class),
+                rs.getObject("parent_comment_id", UUID.class), rs.getString("image_url")), commentId)
+                .stream().findFirst();
     }
 
     @Override
@@ -85,29 +150,60 @@ public class JdbcCommunityRepository implements CommunityRepository {
     }
 
     @Override
-    public CommunityComment insertComment(UUID authorId, UUID postId, String body) {
-        UUID id = jdbc.queryForObject("""
-                INSERT INTO community_comment (post_id, author_user_id, body)
-                SELECT ?, ?, ? WHERE EXISTS (SELECT 1 FROM community_post WHERE id = ? AND status = 'PUBLISHED')
+    public void updatePostImage(UUID postId, String imageRef) {
+        jdbc.update("UPDATE community_post SET image_url = ?, updated_at = now() WHERE id = ?", imageRef, postId);
+    }
+
+    @Override
+    public java.util.Optional<CommunityComment> insertComment(UUID authorId, UUID postId, UUID parentCommentId,
+                                                              UUID replyToUserId, String body, String imageRef) {
+        List<UUID> inserted = jdbc.queryForList("""
+                INSERT INTO community_comment (post_id, author_user_id, parent_comment_id, reply_to_user_id, body, image_url)
+                SELECT ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM community_post WHERE id = ? AND status = 'PUBLISHED')
                 RETURNING id
                 """, UUID.class,
-                postId, authorId, body, postId);
-        return jdbc.queryForObject("""
-                SELECT c.id, c.post_id, c.author_user_id, u.full_name, c.body, c.created_at
-                  FROM community_comment c JOIN app_user u ON u.id = c.author_user_id
+                postId, authorId, parentCommentId, replyToUserId, body, imageRef, postId);
+        if (inserted.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        UUID id = inserted.getFirst();
+        return java.util.Optional.of(jdbc.queryForObject(COMMENT_COLUMNS + """
+                       0 AS reply_count
+                """ + COMMENT_JOINS + """
                  WHERE c.id = ?
-                """, (rs, row) -> new CommunityComment(
-                rs.getObject("id", UUID.class), rs.getObject("post_id", UUID.class),
-                rs.getObject("author_user_id", UUID.class), rs.getString("full_name"),
-                rs.getString("body"), instant(rs, "created_at")), id);
+                """, (rs, row) -> comment(rs), id));
+    }
+
+    @Override
+    public java.util.Set<UUID> findLikedCommentIds(UUID viewerId, List<UUID> commentIds) {
+        if (viewerId == null || commentIds.isEmpty()) return java.util.Set.of();
+        return new java.util.HashSet<>(jdbc.queryForList("""
+                SELECT comment_id FROM community_comment_reaction
+                 WHERE user_id = ? AND comment_id = ANY (?::uuid[])
+                """, UUID.class, viewerId,
+                "{" + String.join(",", commentIds.stream().map(UUID::toString).toList()) + "}"));
+    }
+
+    @Override
+    public boolean setCommentLike(UUID userId, UUID commentId, boolean active) {
+        if (active) {
+            jdbc.update("INSERT INTO community_comment_reaction (comment_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                    commentId, userId);
+        } else {
+            jdbc.update("DELETE FROM community_comment_reaction WHERE comment_id = ? AND user_id = ?", commentId, userId);
+        }
+        return active;
     }
 
     @Override
     public boolean toggleReaction(UUID userId, UUID postId, String reaction, boolean active) {
+        // Idempotent set: after the INSERT (or a no-op conflict) the reaction exists; after the DELETE it does not.
         if (active) {
-            return jdbc.update("INSERT INTO community_reaction (post_id, user_id, reaction) VALUES (?, ?, ?) ON CONFLICT (post_id, user_id, reaction) DO NOTHING", postId, userId, reaction) >= 0;
+            jdbc.update("INSERT INTO community_reaction (post_id, user_id, reaction) VALUES (?, ?, ?) ON CONFLICT (post_id, user_id, reaction) DO NOTHING", postId, userId, reaction);
+        } else {
+            jdbc.update("DELETE FROM community_reaction WHERE post_id = ? AND user_id = ? AND reaction = ?", postId, userId, reaction);
         }
-        return jdbc.update("DELETE FROM community_reaction WHERE post_id = ? AND user_id = ? AND reaction = ?", postId, userId, reaction) == 1;
+        return active;
     }
 
     @Override
@@ -119,6 +215,16 @@ public class JdbcCommunityRepository implements CommunityRepository {
         }
         return jdbc.queryForList(
                 "SELECT author_user_id FROM community_comment WHERE id = ? AND status = 'PUBLISHED'", UUID.class, commentId)
+                .stream().findFirst();
+    }
+
+    @Override
+    public java.util.Optional<UUID> findContentAuthor(UUID postId, UUID commentId) {
+        if (postId != null) {
+            return jdbc.queryForList("SELECT author_user_id FROM community_post WHERE id = ?", UUID.class, postId)
+                    .stream().findFirst();
+        }
+        return jdbc.queryForList("SELECT author_user_id FROM community_comment WHERE id = ?", UUID.class, commentId)
                 .stream().findFirst();
     }
 
@@ -145,6 +251,12 @@ public class JdbcCommunityRepository implements CommunityRepository {
     }
 
     @Override
+    public java.util.Optional<CommunityReport> findReportForUpdate(UUID reportId) {
+        return jdbc.query(reportSql("WHERE r.id = ? FOR UPDATE OF r"), (rs, row) -> report(rs), reportId)
+                .stream().findFirst();
+    }
+
+    @Override
     public void moderateReport(UUID reportId, String action) {
         if ("HIDE_POST".equals(action) || "REMOVE_POST".equals(action)) {
             jdbc.update("UPDATE community_post SET status = ? WHERE id = (SELECT post_id FROM community_report WHERE id = ?)",
@@ -160,7 +272,7 @@ public class JdbcCommunityRepository implements CommunityRepository {
         return """
                 SELECT r.id, r.post_id, r.comment_id, reporter.full_name AS reporter_name,
                        r.reason, r.details, r.status,
-                       coalesce(p.title, left(c.body, 120)) AS target_title, r.created_at
+                       coalesce(p.title, nullif(left(btrim(c.body), 120), '')) AS target_title, r.created_at
                   FROM community_report r
                   JOIN app_user reporter ON reporter.id = r.reporter_user_id
                   LEFT JOIN community_post p ON p.id = r.post_id
@@ -172,6 +284,14 @@ public class JdbcCommunityRepository implements CommunityRepository {
         return new CommunityReport(rs.getObject("id", UUID.class), rs.getObject("post_id", UUID.class),
                 rs.getObject("comment_id", UUID.class), rs.getString("reporter_name"), rs.getString("reason"),
                 rs.getString("details"), rs.getString("status"), rs.getString("target_title"), instant(rs, "created_at"));
+    }
+
+    private static CommunityComment comment(ResultSet rs) throws SQLException {
+        return new CommunityComment(rs.getObject("id", UUID.class), rs.getObject("post_id", UUID.class),
+                rs.getObject("author_user_id", UUID.class), rs.getString("full_name"), rs.getString("body"),
+                instant(rs, "created_at"), rs.getObject("parent_comment_id", UUID.class),
+                rs.getString("reply_to_name"), rs.getString("image_url"), rs.getInt("reply_count"),
+                rs.getInt("like_count"), false);
     }
 
     private CommunityPost post(ResultSet rs) throws SQLException {

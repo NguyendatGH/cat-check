@@ -6,6 +6,7 @@ import com.catcheck.place.api.dto.PlaceResponse;
 import com.catcheck.place.api.dto.PlaceReviewRequest;
 import com.catcheck.place.api.dto.PlaceReviewResponse;
 import com.catcheck.place.application.PlaceService;
+import com.catcheck.shared.i18n.MessageResolver;
 import com.catcheck.shared.security.CurrentUser;
 import com.catcheck.shared.security.SecurityPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,13 +23,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/places")
 public class PlaceController {
     private final PlaceService service;
-    public PlaceController(PlaceService service) { this.service = service; }
+    private final MessageResolver messageResolver;
+    public PlaceController(PlaceService service, MessageResolver messageResolver) {
+        this.service = service;
+        this.messageResolver = messageResolver;
+    }
 
     @GetMapping
     @Operation(operationId = "listPlaces")
@@ -41,18 +47,17 @@ public class PlaceController {
         return service.search(query, kind, area, latitude, longitude, limit).stream().map(PlaceResponse::from).toList();
     }
 
-    /** Sai kiểu (vd "abc") ⇒ chỉ báo tên trường: không phản hồi lại giá trị client gửi (toạ độ là dữ liệu vị trí). */
     @InitBinder("nearbyPlacesQuery")
     void hideRejectedValue(WebDataBinder binder) {
         binder.setBindingErrorProcessor(new RedactedBindingErrorProcessor());
     }
 
-    /** Phòng khám thú y thật quanh vị trí người dùng (OpenStreetMap), xếp gần → xa. */
     @GetMapping("/nearby")
     @Operation(operationId = "listNearbyPlaces")
-    public List<PlaceResponse> nearby(@Valid NearbyPlacesQuery query) {
+    public List<PlaceResponse> nearby(@Valid NearbyPlacesQuery query, Locale locale) {
+        String unnamed = messageResolver.resolve("place.unnamed", locale);
         return service.nearbyExternal(query.latitude(), query.longitude(), query.radiusMeters()).stream()
-                .map(PlaceResponse::from).toList();
+                .map(place -> PlaceResponse.from(place, unnamed)).toList();
     }
 
     @GetMapping("/{placeId}")

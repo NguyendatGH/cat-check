@@ -1,6 +1,6 @@
 import { createBrowserRouter, useLocation, type RouteObject } from "react-router";
 import { Suspense, useRef, type ReactNode } from "react";
-import { SkeletonLoader } from "@/shared/ui";
+import { DelayedFallback, PageSkeleton } from "@/shared/ui";
 import { ComingSoonPage } from "@/pages/system/ComingSoonPage";
 import { featureFlags, type FeatureFlagKey } from "@/shared/config/featureFlags";
 import { PublicLayout } from "../layouts/PublicLayout";
@@ -9,24 +9,23 @@ import { OnboardingLayout } from "../layouts/OnboardingLayout";
 import { AppLayout } from "../layouts/AppLayout";
 import { TaskLayout } from "../layouts/TaskLayout";
 import { FullscreenLayout } from "../layouts/FullscreenLayout";
-import { AdminLayout } from "../layouts/AdminLayout";
 import { SellerLayout } from "../layouts/SellerLayout";
 import { useBreakpoint } from "@/shared/lib/hooks/useBreakpoint";
 import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
 import { RequireAuth } from "./guards/RequireAuth";
 import { RequireOnboarding } from "./guards/RequireOnboarding";
 import { RequireRole } from "./guards/RequireRole";
+import { RequireNonAdminRole } from "./guards/RequireNonAdminRole";
 import { RedirectIfAuthenticated } from "./guards/RedirectIfAuthenticated";
-import { LazyPages } from "./lazy";
+import { LazyAdminLayout as AdminLayout, LazyPages } from "./lazy";
 import { ROLES } from "@/shared/auth/roles";
 
-/** Fallback Suspense cho mọi page lazy-load — SkeletonLoader dạng card. */
+
 function PageEntrance({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return <PageEntranceMotion key={pathname}>{children}</PageEntranceMotion>;
 }
 
-/** Keying the motion boundary by URL makes every client-side route change replay the entrance. */
 function PageEntranceMotion({ children }: { children: ReactNode }) {
   const pageRef = useRef<HTMLDivElement>(null);
   usePageReveal(pageRef);
@@ -39,37 +38,30 @@ function PageEntranceMotion({ children }: { children: ReactNode }) {
 
 function PageSuspense({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<SkeletonLoader shape="card" className="m-4" />}>
+    <Suspense
+      fallback={
+        // PERF: Only show skeleton after 300ms delay to avoid flash on fast loads
+        // RequestIdleCallback in DelayedFallback prevents blocking main thread
+        <DelayedFallback fallback={<PageSkeleton />} delay={300}>
+          <div />
+        </DelayedFallback>
+      }
+    >
       <PageEntrance>{children}</PageEntrance>
     </Suspense>
   );
 }
 
-/**
- * Cổng cờ tính năng cho route Phase 2/3 (p9 §9.4.3 mục E, p10 §6.7c).
- *
- * Route vẫn ĐƯỢC ĐĂNG KÝ đầy đủ — chỉ element đổi sang `ComingSoonPage` khi cờ tắt — nên
- * bật lại một mảng tính năng chỉ là đổi `featureFlags.<key>` thành `true`, không phải sửa
- * bảng route. Giữ cả `LazyPages.*` tương ứng để trang thật không bị rụng khỏi bundle graph.
- */
 export function featureGated(flag: FeatureFlagKey, element: ReactNode): ReactNode {
   return featureFlags[flag] ? element : <ComingSoonPage />;
 }
 
-/**
- * `/scan` là route responsive DUY NHẤT: FullscreenLayout trên mobile (chụp ảnh cần toàn
- * màn hình), AppLayout trên desktop (>= breakpoint md) — p9 §9.4.3 ghi "FL mobile/APL
- * desktop". Chọn layout bằng breakpoint thay vì đăng ký 2 route khác nhau.
- */
 function ScanRouteLayout() {
   const isDesktop = useBreakpoint("md");
   return isDesktop ? <AppLayout /> : <FullscreenLayout />;
 }
 
 export const routes: RouteObject[] = [
-  // Màn Chào mừng (M1 màn 1) dùng FullscreenLayout chứ KHÔNG phải PublicLayout: thiết kế bắt
-  // đầu thẳng bằng banner disclaimer, không có thanh header "CatCheck" mà PublicLayout vẽ.
-  // Các trang pháp lý bên dưới vẫn giữ PublicLayout (chúng cần header để quay lại).
   {
     element: <FullscreenLayout />,
     children: [
@@ -148,6 +140,14 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: "/care-tips/:slug",
+        element: (
+          <PageSuspense>
+            <LazyPages.careTip />
+          </PageSuspense>
+        ),
+      },
+      {
         path: "/legal/:policyCode/versions",
         element: (
           <PageSuspense>
@@ -216,16 +216,17 @@ export const routes: RouteObject[] = [
               </PageSuspense>
             ),
           },
-          {
-            path: "/auth/oauth/complete",
-            handle: { titleKey: "pages.oauthComplete.title" },
-            element: (
-              <PageSuspense>
-                <LazyPages.oAuthComplete />
-              </PageSuspense>
-            ),
-          },
         ],
+      },
+      {
+        // Outside RedirectIfAuthenticated: the page itself plays the brand splash, then navigates.
+        path: "/auth/oauth/complete",
+        handle: { titleKey: "pages.oauthComplete.title" },
+        element: (
+          <PageSuspense>
+            <LazyPages.oAuthComplete />
+          </PageSuspense>
+        ),
       },
     ],
   },
@@ -279,20 +280,24 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-  // Trang chủ xem được khi CHƯA đăng nhập (chế độ khách): vẫn dùng AppLayout nhưng KHÔNG qua
-  // RequireAuth/RequireOnboarding. `DashboardPage` tự đổi sang trạng thái khách — không gọi
-  // API cần phiên, thay khối cá nhân hoá bằng CTA đăng nhập. Catalog shop cũng mở công khai;
-  // giỏ hàng và checkout vẫn cần phiên đăng nhập.
   {
     element: <AppLayout />,
     children: [
       {
-        path: "/dashboard",
-        element: (
-          <PageSuspense>
-            <LazyPages.dashboard />
-          </PageSuspense>
-        ),
+        // Guests may browse the dashboard; signed-in accounts must finish onboarding (add a cat) first.
+        element: <RequireOnboarding />,
+        children: [
+          {
+            path: "/dashboard",
+            element: (
+              <RequireNonAdminRole>
+                <PageSuspense>
+                  <LazyPages.dashboard />
+                </PageSuspense>
+              </RequireNonAdminRole>
+            ),
+          },
+        ],
       },
       {
         path: "/shop",
@@ -312,54 +317,20 @@ export const routes: RouteObject[] = [
           </PageSuspense>,
         ),
       },
-    ],
-  },
-  {
-    element: <RequireAuth />,
-    children: [
       {
-        element: <TaskLayout />,
+        element: <RequireAuth />,
         children: [
           {
-            path: "/cart",
-            element: featureGated(
-              "shop",
-              <PageSuspense>
-                <LazyPages.cart />
-              </PageSuspense>,
-            ),
-          },
-          {
-            path: "/checkout",
-            element: featureGated(
-              "shop",
-              <PageSuspense>
-                <LazyPages.checkout />
-              </PageSuspense>,
-            ),
-          },
-          {
-            path: "/orders/:orderId",
-            element: featureGated(
-              "shop",
-              <PageSuspense>
-                <LazyPages.orderTracking />
-              </PageSuspense>,
-            ),
-          },
-        ],
-      },
-    ],
-  },
-  {
-    element: <RequireAuth />,
-    children: [
-      {
-        element: <RequireOnboarding />,
-        children: [
-          {
-            element: <AppLayout />,
+            element: <RequireOnboarding />,
             children: [
+              {
+                path: "/scan/select-cat",
+                element: (
+                  <PageSuspense>
+                    <LazyPages.selectCat />
+                  </PageSuspense>
+                ),
+              },
               {
                 path: "/assistant",
                 element: (
@@ -449,6 +420,14 @@ export const routes: RouteObject[] = [
                 ),
               },
               {
+                path: "/credits/plans",
+                element: (
+                  <PageSuspense>
+                    <LazyPages.creditsPlans />
+                  </PageSuspense>
+                ),
+              },
+              {
                 path: "/settings",
                 element: (
                   <PageSuspense>
@@ -494,17 +473,56 @@ export const routes: RouteObject[] = [
               },
             ],
           },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        element: <TaskLayout />,
+        children: [
+          {
+            path: "/cart",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.cart />
+              </PageSuspense>,
+            ),
+          },
+          {
+            path: "/checkout",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.checkout />
+              </PageSuspense>,
+            ),
+          },
+          {
+            path: "/orders/:orderId",
+            element: featureGated(
+              "shop",
+              <PageSuspense>
+                <LazyPages.orderTracking />
+              </PageSuspense>,
+            ),
+          },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        element: <RequireOnboarding />,
+        children: [
           {
             element: <TaskLayout />,
             children: [
-              {
-                path: "/scan/select-cat",
-                element: (
-                  <PageSuspense>
-                    <LazyPages.selectCat />
-                  </PageSuspense>
-                ),
-              },
               {
                 path: "/cats/new",
                 element: (
@@ -665,7 +683,17 @@ export const routes: RouteObject[] = [
         ),
       },
       {
-        element: <AdminLayout />,
+        element: (
+          <Suspense
+            fallback={
+              <DelayedFallback fallback={<PageSkeleton />} delay={400}>
+                <div />
+              </DelayedFallback>
+            }
+          >
+            <AdminLayout />
+          </Suspense>
+        ),
         children: [
           {
             path: "/admin",

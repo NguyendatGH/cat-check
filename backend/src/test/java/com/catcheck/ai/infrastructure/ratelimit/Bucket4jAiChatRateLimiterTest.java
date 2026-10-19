@@ -6,13 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Nhiệm vụ wiring A2-A4 ({@code docs/cat-rag-credit-pipeline.md} mục A4-(4)) — hạn mức gọi
- * {@code POST /api/v1/ai/chat}.
- *
- * <p>Ngưỡng theo {@link AiChatRateLimitRule}: 20/giờ theo userId (xem javadoc của enum đó cho lý
- * do chọn số — KHÔNG trích từ p11, {@code context/} đã xoá).</p>
- */
 class Bucket4jAiChatRateLimiterTest {
 
     private final Bucket4jAiChatRateLimiter limiter = new Bucket4jAiChatRateLimiter();
@@ -61,7 +54,6 @@ class Bucket4jAiChatRateLimiterTest {
         for (int i = 0; i < 19; i++) {
             assertThat(limiter.rejectIfLimited(AiChatRateLimitRule.AI_CHAT_BY_USER, userId)).isNull();
         }
-        // Lần thứ 20: vẫn còn trong hạn mức (đã dùng 19, hạn mức 20).
         assertThat(limiter.rejectIfLimited(AiChatRateLimitRule.AI_CHAT_BY_USER, userId)).isNull();
 
         AiChatRateLimiter.RetryAfter retryAfter =

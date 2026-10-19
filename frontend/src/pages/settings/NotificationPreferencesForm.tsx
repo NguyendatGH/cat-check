@@ -12,19 +12,7 @@ import {
   type NotificationToggleKey,
 } from "@/features/settings";
 
-/**
- * Khối tuỳ chọn thông báo — dùng CHUNG bởi `/settings` (desktop, khối "Cấu hình Lịch nhắc &
- * Cảnh báo Sức khoẻ" trong Web-16) và `/settings/notifications` (màn riêng bản mobile), để
- * hai nơi không trôi khỏi nhau.
- *
- * Nối API thật `GET|PUT /account/notification-preferences` (B11/B12), shape tám field phẳng
- * theo p8 §8.5 — xem `features/settings/types.ts` để biết vì sao không phải shape JSONB cũ.
- *
- * `PUT` thay TOÀN BỘ biểu diễn (p8 §8.1.11): mỗi lần gạt một công tắc vẫn phải gửi đủ tám
- * field, nên `commit` luôn trải `draft` ra chứ không gửi patch.
- */
 
-/** Bốn công tắc boolean độc lập, theo thứ tự hiển thị của Web-16. */
 const TOGGLES: NotificationToggleKey[] = [
   "creditAlertsEnabled",
   "reportReadyEnabled",
@@ -66,8 +54,14 @@ export function NotificationPreferencesForm({ className }: { className?: string 
   }
 
   const commit = (next: NotificationPreferences) => {
+    const saved = query.data;
     setDraft(next);
-    update.mutate(next);
+    update.mutate(next, {
+      // The save did not persist: put the controls back to the last server state.
+      onError: () => {
+        setDraft(saved);
+      },
+    });
   };
 
   return (
@@ -76,11 +70,6 @@ export function NotificationPreferencesForm({ className }: { className?: string 
         <legend className="pb-1 text-caption font-semibold uppercase tracking-wide text-text-tertiary">
           {t("notifications.alertChannelLegend")}
         </legend>
-        {/*
-          Không có công tắc "tắt" ở đây, và đó là chủ đích: cảnh báo kết quả cần chú ý là lý
-          do tồn tại của sản phẩm (quyết định #10), p4 F4 chỉ cho chọn kênh. Server trả 400
-          cho mọi giá trị ngoài hai cái này.
-        */}
         <p className="text-caption text-text-secondary">{t("notifications.alertChannelNote")}</p>
         <div className="flex flex-col gap-2">
           {ALERT_CHANNELS.map((channel) => {
@@ -194,7 +183,6 @@ export function NotificationPreferencesForm({ className }: { className?: string 
             ))}
           </div>
         ) : null}
-        {/* `start > end` là hợp lệ (vắt qua nửa đêm) — đừng thêm validation chặn nó. */}
       </fieldset>
 
       <p

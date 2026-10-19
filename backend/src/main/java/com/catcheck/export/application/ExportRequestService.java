@@ -16,22 +16,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * {@code POST /api/v1/exports} (p8 §8.4.10 J1) — tạo {@code export_job} rồi xử lý NỀN
- * (p13 §13.6.1: sinh PDF tốn CPU nên KHÔNG đồng bộ trong request).
- */
 @Service
 public class ExportRequestService {
 
     private static final Set<String> VALID_SECTIONS = Set.of("TREND", "SCAN_LOG", "NOTES", "PROFILE");
     private static final long MAX_RANGE_DAYS = 366;
+    private static final String DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 
     private final ExportJobRepository jobRepository;
     private final SubjectSnapshotPort subjectSnapshotPort;
@@ -63,8 +62,6 @@ public class ExportRequestService {
 
     @Transactional
     public ExportJob request(ExportRequestCommand cmd) {
-        // Kiem entitlement: goi phai co credit.domain.PlanFeature.EXPORT (MINI/DAILY la
-        // "export":false trong seed), cung khuon reminder/cat (xem javadoc ExportFeaturePort).
         if (!featurePort.isExportEnabled(cmd.userId())) {
             throw new PermissionDeniedException(ExportErrorCode.FEATURE_NOT_IN_PLAN, "export");
         }
@@ -72,7 +69,11 @@ public class ExportRequestService {
                 .filter(c -> c.ownerId().equals(cmd.userId()))
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
 
-        LocalDate today = clock.instant().atZone(ZoneOffset.UTC).toLocalDate();
+        // M23: khoảng ngày là ngày LỊCH theo múi giờ của user, không phải UTC — cùng múi giờ
+        // job lưu lại và ExportGenerationService dùng để gom dữ liệu.
+        String timezone = cmd.timezone() == null ? DEFAULT_TIMEZONE : cmd.timezone();
+        ZoneId zone = resolveZone(timezone);
+        LocalDate today = clock.instant().atZone(zone).toLocalDate();
         var range = resolveRange(cmd, today);
 
         jobRepository.findActiveByUser(cmd.userId())
@@ -80,8 +81,8 @@ public class ExportRequestService {
                     throw new ConflictException(ExportErrorCode.EXPORT_JOB_IN_PROGRESS);
                 });
 
-        Instant fromInstant = range.from().atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant toInstant = range.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant fromInstant = range.from().atStartOfDay(zone).toInstant();
+        Instant toInstant = range.to().plusDays(1).atStartOfDay(zone).toInstant();
         List<ScanHistoryQuery.ExportScanRow> scans = scanHistoryQuery.scansForExport(cat.catId(), fromInstant, toInstant);
         if (scans.isEmpty()) {
             throw new BusinessRuleException(ExportErrorCode.EXPORT_NO_DATA);
@@ -95,22 +96,38 @@ public class ExportRequestService {
         Instant now = clock.instant();
         ExportJob job = new ExportJob(uuidV7.generate(), cmd.userId(), cat.catId(), documentCode,
                 range.from(), range.to(), cmd.rangePreset(), sections,
-                cmd.locale() == null ? "vi" : cmd.locale(),
-                cmd.timezone() == null ? "Asia/Ho_Chi_Minh" : cmd.timezone(), now);
+                resolveLocale(cmd),
+                timezone, now);
         try {
             job = jobRepository.save(job);
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            // Lưới an toàn cuối: UNIQUE(user_id) WHERE status IN ('QUEUED','RUNNING') ở DB (p4 G1)
-            // bắt race hiếm giữa hai request đồng thời mà kiểm tra findActiveByUser() ở trên bỏ lỡ.
             throw new ConflictException(ExportErrorCode.EXPORT_JOB_IN_PROGRESS);
         }
 
-        // H15.76: hẹn SAU COMMIT, không submit thẳng. Submit trong transaction thì worker đọc
-        // export_job trước khi INSERT được commit, không thấy dòng nào, bỏ chạy — và dòng kẹt
-        // QUEUED khoá mọi lần export sau bằng 409 (p4 G1 I25).
         dispatcher.dispatchAfterCommit(job.getId());
 
         return job;
+    }
+
+    /** Ngôn ngữ PDF: lấy từ request, không có thì theo ngôn ngữ đã lưu của user, cuối cùng là vi. */
+    private String resolveLocale(ExportRequestCommand cmd) {
+        // Chỉ nhận vi/en: giá trị tuỳ ý sẽ vượt VARCHAR(8) hoặc ra locale không có bundle.
+        String requested = cmd.locale() == null ? "" : cmd.locale().trim().toLowerCase(Locale.ROOT);
+        if (requested.startsWith("en")) return "en";
+        if (requested.startsWith("vi")) return "vi";
+        return subjectSnapshotPort.findOwnerProfile(cmd.userId())
+                .map(SubjectSnapshotPort.OwnerProfile::locale)
+                .orElse("vi");
+    }
+
+    private static ZoneId resolveZone(String timezone) {
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException ex) {
+            // Múi giờ không hợp lệ thì không tính được ranh giới ngày — từ chối ngay thay vì để
+            // job hỏng lúc sinh nền.
+            throw new BusinessRuleException(ExportErrorCode.EXPORT_RANGE_INVALID);
+        }
     }
 
     private record Range(LocalDate from, LocalDate to) {

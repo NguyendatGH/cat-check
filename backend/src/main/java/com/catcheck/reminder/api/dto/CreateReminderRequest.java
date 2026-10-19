@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
 import java.util.List;
 
-/** I2 — {@code POST /reminders}. */
 public record CreateReminderRequest(
         String catId,
         @NotBlank String type,

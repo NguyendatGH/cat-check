@@ -18,13 +18,6 @@ import {
   formatScanTime,
 } from "./webPanels";
 
-/**
- * `/scan/result/:scanId` — kết quả ngay sau khi phân tích xong (p8 §8.5.4 E4).
- *
- * Desktop (>= lg) dựng theo `Web - 03 & 04`: cột trái 5/12 (bé mèo, ảnh, thông tin lần quét,
- * hành động), cột phải 7/12 (đánh giá tổng quát, thang pH, "Bạn nên làm gì?"), dải các lần
- * quét gần đây ở đáy. Mobile dựng theo frame `04. Kết quả Quét`.
- */
 export function ScanResultPage() {
   const { t } = useTranslation(["scan", "common"]);
   const { scanId } = useParams<{ scanId: string }>();
@@ -39,10 +32,10 @@ export function ScanResultPage() {
       <div className="flex flex-col gap-3 p-4 lg:p-0">
         <AntSkeleton active title={{ width: "30%" }} paragraph={{ rows: 1 }} />
         <div className="grid gap-4 lg:grid-cols-12">
-          <div className="rounded-lg border border-border/70 bg-surface p-5 lg:col-span-5">
+          <div className="rounded-none border border-border/70 bg-surface p-5 lg:col-span-5">
             <AntSkeleton active avatar paragraph={{ rows: 5 }} />
           </div>
-          <div className="rounded-lg border border-border/70 bg-surface p-5 lg:col-span-7">
+          <div className="rounded-none border border-border/70 bg-surface p-5 lg:col-span-7">
             <AntSkeleton active title={{ width: "42%" }} paragraph={{ rows: 8 }} />
           </div>
         </div>
@@ -80,29 +73,29 @@ export function ScanResultPage() {
     void navigate(scanId ? `/scan/${scanId}/reassign-cat` : "/scan/select-cat");
   };
   const goNewScan = () => {
-    // Giữ nguyên bé/khay đang chọn, chỉ mở một lượt chụp mới (scanRequestId mới).
     startNewAttempt();
     void navigate("/scan");
   };
 
   return (
     <div className="contents">
-      {/* Desktop (>= lg) — `Web - 03 & 04` */}
-      <div data-reveal className="hidden w-full flex-col gap-4 lg:flex">
-        <WebScanHeader
-          title={t("web.resultTitle")}
-          subtitle={catName ?? t("web.sharedTrayTitle")}
-          pills={[
-            {
-              key: "captured",
-              icon: <CalendarClock className="size-4" />,
-              label: t("web.capturedAtLabel"),
-              value: formatScanTime(result.capturedAt),
-            },
-          ]}
-        />
+      <div className="hidden w-full flex-col gap-4 lg:flex">
+        <div data-reveal>
+          <WebScanHeader
+            title={t("web.resultTitle")}
+            subtitle={catName ?? t("web.sharedTrayTitle")}
+            pills={[
+              {
+                key: "captured",
+                icon: <CalendarClock className="size-4" />,
+                label: t("web.capturedAtLabel"),
+                value: formatScanTime(result.capturedAt),
+              },
+            ]}
+          />
+        </div>
 
-        <div data-reveal className="grid grid-cols-12 items-start gap-4">
+        <div className="grid grid-cols-12 items-start gap-4">
           <div data-reveal className="col-span-5 flex flex-col gap-4">
             <WebCatCard
               name={result.assignment === "SHARED_UNKNOWN" ? null : catName}
@@ -151,9 +144,9 @@ export function ScanResultPage() {
                 </>
               }
             >
-              <ScanAdviceCard result={result} className="rounded-lg border border-border/70 shadow-none" />
+              <ScanAdviceCard result={result} className="rounded-none border border-border/70 shadow-none" />
               <DisclaimerBanner variant="short" />
-              {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" hasWarningFlags /> : null}
+              {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" /> : null}
             </WebResultPanel>
           </div>
         </div>
@@ -165,17 +158,21 @@ export function ScanResultPage() {
         ) : null}
       </div>
 
-      {/* Mobile (< lg) — frame `04. Kết quả Quét` */}
-      <div data-reveal className="flex flex-col gap-4 p-4 lg:hidden">
-        <ScanResultSummary result={result} bands={bands ?? []} matchLabel={t("result.matchLabel")} />
+      <div className="flex flex-col gap-4 p-4 lg:hidden">
+        <div data-reveal>
+          <div className="animate-pop-spring">
+            <ScanResultSummary result={result} bands={bands ?? []} matchLabel={t("result.matchLabel")} />
+          </div>
+        </div>
 
-        <ScanAdviceCard result={result} />
+        <div data-reveal>
+          <ScanAdviceCard result={result} />
+        </div>
 
         <DisclaimerBanner variant="short" />
-        {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" hasWarningFlags /> : null}
+        {result.triggeredFlags.length > 0 ? <DisclaimerBanner variant="emergency" /> : null}
 
-        {/* Mockup `04`: CTA chính (xem phân tích) + CTA phụ nền trắng. */}
-        <div className="flex flex-col gap-2">
+        <div data-reveal className="flex flex-col gap-2">
           <Button
             variant="primary"
             size="lg"

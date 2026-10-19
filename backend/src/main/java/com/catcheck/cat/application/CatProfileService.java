@@ -37,32 +37,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Nghiệp vụ hồ sơ mèo — D1 đến D8 của p8 §8.4.4.
- *
- * <p><b>Không có thao tác nào chạm tới bảng {@code app_user}.</b> Mọi kiểm tra "tài khoản này có được
- * ghi không" đi qua {@link UserAccountPort}, vì I19 (p4 §4.4.9) bắt buộc chỗ quyết định đó tồn tại
- * đúng một lần và nó thuộc module identity.</p>
- *
- * <p><b>Sự kiện phát ở đây, không phát ở controller.</b> Controller chỉ nên làm adapter HTTP; nếu
- * controller phát sự kiện thì một lời gọi service từ job nền hoặc từ test sẽ không sinh sự kiện, và
- * người đọc code không nhìn thấy được module cat tạo ra thứ gì.</p>
- */
 @Service
 public class CatProfileService {
 
-    /** C31: trần cứng toàn hệ thống, đọc từ {@code app_setting} để đổi được mà không cần deploy. */
     public static final String HARD_CAP_SETTING_KEY = "cat.max_per_user";
 
-    /** Giá trị khi khoá cấu hình chưa tồn tại hoặc không đọc được — phải khớp DEFAULT của V7. */
     static final int DEFAULT_HARD_CAP = 8;
 
-    /**
-     * Whitelist trường sắp xếp của D1 (p8 §8.5.3).
-     *
-     * <p>{@code lastScanAt} lấy qua {@code ScanInsightPort#lastScansOf} (cổng đọc của cat); việc sắp
-     * xếp theo nó do tầng assembler thực hiện.</p>
-     */
     private static final Set<String> SORTABLE_FIELDS = Set.of("name", "createdAt", "lastScanAt");
 
     private static final int MAX_PUBLIC_CODE_ATTEMPTS = 8;
@@ -97,22 +78,7 @@ public class CatProfileService {
         this.publicCodeEntropy = bound -> SecureRandomHolder.RANDOM.nextInt(bound);
     }
 
-    // ============================================================== D1 — danh sách
 
-    /**
-     * D1 — danh sách mèo của người gọi.
-     *
-     * <p>Mặc định {@code status = ACTIVE} và sắp xếp {@code isPrimary desc, name asc}: mèo chính lên
-     * đầu để màn hình chọn mèo (p9) không cần thao tác gì sau khi vào app.</p>
-     *
-     * <p>Không phân trang (C31) vì trần cứng là 8 hồ sơ — trả về trần cứng thì client vẫn xử lý được
-     * mà không phải viết vòng lặp phân trang cho một danh sách không bao giờ dài hơn 8 dòng.</p>
-     *
-     * @param status {@code ACTIVE} hoặc {@code ARCHIVED}; {@code null} coi như {@code ACTIVE}
-     * @param sort   trường sắp xếp; rỗng thì dùng mặc định. Trường ngoài whitelist ⇒
-     *               {@code 400 SORT_FIELD_NOT_ALLOWED} chứ không âm thầm bỏ qua, để client biết là
-     *               mình sai chứ không phải server bỏ sót
-     */
     @Transactional(readOnly = true)
     public List<Cat> listForOwner(UUID ownerId, CatStatus status, String sort) {
         CatStatus effectiveStatus = status == null ? CatStatus.ACTIVE : status;
@@ -120,21 +86,7 @@ public class CatProfileService {
         return catRepository.findAllByOwnerId(ownerId, effectiveStatus, false);
     }
 
-    // ============================================================== D2 — tạo hồ sơ
 
-    /**
-     * D2 — tạo hồ sơ mèo.
-     *
-     * <p>Thứ tự kiểm là bắt buộc, không phải tuỳ chọn:</p>
-     * <ol>
-     *   <li>{@code U!} — tài khoản {@code RESTRICTED} thì chặn mọi ghi;</li>
-     *   <li>entitlement gói — vượt thì CTA "nâng gói";</li>
-     *   <li>trần cứng — vượt thì CTA "liên hệ hỗ trợ".</li>
-     * </ol>
-     *
-     * <p><b>Mèo đầu tiên luôn là mèo chính</b> bất kể client gửi gì: nếu không, tài khoản mới có bé mà
-     * mọi màn hình đều cần chọn mèo thì người dùng phải tự tìm chức năng "đặt bé mặc định".</p>
-     */
     @Transactional
     public Cat create(UUID ownerId, CreateCatCommand command) {
         requireWriteAllowed(ownerId);
@@ -148,11 +100,8 @@ public class CatProfileService {
 
         Instant now = now();
         boolean isFirstCat = currentCount == 0;
-        // Mèo đầu tiên tự làm chính; các mèo sau thì theo ý client.
         boolean wantsPrimary = isFirstCat || command.isPrimary();
 
-        // Bỏ cờ mèo chính cũ TRƯỚC khi lưu mèo mới: partial unique index uq_cat_owner_primary sẽ
-        // từ chối ghi nếu hai hồ sơ cùng lúc có is_primary = true.
         UUID previousPrimary = wantsPrimary
                 ? catRepository.findPrimaryByOwnerId(ownerId).map(Cat::getId).orElse(null)
                 : null;
@@ -182,31 +131,19 @@ public class CatProfileService {
         }
 
         Cat saved = catRepository.save(cat);
-        // Cot moc onboarding dau tien (p4 §4.4 `app_user.onboarding_status`). Goi thang qua SPI
-        // chu khong dua vao CatCreatedEvent ben duoi: event do KHONG co listener nao va identity
-        // khong duoc phep phu thuoc cat — xem javadoc UserAccountPort#advanceOnboardingStatus.
         userAccountPort.advanceOnboardingStatus(ownerId, OnboardingMilestone.CAT_CREATED);
         eventPublisher.publishEvent(new CatCreatedEvent(
                 saved.getId(), ownerId, saved.getPublicCode(), isFirstCat, wantsPrimary, now));
         return saved;
     }
 
-    // ============================================================== D3 — chi tiết
 
-    /** D3 — chi tiết một hồ sơ. Truy vấn đã lọc theo chủ nên hồ sơ người khác trả 404. */
     @Transactional(readOnly = true)
     public Cat get(UUID ownerId, UUID catId) {
         return requireOwnedCat(ownerId, catId);
     }
 
-    // ============================================================== D4 — sửa
 
-    /**
-     * D4 — merge-patch.
-     *
-     * <p>Cố ý KHÔNG cho sửa {@code isPrimary}: D8 là endpoint riêng với kiểm tra riêng, và cho sửa
-     * qua PATCH sẽ lách qua {@code CAT_ALREADY_PRIMARY} và bỏ qua việc hạ cờ mèo chính cũ.</p>
-     */
     @Transactional
     public Cat patch(UUID ownerId, UUID catId, PatchCatCommand command) {
         requireWriteAllowed(ownerId);
@@ -255,9 +192,7 @@ public class CatProfileService {
         return saved;
     }
 
-    // ============================================================== D5 — xoá mềm
 
-    /** D5 — xoá mềm. Xoá lần hai trả {@code 409 CAT_ALREADY_DELETED} thay vì trả 204 âm thầm. */
     @Transactional
     public void softDelete(UUID ownerId, UUID catId) {
         requireWriteAllowed(ownerId);
@@ -271,9 +206,7 @@ public class CatProfileService {
         eventPublisher.publishEvent(new CatArchivedEvent(catId, ownerId, true, now));
     }
 
-    // ============================================================== D6/D7 — lưu trữ
 
-    /** D6 — "bé đã mất / đã cho đi". Dữ liệu và biểu đồ vẫn xem được. */
     @Transactional
     public Cat archive(UUID ownerId, UUID catId) {
         requireWriteAllowed(ownerId);
@@ -290,13 +223,6 @@ public class CatProfileService {
         return saved;
     }
 
-    /**
-     * D7 — đưa trở lại theo dõi.
-     *
-     * <p>Cố ý idempotent: p8 không định nghĩa mã lỗi cho "đang theo dõi mà lại bỏ lưu trữ", và tự
-     * chế ra một mã không có trong danh mục §8.2.4 sẽ phá hợp đồng ổn định của {@code code}. Gọi
-     * {@code unarchive} hai lần trả {@code 200} với cùng hồ sơ — vô hại và dễ retry.</p>
-     */
     @Transactional
     public Cat unarchive(UUID ownerId, UUID catId) {
         requireWriteAllowed(ownerId);
@@ -313,14 +239,7 @@ public class CatProfileService {
         return saved;
     }
 
-    // ============================================================== D8 — mèo chính
 
-    /**
-     * D8 — đặt mèo chính.
-     *
-     * <p>Trả về cả mèo chính cũ để client có thể đổi nhãn "bé mặc định" ngay mà không phải gọi lại
-     * danh sách.</p>
-     */
     @Transactional
     public PrimaryCatResult setPrimary(UUID ownerId, UUID catId) {
         requireWriteAllowed(ownerId);
@@ -335,7 +254,6 @@ public class CatProfileService {
                 .map(Cat::getId)
                 .orElse(null);
         Instant now = now();
-        // Hạ cờ cũ trước: index một phần chỉ cho phép tối đa một hàng is_primary = true mỗi chủ.
         catRepository.clearPrimaryForOwner(ownerId, now);
         cat.makePrimary(now);
         catRepository.save(cat);
@@ -344,47 +262,28 @@ public class CatProfileService {
         return new PrimaryCatResult(catId, previousPrimary);
     }
 
-    // ============================================================= dùng chung
 
-    /**
-     * Tra cứu một mèo kèm tên giống, dùng cho D3.
-     *
-     * @return tên giống theo locale, hoặc {@code null} nếu hồ sơ không chọn giống
-     */
     @Transactional(readOnly = true)
     public Optional<CatBreed> findBreed(String breedCode) {
         return breedCode == null ? Optional.empty() : catBreedRepository.findByCode(breedCode);
     }
 
-    /** F2 — {@code GET /reference/cat-breeds}: danh mục giống đang {@code active}, theo sort_order. */
     @Transactional(readOnly = true)
     public List<CatBreed> listActiveBreeds() {
         return catBreedRepository.findActive();
     }
 
-    /**
-     * Hồ sơ đã xoá mềm coi như không tồn tại (404): {@code findByIdAndOwnerId} cố ý không lọc
-     * {@code deleted_at} (xem {@code CatJpaRepository}) nên D3/D4/D6/D7 phải tự lọc ở đây.
-     */
     private Cat requireOwnedCat(UUID ownerId, UUID catId) {
         return catRepository.findByIdAndOwnerId(catId, ownerId)
                 .filter(cat -> !cat.isDeleted())
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
     }
 
-    /** Chỉ cho D5/D8: hai thao tác này trả 409 riêng cho hồ sơ đã xoá mềm. */
     private Cat requireOwnedCatIncludingDeleted(UUID ownerId, UUID catId) {
         return catRepository.findByIdAndOwnerId(catId, ownerId)
                 .orElseThrow(() -> new NotFoundException(CatErrorCode.CAT_NOT_FOUND));
     }
 
-    /**
-     * {@code U!} của p8 §8.3.2: tài khoản {@code RESTRICTED} bị chặn mọi thao tác ghi.
-     *
-     * <p>Các trạng thái khác đã bị chặn ở tầng phiên (chưa verify, bị khoá, đang ân hạn xoá) nên
-     * không tới được đây. Tài khoản không tồn tại thì cũng không tới được — nhưng adapter vẫn trả
-     * {@code null} cho trường hợp dữ liệu bị xoá cứng, và ta chặn chứ không cho qua.</p>
-     */
     private void requireWriteAllowed(UUID ownerId) {
         AccountStatus status = userAccountPort.statusOf(ownerId);
         if (status == null || !status.allowsWrite()) {
@@ -392,13 +291,6 @@ public class CatProfileService {
         }
     }
 
-    /**
-     * C31 — hai lớp hạn mức, kiểm theo đúng thứ tự.
-     *
-     * <p>Thứ tự quyết định câu CTA: vượt entitlement là lỗi của người dùng (mua thêm được), vượt
-     * trần cứng thì không (phải liên hệ hỗ trợ). Kiểm ngược thứ tự sẽ bắt người dùng nâng gói trong
-     * khi nâng gói cũng không giúp ích gì.</p>
-     */
     private void assertWithinLimits(UUID ownerId, long currentCount) {
         Optional<CatProfileLimit> planLimit = catProfileLimitPort.limitFor(ownerId);
         if (planLimit.isPresent() && currentCount >= planLimit.get().max()) {
@@ -429,13 +321,6 @@ public class CatProfileService {
         }
     }
 
-    /**
-     * Sinh mã hiển thị chưa từng dùng.
-     *
-     * <p>Mã nằm trong bản in bảng tên mèo mà người dùng gõ tay, nên va chạm là thật (khoảng 32^6 ≈
-     * 10^9 mã, mỗi lần thử lại vô hạn là đủ). Thử tối đa 8 lần rồi mới ném lỗi hệ thống — nếu hết
-     * cả 8 lần thì đó là sự cố thật, không phải xui xẻo hiếm.</p>
-     */
     private String newPublicCode() {
         for (int attempt = 0; attempt < MAX_PUBLIC_CODE_ATTEMPTS; attempt++) {
             String candidate = Cat.newPublicCode(publicCodeEntropy);
@@ -451,14 +336,7 @@ public class CatProfileService {
         return clock.instant();
     }
 
-    // ------------------------------------------------------------------ lệnh vào
 
-    /**
-     * Lệnh tạo hồ sơ (D2).
-     *
-     * <p>Kiểu tuổi là {@code birthDate} HOẶC {@code approxAgeMonths}; gửi cả hai hoặc không gửi cái
-     * nào thì domain ném {@code CAT_AGE_CONFLICT}.</p>
-     */
     public record CreateCatCommand(
             String name,
             LocalDate birthDate,
@@ -473,14 +351,6 @@ public class CatProfileService {
             String notes) {
     }
 
-    /**
-     * Lệnh sửa hồ sơ (D4), theo ngữ nghĩa merge-patch.
-     *
-     * <p>Khác biệt quan trọng giữa "không gửi trường" và "gửi {@code null}": với {@code birthDate}
-     * và {@code approxAgeMonths}, gửi {@code null} nghĩa là KHÔNG chạm vào tuổi. Muốn xoá cả hai
-     * nguồn thì phải dùng một giá trị khác — và p8 cũng không cung cấp cách nào làm việc đó, vì bản
-     * ghi hồ sơ luôn cần một cách nhập tuổi.</p>
-     */
     public record PatchCatCommand(
             String name,
             boolean nameProvided,
@@ -508,17 +378,9 @@ public class CatProfileService {
         }
     }
 
-    /** Kết quả D8: mèo mới làm chính và mèo chính trước đó. */
     public record PrimaryCatResult(UUID catId, UUID previousPrimaryCatId) {
     }
 
-    /**
-     * Một {@link SecureRandom} dùng chung cho cả ứng dụng.
-     *
-     * <p>Giữ ở đây thay vì tạo mới mỗi lần gọi: khởi tạo {@code SecureRandom} trên Linux đọc
-     * {@code /dev/urandom} và có thể chặn, nên làm việc đó trong constructor là việc một lần duy
-     * nhất, không phải việc của mỗi request.</p>
-     */
     private static final class SecureRandomHolder {
         private static final SecureRandom RANDOM = new SecureRandom();
 

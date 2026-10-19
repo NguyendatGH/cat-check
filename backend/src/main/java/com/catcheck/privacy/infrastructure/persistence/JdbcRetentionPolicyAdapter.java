@@ -10,10 +10,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * {@link RetentionPolicyPort} trên {@code JdbcTemplate} — bảng cấu hình, đọc/ghi qua
- * API admin (M6). Bất biến I15 (SCAN_IMAGE ≤ 14 ngày) ép ở tầng service, không ép ở đây.
- */
 @Repository
 public class JdbcRetentionPolicyAdapter implements RetentionPolicyPort, RetentionDryRunPort {
 

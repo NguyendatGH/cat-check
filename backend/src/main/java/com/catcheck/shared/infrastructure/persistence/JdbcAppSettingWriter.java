@@ -9,7 +9,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-/** Jdbc adapter cho các cấu hình runtime công khai mà admin được phép thay đổi. */
 @Repository
 class JdbcAppSettingWriter implements AppSettingWriter {
 

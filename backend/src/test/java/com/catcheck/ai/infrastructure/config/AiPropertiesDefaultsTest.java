@@ -9,10 +9,6 @@ import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Chỉ có OPENAI_API_KEY thì LLM vẫn phải TẮT: muốn gửi câu hỏi ra nhà cung cấp phải chủ động đặt
- * CATCHECK_AI_ENABLED=true. Đọc application.yml thật, giải placeholder với môi trường rỗng.
- */
 class AiPropertiesDefaultsTest {
 
     @Test

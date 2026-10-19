@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
-import { toast } from "sonner";
+import { toast } from "@/shared/ui";
 import {
   ArrowRight,
   CalendarDays,
@@ -39,24 +39,9 @@ import {
 } from "@/features/onboarding";
 import { LogoPawIcon } from "@/shared/assets/icons/AppIcons";
 import { isApiError } from "@/shared/api";
+import { localIsoDate } from "@/shared/lib/format/locale";
 
-/**
- * Bước 1/5 — Hồ sơ bé mèo (M1 01c-3, W1 Web-01c-3; p2 US-E2-01).
- * Tạo `cat` qua POST /cats (p8 D1); nếu đã tạo (đi lùi từ bước 2) thì PATCH (D2).
- * Ảnh đại diện giữ trong store, upload qua PUT /cats/{id}/avatar (D10) lúc submit.
- *
- * Desktop (`lg:`, W1 Web-01c-3 — khung 1280px, 2 cột ~7/5): cột trái giữ NGUYÊN form
- * mobile, cột phải là "Thẻ căn cước y tế thú cưng" của thiết kế — ở đây dựng thành
- * preview CẬP NHẬT TRỰC TIẾP theo giá trị đang nhập (dữ liệu thật của chính form, không
- * mock) + dải pH tham chiếu lấy từ `GET /reference/ph-bands`.
- *
- * KHÔNG dựng 3 khối còn lại của mockup web vì không có nguồn dữ liệu thật và/hoặc vi phạm
- * ranh giới "không hứa hẹn y tế": "Chỉ số nguy cơ sỏi bàng quang", "Thuật toán chẩn đoán
- * CATCHECK Biomarker v2.4", card trích lời một bác sĩ có tên, và khối khuyến mãi tặng mẫu
- * cát 200g (fulfillment vật lý, chưa có entity — xem W1 §4 "Ghi chú / mâu thuẫn").
- */
 
-/** Tuổi (tháng) từ ngày sinh dạng `YYYY-MM-DD`; `null` khi chưa nhập/không hợp lệ. */
 function monthsSinceBirth(birthDate: string): number | null {
   if (!birthDate) return null;
   const born = new Date(birthDate);
@@ -67,14 +52,12 @@ function monthsSinceBirth(birthDate: string): number | null {
   return months < 0 ? null : months;
 }
 
-/** Giới tính sinh học — icon khớp M1 01c-3 (♂ / ♀), lựa chọn "Chưa rõ" giữ nguyên của app. */
 const SEX_OPTIONS = [
   { value: "MALE", icon: <Mars size={20} aria-hidden="true" /> },
   { value: "FEMALE", icon: <Venus size={20} aria-hidden="true" /> },
   { value: "UNKNOWN", icon: <HelpCircle size={20} aria-hidden="true" /> },
 ] as const;
 
-/** Các bước còn lại — GIỮ ĐÚNG đánh số 1..5 của `OnboardingStepper`, không đánh số lại. */
 const REMAINING_STEPS = [
   { step: 2, key: "healthSurvey" },
   { step: 3, key: "disclaimer" },
@@ -92,7 +75,6 @@ interface CatIdCardPreviewProps {
   bands: PhBand[];
 }
 
-/** Cột phải desktop — thẻ hồ sơ dựng từ chính giá trị người dùng đang nhập. */
 function CatIdCardPreview({
   name,
   breedName,
@@ -104,7 +86,6 @@ function CatIdCardPreview({
 }: CatIdCardPreviewProps) {
   const { t } = useTranslation("onboarding");
   const normalBand = bands.find((b) => b.severity === "NORMAL");
-  // Nhãn 2 đầu thang lấy từ dải CÓ biên — INCONCLUSIVE ("chưa đủ dữ liệu") không phải đầu thang.
   const ranged = bands.filter((b) => typeof b.phMin === "number" || typeof b.phMax === "number");
   const firstBand = ranged.at(0);
   const lastBand = ranged.at(-1);
@@ -171,7 +152,6 @@ function CatIdCardPreview({
   );
 }
 
-/** Cột phải desktop — nhắc 4 bước onboarding còn lại (nhãn lấy từ `stepper.steps.*`). */
 function RemainingStepsCard() {
   const { t } = useTranslation("onboarding");
   return (
@@ -227,7 +207,6 @@ export function OnboardingCatPage() {
   const avatarFile = catDraft.avatarFile;
   const neutered = catDraft.neutered;
 
-  // --- Preview thẻ hồ sơ (cột phải desktop) — dựng từ chính giá trị form, không mock. ---
   const { data: phBands } = usePhBands();
   const watchedName = watch("name");
   const watchedBreedCode = watch("breedCode");
@@ -270,8 +249,6 @@ export function OnboardingCatPage() {
     updateCatDraft({
       name: values.name,
       breedCode: values.breedCode,
-      // zodResolver đã validate non-empty (min(1)) trước khi handleSubmit gọi tới đây —
-      // ép kiểu CatSex là an toàn ở đây (3 OptionCard chỉ phát "MALE"/"FEMALE"/"UNKNOWN").
       sex: values.sex as CatSex,
       birthDate: values.birthDate,
       weightKg: values.weightKg,
@@ -303,8 +280,6 @@ export function OnboardingCatPage() {
       return false;
     }
 
-    // Persist the id immediately after POST/PATCH succeeds. Avatar upload is a separate request;
-    // if it fails, retrying must PATCH this cat instead of creating another row in `cat`.
     setCreatedCat(cat);
 
     if (avatarFile) {
@@ -425,7 +400,6 @@ export function OnboardingCatPage() {
           }}
         />
 
-        {/* Desktop: tên + giống đứng cạnh nhau (W1 Web-01c-3). */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
           <div className="flex flex-col gap-1.5">
             <FieldLabel htmlFor="catName" required>
@@ -455,8 +429,6 @@ export function OnboardingCatPage() {
         <fieldset className="flex flex-col gap-3">
           <legend className="sr-only">{t("cat.sex.label")}</legend>
           <FieldLabel required>{t("cat.sex.label")}</FieldLabel>
-          {/* 3 thẻ cùng một hàng, icon trên — 2 cột (M1 01c-3) để thẻ "Chưa rõ" mồ côi ở hàng
-              2, còn icon trái ở 3 cột thì "Chưa xác định" bị bẻ dòng. */}
           <div className="grid grid-cols-3 gap-3">
             {SEX_OPTIONS.map(({ value, icon }) => (
               <OptionCard
@@ -486,16 +458,13 @@ export function OnboardingCatPage() {
           label={t("cat.neutered.label")}
         />
 
-        {/* `md:` chứ không `sm:` (sm = 375px): ở 390px hai cột làm ô ngày sinh native bị cắt
-            mất "yyyy". */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <FieldLabel htmlFor="birthDate">{t("cat.birthDate.label")}</FieldLabel>
-            {/* M1 01c-3: icon lịch bên trái, cùng khung với ô cân nặng. */}
             <Input
               id="birthDate"
               type="date"
-              max={new Date().toISOString().slice(0, 10)}
+              max={localIsoDate()}
               leftIcon={<CalendarDays className="size-5" aria-hidden="true" />}
               helperText={t("cat.birthDate.hint")}
               error={errors.birthDate ? t(errors.birthDate.message ?? "") : undefined}
@@ -505,7 +474,6 @@ export function OnboardingCatPage() {
 
           <div className="flex flex-col gap-1.5">
             <FieldLabel htmlFor="weightKg">{t("cat.weight.label")}</FieldLabel>
-            {/* M1 01c-3: icon cân bên trái, đơn vị "kg" nằm trong khung ở mép phải. */}
             <Input
               id="weightKg"
               type="number"

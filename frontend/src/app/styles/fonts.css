@@ -1,11 +1,3 @@
-/**
- * Self-host Nunito qua @fontsource/nunito (KHÔNG dùng Google Fonts CDN).
- * Chỉ 3 weight: 400, 600, 700 (KHÔNG nạp 500).
- * Subset: latin + vietnamese (Nunito có dấu tiếng Việt trong subset "vietnamese").
- * font-display: swap để tránh FOIT.
- * File vật lý được copy từ node_modules/@fontsource/nunito/files vào public/fonts/
- * (xem index.html cho 2 link rel="preload" của weight 400 + 700).
- */
 
 @font-face {
   font-family: "Nunito";

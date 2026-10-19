@@ -52,6 +52,7 @@ vi.mock("@/features/shop", async (importOriginal) => ({
 }));
 vi.mock("react-router", () => ({
   useParams: () => ({ orderId: state.orderId }),
+  useLocation: () => ({ pathname: "/orders/x", search: "", hash: "", state: null, key: "default" }),
   Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
 

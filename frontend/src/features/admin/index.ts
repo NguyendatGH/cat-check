@@ -1,6 +1,3 @@
-// features/admin — khu vực quản trị mức MVP (quyết định owner #14).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
-
 export { ADMIN_REASON_MIN_LENGTH, isReasonValid, isHexColor } from "./api";
 
 export {
@@ -12,6 +9,7 @@ export {
   useUpdateColorChart,
   useReplaceChartPoints,
   usePublishColorChart,
+  useCloneColorChart,
   useAdminPhBands,
   useUpdatePhBand,
   useAdminCareTips,
@@ -25,6 +23,9 @@ export {
   useAdminCommunityReports,
   useModerateCommunityReport,
   useAdminActivationCodes,
+  useAdminActivationCodeSummary,
+  useAdminUserStatusSummary,
+  useAdminPrivacyRequestSummary,
   useAdminActivationBatches,
   useIssueActivationBatch,
   useVoidActivationCode,
@@ -77,8 +78,8 @@ export {
   adminTdClass,
 } from "./components";
 export type { MissingApiEndpoint, MissingApiNoticeProps } from "./components";
-
-// ------------------------------------------------ quyền hiển thị + 5 trang quản trị mới
+export { ReasonConfirmDialog } from "./ReasonConfirmDialog";
+export type { ReasonConfirmDialogProps } from "./ReasonConfirmDialog";
 
 export {
   computeCapabilities,
@@ -111,6 +112,8 @@ export {
   summarizeBulk,
 } from "./tableTools";
 export type { SortState, SortDirection, BulkOutcome } from "./tableTools";
+export { ACTIVATION_CODE_STATUSES, activationEffectiveStatus } from "./activationStatus";
+export type { AdminStatusSummary, AdminPrivacyRequestSummary } from "./hooks";
 
 export {
   isUuid,
@@ -255,6 +258,7 @@ export type {
   CommunityReport,
   CommunityReportAction,
   ActivationCodeStatus,
+  ActivationCodeEffectiveStatus,
   ActivationCodeAdmin,
   ActivationBatch,
   IssueActivationBatchPayload,

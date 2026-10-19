@@ -28,14 +28,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L60/L61 — hồ sơ sự cố ({@code security_incident}, p15 §15.9.5 + REQ-INC-01/02).
- *
- * <p>Ba thứ phải đúng vì chúng là nghĩa vụ pháp lý có thời hạn, không phải tiện ích UI:
- * {@code detected_at} (khởi động đồng hồ 72 giờ của Điều 23.1 Luật BVDLCN),
- * {@code retain_until} ({@code resolved_at + 5 năm}, Đ29.1.c NĐ356) và tính đơn điệu của các
- * mốc (một mốc nằm trước lúc phát hiện làm mọi phép đo SLA sai).</p>
- */
 class SecurityIncidentServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T03:00:00Z");

@@ -8,11 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Hiện thực {@link CatOwnershipPort} bằng JDBC thuần đọc trực tiếp bảng {@code cat} — KHÔNG entity
- * JPA, không import type Java của module {@code cat} (xem javadoc cổng và
- * {@code docs/handovers/A6.md} mục judgment call: module {@code cat} chưa công bố query port).
- */
 @Repository
 class JdbcCatOwnershipAdapter implements CatOwnershipPort {
 

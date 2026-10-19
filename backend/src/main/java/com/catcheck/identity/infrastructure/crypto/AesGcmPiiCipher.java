@@ -12,20 +12,6 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-/**
- * AES-256-GCM cho PII (p11 §11.10.3). Trien khai {@link PiiCipher} — cong public
- * nam o {@code identity/api/} de module khac goi duoc ma khong import
- * {@code ..infrastructure..} (R3).
- *
- * <p><b>Bo cuc byte</b> (dung chung cho moi noi luu PII ma hoa):</p>
- * <pre>
- * [1 byte key_version][12 byte IV][ciphertext][16 byte GCM tag]
- * </pre>
- *
- * <p><b>AAD bat buoc</b> = {@code "<table>|<column>|<row_id>"}. AAD khong duoc ma hoa
- * nhung duoc xac thuc: copy ciphertext tu cot nay sang cot kia se giai ma that bai
- * vi AAD khac nhau. Do do {@code phone} cua tai khoan A khong the mo duoc o tai khoan B.</p>
- */
 @Component
 public class AesGcmPiiCipher implements PiiCipher {
 
@@ -48,11 +34,6 @@ public class AesGcmPiiCipher implements PiiCipher {
         this.keyring = PiiKeyring.parse(rawKeys, explicit);
     }
 
-    /**
-     * Cho {@link CryptoCanaryBootstrap} trong cung package doc danh sach version
-     * dang duoc cau hinh. KHONG public: khoa goc phai duoc giu private, chi thong
-     * tin danh muc version moi duoc mang ra ngoai.
-     */
     PiiKeyring keyring() {
         return keyring;
     }
@@ -113,9 +94,6 @@ public class AesGcmPiiCipher implements PiiCipher {
             cipher.updateAAD(aad.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             return cipher.doFinal(ciphertext, HEADER_LENGTH, ciphertext.length - HEADER_LENGTH);
         } catch (GeneralSecurityException ex) {
-            // GCM xac thuc that bai = sai khoa, sai AAD, hoac ciphertext bi sua.
-            // KHONG phan biet ba truong hop nay trong thong diep — chi can biet la
-            // "du lieu nay khong giai ma duoc", va khong bao gio fallback.
             throw new IllegalStateException(
                     "Khong giai ma duoc du lieu PII (key version " + version
                             + ", muc dich " + purpose.label() + ") — kiem tra khoa va AAD", ex);

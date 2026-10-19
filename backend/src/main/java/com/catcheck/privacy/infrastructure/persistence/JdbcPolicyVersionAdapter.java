@@ -11,12 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link PolicyVersionPort} trên {@code JdbcTemplate}.
- *
- * <p>Không có phương thức sửa/xoá: version đã có consent trỏ tới thì không bao giờ được
- * sửa (p15 REQ-VER-07); V6 đã REVOKE DELETE khỏi {@code catcheck_app}.</p>
- */
 @Repository
 public class JdbcPolicyVersionAdapter implements PolicyVersionPort {
 
@@ -62,10 +56,6 @@ public class JdbcPolicyVersionAdapter implements PolicyVersionPort {
 
     @Override
     public Optional<PolicyVersion> findCurrent(PolicyType type, String locale, Instant now) {
-        // Bug that: jdbc.query(...) suy luan kieu SQL tu class runtime cua tham so —
-        // java.time.Instant KHONG duoc PostgreSQL JDBC driver ho tro suy luan (chi
-        // Timestamp/OffsetDateTime), nem PSQLException "Can't infer the SQL type" (xac
-        // nhan that khi test dang ky local). Ep ve java.sql.Timestamp truoc khi truyen.
         return jdbc.query("""
                 SELECT\s""" + COLUMNS + """
                   FROM policy_version
@@ -88,10 +78,6 @@ public class JdbcPolicyVersionAdapter implements PolicyVersionPort {
                 """, (rs, rowNum) -> readVersion(rs), id).stream().findFirst();
     }
 
-    /**
-     * F10 — KHÔNG có điều kiện thời gian trong WHERE: permalink phải trả về được cả bản đã
-     * hết hiệu lực (p15 REQ-LEGAL-03). Khoá tự nhiên là UNIQUE (policy_type, version, locale).
-     */
     @Override
     public Optional<PolicyVersion> findByTypeAndVersion(PolicyType type, String version, String locale) {
         return jdbc.query("""
@@ -113,9 +99,6 @@ public class JdbcPolicyVersionAdapter implements PolicyVersionPort {
 
     @Override
     public List<PolicyVersion> findAllForAdmin(PolicyType type, String locale, int limit, int offset) {
-        // Bộ lọc tuỳ chọn viết bằng "(? IS NULL OR cot = ?)" thay vì ghép chuỗi SQL: cùng một
-        // câu lệnh cho mọi tổ hợp bộ lọc nên PostgreSQL tái dùng được plan, và không có đường
-        // nào để một tham số lọt vào phần cú pháp.
         String sql = "SELECT " + COLUMNS
                 + "  FROM policy_version"
                 + " WHERE (?::varchar IS NULL OR policy_type = ?)"
@@ -140,8 +123,6 @@ public class JdbcPolicyVersionAdapter implements PolicyVersionPort {
 
     @Override
     public int markPublished(UUID id, UUID publishedBy, Instant effectiveFrom) {
-        // java.time.Instant khong duoc driver PostgreSQL suy luan kieu SQL (xem findCurrent) —
-        // ep ve OffsetDateTime truoc khi truyen.
         return jdbc.update(
                 "UPDATE policy_version SET published_by = ?, effective_from = ?"
                         + " WHERE id = ? AND published_by IS NULL",

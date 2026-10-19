@@ -1,29 +1,3 @@
-/**
- * MSW handlers cho `features/cat` — chế độ degraded khi backend chưa có (W1 song song).
- * `CatController` HTTP thật CHƯA tồn tại ở backend hiện tại (chỉ có domain/application/DTO
- * — xem `docs/handovers/A3.md` mục 3) nên FE dựng theo đúng hợp đồng `p8 §8.4.4` (D1-D20).
- * W3 nối API thật: xoá import handlers này khỏi nơi wire (dev-only), `hooks.ts` giữ nguyên.
- *
- * Endpoint mock (khớp p8 §8.4.4 + F2):
- *  - GET    /api/v1/cats                          (D1)
- *  - POST   /api/v1/cats                          (D2)
- *  - GET    /api/v1/cats/:catId                   (D3)
- *  - PATCH  /api/v1/cats/:catId                   (D4)
- *  - DELETE /api/v1/cats/:catId                   (D5)
- *  - POST   /api/v1/cats/:catId/archive           (D6)
- *  - POST   /api/v1/cats/:catId/unarchive         (D7)
- *  - PUT    /api/v1/cats/:catId/primary           (D8)
- *  - PUT    /api/v1/cats/:catId/avatar            (D10)
- *  - DELETE /api/v1/cats/:catId/avatar            (D11)
- *  - GET    /api/v1/cats/:catId/health-survey     (D15)
- *  - POST   /api/v1/cats/:catId/health-survey     (D14)
- *  - GET    /api/v1/cats/:catId/notes             (D16)
- *  - POST   /api/v1/cats/:catId/notes             (D17)
- *  - PATCH  /api/v1/cat-notes/:noteId             (D18)
- *  - DELETE /api/v1/cat-notes/:noteId             (D19)
- *  - POST   /api/v1/cats/:catId/clinical-signs    (D20)
- *  - GET    /api/v1/reference/cat-breeds          (F2)
- */
 
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";
@@ -101,9 +75,6 @@ function problem(status: number, code: string, detail: string, extra?: Record<st
       status,
       detail,
       instance: "",
-      // Tên field là `errorCode`, KHÔNG phải `code`: `GlobalExceptionHandler` của backend gọi
-      // `problemDetail.setProperty("errorCode", ...)`. Mock từng phát `code` nên khớp với
-      // wrapper client cũng đang đọc sai — hai cái sai che nhau, chỉ lộ ra khi chạy server thật.
       errorCode: code,
       ...extra,
     },
@@ -393,7 +364,6 @@ export const handlers = [
     if (!body.signs || body.signs.length === 0) {
       return problem(400, "CLINICAL_SIGN_INVALID", "Vui lòng chọn ít nhất một dấu hiệu.");
     }
-    // URGENT giả lập: bất kỳ dấu hiệu nào trong nhóm khẩn cấp p15 EMERGENCY đều bắn cờ.
     const urgentSigns = ["STRAINING", "NO_URINE", "CRYING", "BLOOD_VISIBLE"];
     const triggered = body.signs.some((s) => urgentSigns.includes(s));
     return HttpResponse.json(

@@ -11,9 +11,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bộ chuyển đổi từ cổng {@link ColorChartRepository} sang Spring Data (R2).
- */
 @Repository
 class ColorChartRepositoryAdapter implements ColorChartRepository {
 
@@ -64,16 +61,6 @@ class ColorChartRepositoryAdapter implements ColorChartRepository {
                 springPage.getTotalElements());
     }
 
-    /**
-     * {@code saveAndFlush} chứ không phải {@code save} trần: {@code ColorChartAdminService.publish}
-     * bắt {@code DataIntegrityViolationException} của {@code uq_color_chart_active_per_batch} (V9)
-     * để trả {@code 409 COLOR_CHART_IN_USE} thay vì {@code 500} khi hai admin publish gần như đồng
-     * thời cho cùng (product_line, production_batch). {@code save} trần trì hoãn INSERT/UPDATE tới
-     * lúc flush cuối transaction — vi phạm ràng buộc chỉ lộ ra SAU khi phương thức service đã
-     * return, ngoài mọi khối {@code try/catch} ở đó, nên request thua cuộc vẫn rơi vào
-     * {@code handleUnexpected()}. Cùng lý do mà {@code MonitoringRuleRepositoryAdapter.saveAndReload}
-     * và {@code HealthFlagRepositoryAdapter.saveIfNotDuplicate} đã dùng {@code saveAndFlush}.
-     */
     @Override
     public ColorChart save(ColorChart chart) {
         return jpaRepository.saveAndFlush(chart);

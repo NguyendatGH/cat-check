@@ -5,17 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAcknowledgeHealthFlag, useHealthFlag, useHealthFlags } from "./hooks";
 import type { HealthFlagListResponse, HealthFlagView } from "./types";
 
-/**
- * Nhóm G của p8 §8.4.7. Test khoá vào đúng ba điều dễ gãy khi nối API thật:
- *  1. URL + query string (lọc `catId`/`acknowledged` sai là lấy nhầm cảnh báo của bé khác);
- *  2. `acknowledge` phải POST đúng `/health-flags/{id}/acknowledge` và chịu được 204 rỗng;
- *  3. sau khi xác nhận phải invalidate cả `['cat']` — `unacknowledgedFlagCount` nằm trong
- *     `GET /cats`, không tự giảm theo.
- *
- * Dựng hook bằng `react-dom/client` + `act` thay vì `@testing-library/react`: package đó có
- * trong devDependencies nhưng peer `@testing-library/dom` KHÔNG được cài, và brief W1-E cấm
- * thêm gói mới.
- */
 
 const FLAG: HealthFlagView = {
   flagId: "0199aa00-0000-7000-8000-000000000001",
@@ -49,7 +38,6 @@ interface HookHandle<T> {
   unmount: () => void;
 }
 
-/** `renderHook` tối giản — đủ cho việc đọc giá trị hook qua nhiều lần render lại. */
 async function renderHook<T>(useHookFn: () => T, client: QueryClient): Promise<HookHandle<T>> {
   const box: { current: T | undefined } = { current: undefined };
   function Probe() {
@@ -83,7 +71,6 @@ async function renderHook<T>(useHookFn: () => T, client: QueryClient): Promise<H
   };
 }
 
-/** Chờ `predicate` thành true, mỗi vòng bọc trong `act` để React xả hết cập nhật. */
 async function waitUntil(predicate: () => boolean, label: string): Promise<void> {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     if (predicate()) return;

@@ -3,26 +3,10 @@ package com.catcheck.identity.domain;
 import java.security.SecureRandom;
 import java.util.Locale;
 
-/**
- * Base32 (RFC 4648, khong padding) cho secret TOTP, va Crockford Base32 cho ma
- * khoi phuc — hai bang chu cai khac nhau, tach class de khong nham.
- *
- * <p>Secret TOTP: 20 byte (160 bit) tu {@link SecureRandom}, hien thi Base32 khong
- * padding — dung dinh dang ma app authenticator doc (p11 §11.12.2).</p>
- *
- * <p>Ma khoi phuc: 10 ky tu <b>Crockford</b> Base32 (khong co {@code I}, {@code L},
- * {@code O}, {@code U} de khong doc nham khi chep tay), hien thi nhom
- * {@code XXXXX-XXXXX} (p11 §11.12.3).</p>
- */
 public final class Base32 {
 
-    /** RFC 4648 — bang chu cai cua secret TOTP. */
     private static final String RFC4648_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-    /**
-     * Crockford Base32 — loai I/L/O/U (nham voi 1/0), loai U vi hinh thuc
-     * "ma co chua U" bi loc spam. p11 §11.12.3.
-     */
     private static final String CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -30,14 +14,12 @@ public final class Base32 {
     private Base32() {
     }
 
-    /** Sinh secret TOTP 160 bit, tra ve Base32 khong padding. */
     public static String newTotpSecret() {
         byte[] bytes = new byte[20];
         RANDOM.nextBytes(bytes);
         return encode(bytes, RFC4648_ALPHABET);
     }
 
-    /** Sinh ma khoi phuc 10 ky tu Crockford, tra ve dang {@code XXXXX-XXXXX}. */
     public static String newRecoveryCode() {
         byte[] bytes = new byte[7];
         RANDOM.nextBytes(bytes);

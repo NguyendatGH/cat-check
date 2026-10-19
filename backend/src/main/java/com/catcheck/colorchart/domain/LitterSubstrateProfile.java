@@ -11,12 +11,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Màu cát nền theo lô — ánh xạ 1-1 với bảng {@code litter_substrate_profile} (p4 D9).
- *
- * <p>Dùng ở S6 (tách hạt chỉ thị): pixel có {@code C*ab < chromaMax} được coi là nền. Nếu có
- * profile của lô thì dùm làm prior, cảnh báo nếu lệch > 6 ΔE00 so với ước lượng trong ảnh.
- */
 @Entity
 @Table(name = "litter_substrate_profile")
 public class LitterSubstrateProfile {

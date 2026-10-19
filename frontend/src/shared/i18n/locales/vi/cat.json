@@ -39,6 +39,7 @@
     "breed": {
       "label": "Giống mèo",
       "placeholder": "Chọn giống mèo",
+      "unknown": "Không xác định",
       "searchPlaceholder": "Tìm giống mèo...",
       "loading": "Đang tải danh sách giống...",
       "empty": "Không tìm thấy giống phù hợp",
@@ -140,7 +141,9 @@
     "reportSigns": "Báo cáo dấu hiệu bất thường",
     "updateSurvey": "Cập nhật khảo sát",
     "addNote": "Thêm ghi chú",
-    "moreActions": "Thao tác khác"
+    "moreActions": "Thao tác khác",
+    "emergencySigns": "Dấu hiệu cần đi thú y ngay",
+    "emergencySignsHint": "Xem nhanh các trường hợp không nên chờ"
   },
   "confirm": {
     "delete": {
@@ -425,8 +428,6 @@
   },
   "overview": {
     "biomarkerEyebrow": "Màu hạt chỉ thị gần nhất",
-    "biomarkerStable": "Nền tảng ổn định",
-    "biomarkerWatch": "Cần theo dõi thêm",
     "biomarkerNoDataTitle": "Chưa có lần quét nào",
     "biomarkerNoDataBody": "Quét lần đầu để CatCheck bắt đầu ghi nhận màu hạt cát của bé.",
     "biomarkerBody": "Ghi nhận từ {{count}} lần quét trong 30 ngày gần nhất. Đây là quan sát màu hạt cát tại nhà, không thay thế ý kiến bác sĩ thú y.",
@@ -457,11 +458,22 @@
     "statReminderManage": "Xem lịch nhắc",
     "statReminderToday": "Hôm nay",
     "statReminderInDays": "Còn {{count}} ngày",
-    "statReminderAt": "{{date}} lúc {{time}}"
+    "statReminderAt": "{{date}} lúc {{time}}",
+    "assessment": {
+      "good": "Tốt",
+      "attention": "Cần chú ý",
+      "abnormal": "Bất thường"
+    },
+    "assessmentHint": "Nhận định tham khảo dựa trên chỉ số pH lần quét gần nhất, không thay thế ý kiến bác sĩ thú y."
   },
   "age": {
     "years": "{{count}} tuổi",
     "months": "{{count}} tháng tuổi",
     "yearsMonths": "{{years}} tuổi {{months}} tháng"
+  },
+  "alertBanner": {
+    "recorded": "Hệ thống vừa ghi nhận kết quả cần chú ý",
+    "viewDetails": "Xem chi tiết",
+    "dismiss": "Ẩn cảnh báo"
   }
 }

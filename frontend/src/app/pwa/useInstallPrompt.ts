@@ -5,7 +5,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-/** Bắt sự kiện `beforeinstallprompt` cho trang /install (A2HS trên Android/desktop Chrome). */
 export function useInstallPrompt() {
   const [deferredEvent, setDeferredEvent] = useState<BeforeInstallPromptEvent | null>(null);
 

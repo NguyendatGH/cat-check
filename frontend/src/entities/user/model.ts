@@ -1,15 +1,9 @@
-/**
- * Model tối thiểu cho phiên đăng nhập hiện tại (session).
- * TODO: đồng bộ field thật với API /api/v1/auth/session ở milestone kế — đây là khung M0.
- */
 
-export type AdminRole = "ADMIN" | "ADMIN_SUPER" | "DPO";
-
-export type Role = "USER" | AdminRole;
+export type Role = "USER" | "ADMIN_SUPPORT" | "ADMIN_CATALOG" | "ADMIN_SUPER" | "DPO" | "MODERATOR" | "VET";
+export type AdminRole = Exclude<Role, "USER" | "VET">;
 
 export interface OnboardingState {
   completed: boolean;
-  /** Bước còn dở khi completed=false, ví dụ "cat" | "health-survey" | "disclaimer" | "activate". */
   nextStep: string | null;
 }
 
@@ -17,7 +11,6 @@ export interface SessionUser {
   id: string;
   email: string;
   displayName: string;
-  /** `/api/v1/users/me/avatar` khi đã có ảnh đại diện, `null`/vắng khi chưa có. */
   avatarUrl?: string | null;
   roles: Role[];
   onboarding: OnboardingState;

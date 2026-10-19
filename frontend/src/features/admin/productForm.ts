@@ -1,3 +1,4 @@
+import { formatNumber } from "@/shared/lib/format/formatNumber";
 import type { AdminProduct, AdminProductPayload, AdminProductStatus } from "./types";
 
 export interface ProductFormValues {
@@ -52,7 +53,6 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-/** Kiểm tra form theo ràng buộc của API; trả về tập field lỗi (rỗng = hợp lệ). */
 export function validateProductForm(values: ProductFormValues): ProductFormErrors {
   const errors: ProductFormErrors = {};
   if (!SKU_PATTERN.test(values.sku.trim().toUpperCase())) errors.sku = true;
@@ -74,7 +74,6 @@ export function validateProductForm(values: ProductFormValues): ProductFormError
   return errors;
 }
 
-/** Chỉ gọi sau khi {@link validateProductForm} không có lỗi. */
 export function formToPayload(values: ProductFormValues): AdminProductPayload {
   const imageUrl = values.imageUrl.trim();
   const compare = values.compareAtPriceVnd.trim();
@@ -90,16 +89,10 @@ export function formToPayload(values: ProductFormValues): AdminProductPayload {
   };
 }
 
-/**
- * `If-Match` của `PUT /admin/shop/products/{id}` — phải khớp `AdminETag.of(updatedAt, id)` của
- * backend: `W/"<updatedAt epoch ms>-<id>"`. Tính từ `updatedAt` của bản vừa tải; thiếu header
- * backend trả 428, lệch (admin khác vừa sửa) trả 412.
- */
 export function adminProductEtag(product: Pick<AdminProduct, "id" | "updatedAt">): string {
   return `W/"${String(Date.parse(product.updatedAt))}-${product.id}"`;
 }
 
-/** Hiển thị tiền VND giống cửa hàng: "245.000đ". */
 export function formatProductVnd(value: number): string {
-  return `${value.toLocaleString("vi-VN")}đ`;
+  return `${formatNumber(value)}đ`;
 }

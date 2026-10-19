@@ -26,17 +26,14 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Cửa sổ, cooldown và điều kiện "lần quét kích hoạt" của R2-R4 (p6 §6.9). */
 class RuleEvaluationServiceTest {
 
     private static final UUID CAT_ID = UUID.randomUUID();
-    /** Một phút trước nửa đêm UTC — ranh giới bucket của cooldown 24h. */
     private static final Instant T0 = Instant.parse("2026-10-09T23:59:00Z");
 
     private final FakeScans scans = new FakeScans();
     private final FakeFlags flags = new FakeFlags();
 
-    // ------------------------------------------------------------------ cooldown
 
     @Test
     void cooldownHoldsAcrossTheDedupeBucketBoundary() {
@@ -46,7 +43,6 @@ class RuleEvaluationServiceTest {
         service(r4, T0).onScanSaved(event(second));
         assertThat(flags.saved).hasSize(1);
 
-        // Hai phút sau, sang ngày UTC mới: bucket = epoch/86400 đổi nên dedupe_key khác.
         Instant later = T0.plusSeconds(120);
         ScanHistoryQuery.RecentScan third = scans.add(later, "NORMAL", "6.4", "0.40", "CARD_CCM");
         service(r4, later).onScanSaved(event(third));
@@ -54,12 +50,10 @@ class RuleEvaluationServiceTest {
         assertThat(flags.saved).as("cooldown 24h vẫn còn hiệu lực").hasSize(1);
     }
 
-    // ------------------------------------------------------------------ cửa sổ
 
     @Test
     void windowToStaysAfterWindowFromWhenClientClockRunsAhead() {
         MonitoringRule r4 = MonitoringRuleFixtures.lowQualityStreak(2, 0.50, T0);
-        // Đồng hồ máy khách nhanh 5 phút, hai lần chụp lại cách nhau 2 phút.
         scans.add(T0.plusSeconds(300), "NORMAL", "6.4", "0.40", "CARD_CCM");
         ScanHistoryQuery.RecentScan second = scans.add(T0.plusSeconds(420), "NORMAL", "6.4", "0.40", "CARD_CCM");
 
@@ -69,7 +63,45 @@ class RuleEvaluationServiceTest {
         assertThat(flag.getWindowTo()).as("ck_health_flag_window").isAfter(flag.getWindowFrom());
     }
 
-    // ------------------------------------------------------------------ R2
+
+    @Test
+    void repeatedOutOfRangeDoesNotClaimOneDirectionWhenBothSidesReachTheThreshold() {
+        scans.add(T0.minusSeconds(3 * 3600), "LOW", "5.8", "0.80", "CARD_CCM");
+        scans.add(T0.minusSeconds(2 * 3600), "HIGH", "7.2", "0.80", "CARD_CCM");
+        scans.add(T0.minusSeconds(3600), "SLIGHTLY_LOW", "6.1", "0.80", "CARD_CCM");
+        ScanHistoryQuery.RecentScan trigger = scans.add(T0, "SLIGHTLY_HIGH", "6.8", "0.80", "CARD_CCM");
+
+        service(repeatedRule(), T0).onScanSaved(event(trigger));
+
+        assertThat(flags.saved).isEmpty();
+    }
+
+    @Test
+    void repeatedOutOfRangeReportsTheDirectionWhenOnlyOneSideReachesTheThreshold() {
+        scans.add(T0.minusSeconds(2 * 3600), "LOW", "5.8", "0.80", "CARD_CCM");
+        scans.add(T0.minusSeconds(3600), "HIGH", "7.2", "0.80", "CARD_CCM");
+        ScanHistoryQuery.RecentScan trigger = scans.add(T0, "SLIGHTLY_LOW", "6.1", "0.80", "CARD_CCM");
+
+        service(repeatedRule(), T0).onScanSaved(event(trigger));
+
+        assertThat(flags.saved).singleElement().satisfies(flag -> {
+            assertThat(flag.getRuleCode()).isEqualTo(MonitoringRuleCode.REPEATED_OUT_OF_RANGE.name());
+            assertThat(flag.getMessageParams()).containsEntry("direction", "axit").containsKeys("n", "windowHours");
+        });
+    }
+
+    // Tên param là hợp đồng với mẫu healthFlags.message.rule.* ở frontend (common.json).
+    @Test
+    void lowQualityStreakEmitsTheParamsTheFrontendTemplateUses() {
+        MonitoringRule r4 = MonitoringRuleFixtures.lowQualityStreak(2, 0.50, T0);
+        scans.add(T0.minusSeconds(600), "NORMAL", "6.4", "0.40", "CARD_CCM");
+        ScanHistoryQuery.RecentScan second = scans.add(T0, "NORMAL", "6.4", "0.40", "CARD_CCM");
+
+        service(r4, T0).onScanSaved(event(second));
+
+        assertThat(flags.saved).singleElement()
+                .satisfies(flag -> assertThat(flag.getMessageParams()).containsEntry("n", 2));
+    }
 
     @Test
     void baselineDeviationIgnoresALowConfidenceTriggerScan() {
@@ -90,14 +122,13 @@ class RuleEvaluationServiceTest {
 
         assertThat(flags.saved).extracting(HealthFlag::getRuleCode)
                 .containsExactly(MonitoringRuleCode.BASELINE_DEVIATION.name());
+        assertThat(flags.saved.getFirst().getMessageParams()).containsKeys("ph", "baseline", "delta");
     }
 
-    // ------------------------------------------------------------------ R3
 
     @Test
     void monotonicTrendIsNotReRaisedByAnUnrelatedFilteredScan() {
         seedRisingTrend();
-        // Flag gốc nổ 4 ngày trước — đã ra khỏi cooldown 72h, nhưng vẫn trong maxSpanDays 7.
         flags.saved.add(existingFlag(MonitoringRuleCode.MONOTONIC_TREND, T0.minus(Duration.ofDays(4))));
         ScanHistoryQuery.RecentScan lowConfidence = scans.add(T0, "HIGH", "7.0", "0.30", "CARD_CCM");
 
@@ -115,9 +146,9 @@ class RuleEvaluationServiceTest {
 
         assertThat(flags.saved).extracting(HealthFlag::getRuleCode)
                 .containsExactly(MonitoringRuleCode.MONOTONIC_TREND.name());
+        assertThat(flags.saved.getFirst().getMessageParams()).containsKeys("direction", "phSeries");
     }
 
-    // ------------------------------------------------------------------ fixtures
 
     private void seedBaseline() {
         for (int day = 1; day <= 5; day++) {
@@ -129,6 +160,12 @@ class RuleEvaluationServiceTest {
         scans.add(T0.minus(Duration.ofDays(6)), "NORMAL", "6.3", "0.80", "CARD_CCM");
         scans.add(T0.minus(Duration.ofDays(5)), "NORMAL", "6.5", "0.80", "CARD_CCM");
         scans.add(T0.minus(Duration.ofDays(4)), "SLIGHTLY_HIGH", "6.7", "0.80", "CARD_CCM");
+    }
+
+    private static MonitoringRule repeatedRule() {
+        return MonitoringRuleFixtures.rule(MonitoringRuleCode.REPEATED_OUT_OF_RANGE.name(),
+                Map.of("windowHours", 48, "minCount", 2, "minConfidence", 0.55),
+                HealthFlagSeverity.ATTENTION, 24, "rule.REPEATED_OUT_OF_RANGE.message", T0);
     }
 
     private static MonitoringRule baselineRule() {
@@ -161,7 +198,6 @@ class RuleEvaluationServiceTest {
                 scan.capturedAt(), false);
     }
 
-    /** Lịch sử scan đã flush — gồm cả lần quét kích hoạt (H15.75), mới nhất trước. */
     private static final class FakeScans implements ScanHistoryQuery {
 
         private final List<RecentScan> rows = new ArrayList<>();

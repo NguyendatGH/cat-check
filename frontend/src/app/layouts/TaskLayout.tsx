@@ -1,50 +1,93 @@
-import { Outlet, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
+import { cn } from "@/shared/lib/cn";
 import { DesktopAside } from "./shell/DesktopAside";
 import { DesktopHeader } from "./shell/DesktopHeader";
 import { OfflineBar } from "./shell/OfflineBar";
-import appLogo from "@/shared/assets/images/web-auth/logo.png";
 
-/**
- * Layout tác vụ đơn (TL routes: form, chi tiết, giỏ hàng, cài đặt con…).
- *
- * - `< lg`: task header có nút back + nhận diện CATCHECK, không bottom nav (đang làm một việc).
- * - `>= lg`: CÙNG khung desktop với AppLayout — sidebar 288px + header 64px (kèm nút back).
- *   Các frame web của nhóm này (`Web - 09` Nhắc nhở, `Web - 14 & Giỏ hàng`, `Web - Đặt hàng
- *   thành công`, `Web - 08 & 10` Xuất hồ sơ…) đều nằm trong khung đó; trước đây ở desktop
- *   layout này chỉ có một thanh trắng với mũi tên quay lại, mất toàn bộ điều hướng.
- *
- * Hộp nội dung GIỮ NGUYÊN hợp đồng cũ mà các trang dựa vào: `px-4 py-6`, ở `lg` là hộp
- * 992px có `px-6` (nội dung 944px), canh giữa — trang KHÔNG tự thêm padding ngang.
- */
+// The page's own <h1> text becomes the header title on mobile (the in-page h1 is then visually hidden).
+function usePageHeading(mainRef: React.RefObject<HTMLElement | null>) {
+  const { pathname } = useLocation();
+  const [title, setTitle] = useState("");
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const read = () => {
+      setTitle(main.querySelector("h1")?.textContent.trim() ?? "");
+    };
+    read();
+    const mo = new MutationObserver(read);
+    mo.observe(main, { childList: true, subtree: true });
+    return () => {
+      mo.disconnect();
+    };
+  }, [mainRef, pathname]);
+
+  return title;
+}
+
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 4);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+  return scrolled;
+}
+
 export function TaskLayout() {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
+  const mainRef = useRef<HTMLElement>(null);
+  const title = usePageHeading(mainRef);
+  const scrolled = useScrolled();
 
   return (
     <div className="flex min-h-dvh bg-background">
       <DesktopAside />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-[var(--z-sticky-header)] border-b border-primary/10 bg-background/90 px-3 shadow-[0_4px_18px_rgba(47,79,178,0.06)] backdrop-blur-md lg:hidden">
-          <div className="mx-auto flex h-14 max-w-[480px] items-center justify-between">
+        <header
+          className={cn(
+            "sticky top-0 z-[var(--z-sticky-header)] bg-background px-2 transition-shadow duration-200 lg:hidden",
+            scrolled && "shadow-[0_1px_0_var(--color-border)]",
+          )}
+        >
+          <div className="mx-auto flex h-14 max-w-[480px] items-center gap-1">
             <button
               type="button"
               onClick={() => {
                 void navigate(-1);
               }}
               aria-label={t("actions.back")}
-              className="flex size-11 items-center justify-center rounded-full text-text-primary transition-colors hover:bg-surface hover:text-primary-dark"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full text-text-primary transition-colors hover:bg-surface active:bg-chip-bg"
             >
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
-            <img src={appLogo} alt={t("app.name")} className="h-11 w-[122px] object-contain" />
-            <span className="size-11" aria-hidden="true" />
+            {title ? (
+              <p aria-hidden="true" className="content-enter min-w-0 truncate text-[17px] font-bold text-text-primary">
+                {title}
+              </p>
+            ) : null}
           </div>
         </header>
         <DesktopHeader showBack />
         <OfflineBar className="top-14 lg:top-16" />
-        <main className="w-full flex-1 px-4 py-6 lg:mx-auto lg:max-w-[992px] lg:px-6">
+        <main
+          ref={mainRef}
+          className={cn(
+            "w-full flex-1 px-4 pb-6 pt-1 lg:mx-auto lg:max-w-[992px] lg:px-6 lg:py-6",
+            title && "max-lg:[&_h1]:sr-only",
+          )}
+        >
           <Outlet />
         </main>
       </div>

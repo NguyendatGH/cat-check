@@ -21,10 +21,6 @@ import java.time.ZoneOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * {@link LocalImageStorage}: MIME phải khớp NỘI DUNG (magic bytes), không tin {@code Content-Type}
- * do client khai; và {@code commit} giữ đúng namespace của ảnh staging.
- */
 class LocalImageStorageTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-11T00:00:00Z"), ZoneOffset.UTC);
@@ -78,9 +74,58 @@ class LocalImageStorageTest {
         assertThat(storage.exists(committed.key())).isTrue();
     }
 
+    /** M25: lỗi nghiệp vụ (quá cỡ) giữa chừng chép vẫn phải dọn tệp tạm {@code .part}. */
+    @Test
+    void oversizedUploadLeavesNoTemporaryFile() throws Exception {
+        LocalImageStorage storage = storage("test-signing-key", PNG.length - 1L);
+
+        assertThatThrownBy(() -> storage.put("cat-avatar", upload(PNG, "image/png")))
+                .isInstanceOf(BusinessRuleException.class)
+                .extracting(ex -> ((BusinessRuleException) ex).errorCode())
+                .isEqualTo(MediaErrorCode.STORAGE_PAYLOAD_TOO_LARGE);
+        try (var files = Files.walk(root)) {
+            assertThat(files.filter(Files::isRegularFile).toList()).isEmpty();
+        }
+    }
+
+    @Test
+    void validSignatureOpensTheFile() throws Exception {
+        LocalImageStorage storage = storage();
+        StoredImage stored = storage.put("cat-avatar", upload(PNG, "image/png"));
+        long expires = CLOCK.instant().getEpochSecond() + 60;
+
+        assertThat(storage.openSigned(stored.key(), expires, hmac("test-signing-key", stored.key().value(), expires)))
+                .isPresent()
+                .get().satisfies(media -> media.content().close());
+    }
+
+    /** M27: khoá ký rỗng/trắng ⇒ ai cũng tự tính được HMAC — phải từ chối, không mở tệp. */
+    @Test
+    void blankSigningKeyFailsClosed() throws Exception {
+        for (String blankKey : new String[] {"", "   "}) {
+            LocalImageStorage storage = storage(blankKey, 5_242_880L);
+            StoredImage stored = storage.put("cat-avatar", upload(PNG, "image/png"));
+            long expires = CLOCK.instant().getEpochSecond() + 60;
+            String forged = blankKey.isEmpty() ? "00" : hmac(blankKey, stored.key().value(), expires);
+
+            assertThat(storage.openSigned(stored.key(), expires, forged)).isEmpty();
+        }
+    }
+
+    private static String hmac(String signingKey, String keyValue, long expires) throws Exception {
+        javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+        mac.init(new javax.crypto.spec.SecretKeySpec(signingKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        return java.util.HexFormat.of().formatHex(
+                mac.doFinal((keyValue + "\n" + expires).getBytes(StandardCharsets.UTF_8)));
+    }
+
     private LocalImageStorage storage() {
+        return storage("test-signing-key", 5_242_880L);
+    }
+
+    private LocalImageStorage storage(String signingKey, long maxImageBytes) {
         return new LocalImageStorage(
-                new MediaProperties(root, "http://localhost:8080", "test-signing-key", 5_242_880L, null, null),
+                new MediaProperties(root, "http://localhost:8080", signingKey, maxImageBytes, null, null),
                 CLOCK, new UuidV7(CLOCK));
     }
 

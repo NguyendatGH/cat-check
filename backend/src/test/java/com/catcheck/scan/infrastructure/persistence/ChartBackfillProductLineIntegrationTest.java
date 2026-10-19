@@ -35,20 +35,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Backfill bảng màu của MỘT dòng sản phẩm/lô không được ghi đè kết quả scan của dòng/lô khác.
- *
- * <p>Lỗi cũ: {@code findBackfillCandidates}/{@code countBackfillCandidates} chỉ lọc theo cửa sổ
- * thời gian + engine, nên preview của bảng {@code MINI} sinh nháp cho MỌI scan đang hiện hành
- * (kể cả {@code STANDARD}), và apply sau đó trỏ {@code scan.current_analysis_id} của chúng sang
- * kết quả tính theo bảng sai. Ranh giới đúng là {@code scan.chart_id} (bảng có hiệu lực lúc quét)
- * thuộc cùng {@code (product_line, production_batch)} với bảng đang backfill.</p>
- *
- * <p>Không Docker — nối Postgres local như {@code HealthFlagDedupeIntegrationTest}; JPA dựng tay
- * (không {@code ApplicationContext}) chỉ với entity của {@code scan.domain}. Dữ liệu dùng một
- * {@code production_batch} ngẫu nhiên nên không đụng index {@code uq_color_chart_active_per_batch}
- * và không khớp scan dev có sẵn; {@link #cleanUp()} xoá mọi dòng đã tạo, kể cả nháp.</p>
- */
 class ChartBackfillProductLineIntegrationTest {
 
     private static final String JDBC_URL = "jdbc:postgresql://localhost:5432/catcheck";
@@ -173,7 +159,6 @@ class ChartBackfillProductLineIntegrationTest {
                 """, UUID.class, sameLineScan)).isEqualTo(targetChartId);
     }
 
-    // ------------------------------------------------------------------ fixtures
 
     private UUID insertChart(String productLine, String batch, String status) {
         return jdbc.queryForObject("""
@@ -183,7 +168,6 @@ class ChartBackfillProductLineIntegrationTest {
                 """, UUID.class, "BF-TEST-" + UUID.randomUUID(), productLine, batch, status);
     }
 
-    /** Scan đã phân tích, Lab khớp mức pH 8.0 của {@link TwoPointCatalog} nên backfill sẽ lật kết quả. */
     private UUID insertAnalyzedScan(UUID chartId) {
         UUID scanId = jdbc.queryForObject("""
                 INSERT INTO scan (user_id, assignment, captured_at, store_image, store_image_reason,
@@ -210,7 +194,6 @@ class ChartBackfillProductLineIntegrationTest {
         return new JobContext(UUID.randomUUID(), jobName, Instant.now(), false);
     }
 
-    /** Bảng màu hai mức (5.5 và 8.0) — cùng hình dạng với {@code ChartBackfillServiceTest.FixedCatalog}. */
     private final class TwoPointCatalog implements ChartCatalog {
 
         @Override

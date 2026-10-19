@@ -1,10 +1,3 @@
-/**
- * Kiểm tra form nhận hàng ở `/checkout` trước khi gọi `POST /api/v1/orders`.
- *
- * Trần độ dài khớp `CheckoutRequest` của backend (`@NotBlank @Size(max = 120)` tên,
- * `@Size(max = 32)` số điện thoại, `@Size(max = 500)` địa chỉ). Số điện thoại kiểm theo dạng
- * Việt Nam (0xxxxxxxxx hoặc +84xxxxxxxxx, 9–10 chữ số sau đầu số) vì đơn giao trong nước.
- */
 export interface CheckoutFormValues {
   receiverName: string;
   receiverPhone: string;
@@ -13,14 +6,12 @@ export interface CheckoutFormValues {
 
 export type CheckoutField = keyof CheckoutFormValues;
 
-/** Khoá i18n (namespace `shop`) của lỗi từng ô; ô hợp lệ thì không có mặt. */
 export type CheckoutErrors = Partial<Record<CheckoutField, string>>;
 
 export const CHECKOUT_LIMITS = { receiverName: 120, receiverPhone: 32, shippingAddress: 500 } as const;
 
 const MIN_ADDRESS_LENGTH = 10;
 
-/** Bỏ khoảng trắng, dấu chấm, gạch nối, ngoặc mà người dùng hay gõ khi nhập số điện thoại. */
 export function normalizePhone(value: string): string {
   return value.replace(/[\s.\-()]/g, "");
 }

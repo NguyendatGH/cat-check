@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { AlertTriangle, BellRing, Check, Laptop, Loader2, Smartphone, Trash2 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { isApiError } from "@/shared/api";
 import { Switch } from "@/shared/ui";
 import {
@@ -24,19 +25,8 @@ import {
 } from "./pushClient";
 import type { PushSubscriptionItem } from "./types";
 
-/** Quá 99 thì bong bóng badge vỡ bố cục header — và con số chính xác lúc đó cũng vô nghĩa. */
 const BADGE_MAX = 99;
 
-/**
- * Badge số chưa đọc trên icon chuông (G5).
- *
- * Đặt trong `features/` chứ không viết thẳng vào `AppLayout` vì có HAI cái chuông (header
- * mobile và header desktop) — nhân đôi code là cách chắc chắn nhất để hai chỗ trôi khỏi nhau.
- * Component tự ẩn khi `unreadCount = 0`: một chấm đỏ vĩnh viễn (hiện trạng trước gói này)
- * dạy người dùng bỏ qua nó.
- *
- * @param enabled `false` cho khách chưa đăng nhập — endpoint yêu cầu phiên.
- */
 export function NotificationUnreadBadge({ enabled = true }: { enabled?: boolean }) {
   const { t } = useTranslation("notification");
   const { data } = useUnreadNotificationCount(enabled);
@@ -54,7 +44,6 @@ export function NotificationUnreadBadge({ enabled = true }: { enabled?: boolean 
   );
 }
 
-// ------------------------------------------------------------------ thiết bị nhận push
 
 function PushBlockedNotice({ availability }: { availability: Extract<PushAvailability, { available: false }> }) {
   const { t } = useTranslation("notification");
@@ -111,7 +100,7 @@ function DeviceRow({
           {t(`push.platforms.${device.platform}`)}
           {device.lastSeenAt == null
             ? ""
-            : ` · ${t("push.devices.lastSeen", { date: new Date(device.lastSeenAt).toLocaleDateString("vi-VN") })}`}
+            : ` · ${t("push.devices.lastSeen", { date: new Date(device.lastSeenAt).toLocaleDateString(intlLocale()) })}`}
         </span>
       </span>
       <button
@@ -129,30 +118,13 @@ function DeviceRow({
   );
 }
 
-/**
- * Khối "Thông báo đẩy" của `/settings/notifications` — G9/G10/G11.
- *
- * Ba điều khiến khối này khó hơn vẻ ngoài:
- *  1. **Không có nút chết.** Push chỉ chạy khi có VAPID key + cấu hình Firebase + trình duyệt
- *     hỗ trợ + (iOS) đã cài PWA. Thiếu cái nào thì ẩn công tắc và nói rõ thiếu cái gì
- *     (`pushAvailability()`), không hiện một công tắc gạt xong không có gì xảy ra.
- *  2. **Nhận ra "máy này".** `GET /push/subscriptions` cố ý không trả `fid` ⇒ id đăng ký của
- *     máy hiện tại được nhớ ở localStorage (xem `pushClient.ts`).
- *  3. **Trần 10 thiết bị** (p12 §12.3.2) trả `409 PUSH_SUBSCRIPTION_LIMIT`; thiếu consent
- *     `HEALTH_REMINDER_PUSH` trả `403 CONSENT_REQUIRED`. Cả hai phải đọc được, không nuốt
- *     thành "lỗi không xác định".
- */
 export function PushDevicesCard({ className }: { className?: string }) {
   const { t } = useTranslation("notification");
-  // Khả dụng không đổi trong vòng đời trang (env + UA + quyền đã cấp) — chốt một lần.
   const [availability] = useState<PushAvailability>(() => pushAvailability());
   const [localId, setLocalId] = useState<string | null>(() => readLocalSubscriptionId());
   const [busy, setBusy] = useState(false);
   const [clientError, setClientError] = useState<PushRegistrationError["reason"] | null>(null);
 
-  // Khi chưa cấu hình push ở mức sản phẩm thì danh sách thiết bị chắc chắn rỗng — đừng gọi.
-  // Nhưng nếu chỉ MÁY NÀY không bật được (iOS chưa cài / trình duyệt cũ / đã chặn quyền) thì
-  // các máy khác của user vẫn có thể đang nhận push, và user cần gỡ được chúng từ đây.
   const productConfigured =
     availability.available ||
     (availability.reason !== "MISSING_VAPID_KEY" && availability.reason !== "MISSING_FIREBASE_CONFIG");
@@ -201,7 +173,7 @@ export function PushDevicesCard({ className }: { className?: string }) {
           setLocalId(null);
         }
       } catch {
-        // Lỗi API đã nằm ở `revoke.error`, hiển thị bên dưới.
+        // Lỗi thu hồi hiển thị qua revoke.error (mutationError) bên dưới.
       } finally {
         setBusy(false);
       }

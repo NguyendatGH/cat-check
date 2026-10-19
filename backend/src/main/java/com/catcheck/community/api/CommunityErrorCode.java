@@ -7,21 +7,17 @@ import java.net.URI;
 
 public enum CommunityErrorCode implements ErrorCode {
     POST_NOT_FOUND("community/post-not-found", HttpStatus.NOT_FOUND),
+    POST_IMAGE_NOT_FOUND("community/post-image-not-found", HttpStatus.NOT_FOUND),
+    POST_IMAGE_FORBIDDEN("community/post-image-forbidden", HttpStatus.FORBIDDEN),
+    COMMENT_NOT_FOUND("community/comment-not-found", HttpStatus.NOT_FOUND),
+    COMMENT_IMAGE_NOT_FOUND("community/comment-image-not-found", HttpStatus.NOT_FOUND),
+    COMMENT_BODY_INVALID("community/comment-body-invalid", HttpStatus.BAD_REQUEST),
     REPORT_TARGET_REQUIRED("community/report-target-required", HttpStatus.BAD_REQUEST),
     REPORT_DUPLICATE("community/report-duplicate", HttpStatus.CONFLICT),
     REPORT_NOT_FOUND("community/report-not-found", HttpStatus.NOT_FOUND),
     REPORT_OWN_CONTENT("community/report-own-content", HttpStatus.UNPROCESSABLE_ENTITY),
     MODERATION_ACTION_INVALID("community/moderation-action-invalid", HttpStatus.BAD_REQUEST),
-    /**
-     * I19 (p4 §4.4.9) — tài khoản {@code RESTRICTED} CHỈ ĐỌC. Tên hằng trùng
-     * {@code cat.api.CatErrorCode.ACCOUNT_RESTRICTED}/{@code identity.api.IdentityErrorCode
-     * .ACCOUNT_RESTRICTED} có chủ đích (cùng ý nghĩa) — KHÔNG đăng ký bean cho hằng này trong
-     * community (không có {@code CommunityErrorCodeConfiguration}) vì
-     * {@code IdentityErrorCodeConfiguration} đã đăng ký {@code code()="ACCOUNT_RESTRICTED"};
-     * đăng ký lại sẽ làm {@code ErrorCodeRegistry.validate} ném {@code IllegalStateException}
-     * lúc khởi động (xem javadoc {@code CatErrorCodeConfiguration}). {@code GlobalExceptionHandler}
-     * đọc status/typeUri thẳng trên instance bị ném, không qua registry, nên vẫn hoạt động đúng.
-     */
+    MODERATION_SELF_FORBIDDEN("community/moderation-self-forbidden", HttpStatus.CONFLICT),
     ACCOUNT_RESTRICTED("common/account-restricted", HttpStatus.FORBIDDEN),
     POST_RATE_LIMITED("community/post-rate-limited", HttpStatus.TOO_MANY_REQUESTS),
     COMMENT_RATE_LIMITED("community/comment-rate-limited", HttpStatus.TOO_MANY_REQUESTS),

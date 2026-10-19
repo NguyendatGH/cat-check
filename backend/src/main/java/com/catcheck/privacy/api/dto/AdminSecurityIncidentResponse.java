@@ -7,14 +7,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Hồ sơ sự cố cho L59/L60/L61 (p4 B9, p15 REQ-INC-01).
- *
- * <p>{@code authorityDeadline} là {@code detectedAt + 72 giờ} (Điều 23.1 Luật BVDLCN) — trả
- * sẵn để UI đếm ngược không phải tự cộng, và {@code authorityNotificationOverdue} là đúng
- * điều kiện mà {@code IncidentDeadlineMonitorJob} dùng (REQ-INC-02), nên màn admin và job
- * cảnh báo không bao giờ nói hai điều khác nhau.</p>
- */
 public record AdminSecurityIncidentResponse(
         UUID id,
         String publicRef,

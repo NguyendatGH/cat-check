@@ -9,17 +9,11 @@ import {
   type SurveyAnswers,
 } from "./types";
 
-/**
- * Store zustand cho luồng onboarding — giữ state giữa các bước để user đi lùi/tới
- * không mất dữ liệu. Session-only (không persist): hồ sơ mèo là dữ liệu nhạy cảm,
- * không để lại trong localStorage khi bỏ dở.
- */
 
 interface OnboardingStore {
   step: OnboardingStep;
   catDraft: CatProfileDraft;
   createdCat: CreatedCat | null;
-  // Không nullable: khởi tạo và reset đều gán EMPTY_SURVEY_ANSWERS, không nơi nào gán null.
   surveyAnswers: SurveyAnswers;
   surveySkipped: boolean;
   activation: ActivationResult | null;

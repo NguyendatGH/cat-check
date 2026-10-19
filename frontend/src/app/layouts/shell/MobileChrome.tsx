@@ -1,4 +1,5 @@
-import { NavLink, useLocation, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { MapPinned, ShoppingBag, Sparkles, Ticket } from "lucide-react";
 import { isNavItemActive } from "./navActive";
 import { useTranslation } from "react-i18next";
@@ -12,85 +13,92 @@ import {
   NavCommunityIcon,
   NavProfileIcon,
 } from "@/shared/assets/icons/AppIcons";
+import { ShineLogo } from "@/shared/ui";
 import appLogo from "@/shared/assets/images/web-auth/logo.png";
-import { useSessionStore } from "@/entities/user";
+import { useHomePath, useSessionStore } from "@/entities/user";
 import { NotificationUnreadBadge } from "@/features/notification";
 import { ROUTE_PATTERNS } from "../../router/routes";
 
-/** Bottom nav mobile — GIỮ NGUYÊN 5 mục của Figma 390px (node 1:2242). */
 const MOBILE_NAV_ITEMS = [
-  { to: ROUTE_PATTERNS.dashboard, icon: NavHomeIcon, labelKey: "nav.dashboard" },
-  { to: ROUTE_PATTERNS.historyRedirect, icon: NavHistoryIcon, labelKey: "nav.history" },
-  { to: ROUTE_PATTERNS.scan, icon: NavScanIcon, labelKey: "nav.scan" },
-  { to: ROUTE_PATTERNS.community, icon: NavCommunityIcon, labelKey: "nav.community" },
-  { to: ROUTE_PATTERNS.settingsProfile, icon: NavProfileIcon, labelKey: "nav.profile" },
+  { to: ROUTE_PATTERNS.dashboard, icon: NavHomeIcon, labelKey: "nav.dashboard", tour: "tab-dashboard" },
+  { to: ROUTE_PATTERNS.historyRedirect, icon: NavHistoryIcon, labelKey: "nav.history", tour: "tab-history" },
+  { to: ROUTE_PATTERNS.scan, icon: NavScanIcon, labelKey: "nav.scan", tour: "tab-scan" },
+  { to: ROUTE_PATTERNS.community, icon: NavCommunityIcon, labelKey: "nav.community", tour: "tab-community" },
+  { to: ROUTE_PATTERNS.settingsProfile, icon: NavProfileIcon, labelKey: "nav.profile", tour: "tab-profile" },
 ] as const;
 
-/**
- * Header mobile — khớp Figma "02. Trang chủ" node 1:2217 (khung 390px): logo tròn xanh +
- * "CATCHECK", chuông thông báo, avatar. Ẩn từ `lg` trở lên.
- */
+const ICON_BTN =
+  "relative flex size-11 shrink-0 items-center justify-center rounded-full text-text-primary transition-colors duration-200 hover:bg-background-alt active:bg-primary/10";
+
+// Room the page must keep scrolling after the row collapses, so collapsing never makes it fit the viewport.
+const COLLAPSE_MIN_SCROLL = 160;
+
+// Collapse the shortcut row once the user scrolls down; bring it back on scroll up.
+// Collapsing shortens the page; near the bottom the browser then clamps scrollY upward. That
+// clamp is not a user scroll-up, so it is ignored — otherwise the header flickers open/closed.
+export function useHeaderCollapsed() {
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const y = window.scrollY;
+        if (Math.abs(y - lastY) < 8) return;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        const atBottom = y >= maxScroll - 2;
+        if (y < lastY && atBottom) {
+          lastY = y;
+          return;
+        }
+        const scrollingDown = y > 64 && y > lastY;
+        setCollapsed((prev) => scrollingDown && (prev || maxScroll > COLLAPSE_MIN_SCROLL));
+        lastY = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+  return collapsed;
+}
+
 export function MobileAppHeader() {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
+  const homePath = useHomePath();
   const sessionUser = useSessionStore((s) => s.user);
   const signedIn = Boolean(sessionUser);
+  const collapsed = useHeaderCollapsed();
+
+  const shortcuts = [
+    { key: "map", icon: MapPinned, label: t("nav.vetMap"), to: ROUTE_PATTERNS.map },
+    { key: "shop", icon: ShoppingBag, label: t("nav.shop"), to: ROUTE_PATTERNS.shop },
+    { key: "credits", icon: Ticket, label: t("nav.credits"), to: signedIn ? ROUTE_PATTERNS.credits : ROUTE_PATTERNS.login },
+    { key: "assistant", icon: Sparkles, label: t("nav.assistant"), to: signedIn ? ROUTE_PATTERNS.assistant : ROUTE_PATTERNS.login },
+  ];
+
   return (
-    <header className="sticky top-0 z-[var(--z-sticky-header)] w-full bg-[rgba(250,248,255,0.8)] shadow-[0px_1px_8px_0px_rgba(0,0,0,0.04)] backdrop-blur-md lg:hidden">
-      <div className="flex h-14 items-center justify-between px-2">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <img src={appLogo} alt={t("app.name")} className="h-10 w-[108px] object-contain object-left" />
-        </div>
-        <div className="flex shrink-0 items-center gap-0">
-          <button
-            type="button"
-            onClick={() => {
-              void navigate(ROUTE_PATTERNS.map);
-            }}
-            aria-label={t("nav.vetMap")}
-            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
-          >
-            <MapPinned size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              void navigate(ROUTE_PATTERNS.shop);
-            }}
-            aria-label={t("nav.shop")}
-            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
-          >
-            <ShoppingBag size={17} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              void navigate(signedIn ? ROUTE_PATTERNS.credits : ROUTE_PATTERNS.login);
-            }}
-            aria-label={t("nav.credits")}
-            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
-          >
-            <Ticket size={17} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              void navigate(signedIn ? ROUTE_PATTERNS.assistant : ROUTE_PATTERNS.login);
-            }}
-            aria-label={t("nav.assistant")}
-            className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-alt hover:text-primary-dark"
-          >
-            <Sparkles size={17} aria-hidden="true" />
-          </button>
+    <header className="header-glass sticky top-0 z-[var(--z-sticky-header)] w-full lg:hidden">
+      <div className="flex h-16 items-center justify-between gap-2 pl-4 pr-2">
+        <Link to={homePath} className="inline-flex min-w-0 items-center" aria-label={t("app.name")}>
+          <ShineLogo src={appLogo} alt={t("app.name")} align="left" className="h-11 w-[120px] object-contain object-left" />
+        </Link>
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={() => {
               void navigate(ROUTE_PATTERNS.notifications);
             }}
             aria-label={t("nav.notifications")}
-            className="relative flex size-9 items-center justify-center rounded-full text-text-secondary hover:bg-background-alt"
+            data-tour="notifications"
+            className={ICON_BTN}
           >
-            <BellIcon size={15} />
+            <BellIcon size={22} />
             <NotificationUnreadBadge enabled={signedIn} />
           </button>
           <button
@@ -99,81 +107,93 @@ export function MobileAppHeader() {
               void navigate(signedIn ? ROUTE_PATTERNS.settingsProfile : ROUTE_PATTERNS.login);
             }}
             aria-label={signedIn ? t("nav.profile") : t("dashboard.guestBanner.login")}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full"
+            className={ICON_BTN}
           >
-            <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-primary-dark text-white">
+            <span className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-primary-dark text-white ring-2 ring-primary/15">
               {sessionUser?.avatarUrl ? (
                 <img src={sessionUser.avatarUrl} alt="" className="size-full object-cover" />
               ) : (
-                <AvatarPersonIcon size={13} />
+                <AvatarPersonIcon size={16} />
               )}
             </span>
           </button>
         </div>
       </div>
+      <div className="header-shortcuts" data-collapsed={collapsed}>
+        <nav aria-label={t("nav.quickLabel")} className="min-h-0 overflow-hidden">
+          <ul className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2.5">
+            {shortcuts.map((item) => (
+              <li key={item.key} className="shrink-0">
+                <NavLink
+                  to={item.to}
+                  data-tour={`shortcut-${item.key}`}
+                  tabIndex={collapsed ? -1 : undefined}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors duration-200",
+                      isActive
+                        ? "border-primary-dark bg-primary-dark text-white"
+                        : "border-border bg-surface text-text-primary hover:border-primary/40 active:bg-primary/10",
+                    )
+                  }
+                >
+                  <item.icon size={17} aria-hidden="true" />
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
     </header>
   );
 }
 
-/**
- * Bottom nav mobile — khớp Figma node 1:2242. Nút "Quét" ở giữa là FAB tròn nổi lên, viền
- * trắng 4px, chấm vàng báo hiệu — KHÔNG phải tab thường như 4 nút còn lại.
- */
 export function BottomNav() {
   const { t } = useTranslation("common");
   const [home, history, scan, community, profile] = MOBILE_NAV_ITEMS;
   const { pathname } = useLocation();
+  // Staff bị chặn ở /dashboard (RequireNonAdminRole): tab "Trang chủ" đưa họ về cổng quản trị.
+  const homePath = useHomePath();
 
   const tab = (item: (typeof MOBILE_NAV_ITEMS)[number]) => (
     <NavLink
       key={item.to}
-      to={item.to}
-      className="flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1"
+      to={item.to === ROUTE_PATTERNS.dashboard ? homePath : item.to}
+      data-motion="none"
+      data-tour={item.tour}
+      className={({ isActive: routerActive }) =>
+        cn("btm-tab", isNavItemActive(item.to, pathname, routerActive) && "btm-tab-active")
+      }
     >
-      {({ isActive: routerActive }) => {
-        const isActive = isNavItemActive(item.to, pathname, routerActive);
-        return (
-          <>
-            <item.icon size={20} className={isActive ? "text-primary" : "text-nav-inactive"} />
-            <span
-              className={cn(
-                "max-w-full truncate text-[11px] tracking-[0.4px]",
-                isActive ? "font-semibold text-primary" : "text-nav-inactive",
-              )}
-            >
-              {t(item.labelKey)}
-            </span>
-            <span className={cn("size-1.5 rounded-full bg-secondary", !isActive && "opacity-0")} />
-          </>
-        );
-      }}
+      <span className="btm-tab-indicator" aria-hidden="true">
+        <item.icon size={22} />
+      </span>
+      <span className="btm-tab-label">{t(item.labelKey)}</span>
     </NavLink>
   );
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-[var(--z-bottom-nav)] mx-auto flex w-full max-w-[480px] rounded-t-2xl bg-[rgba(255,255,255,0.95)] pb-[env(safe-area-inset-bottom)] shadow-[0px_-4px_24px_0px_rgba(47,79,178,0.08)] backdrop-blur-md lg:hidden"
+      className="bottom-nav-glass fixed inset-x-0 bottom-0 z-[var(--z-bottom-nav)] mx-auto w-full max-w-[480px] border-t border-border/60 pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label={t("nav.mainLabel")}
     >
-      <div className="flex h-16 w-full items-center gap-1 px-1">
+      <div className="grid h-[72px] grid-cols-5 items-stretch px-1">
         {tab(home)}
         {tab(history)}
-
-        <div className="relative h-[50px] min-w-0 flex-1">
-          <NavLink
-            to={scan.to}
-            aria-label={t(scan.labelKey)}
-            data-motion="none"
-            className="absolute left-1/2 top-[-24px] flex -translate-x-1/2 flex-col items-center"
-          >
-            <span className="relative flex size-14 items-center justify-center rounded-full border-4 border-white bg-primary text-white shadow-[0px_8px_24px_-4px_rgba(47,79,178,0.35)]">
-              <NavScanIcon size={22} />
-              <span className="absolute right-[-2px] top-[-2px] size-3.5 rounded-full border-2 border-white bg-secondary" />
-            </span>
-            <span className="pt-1 text-[11px] font-semibold tracking-[0.4px] text-primary">{t(scan.labelKey)}</span>
-          </NavLink>
-        </div>
-
+        <NavLink
+          to={scan.to}
+          data-motion="none"
+          data-tour={scan.tour}
+          className={({ isActive: routerActive }) =>
+            cn("btm-tab btm-tab-scan", isNavItemActive(scan.to, pathname, routerActive) && "btm-tab-active")
+          }
+        >
+          <span className="btm-scan-btn" aria-hidden="true">
+            <NavScanIcon size={26} />
+          </span>
+          <span className="btm-tab-label">{t(scan.labelKey)}</span>
+        </NavLink>
         {tab(community)}
         {tab(profile)}
       </div>

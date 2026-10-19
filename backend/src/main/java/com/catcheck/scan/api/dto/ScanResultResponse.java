@@ -10,12 +10,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Response {@code POST /api/v1/scans} và {@code GET /scans/{id}} (p8 §8.5.4).
- *
- * <p>{@code scanId} là {@code string | null} — {@code null} khi và chỉ khi {@code INCONCLUSIVE}
- * (không có bản ghi hiển thị được).</p>
- */
 public record ScanResultResponse(
         String scanId,
         String scanRequestId,
@@ -136,7 +130,6 @@ public record ScanResultResponse(
                 .toList();
     }
 
-    /** Dùng cho {@code GET /scans/{id}} và {@code GET /scans/by-request/{id}} — nguồn là read-model, không phải pipeline mới. */
     public static ScanResultResponse from(Row row, String catName, String imageUrl) {
         return new ScanResultResponse(
                 row.scanId().toString(),

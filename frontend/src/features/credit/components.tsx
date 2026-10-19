@@ -1,21 +1,18 @@
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { ArrowDownCircle, ArrowUpCircle, Check, Clock, X } from "lucide-react";
-import { Badge, Card, Input, type InputProps } from "@/shared/ui";
+import { ArrowDown, ArrowUp, Check, X } from "lucide-react";
+import { Badge, Input, type InputProps } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { formatActivationCode } from "./schemas";
 import { usePackageCatalog } from "./hooks";
 import type { CreditBatch, CreditLedgerType, Entitlement, LedgerEntry } from "./types";
+import { WELCOME_PACKAGE_CODE, isWelcomeBatch } from "./welcome";
 
-/**
- * Component dùng chung cho `features/credit` — gom 1 file root theo khuôn mẫu bắt buộc của
- * `features/onboarding` (xem `docs/handovers/A7.md` mục 6 và `docs/handovers/A4-fe.md`).
- */
 
 const SECONDS_PER_DAY = 86_400;
 const SECONDS_PER_HOUR = 3_600;
 
-/** `remainingSeconds` tới từ server (không tự tính lại từ `expiresAt` — tránh lệch giờ máy). */
 export function formatRemainingSeconds(seconds: number, t: TFunction<"credit">): string {
   if (seconds <= 0) return t("batch.expired");
   const days = Math.floor(seconds / SECONDS_PER_DAY);
@@ -25,51 +22,6 @@ export function formatRemainingSeconds(seconds: number, t: TFunction<"credit">):
   return t("batch.remainingSoon");
 }
 
-/* ---------------- CreditBalanceSummary ---------------- */
-
-export interface CreditBalanceSummaryProps {
-  availableBalance: number;
-  trialScansRemaining: number;
-  nearestExpiringBatch?: CreditBatch;
-  className?: string;
-}
-
-/** Widget số dư tổng + lô sắp hết hạn gần nhất (p5 §5.8). */
-export function CreditBalanceSummary({
-  availableBalance,
-  trialScansRemaining,
-  nearestExpiringBatch,
-  className,
-}: CreditBalanceSummaryProps) {
-  const { t } = useTranslation("credit");
-  return (
-    <Card elevated className={cn("flex flex-col gap-4", className)}>
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-caption text-text-secondary">{t("balance.availableLabel")}</p>
-          <p className="text-display font-bold text-text-primary">{availableBalance}</p>
-          <p className="text-caption text-text-tertiary">{t("balance.unit")}</p>
-        </div>
-        {trialScansRemaining > 0 ? (
-          <Badge tone="brand">{t("balance.trialRemaining", { count: trialScansRemaining })}</Badge>
-        ) : null}
-      </div>
-      {nearestExpiringBatch ? (
-        <div className="flex items-center gap-2 rounded-lg bg-background-alt p-3">
-          <Clock className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
-          <p className="text-caption text-text-secondary">
-            {t("balance.nearestExpiring", {
-              amount: nearestExpiringBatch.remainingAmount,
-              remaining: formatRemainingSeconds(nearestExpiringBatch.remainingSeconds, t),
-            })}
-          </p>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
-/* ---------------- CreditBatchCard ---------------- */
 
 export interface CreditBatchCardProps {
   batch: CreditBatch;
@@ -78,44 +30,49 @@ export interface CreditBatchCardProps {
 
 export function CreditBatchCard({ batch, className }: CreditBatchCardProps) {
   const { t } = useTranslation("credit");
-  // Tên gói từ F3 `GET /reference/packages` (query dùng chung, cache 5 phút ⇒ nhiều thẻ lô
-  // credit trên cùng màn chỉ tốn một request). Chưa tải xong thì hiện `packageCode` thô —
-  // không có bảng tên gói cứng nào ở client nữa.
   const { data: plans } = usePackageCatalog();
   const percent = batch.initialAmount > 0 ? Math.round((batch.remainingAmount / batch.initialAmount) * 100) : 0;
   const expired = batch.remainingSeconds <= 0;
 
   return (
-    <Card className={cn("flex flex-col gap-3", className)}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-body font-semibold text-text-primary">
-          {plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode}
-        </p>
-        <Badge tone={expired ? "neutral" : "brand"}>
+    <div
+      data-plan={batch.packageCode}
+      className={cn("flex flex-col gap-3 rounded-2xl bg-surface p-4 ring-1 ring-border/60", className)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <p className="truncate text-body font-bold text-text-primary">
+            {isWelcomeBatch(batch)
+              ? t("welcome.batchName")
+              : (plans?.find((plan) => plan.code === batch.packageCode)?.name ?? batch.packageCode)}
+          </p>
+          <p className="text-small text-text-tertiary">
+            {t("batch.activatedAt", { date: new Date(batch.activatedAt).toLocaleDateString(intlLocale()) })}
+          </p>
+        </div>
+        <Badge tone={expired ? "neutral" : "brand"} className="shrink-0">
           {expired ? t("batch.expired") : formatRemainingSeconds(batch.remainingSeconds, t)}
         </Badge>
       </div>
 
-      <div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-chip-bg" role="img" aria-hidden="true">
+      <div className="flex items-center gap-3">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-chip-bg" aria-hidden="true">
           <div
-            className="h-full rounded-full bg-primary"
+            className={cn(
+              "batch-bar-fill h-full rounded-full",
+              expired ? "bg-border-strong" : "bg-[var(--plan-accent,var(--color-primary))]",
+            )}
             style={{ width: `${String(Math.max(0, Math.min(100, percent)))}%` }}
           />
         </div>
-        <p className="mt-1.5 text-caption text-text-secondary">
+        <p className="shrink-0 text-caption font-semibold text-text-secondary tabular-nums">
           {t("batch.remainingOfTotal", { remaining: batch.remainingAmount, total: batch.initialAmount })}
         </p>
       </div>
-
-      <p className="text-small text-text-tertiary">
-        {t("batch.activatedAt", { date: new Date(batch.activatedAt).toLocaleDateString("vi-VN") })}
-      </p>
-    </Card>
+    </div>
   );
 }
 
-/* ---------------- LedgerEntryRow ---------------- */
 
 const LEDGER_TONE: Record<CreditLedgerType, "positive" | "negative" | "neutral"> = {
   GRANT: "positive",
@@ -128,28 +85,34 @@ const LEDGER_TONE: Record<CreditLedgerType, "positive" | "negative" | "neutral">
 export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; className?: string }) {
   const { t } = useTranslation("credit");
   const tone = LEDGER_TONE[entry.type];
-  const Icon = entry.amount >= 0 ? ArrowUpCircle : ArrowDownCircle;
-  // G4 (docs/cat-rag-credit-pipeline.md B2): "lô nào vừa bị trừ, còn hạn tới khi nào" — tên gói
-  // lấy từ F3 (nguồn duy nhất, không bảng cứng — xem CreditBatchCard), hạn lấy từ chính dòng
-  // ledger (`expiresAt` mới thêm, join sẵn từ credit_batch ở backend).
+  const Icon = entry.amount >= 0 ? ArrowUp : ArrowDown;
   const { data: plans } = usePackageCatalog();
   const batchPlanName = entry.packageCode
-    ? (plans?.find((plan) => plan.code === entry.packageCode)?.name ?? entry.packageCode)
+    ? entry.packageCode === WELCOME_PACKAGE_CODE
+      ? t("welcome.batchName")
+      : (plans?.find((plan) => plan.code === entry.packageCode)?.name ?? entry.packageCode)
     : null;
 
   return (
-    <div className={cn("flex items-center gap-3 rounded-lg border border-border bg-surface p-3", className)}>
-      <Icon
+    <div className={cn("flex items-center gap-3 px-3 py-3", className)}>
+      <span
         className={cn(
-          "size-5 shrink-0",
-          tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-tertiary",
+          "flex size-9 shrink-0 items-center justify-center rounded-full",
+          tone === "positive" ? "bg-success-bg" : tone === "negative" ? "bg-danger-bg" : "bg-chip-bg",
         )}
-        aria-hidden="true"
-      />
+      >
+        <Icon
+          className={cn(
+            "size-4",
+            tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-tertiary",
+          )}
+          aria-hidden="true"
+        />
+      </span>
       <div className="flex min-w-0 flex-1 flex-col">
-        <p className="truncate text-body font-medium text-text-primary">{t(`ledger.types.${entry.type}`)}</p>
+        <p className="truncate text-caption font-semibold text-text-primary">{t(`ledger.types.${entry.type}`)}</p>
         <p className="text-small text-text-tertiary">
-          {new Date(entry.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
+          {new Date(entry.createdAt).toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" })}
           {" · "}
           {t("ledger.balanceAfter", { count: entry.balanceAfter })}
         </p>
@@ -157,14 +120,14 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
           <p className="truncate text-small text-text-tertiary">
             {t("ledger.batchInfo", {
               name: batchPlanName,
-              date: new Date(entry.expiresAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+              date: new Date(entry.expiresAt).toLocaleDateString(intlLocale(), { day: "2-digit", month: "2-digit" }),
             })}
           </p>
         ) : null}
       </div>
       <p
         className={cn(
-          "text-body font-semibold",
+          "text-body font-bold tabular-nums",
           tone === "positive" ? "text-success-text" : tone === "negative" ? "text-danger-text" : "text-text-primary",
         )}
       >
@@ -174,7 +137,6 @@ export function LedgerEntryRow({ entry, className }: { entry: LedgerEntry; class
   );
 }
 
-/* ---------------- EntitlementFeatureList ---------------- */
 
 export function EntitlementFeatureList({ entitlement, className }: { entitlement: Entitlement; className?: string }) {
   const { t } = useTranslation("credit");
@@ -205,14 +167,12 @@ export function EntitlementFeatureList({ entitlement, className }: { entitlement
   );
 }
 
-/* ---------------- ActivationCodeField ---------------- */
 
 export interface ActivationCodeFieldProps extends Omit<InputProps, "value" | "onChange"> {
   value: string;
   onChange: (value: string) => void;
 }
 
-/** Ô nhập mã kích hoạt — tự viết hoa, tự bỏ dấu cách/gạch ngang (p10 §5.2 `ActivationCodeInput`). */
 export function ActivationCodeField({ value, onChange, ...props }: ActivationCodeFieldProps) {
   return (
     <Input

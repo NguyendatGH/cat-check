@@ -6,12 +6,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * F4 — danh mục rule cảnh báo đang bật, để người dùng hiểu "vì sao tôi bị flag"
- * ({@code GET /reference/monitoring-rules}, p8 §8.4.6).
- *
- * <p>Không {@code @Transactional}: một SELECT trên bảng cấu hình vài dòng.</p>
- */
 @Service
 public class MonitoringRuleCatalogService {
 

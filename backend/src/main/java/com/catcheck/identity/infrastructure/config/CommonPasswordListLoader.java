@@ -14,24 +14,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Nap danh sach mat khau pho bien <b>mot lan luc khoi dong</b> (p11 §11.3.5:
- * "danh sach tinh, nap vao bo nho luc khoi dong, so khop sau khi lowercase va bo
- * khoang trang").
- *
- * <p>Thu tu uu tien:</p>
- * <ol>
- *   <li>{@value #OVERRIDE_RESOURCE} tren classpath — danh sach day do do ops dua vao
- *       (khi p11 OQ-3 duoc chot). <b>Uu tien cao nhat</b>, dung de <b>thay</b>, khong
- *       phai doi mot dong code nao.</li>
- *   <li>{@link CommonPasswordBaseline} — duong co so ma A1 ghi san.</li>
- * </ol>
- */
 final class CommonPasswordListLoader {
 
     private static final Logger log = LoggerFactory.getLogger(CommonPasswordListLoader.class);
 
-    /** Mot gia tri moi dong; {@code #} va dong rong bi bo qua. */
     static final String OVERRIDE_RESOURCE = "/common-passwords.txt";
 
     private CommonPasswordListLoader() {

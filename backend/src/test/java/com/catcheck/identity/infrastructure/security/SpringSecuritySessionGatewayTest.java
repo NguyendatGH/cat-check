@@ -8,6 +8,7 @@ import com.catcheck.identity.infrastructure.ratelimit.RequestIpResolver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -33,13 +34,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Thu hoi phien phai cham toi phien THAT (Spring Session), khong chi ban sao
- * {@code user_device_session}; va "phien dang song" phai la phien that.
- */
 class SpringSecuritySessionGatewayTest {
 
     private static final Instant NOW = Instant.parse("2026-10-10T00:00:00Z");
@@ -124,6 +122,101 @@ class SpringSecuritySessionGatewayTest {
 
         gateway.establish(USER, "person@example.com", Set.of("USER"), false);
         assertThat(currentSession.getMaxInactiveInterval()).isEqualTo((int) Duration.ofHours(12).toSeconds());
+    }
+
+    @Test
+    void repeatedLoginOnExistingSessionRotatesIdBeforeInsertingDeviceRow() {
+        gateway.establish(USER, "person@example.com", Set.of("USER"), true);
+        gateway.establish(USER, "person@example.com", Set.of("USER"), true);
+
+        ArgumentCaptor<DeviceSession> inserted = ArgumentCaptor.forClass(DeviceSession.class);
+        verify(devices, times(2)).insert(inserted.capture());
+        assertThat(inserted.getAllValues().get(0).sessionIdHash())
+                .isNotEqualTo(inserted.getAllValues().get(1).sessionIdHash());
+    }
+
+    /* ---------- C1: TOTP required => no authenticated session before step 2 ---------- */
+
+    @Test
+    void pendingMfaDoesNotAuthenticateTheSession() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        assertThat(gateway.currentUserId()).isEmpty();
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        assertThat(gateway.pendingMfaUserId()).contains(USER);
+        verify(devices, never()).insert(any());
+    }
+
+    @Test
+    void pendingMfaSessionIsIndexedSoRevokeAllFindsIt() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        org.springframework.mock.web.MockHttpServletRequest request =
+                (org.springframework.mock.web.MockHttpServletRequest)
+                        ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        assertThat(request.getSession(false)
+                .getAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME))
+                .isEqualTo(USER.toString());
+    }
+
+    @Test
+    void pendingMfaDropsAnIdentityAlreadyInTheSession() {
+        gateway.establish(UUID.randomUUID(), "other@example.com", Set.of("USER"), true);
+
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        assertThat(gateway.currentUserId()).isEmpty();
+        assertThat(currentSession.isInvalid()).isTrue();
+    }
+
+    @Test
+    void completingPendingMfaOpensATotpLevelSession() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        gateway.completePendingMfa();
+
+        assertThat(gateway.currentUserId()).contains(USER);
+        assertThat(((com.catcheck.identity.application.AuthPrincipal) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal()).mfaLevel())
+                .isEqualTo(com.catcheck.shared.security.MfaLevel.TOTP);
+        assertThat(gateway.pendingMfaUserId()).isEmpty();
+    }
+
+    @Test
+    void pendingMfaExpires() {
+        gateway.beginPendingMfa(USER, "person@example.com", Set.of("USER"), true);
+
+        SpringSecuritySessionGateway later = gatewayAt(NOW.plus(SpringSecuritySessionGateway.PENDING_MFA_TTL));
+
+        assertThat(later.pendingMfaUserId()).isEmpty();
+        later.completePendingMfa();
+        assertThat(later.currentUserId()).isEmpty();
+    }
+
+    /* ---------- H3: step-up window really expires ---------- */
+
+    @Test
+    void reauthWindowExpiresWithTheClock() {
+        gateway.establish(USER, "person@example.com", Set.of("USER"), true);
+        assertThat(gateway.isReauthenticated()).isFalse();
+
+        gateway.markReauthenticated(300);
+
+        assertThat(gateway.isReauthenticated()).isTrue();
+        assertThat(gatewayAt(NOW.plusSeconds(299)).isReauthenticated()).isTrue();
+        assertThat(gatewayAt(NOW.plusSeconds(300)).isReauthenticated()).isFalse();
+    }
+
+    @SuppressWarnings("unchecked")
+    private SpringSecuritySessionGateway gatewayAt(Instant instant) {
+        ObjectProvider<org.springframework.security.web.authentication.session.SessionAuthenticationStrategy>
+                strategies = mock(ObjectProvider.class);
+        ObjectProvider<FindByIndexNameSessionRepository<? extends org.springframework.session.Session>>
+                sessionRepos = mock(ObjectProvider.class);
+        when(sessionRepos.getIfAvailable()).thenReturn((FindByIndexNameSessionRepository) httpSessions);
+        return new SpringSecuritySessionGateway(strategies, sessionRepos, devices,
+                new RequestIpResolver(""), POLICY, mock(AuditLogService.class),
+                Clock.fixed(instant, ZoneOffset.UTC));
     }
 
     private static Map<String, MapSession> live(String... ids) {

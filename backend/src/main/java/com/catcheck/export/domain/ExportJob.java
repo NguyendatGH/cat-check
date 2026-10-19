@@ -14,12 +14,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Yêu cầu xuất hồ sơ PDF — ánh xạ {@code export_job} (p4 G1).
- *
- * <p>{@code userId}, {@code catId} là cột UUID thuần trỏ sang module khác — KHÔNG dùng
- * {@code @ManyToOne} (R6).</p>
- */
 @Entity
 @Table(name = "export_job")
 public class ExportJob {

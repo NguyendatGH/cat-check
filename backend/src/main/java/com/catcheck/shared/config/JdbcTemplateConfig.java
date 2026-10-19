@@ -1,34 +1,24 @@
 package com.catcheck.shared.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCallback;
+import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.jdbc.core.SqlProvider;
 
 import javax.sql.DataSource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
-/**
- * {@link JdbcTemplate} tu doi {@link Instant} sang {@link OffsetDateTime} cho MOI tham so bind.
- *
- * <p>Driver PostgreSQL khong tu suy duoc kieu SQL cho {@code java.time.Instant}, nem
- * {@code Can't infer the SQL type...} ngay luc chay (compile khong bat duoc). Bind {@code Instant}
- * tho nam rai rac o nhieu adapter, nen xu ly mot lan o day thay vi va tung cho.</p>
- *
- * <p>Sua mot lan tai day: {@link JdbcTemplate#newArgPreparedStatementSetter} la diem mo rong
- * co san cua Spring cho dung viec nay, va moi phuong thuc nhan {@code Object... args}
- * ({@code update}, {@code query}, {@code queryForObject}...) deu di qua no. Dung {@link OffsetDateTime} chu KHONG phai
- * {@code java.sql.Timestamp}: R13 (ArchUnit) cam cac kieu ngay gio legacy, va driver
- * PostgreSQL ho tro {@code OffsetDateTime} native. Nho vay cac adapter khong con phai tu boc
- * {@code Timestamp.from(...)} nua — bind thang {@code Instant} la duoc.</p>
- *
- * <p>Khong dat {@code spring.jdbc.template.*} nao trong {@code application*.yml} nen dinh nghia
- * bean nay khong lam mat cau hinh auto-config nao.</p>
- */
 @Configuration
 public class JdbcTemplateConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(JdbcTemplateConfig.class);
 
     @Bean
     public JdbcTemplate jdbcTemplate(DataSource dataSource) {
@@ -36,6 +26,14 @@ public class JdbcTemplateConfig {
             @Override
             protected PreparedStatementSetter newArgPreparedStatementSetter(Object[] args) {
                 return super.newArgPreparedStatementSetter(convertInstants(args));
+            }
+
+            @Override
+            public <T> T execute(PreparedStatementCreator psc, PreparedStatementCallback<T> action) {
+                if (log.isDebugEnabled() && psc instanceof SqlProvider sqlProvider) {
+                    log.debug("SQL: {}", sqlProvider.getSql());
+                }
+                return super.execute(psc, action);
             }
         };
     }

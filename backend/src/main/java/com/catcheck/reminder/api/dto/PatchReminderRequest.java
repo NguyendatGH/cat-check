@@ -8,10 +8,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
 import java.util.List;
 
-/**
- * I4 — {@code PATCH /reminders/{id}} theo merge-patch (RFC 7396, p8 §8.3.2): field vắng mặt
- * nghĩa là "không đụng tới".
- */
 public record PatchReminderRequest(
         String scheduleKind,
         @Min(1) @Max(90) Integer intervalDays,

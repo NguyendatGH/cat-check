@@ -21,14 +21,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * L4 — {@code GET /admin/users/{userId}/cats} (p8 §8.4.12 mục (a), p14 ô Q3).
- *
- * <p>Điều được neo: hồ sơ mèo ra khỏi service ở dạng <b>che</b> cho Super/Support, và chỉ mở đầy
- * đủ khi người gọi là {@code DPO} <b>và</b> người dùng đang có {@code dsar_request} mở — cả hai
- * điều kiện, không phải một. Cộng với việc một endpoint chỉ đọc vẫn ghi {@code audit_log} (cột
- * {@code Aud} của p8 L4, p15 REQ-AUD-04).</p>
- */
 class AdminCatViewServiceTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -107,7 +99,6 @@ class AdminCatViewServiceTest {
         AdminCatViewService.AdminCatListing listing =
                 service.listCatsOf(USER_ID, context(Set.of("ADMIN_SUPPORT")));
 
-        // Hồi quy cho bug đo được trên app thật: statusFilter = null ⇒ danh sách rỗng.
         assertThat(listing.cats()).hasSize(2);
         assertThat(listing.cats()).extracting(Cat::getStatus)
                 .containsExactlyInAnyOrder(CatStatus.ACTIVE, CatStatus.ARCHIVED);
@@ -121,11 +112,9 @@ class AdminCatViewServiceTest {
         assertThat(AdminFreeTextMask.text("  Mun  ")).isEqualTo("M***");
         assertThat(AdminFreeTextMask.text("L")).isEqualTo("***");
         assertThat(AdminFreeTextMask.text("")).isEqualTo("***");
-        // Vắng dữ liệu và che dữ liệu là HAI trạng thái khác nhau — client phải phân biệt được.
         assertThat(AdminFreeTextMask.text(null)).isNull();
     }
 
-    /* --------------------------------------------------------------- helper */
 
     private static AdminActionContext context(Set<String> roles) {
         return new AdminActionContext(ADMIN_ID, roles.iterator().next(), roles,
@@ -137,7 +126,6 @@ class AdminCatViewServiceTest {
                 "CC-VN-A1B2C3", LocalDate.of(2026, 10, 6), NOW);
     }
 
-    /* ----------------------------------------------------------------- fake */
 
     private static final class FakeCatRepository implements CatRepository {
 
@@ -151,15 +139,6 @@ class AdminCatViewServiceTest {
                     .findFirst();
         }
 
-        /**
-         * Chép ĐÚNG mệnh đề WHERE của JPQL thật:
-         * {@code c.status = :statusFilter OR (:includeArchived = true AND c.status = ARCHIVED)}.
-         *
-         * <p>Đặc biệt giữ nguyên hành vi của {@code statusFilter = null}: trong SQL ba giá trị
-         * {@code c.status = null} KHÔNG bao giờ đúng, nên nhánh đầu tắt hẳn. Một fake "null nghĩa
-         * là mọi trạng thái" sẽ xanh trong khi endpoint thật trả danh sách rỗng — đúng con bug đã
-         * đo được trên app chạy thật.</p>
-         */
         @Override
         public List<Cat> findAllByOwnerId(UUID ownerId, CatStatus statusFilter, boolean includeArchived) {
             this.includeArchivedAsked = includeArchived;
@@ -182,7 +161,6 @@ class AdminCatViewServiceTest {
 
         @Override
         public void clearPrimaryForOwner(UUID ownerId, Instant now) {
-            // không dùng ở L4
         }
 
         @Override

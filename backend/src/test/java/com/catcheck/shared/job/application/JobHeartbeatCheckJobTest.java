@@ -18,14 +18,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * {@link JobHeartbeatCheckJob} — nhóm E, p12 §12.6.6.
- *
- * <p>Điều cần chứng minh: job đọc {@code job_run} gần nhất, so với <b>mốc lẽ ra đã chạy</b> suy
- * ra từ cron, và đếm đúng số job quá hạn — kể cả job chưa từng chạy lần nào. Mốc thời gian cố
- * định 05:05 UTC = 12:05 ICT, tức ngay sau mốc {@code 0 5 * * * *} của
- * {@code ExpireCreditBatchesJob} theo giờ ICT.</p>
- */
 class JobHeartbeatCheckJobTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T05:06:00Z");
@@ -47,9 +39,6 @@ class JobHeartbeatCheckJobTest {
                 setting(true, "0 5 * * * *", Duration.ofMinutes(50)),
                 setting(reminderEnabled, "0 15 * * * *", Duration.ofMinutes(50)),
                 setting(true, "0 */10 * * * *", Duration.ofMinutes(5)),
-                // Bon job nhom B (W2-B) tat trong test nay: bai test do dem chinh xac so job
-                // qua han, nen moi job them vao danh muc ma khong tat se lam con so lech ma
-                // KHONG phat hien duoc loi nao that su.
                 setting(false, "0 */5 * * * *", Duration.ofSeconds(270)),
                 setting(false, "*/30 * * * * *", Duration.ofSeconds(25)),
                 setting(false, "0 */15 * * * *", Duration.ofMinutes(14)),
@@ -71,8 +60,6 @@ class JobHeartbeatCheckJobTest {
 
         JobOutcome outcome = heartbeat.check(context());
 
-        // Hai job nghiệp vụ đang bật, chưa job nào có dòng job_run ⇒ cả hai quá hạn.
-        // Chính JobHeartbeatCheckJob KHÔNG tự đếm mình (p12 §12.6.6).
         assertEquals(2, heartbeat.overdueCount());
         assertEquals(2, outcome.itemsProcessed());
         assertEquals("overdue=ExpireCreditBatchesJob,CreditExpiringReminderJob", outcome.errorSummary());
@@ -80,7 +67,6 @@ class JobHeartbeatCheckJobTest {
 
     @Test
     void aJobThatRanAtItsLastExpectedSlotIsNotOverdue() {
-        // 05:05 UTC = 12:05 ICT: đúng mốc gần nhất của cron "0 5 * * * *".
         port.seedFinishedRun(JobProperties.EXPIRE_CREDIT_BATCHES, Instant.parse("2026-10-03T05:05:00Z"));
         port.seedFinishedRun(JobProperties.CREDIT_EXPIRING_REMINDER, Instant.parse("2026-10-03T04:15:00Z"));
 
@@ -92,7 +78,6 @@ class JobHeartbeatCheckJobTest {
 
     @Test
     void aJobThatMissedItsSlotIsOverdue() {
-        // Chạy lần cuối cách đây hơn một chu kỳ ⇒ đã bỏ lỡ mốc gần nhất.
         port.seedFinishedRun(JobProperties.EXPIRE_CREDIT_BATCHES, Instant.parse("2026-10-03T02:05:00Z"));
         port.seedFinishedRun(JobProperties.CREDIT_EXPIRING_REMINDER, Instant.parse("2026-10-03T04:15:00Z"));
 

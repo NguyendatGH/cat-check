@@ -8,6 +8,8 @@ Xem `spec/04-index.md` ở gốc repo trước khi đọc code — bản đồ t
 - JDK 21 (Temurin hoặc OpenJDK).
 - Maven 3.9.16 — dùng qua wrapper (`./mvnw`), không cần cài Maven thủ công.
 - PostgreSQL 18.x chạy native trên máy; Mailpit là tuỳ chọn nếu muốn xem email local.
+- pgvector cho PostgreSQL 18 (nhánh vector của trợ lý RAG, migration V35):
+  `sudo apt install postgresql-18-pgvector`.
 
 ## Chạy local (đúng thứ tự p18 §18.2)
 
@@ -18,7 +20,18 @@ quản trị (nếu máy đã có sẵn thì bỏ qua phần đã tồn tại):
 sudo -u postgres psql -d postgres
 CREATE ROLE catcheck LOGIN PASSWORD 'catcheck_local_only';
 CREATE DATABASE catcheck OWNER catcheck;
+\c catcheck
+-- vector không phải extension "trusted": chủ DB không tự tạo được, cần superuser tạo một lần.
+CREATE EXTENSION IF NOT EXISTS vector;
 \q
+```
+
+Trợ lý RAG tìm theo ngữ nghĩa bằng model embedding chạy cục bộ (~135MB, không nằm trong repo).
+Tải một lần rồi đặt `CATCHECK_AI_EMBEDDING_MODEL_DIR` trong `.env`; bỏ trống thì trợ lý chỉ tìm theo từ khoá:
+
+```bash
+cd backend && tools/fetch-embedding-model.sh
+# CATCHECK_AI_EMBEDDING_MODEL_DIR=<đường dẫn in ra ở cuối>
 ```
 
 Sau đó chạy backend native:

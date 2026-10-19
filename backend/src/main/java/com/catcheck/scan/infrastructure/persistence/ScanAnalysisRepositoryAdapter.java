@@ -42,8 +42,6 @@ class ScanAnalysisRepositoryAdapter implements ScanAnalysisRepository {
     @Override
     public List<ScanAnalysis> findBackfillCandidates(UUID chartId, Instant computedFrom,
                                                      String engineVersionPrefix, int limit, int offset) {
-        // PageRequest nhận (page, size) chứ không phải (offset, size) — job luôn đi theo lô cố
-        // định nên offset là bội của limit và phép chia này không mất dòng nào.
         int size = Math.max(1, limit);
         return jpaRepository.findBackfillCandidates(chartId, computedFrom, engineVersionPrefix,
                 PageRequest.of(offset / size, size));

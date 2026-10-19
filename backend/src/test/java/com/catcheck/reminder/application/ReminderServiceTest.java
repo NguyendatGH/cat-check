@@ -7,6 +7,7 @@ import com.catcheck.reminder.domain.ReminderSource;
 import com.catcheck.reminder.domain.ReminderType;
 import com.catcheck.reminder.domain.ScheduleKind;
 import com.catcheck.reminder.domain.port.ReminderRepository;
+import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -20,9 +21,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Regression coverage for the partial unique index race on active cat reminders. */
 class ReminderServiceTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
@@ -45,8 +46,6 @@ class ReminderServiceTest {
 
     @Test
     void concurrentReactivationIsReportedAsConflict() {
-        // Bật lại lịch đang tắt trong lúc request khác vừa tạo lịch cùng cat+type: cả hai qua được
-        // findActiveIdByCatAndType rồi va uq_reminder_cat_type_active ở UPDATE.
         repository.stored = inactiveReminder();
         repository.failure = new DuplicateKeyException("uq_reminder_cat_type_active");
 
@@ -58,12 +57,70 @@ class ReminderServiceTest {
 
     @Test
     void otherIntegrityViolationsAreNotMislabelledAsLimitReached() {
-        // Ví dụ FK: hồ sơ mèo bị xoá cứng giữa lúc kiểm và lúc INSERT — không phải "đã có lịch".
         repository.failure = new DataIntegrityViolationException("fk_reminder_cat");
 
         assertThatThrownBy(() -> service.create(command()))
                 .isNotInstanceOf(ConflictException.class)
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void rruleReminderIsCreatedWithANextRun() {
+        Reminder created = service.create(new ReminderCommands.Create(USER_ID, CAT_ID,
+                ReminderType.SCAN_ROUTINE.name(), "RRULE", null, "FREQ=WEEKLY;BYDAY=WE,SU",
+                LocalTime.of(9, 0), null, "Asia/Ho_Chi_Minh", List.of("PUSH"), "USER"));
+
+        // NOW = thứ Bảy 03/10 11:00 giờ VN ⇒ Chủ Nhật 04/10 09:00 giờ VN.
+        assertThat(created.nextRunAt()).isEqualTo(Instant.parse("2026-10-04T02:00:00Z"));
+    }
+
+    @Test
+    void unsupportedRruleIsRejectedInsteadOfSilentlyNeverFiring() {
+        assertThatThrownBy(() -> service.create(new ReminderCommands.Create(USER_ID, CAT_ID,
+                ReminderType.SCAN_ROUTINE.name(), "RRULE", null, "FREQ=MONTHLY;BYMONTHDAY=1",
+                null, null, "Asia/Ho_Chi_Minh", List.of("PUSH"), "USER")))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ReminderErrorCode.REMINDER_SCHEDULE_INVALID);
+    }
+
+    @Test
+    void legacyUnsupportedRruleCanStillBeDeactivated() {
+        repository.stored = legacyRrule(true);
+
+        Reminder updated = service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, null, null, null, null, false));
+
+        assertThat(updated.active()).isFalse();
+        assertThat(updated.nextRunAt()).isNull();
+    }
+
+    @Test
+    void legacyUnsupportedRruleIsStillRejectedWhenActiveOrChanged() {
+        repository.stored = legacyRrule(true);
+        assertThatThrownBy(() -> service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, null, null, null, List.of("PUSH"), null)))
+                .isInstanceOf(BusinessRuleException.class);
+
+        repository.stored = legacyRrule(false);
+        assertThatThrownBy(() -> service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, "FREQ=YEARLY", null, null, null, false)))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    void patchingToASupportedRruleSchedulesIt() {
+        repository.stored = legacyRrule(true);
+
+        Reminder updated = service.patch(new ReminderCommands.Patch(
+                USER_ID, REMINDER_ID, null, null, "FREQ=WEEKLY;BYDAY=WE,SU", null, null, null, null));
+
+        assertThat(updated.nextRunAt()).isEqualTo(Instant.parse("2026-10-04T02:00:00Z"));
+    }
+
+    private static Reminder legacyRrule(boolean active) {
+        return new Reminder(REMINDER_ID, USER_ID, CAT_ID, ReminderType.SCAN_ROUTINE, ScheduleKind.RRULE,
+                null, "FREQ=MONTHLY;BYMONTHDAY=1", LocalTime.of(9, 0), null, "Asia/Ho_Chi_Minh", null, null,
+                null, List.of("PUSH"), ReminderSource.USER, active, NOW, NOW);
     }
 
     private static ReminderCommands.Create command() {
@@ -89,19 +146,24 @@ class ReminderServiceTest {
         }
     }
 
-    /** Mọi lần ghi ném {@link #failure} — mô phỏng request đua đã commit trước. */
     private static final class RacingReminderRepository implements ReminderRepository {
         private RuntimeException failure;
         private Reminder stored;
 
         @Override
         public Reminder insert(Reminder reminder) {
-            throw failure;
+            if (failure != null) {
+                throw failure;
+            }
+            return reminder;
         }
 
         @Override
         public Reminder update(Reminder reminder) {
-            throw failure;
+            if (failure != null) {
+                throw failure;
+            }
+            return reminder;
         }
 
         @Override public Optional<Reminder> findByIdForUser(UUID id, UUID userId) {
@@ -115,6 +177,12 @@ class ReminderServiceTest {
         @Override public List<UUID> findDueIds(Instant now, int limit) { return List.of(); }
         @Override public Optional<Reminder> lockDue(UUID id, Instant now) { return Optional.empty(); }
         @Override public void markDispatched(UUID id, Instant sentAt, Instant nextRunAt) {
+            throw new UnsupportedOperationException();
+        }
+        @Override public List<Reminder> findUnscheduledRrule(UUID afterId, int limit) {
+            throw new UnsupportedOperationException();
+        }
+        @Override public boolean scheduleIfUnscheduled(UUID id, Instant nextRunAt) {
             throw new UnsupportedOperationException();
         }
     }

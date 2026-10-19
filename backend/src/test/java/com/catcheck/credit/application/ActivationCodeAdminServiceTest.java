@@ -8,6 +8,7 @@ import com.catcheck.credit.application.AdminActivationTestDoubles.RecordingAudit
 import com.catcheck.credit.application.AdminActivationTestDoubles.TestCodeHasher;
 import com.catcheck.credit.domain.ActivationBatchSummary;
 import com.catcheck.credit.domain.ActivationCode;
+import com.catcheck.credit.domain.ActivationCodeEffectiveStatus;
 import com.catcheck.credit.domain.ActivationCodeFilter;
 import com.catcheck.credit.domain.ActivationCodeStatus;
 import com.catcheck.shared.error.BusinessRuleException;
@@ -29,13 +30,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * L20–L24 (p8 §8.4.12 mục (b)).
- *
- * <p>Bốn tính chất mà gói việc W2-C phải chứng minh: <b>số lượng đúng</b>, <b>mã không trùng</b>,
- * <b>void rồi không kích hoạt được</b>, <b>CSV chỉ tải được một lần</b>. Ba cái đầu là điều kiện
- * để phát hành credit mà không mất tiền; cái cuối là hợp đồng {@code 410} của p8 L22.</p>
- */
 class ActivationCodeAdminServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T08:00:00Z");
@@ -61,7 +55,7 @@ class ActivationCodeAdminServiceTest {
         ActivationCodeIssuanceService issuanceService = new ActivationCodeIssuanceService(
                 codePort, packagePlanPort, codeHasher, new SecureRandom(), new UuidV7(clock), clock);
         adminService = new ActivationCodeAdminService(
-                codePort, issuanceService, csvVault, auditLog);
+                codePort, issuanceService, csvVault, auditLog, clock);
     }
 
     @Test
@@ -102,7 +96,6 @@ class ActivationCodeAdminServiceTest {
                 .map(line -> line.split(",", 2)[0])
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
         assertThat(rawCodes).hasSize(200);
-        // Mã thô phải khớp định dạng p5 §5.9 CC-<PKG>-<10 ký tự Crockford, có checksum đúng.
         assertThat(rawCodes).allSatisfy(raw ->
                 assertThat(com.catcheck.credit.domain.ActivationCodeFormat.validateOrNull(raw))
                         .as("mã %s phải hợp lệ cả định dạng lẫn checksum", raw)
@@ -170,9 +163,6 @@ class ActivationCodeAdminServiceTest {
 
         InMemoryCreditStore creditStore = new InMemoryCreditStore();
         FakeEntitlementPort entitlementPort = new FakeEntitlementPort();
-        // `UserEntitlementPort` không còn là phụ thuộc của ActivateCreditCodeService: phép tính
-        // entitlement đã chuyển sang EntitlementRecalculationService (W5-A) để đường admin cấp
-        // credit tay (L10) dùng chung đúng một định nghĩa `write_access_until` (bất biến I28).
         EntitlementRecalculationService entitlementRecalculation =
                 new EntitlementRecalculationService(entitlementPort, creditStore, packagePlanPort);
         ActivateCreditCodeService activateService = new ActivateCreditCodeService(
@@ -240,12 +230,41 @@ class ActivationCodeAdminServiceTest {
         assertThat(inBatchJ.items()).allMatch(code -> code.status() == ActivationCodeStatus.VOID);
     }
 
-    /* ---------------------------------------------------------------- helper */
 
-    /**
-     * Lấy một mã thô của lô bằng cách rút CSV. Đây là đường DUY NHẤT đọc được mã thô, kể cả
-     * trong test — nếu test có đường khác thì nó không còn kiểm đúng cái mà p5 §5.9 đảm bảo.
-     */
+    @Test
+    @DisplayName("L19: mã ISSUED quá valid_until suy ra EXPIRED; lọc ISSUED/EXPIRED tách rời, đếm đủ 4 trạng thái")
+    void expiredIsDerivedFromIssuedPastValidUntil() {
+        adminService.issueBatch("PLUS", 2, "LOT-K", 365, context());
+        ActivationCode stale = new ActivationCode(UUID.randomUUID(), codeHasher.hash("CC-PLUS-STALE").hex(),
+                (short) 1, "PLUS-", "PLUS", "LOT-OLD", NOW.minusSeconds(86_400 * 30L),
+                NOW.minusSeconds(60), ActivationCodeStatus.ISSUED, null, null);
+        codePort.insert(stale);
+        ActivationCode redeemedLate = codePort.rows.values().stream()
+                .filter(code -> "LOT-K".equals(code.productionBatch())).findFirst().orElseThrow();
+        codePort.markRedeemed(redeemedLate.id(), USER_ID, NOW);
+
+        assertThat(adminService.effectiveStatusOf(stale)).isEqualTo(ActivationCodeEffectiveStatus.EXPIRED);
+        assertThat(adminService.effectiveStatusOf(codePort.findById(redeemedLate.id()).orElseThrow()))
+                .isEqualTo(ActivationCodeEffectiveStatus.REDEEMED);
+
+        ActivationCodeAdminService.Page<ActivationCode> expired = adminService.search(
+                adminService.filterOf(null, "PLUS", ActivationCodeEffectiveStatus.EXPIRED, null), 0, 20);
+        assertThat(expired.items()).extracting(ActivationCode::id).containsExactly(stale.id());
+        assertThat(expired.totalElements()).isEqualTo(1);
+
+        ActivationCodeAdminService.Page<ActivationCode> stillValid = adminService.search(
+                adminService.filterOf(null, "PLUS", ActivationCodeEffectiveStatus.ISSUED, null), 0, 20);
+        assertThat(stillValid.items()).hasSize(1).noneMatch(code -> code.id().equals(stale.id()));
+
+        assertThat(adminService.countByStatus(null, "PLUS", null)).containsExactlyInAnyOrderEntriesOf(
+                java.util.Map.of(
+                        ActivationCodeEffectiveStatus.ISSUED, 1L,
+                        ActivationCodeEffectiveStatus.EXPIRED, 1L,
+                        ActivationCodeEffectiveStatus.REDEEMED, 1L,
+                        ActivationCodeEffectiveStatus.VOID, 0L));
+    }
+
+
     private String firstRawCodeOf(String batchId) {
         String csv = adminService.downloadCsv(batchId, context());
         return csv.lines().skip(1).findFirst().orElseThrow().split(",", 2)[0];

@@ -21,19 +21,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * {@code credit_batch} + {@code credit_ledger} trong bộ nhớ, dùng cho hai job nhóm A và cho
- * {@code AdminCreditServiceTest} (L9/L10 — W5-A).
- *
- * <p>Fake này <b>lặp lại đúng các bộ lọc của câu SQL thật</b> ({@code status = 'ACTIVE'},
- * {@code expires_at <= now}, {@code remaining_amount > 0}, cột cờ đã nhắc còn NULL) — đó mới là
- * thứ quyết định tính idempotent mà p12 §12.6.2 đòi, nên nếu fake lọc lỏng hơn thì test sẽ xanh
- * trong khi job thật ghi ledger trùng. {@link #locked} mô phỏng {@code SKIP LOCKED}: lô trong
- * tập này coi như đang bị transaction khác giữ và không khoá được.</p>
- */
 final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
 
-    /** Một dòng {@code credit_batch} có thể thay đổi. */
     static final class Batch {
         final UUID id;
         final UUID userId;
@@ -58,10 +47,8 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
     final List<Batch> batches = new ArrayList<>();
     final List<LedgerEntry> entries = new ArrayList<>();
 
-    /** Lô "đang bị khoá bởi transaction khác" — {@code FOR UPDATE SKIP LOCKED} bỏ qua chúng. */
     final Set<UUID> locked = new HashSet<>();
 
-    /** Lô mà {@link #markExpired} sẽ ném — mô phỏng lỗi một lô không chặn lô khác. */
     final Set<UUID> failing = new HashSet<>();
 
     Batch addBatch(UUID userId, Instant expiresAt, int remaining, int initial) {
@@ -78,7 +65,6 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
         return entries.stream().filter(e -> e.type() == type).toList();
     }
 
-    // ------------------------------------------------------------------ CreditBatchPort
 
     @Override
     public List<UUID> findDueForExpiry(Instant now, int limit) {
@@ -140,7 +126,6 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
                 .toList();
     }
 
-    // ----------------------------------------------------------------- CreditLedgerPort
 
     @Override
     public Optional<ExpiringCreditBatch> lockBatchForExpiry(UUID batchId, Instant now) {
@@ -197,12 +182,6 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
                 .sum();
     }
 
-    /**
-     * Lặp lại đúng bộ lọc + <b>thứ tự</b> của câu SQL thật ({@code status='ACTIVE'},
-     * {@code expires_at > now}, {@code remaining_amount > 0}, {@code ORDER BY expires_at, id}).
-     * Thứ tự là phần quan trọng nhất: nó mới là FEFO (p5 R2) — fake sắp sai thì test xanh trong
-     * khi code thật trừ sai lô.
-     */
     @Override
     public List<CreditBatchSnapshot> lockLiveBatchesForFefo(UUID userId, Instant now) {
         return batches.stream()
@@ -258,7 +237,6 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
         return List.of();
     }
 
-    /** Trần {@code maxPerDay} của L10 — tính đúng từ các dòng đã ghi, không trả 0 cứng. */
     @Override
     public int sumAdminAdjustedAbsSince(UUID adminId, Instant since) {
         return entries.stream()
@@ -274,7 +252,6 @@ final class InMemoryCreditStore implements CreditBatchPort, CreditLedgerPort {
         return false;
     }
 
-    // ------------------------------------------------------------------------- bộ lọc
 
     private static boolean isDueForExpiry(Batch batch, Instant now) {
         return batch.status == CreditBatchStatus.ACTIVE

@@ -1,36 +1,28 @@
 import { useId, type ReactNode, type SelectHTMLAttributes } from "react";
 import { useTranslation } from "react-i18next";
+import { Card as AntCard, Typography } from "antd";
 import { PlugZap, ShieldAlert } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api";
 import { ADMIN_REASON_MIN_LENGTH } from "./api";
 
-/**
- * Mảnh dựng chung của khu vực quản trị.
- *
- * Quyết định #14 của owner: admin làm nhanh ở mức MVP — "chức năng, phẳng, nhất quán",
- * KHÔNG phải một bề mặt sản phẩm được thiết kế riêng. Không có frame Figma cho bất kỳ
- * màn admin nào, nên mọi thứ ở đây bám đúng token sẵn có và đúng lối card/table của
- * `pages/settings/SettingsSecurityPage.tsx`.
- */
-
-// ------------------------------------------------------------------- khung trang
-
 export interface AdminPageHeaderProps {
   title: string;
   description?: string;
-  /** Mã endpoint/mục spec mà trang này nối tới — giúp người bảo trì tra ngược. */
-  specRef?: string;
+  /** Thông tin phụ cho người vận hành (vd. ID đối tượng). Không dùng cho mã spec/endpoint (p17 A4). */
+  meta?: string;
   actions?: ReactNode;
 }
 
-export function AdminPageHeader({ title, description, specRef, actions }: AdminPageHeaderProps) {
+export function AdminPageHeader({ title, description, meta, actions }: AdminPageHeaderProps) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3">
+    <header className="flex flex-wrap items-start justify-between gap-4" data-reveal>
       <div className="min-w-0">
-        <h1 className="text-h2 font-bold text-text-primary">{title}</h1>
+        <Typography.Title level={1} className="!mb-0 !text-h2 !font-extrabold !text-text-primary">
+          {title}
+        </Typography.Title>
         {description !== undefined ? <p className="pt-1 text-body text-text-secondary">{description}</p> : null}
-        {specRef !== undefined ? <p className="pt-1 font-mono text-small text-text-tertiary">{specRef}</p> : null}
+        {meta !== undefined ? <p className="pt-1 font-mono text-small text-text-tertiary">{meta}</p> : null}
       </div>
       {actions !== undefined ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
     </header>
@@ -45,23 +37,31 @@ export interface AdminSectionProps {
   className?: string;
 }
 
-/** Khối nội dung chuẩn — card trắng, bo 2xl, shadow-brand-md (giống trang Cài đặt). */
 export function AdminSection({ title, description, actions, children, className }: AdminSectionProps) {
+  const headingId = useId();
   return (
-    <section className={cn("flex flex-col gap-4 rounded-2xl bg-surface p-5 shadow-brand-md", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-h3 font-bold text-text-primary">{title}</h2>
-          {description !== undefined ? <p className="pt-0.5 text-caption text-text-secondary">{description}</p> : null}
+    <AntCard
+      role="region"
+      aria-labelledby={headingId}
+      className={cn("shadow-brand-md", className)}
+      title={
+        <div className="py-1">
+          <h2 id={headingId} className="text-h3 font-bold text-text-primary">
+            {title}
+          </h2>
+          {description !== undefined ? (
+            <p className="text-caption font-normal text-text-secondary">{description}</p>
+          ) : null}
         </div>
-        {actions !== undefined ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
-      </div>
-      {children}
-    </section>
+      }
+      extra={actions}
+      styles={{ header: { paddingInline: 20 }, body: { padding: 20 } }}
+    >
+      <div className="flex flex-col gap-4">{children}</div>
+    </AntCard>
   );
 }
 
-/** Bọc mọi bảng rộng — admin là công cụ desktop nhưng không được vỡ ở màn hẹp. */
 export function AdminTableScroll({ children }: { children: ReactNode }) {
   return <div className="-mx-1 overflow-x-auto px-1">{children}</div>;
 }
@@ -71,31 +71,17 @@ export const adminThClass =
   "border-b border-border px-3 py-2 text-left text-overline font-semibold text-text-tertiary whitespace-nowrap";
 export const adminTdClass = "border-b border-border/60 px-3 py-2 align-top text-text-primary";
 
-// ---------------------------------------------------------- trạng thái chưa có API
-
 export interface MissingApiEndpoint {
-  /** Mã dòng của p8 §8.4.12, VD `L19`. */
   code: string;
-  /** Method + path đúng như spec, VD `GET /admin/activation-codes`. */
   signature: string;
 }
 
 export interface MissingApiNoticeProps {
-  /** Mục spec SỞ HỮU nhóm endpoint này, VD `p8 §8.4.12 (b)`. */
   specSection: string;
   endpoints: MissingApiEndpoint[];
-  /** Ghi chú thêm đã dịch — vì sao không mượn tạm endpoint khác được. */
   note?: string;
 }
 
-/**
- * Trạng thái trung thực cho trang chưa có backend.
- *
- * KHÔNG bịa dữ liệu, KHÔNG bịa endpoint. Nêu đích danh endpoint còn thiếu và mục spec
- * sở hữu nó, để trang là một khung thật chứ không phải một lời nói dối. p17 §17.3.8 AD9
- * bắt mọi endpoint `/api/v1/admin/**` phải có đúng một dòng trong `ADMIN_CAPABILITIES`;
- * thêm endpoint là việc của backend, FE không tự mở.
- */
 export function MissingApiNotice({ specSection, endpoints, note }: MissingApiNoticeProps) {
   const { t } = useTranslation("admin");
   return (
@@ -138,14 +124,11 @@ export function MissingApiNotice({ specSection, endpoints, note }: MissingApiNot
   );
 }
 
-// ------------------------------------------------------------------- ô nhập
-
 export interface AdminSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   children: ReactNode;
 }
 
-/** `<select>` có nhãn gắn đúng `htmlFor` — shared/ui chưa có Select và không được thêm. */
 export function AdminSelect({ label, children, className, id, ...props }: AdminSelectProps) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
@@ -173,18 +156,10 @@ export function AdminSelect({ label, children, className, id, ...props }: AdminS
 export interface ReasonFieldProps {
   value: string;
   onChange: (value: string) => void;
-  /** Hiện lỗi khi người dùng đã bấm gửi mà `reason` chưa đạt. */
   showError?: boolean;
   disabled?: boolean;
 }
 
-/**
- * Ô `reason` bắt buộc cho mọi hành động ghi của admin.
- *
- * p17 §17.3.8 AD10: thiếu `reason` ⇒ `400 REASON_REQUIRED`, KHÔNG phải cảnh báo UI.
- * AD11: toàn khoảng trắng hoặc dưới 10 ký tự cũng bị coi là thiếu. FE chặn trước cho đỡ
- * một vòng mạng, nhưng server mới là nơi ép thật.
- */
 export function ReasonField({ value, onChange, showError = false, disabled = false }: ReasonFieldProps) {
   const { t } = useTranslation("admin");
   const fieldId = useId();
@@ -223,9 +198,6 @@ export function ReasonField({ value, onChange, showError = false, disabled = fal
   );
 }
 
-// ------------------------------------------------------------------- phản hồi
-
-/** Hiện lỗi API kèm `errorCode` nếu có — KHÔNG in thêm gì ngoài thứ server trả về. */
 export function ApiErrorNote({ error }: { error: unknown }) {
   const { t } = useTranslation("admin");
   if (error === null || error === undefined) {
@@ -240,7 +212,6 @@ export function ApiErrorNote({ error }: { error: unknown }) {
   );
 }
 
-/** Dòng "đã lưu" ngắn, dùng chung cho mọi form ghi. */
 export function SavedNote({ visible }: { visible: boolean }) {
   const { t } = useTranslation("admin");
   if (!visible) {
@@ -260,7 +231,6 @@ export interface PagerProps {
   onPageChange: (page: number) => void;
 }
 
-/** Điều hướng trang cho phân trang offset (L27, L40). */
 export function Pager({ page, totalPages, totalElements, onPageChange }: PagerProps) {
   const { t } = useTranslation("admin");
   const safeTotal = Math.max(totalPages, 1);

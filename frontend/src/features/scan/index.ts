@@ -1,9 +1,3 @@
-// features/scan — chụp ảnh cát, gửi phân tích pH, xem kết quả, gán lại mèo (p9 §9.4.3, p8
-// §8.5.4 nhóm E). Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
-//
-// GHI CHÚ CẤU TRÚC: toàn bộ code nằm ở các file root của feature (không có thư mục con) —
-// cùng lý do `features/onboarding` (xem README/index.ts của feature đó): eslint.config.js
-// thiếu policy `feature → feature` nội bộ theo thư mục con nên import sâu bị chặn nhầm.
 export {
   CaptureTrigger,
   AnalyzingState,
@@ -17,6 +11,7 @@ export {
   MultiCatTip,
   PhScale,
 } from "./components";
+export { PhGaugeCircular } from "./PhGaugeCircular";
 export type {
   CaptureTriggerProps,
   QualityFlagListProps,
@@ -27,6 +22,7 @@ export type {
   SharedTrayOptionProps,
   PhScaleProps,
 } from "./components";
+export type { PhGaugeCircularProps } from "./PhGaugeCircular";
 export { useScanCaptureStore } from "./store";
 export { canReassign, isReassignWindowOpen } from "./reassign";
 export type { CaptureAssignment } from "./store";

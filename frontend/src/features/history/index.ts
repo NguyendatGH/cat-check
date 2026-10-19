@@ -1,5 +1,3 @@
-// features/history — timeline lịch sử quét theo mèo (p9 §9.4.3, p8 §8.5.4 E2/E3). Mọi import
-// từ bên ngoài PHẢI qua file này (boundaries/entry-point).
 export {
   CatSwitcherBar,
   ExportCtaCard,
@@ -8,6 +6,7 @@ export {
   MonthGroupHeader,
   PhBandLegendRow,
   ScanTimelineItem,
+  SearchFilterBar,
   formatScanTimestamp,
   monthGroupKey,
   parseMonthGroupKey,
@@ -19,8 +18,12 @@ export type {
   HistoryTipCardProps,
   PhBandLegendRowProps,
   ScanTimelineItemProps,
+  SearchFilterBarProps,
 } from "./components";
-export { historyKeys, useScanHistory, useScanSummary, useCat } from "./hooks";
+export { ActivityChart, dayKey } from "./ActivityChart";
+export { HistoryToolbar, HISTORY_RANGES, type HistoryRangeKey } from "./HistoryToolbar";
+export type { ActivityChartProps } from "./ActivityChart";
+export { historyKeys, useLatestScanByCat, useScanHistory, useScanSummary, useCat } from "./hooks";
 export { apiFetch as historyApiFetch, fetchScanHistory, fetchScanSummary, fetchCat } from "./api";
 export { handlers, worker } from "./mocks";
 export type { HistoryFilterKey, HistoryFilterParams } from "./types";

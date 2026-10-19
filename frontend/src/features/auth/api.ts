@@ -2,13 +2,6 @@ import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 
-/**
- * Fetch wrapper tối thiểu cho auth — cùng quy ước với `features/onboarding/api.ts`
- * (base `/api/v1`, `credentials: include`, CSRF header, `Idempotency-Key` cho method khác
- * GET, lỗi RFC 9457 -> `ApiError`). `shared/api/schema.d.ts` vẫn là placeholder rỗng nên
- * chưa dùng `apiClient` (openapi-fetch) được — W3 nối API thật thì thay `apiFetch` bằng
- * `apiClient` + type sinh từ OpenAPI, giữ nguyên chữ ký hàm ở `hooks.ts`.
- */
 
 const BASE_URL = "/api/v1";
 
@@ -21,15 +14,9 @@ interface ProblemDetail {
   code?: string;
   params?: Record<string, unknown>;
   retryAfterSeconds?: number;
-  /** Backend set đúng field này (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
   errorCode?: string;
 }
 
-/**
- * `ApiError` (shared/api/errors.ts) chỉ giữ `message`/`status`/`code` — không có chỗ cho
- * `params` của ProblemDetail (`attemptsLeft`, `retryAfterSeconds`...). Mở rộng cục bộ ở
- * đây để giữ nguyên các tham số đó cho UI (đếm ngược resend OTP, số lần thử còn lại).
- */
 export class AuthApiError extends ApiError {
   readonly params: Record<string, unknown> | undefined;
 
@@ -45,13 +32,12 @@ function readCsrfToken(): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-/** Ngưỡng cần gọi lại `GET /auth/csrf` một lần trước khi retry (p9 §9.6.3). */
 async function ensureCsrfCookie(): Promise<void> {
   if (readCsrfToken()) return;
   try {
     await fetch(`${BASE_URL}/auth/csrf`, { credentials: "include" });
   } catch {
-    // Bỏ qua — request gốc vẫn thử, lỗi CSRF thật (nếu có) sẽ nổi lên ở đó.
+    // Không lấy được cookie CSRF: request kế tiếp sẽ tự trả lỗi của nó.
   }
 }
 
@@ -108,7 +94,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
-/** Đọc tham số ProblemDetail (`attemptsLeft`, `retryAfterSeconds`...) từ một lỗi API. */
 export function readErrorParams(error: unknown): Record<string, unknown> | undefined {
   return error instanceof AuthApiError ? error.params : undefined;
 }

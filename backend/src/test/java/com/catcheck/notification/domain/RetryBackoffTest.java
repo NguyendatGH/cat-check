@@ -8,10 +8,6 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Backoff của outbox phải khớp ĐÚNG bảng p12 §12.4/§12.8.1: 1 phút / 5 phút / 30 phút / 2 giờ /
- * 12 giờ, tối đa 5 lần thử rồi dead letter.
- */
 class RetryBackoffTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T10:00:00Z");
@@ -35,7 +31,6 @@ class RetryBackoffTest {
         assertThat(RetryBackoff.delayAfterFailure(5)).isEqualTo(Duration.ofHours(12));
     }
 
-    /** Vượt bảng thì giữ mốc cuối — một dòng dữ liệu lạ không được làm chết job. */
     @Test
     void delayIsClampedToTheLastStep() {
         assertThat(RetryBackoff.delayAfterFailure(9)).isEqualTo(Duration.ofHours(12));

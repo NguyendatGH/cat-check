@@ -33,8 +33,6 @@ class ScanAnalysisRecomputeRepositoryAdapter implements ScanAnalysisRecomputeRep
     @Override
     public ScanRecomputeImpact impactByChartId(UUID chartId) {
         Object[] row = jpaRepository.aggregateByChartId(chartId).stream().findFirst().orElse(null);
-        // Hibernate trả về Object[]{Object[]{...}} cho projection nhiều cột khi method khai
-        // Object[] — mở một lớp nếu gặp dạng đó, thay vì ép kiểu và nổ ClassCastException.
         Object[] values = row != null && row.length == 1 && row[0] instanceof Object[] nested ? nested : row;
         if (values == null || values.length < 3) {
             return ScanRecomputeImpact.empty();

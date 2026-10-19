@@ -1,5 +1,3 @@
-// entities/cat — model dùng chung cho hồ sơ mèo (p9 §9.2.4). Mọi import từ bên ngoài
-// PHẢI qua file này (boundaries/entry-point).
 export type {
   Cat,
   CatLastScan,

@@ -52,7 +52,9 @@
     "lastResult": "{{label}} · pH {{value}}",
     "changeCta": "Đổi bé mèo",
     "lastScanToday": "Hôm nay {{time}}",
-    "lastScanYesterday": "Hôm qua {{time}}"
+    "lastScanYesterday": "Hôm qua {{time}}",
+    "lastPh": "pH {{value}}",
+    "loading": "Đang tải…"
   },
   "capture": {
     "guide": "Chụp cận cảnh vùng cát đã đổi màu, đủ sáng và lấy nét rõ.",
@@ -72,6 +74,9 @@
     "tipsCta": "Mẹo quét",
     "tipsClose": "Đóng mẹo quét",
     "emptyFrame": "Khung quét đang trống",
+    "cameraDenied": "CatCheck chưa được cấp quyền camera. Hãy cho phép camera trong cài đặt trình duyệt, hoặc bấm nút chụp để mở camera của máy.",
+    "cameraUnavailable": "Không mở được camera trực tiếp. Bấm nút chụp để mở camera của máy hoặc chọn ảnh từ album.",
+    "cameraRetry": "Cho phép camera",
     "errors": {
       "imageTooSmall": "Ảnh quá nhỏ — hãy chụp gần hơn hoặc chọn ảnh có độ phân giải cao hơn.",
       "imageTooLarge": "Ảnh vượt quá dung lượng cho phép. Hãy chọn ảnh khác.",
@@ -111,7 +116,14 @@
       "rangeBelow": "pH < {{max}}",
       "rangeAbove": "pH > {{min}}",
       "unavailable": "Chưa có thang đo tham chiếu.",
-      "statusColorNote": "Màu trên thang biểu thị vùng pH; chấm đánh dấu dùng màu hạt hệ thống đo được."
+      "statusColorNote": "Màu trên thang biểu thị vùng pH; chấm đánh dấu dùng màu hạt hệ thống đo được.",
+      "currentPh": "pH",
+      "zone": {
+        "acidic": "Axit",
+        "normal": "Bình thường",
+        "alkaline": "Kiềm"
+      },
+      "neutral": "Trung tính"
     },
     "advice": {
       "title": "Bạn nên làm gì?",

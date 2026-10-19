@@ -1,5 +1,6 @@
 package com.catcheck.privacy;
 
+import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.privacy.spi.GlobalSessionPurgePort;
 import com.catcheck.shared.i18n.I18nProperties;
 import org.junit.jupiter.api.Test;
@@ -18,30 +19,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * L62 / runbook R1 (p11 §11.13.4) chạy <b>thật</b> trên PostgreSQL thật (Testcontainers +
- * Flyway đầy đủ).
- *
- * <p><b>Vì sao bài này bắt buộc phải là integration test, không phải unit test:</b> thứ L62
- * hứa là "mọi phiên biến mất", và lời hứa đó nằm trọn trong SQL + schema, không nằm trong
- * logic Java. Bốn thứ chỉ PostgreSQL thật mới kiểm được:</p>
- * <ol>
- *   <li>{@code SPRING_SESSION_ATTRIBUTES} có {@code ON DELETE CASCADE} tới
- *       {@code SPRING_SESSION} (V3) — nếu không, một câu {@code DELETE} vào bảng cha sẽ ném
- *       lỗi khoá ngoại ngay giữa lúc đang xử lý sự cố.</li>
- *   <li>{@code ck_device_session_revoked CHECK ((revoked_at IS NULL) = (revoke_reason IS NULL))}
- *       và {@code ck_device_session_reason} — đặt sai một trong hai là câu UPDATE bị DB chặn.</li>
- *   <li>{@code ck_email_otp_verified_pair CHECK ((verified_at IS NULL) = (ticket_hash IS NULL))}
- *       — đây đúng là lý do adapter <b>không</b> NULL {@code ticket_hash} mà hết hạn
- *       {@code ticket_expires_at}.</li>
- *   <li>Câu lệnh phải là thao tác theo tập hợp để đạt mục tiêu ≤ 5 phút cho toàn hệ thống.</li>
- * </ol>
- *
- * <p><b>Và vì sao KHÔNG bấm L62 thật trên DB dùng chung của máy dev:</b> nó xoá
- * {@code spring_session} của <i>mọi</i> người — mọi phiên admin của mọi agent đang làm việc
- * trên cùng DB {@code catcheck} sẽ bị đá ra ngay. Container của bài test này có DB riêng, dữ
- * liệu riêng, nên chứng minh được cùng điều đó mà không phá việc của ai.</p>
- */
 @SpringBootTest(properties = {
         "catcheck.jobs.enabled=false",
         "catcheck.jobs.send-due-reminders.cron=0 0 4 1 1 *",
@@ -58,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GlobalSessionPurgeIntegrationTest {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-trixie");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestPostgres.IMAGE);
 
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {
@@ -84,12 +61,10 @@ class GlobalSessionPurgeIntegrationTest {
 
         GlobalSessionPurgePort.PurgeOutcome outcome = purgePort.purgeEverySession();
 
-        /* ---- 1. phiên thật biến mất, và bảng attribute biến mất theo (CASCADE của V3) ---- */
         assertThat(outcome.httpSessionsDeleted()).isGreaterThanOrEqualTo(1);
         assertThat(count("SELECT count(*) FROM spring_session")).isZero();
         assertThat(count("SELECT count(*) FROM spring_session_attributes")).isZero();
 
-        /* ---- 2. bản sao hiển thị được đánh dấu, đúng cặp CHECK revoked_at/revoke_reason ---- */
         assertThat(outcome.deviceSessionsRevoked()).isGreaterThanOrEqualTo(1);
         assertThat(jdbc.queryForObject(
                 "SELECT revoke_reason FROM user_device_session WHERE id = ?", String.class, deviceSessionId))
@@ -98,13 +73,11 @@ class GlobalSessionPurgeIntegrationTest {
                 "SELECT revoked_at IS NOT NULL FROM user_device_session WHERE id = ?",
                 Boolean.class, deviceSessionId)).isTrue();
 
-        /* ---- 3. OTP đang mở bị đóng — một mã còn sống là một đường đăng nhập (§11.13.4) ---- */
         assertThat(outcome.otpInvalidated()).isGreaterThanOrEqualTo(2);
         assertThat(jdbc.queryForObject(
                 "SELECT consumed_at IS NOT NULL FROM email_otp WHERE id = ?", Boolean.class, openOtpId))
                 .isTrue();
 
-        /* ---- 4. ticket chưa dùng hết hạn, nhưng ticket_hash/verified_at còn nguyên cặp ---- */
         assertThat(jdbc.queryForObject(
                 "SELECT ticket_expires_at <= now() FROM email_otp WHERE id = ?", Boolean.class, ticketOtpId))
                 .as("ticket đặt lại mật khẩu không còn dùng được")

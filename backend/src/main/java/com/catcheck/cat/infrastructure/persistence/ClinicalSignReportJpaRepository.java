@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
-/** Spring Data repository cho {@code cat_clinical_sign_report} (D20, p4 C5). */
 interface ClinicalSignReportJpaRepository extends JpaRepository<CatClinicalSignReport, UUID> {
 
     @Query("SELECT r FROM CatClinicalSignReport r WHERE r.catId = :catId ORDER BY r.reportedAt DESC")

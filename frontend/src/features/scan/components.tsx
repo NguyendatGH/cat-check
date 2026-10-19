@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Progress, Tag } from "antd";
 import {
@@ -22,21 +22,13 @@ import { CatAvatar } from "@/entities/cat";
 import type { PhBand } from "@/entities/ph-bands";
 import { PhBadge, phTokenStyle } from "@/entities/ph-bands";
 import type { CaptureSource, QualityFlag, ScanListItem, ScanResult, TriggeredFlag } from "@/entities/scan-result";
+import { PhGaugeCircular } from "./PhGaugeCircular";
+import { useLiveCamera } from "./useLiveCamera";
 
-/**
- * UI cho `features/scan` — component nghiệp vụ ghép `entities/ph-bands` (màu/nhãn pH) +
- * `entities/scan-result` (dữ liệu quét) + `entities/cat` (hiển thị mèo). Không đặt ở entity
- * vì 1 entity không được import entity khác (eslint boundaries).
- *
- * Hình dạng màn hình bám mockup `03` (camera), `04` (kết quả) và `05` (chọn mèo). MỌI nhãn/
- * ngưỡng pH đều tới từ API `GET /reference/ph-bands` — không hard-code ở đây (p6 §6.7.3/4).
- */
 
-/* ---------------- CaptureTrigger ---------------- */
 
 export interface CaptureTriggerProps {
   previewUrl: string | null;
-  /** `source` cho biết ảnh tới từ camera hay thư viện — gửi đúng `captureSource` lên E1. */
   onFileSelected: (file: File | null, source?: CaptureSource) => void;
   guideText: string;
   retakeLabel: string;
@@ -46,7 +38,6 @@ export interface CaptureTriggerProps {
   className?: string;
 }
 
-/** Góc khung quét (mockup `03`) — 4 chữ L trắng ở 4 góc vùng ngắm. */
 const VIEWFINDER_CORNERS = [
   "left-0 top-0 rounded-tl-xl border-l-4 border-t-4",
   "right-0 top-0 rounded-tr-xl border-r-4 border-t-4",
@@ -54,16 +45,6 @@ const VIEWFINDER_CORNERS = [
   "right-0 bottom-0 rounded-br-xl border-b-4 border-r-4",
 ] as const;
 
-/**
- * Bước chụp — Tier 2 (input `capture` HTML chuẩn mở camera gốc thiết bị) thay vì Tier 1 (live
- * camera stream `getUserMedia` + canvas). Quyết định phạm vi (xem `docs/handovers/A6.md`):
- * pipeline server đã tự chấm điểm chất lượng ảnh (E12 `precheckThresholds` + BLOCKING quality
- * flags trả về sau khi nộp), nên không bắt buộc preview trực tiếp.
- *
- * Phần NHÌN bám mockup `03`: khung ngắm tối + 4 góc định vị + pill hướng dẫn + thanh điều
- * khiển (Album ảnh · nút chụp · Mẹo quét). Khung hiển thị ảnh người dùng vừa chọn khi đã có —
- * KHÔNG dựng ảnh mẫu giả khi chưa chụp.
- */
 export function CaptureTrigger({
   previewUrl,
   onFileSelected,
@@ -78,11 +59,31 @@ export function CaptureTrigger({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
+  const [, startTransition] = useTransition();
+  const camera = useLiveCamera(!previewUrl);
+
+  const handleShutter = async () => {
+    if (camera.status === "live") {
+      const file = await camera.capture();
+      if (file) {
+        onFileSelected(file, "CAMERA");
+        return;
+      }
+    }
+    // No live preview (denied/unsupported): fall back to the OS camera picker.
+    cameraInputRef.current?.click();
+  };
 
   const handleChange = (source: CaptureSource) => (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     onFileSelected(file, source);
     e.target.value = "";
+  };
+
+  const handleToggleTips = () => {
+    startTransition(() => {
+      setTipsOpen((v) => !v);
+    });
   };
 
   return (
@@ -91,16 +92,43 @@ export function CaptureTrigger({
         {previewUrl ? (
           <img src={previewUrl} alt={t("result.imageAlt")} className="absolute inset-0 size-full object-cover" />
         ) : (
-          <span className="absolute inset-0 bg-primary-darker" aria-hidden="true" />
+          <>
+            <span className="absolute inset-0 bg-primary-darker" aria-hidden="true" />
+            <video
+              ref={camera.videoRef}
+              autoPlay
+              playsInline
+              muted
+              aria-hidden="true"
+              className={cn(
+                "absolute inset-0 size-full object-cover transition-opacity duration-300",
+                camera.status === "live" ? "opacity-100" : "opacity-0",
+              )}
+            />
+          </>
         )}
 
-        {/* Vùng ngắm: 4 góc định vị + vạch quét ngang (mockup `03`). */}
+        {!previewUrl && (camera.status === "denied" || camera.status === "unavailable") ? (
+          <div className="absolute inset-x-[8%] top-[5%] flex flex-col items-center gap-2 rounded-2xl bg-surface/15 px-3 py-2.5 text-center text-small text-white">
+            <span>{camera.status === "denied" ? t("capture.cameraDenied") : t("capture.cameraUnavailable")}</span>
+            {camera.status === "denied" ? (
+              <button
+                type="button"
+                onClick={camera.retry}
+                className="rounded-full bg-surface px-3 py-1 text-small font-semibold text-primary-dark"
+              >
+                {t("capture.cameraRetry")}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="absolute inset-x-[9%] top-[20%] aspect-square" aria-hidden="true">
           <span className="absolute inset-0 rounded-xl bg-surface/10" />
           {VIEWFINDER_CORNERS.map((corner) => (
             <span key={corner} className={cn("absolute size-9 border-surface", corner)} />
           ))}
-          <span className="absolute inset-x-3 bottom-4 h-0.5 rounded-full bg-secondary/80" />
+          <span className="absolute inset-x-3 h-0.5 rounded-full bg-gradient-to-r from-transparent via-secondary to-transparent animate-scan-line" />
         </div>
 
         <p className="absolute inset-x-[10%] bottom-[22%] flex items-center justify-center gap-2 rounded-full bg-surface/15 px-3 py-2 text-center text-small font-semibold text-white">
@@ -108,7 +136,6 @@ export function CaptureTrigger({
           {t("capture.frameHint")}
         </p>
 
-        {/* Thanh điều khiển: Album ảnh · nút chụp · Mẹo quét. */}
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-around gap-2 bg-gradient-to-t from-primary-darker to-transparent px-4 pb-5 pt-10">
           <button
             type="button"
@@ -129,7 +156,7 @@ export function CaptureTrigger({
             disabled={disabled}
             aria-label={cameraLabel}
             onClick={() => {
-              cameraInputRef.current?.click();
+              void handleShutter();
             }}
             className="flex size-20 shrink-0 items-center justify-center rounded-full bg-surface/30 p-1.5 shadow-brand-xl disabled:opacity-50"
           >
@@ -143,9 +170,7 @@ export function CaptureTrigger({
           <button
             type="button"
             aria-expanded={tipsOpen}
-            onClick={() => {
-              setTipsOpen((v) => !v);
-            }}
+            onClick={handleToggleTips}
             className="flex w-20 flex-col items-center gap-1.5 text-small text-white"
           >
             <span className="flex size-12 items-center justify-center rounded-full bg-surface/20">
@@ -218,18 +243,14 @@ export function CaptureTrigger({
   );
 }
 
-/* ---------------- AnalyzingState ---------------- */
 
 export interface AnalyzingStateProps {
   text: string;
-  /** Ảnh vừa gửi (Web/M-03a) — phủ mờ phía sau vòng quay để người dùng biết ảnh nào đang xử lý. */
   previewUrl?: string | null;
-  /** Dòng phụ dưới câu chính, VD "Mỗi lần phân tích dùng 1 lượt quét…". */
   note?: string;
   className?: string;
 }
 
-/** Trạng thái đang phân tích (Web/M-03a, biến thể spinner không xác định — `fetch` không báo tiến độ tải lên). */
 export function AnalyzingState({ text, previewUrl, note, className }: AnalyzingStateProps) {
   return (
     <div
@@ -259,19 +280,11 @@ export function AnalyzingState({ text, previewUrl, note, className }: AnalyzingS
   );
 }
 
-/**
- * BE trả `messageKey` dạng khoá phẳng kiểu Java properties CÓ tiền tố tên module, VD
- * `scan.quality.BLURRY` (`QualityFlag.messageKey()`, quyết định #15) — trong khi i18next dùng
- * `.` làm dấu phân tách NESTED KEY bên trong 1 namespace đã tách theo module. Namespace ở đây
- * đã là `"scan"` nên phải bỏ tiền tố `scan.` trước khi tra, nếu không i18next sẽ tìm nhầm
- * đường dẫn `scan.json → {scan: {quality: {...}}}` (lồng thêm 1 cấp `scan` thừa).
- */
 function stripModulePrefix(key: string, moduleName: string): string {
   const prefix = `${moduleName}.`;
   return key.startsWith(prefix) ? key.slice(prefix.length) : key;
 }
 
-/* ---------------- QualityFlagList ---------------- */
 
 export interface QualityFlagListProps {
   flags: QualityFlag[];
@@ -299,13 +312,7 @@ export function QualityFlagList({ flags, className }: QualityFlagListProps) {
   );
 }
 
-/* ---------------- TriggeredFlagList ---------------- */
 
-/**
- * `rule.<CODE>.message` — module `insight` KHÔNG có namespace i18n riêng ở FE (không có route/
- * trang riêng, chỉ hiển thị lồng trong kết quả quét) nên khoá này sống trong `scan.json` (không
- * có tiền tố `insight.` cần bỏ, khác `QualityFlag` ở trên — xem `docs/handovers/A6.md`).
- */
 export function TriggeredFlagList({ flags }: { flags: TriggeredFlag[] }) {
   const { t } = useTranslation("scan");
   if (flags.length === 0) return null;
@@ -320,41 +327,22 @@ export function TriggeredFlagList({ flags }: { flags: TriggeredFlag[] }) {
   );
 }
 
-/* ---------------- Thang pH (PhScale) ---------------- */
 
 const isFiniteNumber = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
-/** `displayHex` do server sinh; vẫn kiểm tra trước khi đưa vào inline style. */
 const isDisplayHex = (value: string | null | undefined): value is string => /^#[0-9a-f]{6}$/i.test(value ?? "");
 
-function markerTextClass(hex: string): "text-surface" | "text-text-primary" {
-  const red = Number.parseInt(hex.slice(1, 3), 16);
-  const green = Number.parseInt(hex.slice(3, 5), 16);
-  const blue = Number.parseInt(hex.slice(5, 7), 16);
-  // W3C relative luminance, đủ để nhãn trên marker vẫn đọc được với mọi màu chart.
-  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
-  return luminance > 0.55 ? "text-text-primary" : "text-surface";
-}
-
-/** Phần thang đo nằm NGOÀI dải hữu hạn, để 2 dải mở đầu/cuối vẫn nhìn thấy được. */
 const OPEN_END_RATIO = 0.3;
 
 interface ScaleGeometry {
-  /** Đầu/cuối thang vẽ (đã chừa chỗ cho dải mở). */
   min: number;
   max: number;
-  /** Ngưỡng hữu hạn nhỏ nhất/lớn nhất do API khai báo. */
   innerMin: number;
   innerMax: number;
   ticks: number[];
   segments: { code: string; colorToken: string; left: number; width: number }[];
 }
 
-/**
- * Hình học thang pH suy TỪ DỮ LIỆU `bands` (không hằng số ngưỡng trong code). Dải không có
- * cả `phMin` lẫn `phMax` (VD `INCONCLUSIVE`) KHÔNG phải một đoạn trên trục nên bị loại khỏi
- * dải màu — nếu vẽ, nó phủ toàn bộ thang và che mọi dải khác.
- */
 function buildScaleGeometry(bands: PhBand[]): ScaleGeometry | null {
   const bounds = [...bands.map((b) => b.phMin), ...bands.map((b) => b.phMax)].filter(isFiniteNumber);
   if (bounds.length === 0) return null;
@@ -392,19 +380,12 @@ function percentOf(geometry: ScaleGeometry, value: number): number {
 export interface PhScaleProps {
   bands: PhBand[];
   value: number | null;
-  /** Dải đang khớp giá trị đo — dùng để tô màu con trỏ và làm nổi chú giải. */
   activeBand?: PhBand;
-  /** Màu hạt thực đo; chỉ dùng cho marker, không nhầm với màu trạng thái của dải pH. */
   markerHex?: string | null;
-  /** Hiện bảng chú giải khoảng pH của từng dải (bố cục desktop, mockup web `03 & 04`). */
   showBandLegend?: boolean;
   className?: string;
 }
 
-/**
- * Thang pH đầy đủ theo mockup `04`: nhãn 2 đầu (Axit/Kiềm), dải màu, con trỏ giá trị đo và
- * hàng mốc số. Mọi con số đều lấy từ `bands` (API) — component không biết ngưỡng nào cả.
- */
 export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, className }: PhScaleProps) {
   const { t } = useTranslation("scan");
   const geometry = buildScaleGeometry(bands);
@@ -414,12 +395,10 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
   }
 
   const markerPercent = isFiniteNumber(value) ? percentOf(geometry, value) : null;
-  const markerStyle = phTokenStyle(activeBand?.colorToken ?? "color-ph-unknown");
   const measuredColor = isDisplayHex(markerHex) ? markerHex : null;
   const measuredMarkerStyle = measuredColor
     ? { backgroundColor: measuredColor }
     : undefined;
-  const measuredMarkerTextClass = measuredColor ? markerTextClass(measuredColor) : "";
 
   const rangeLabel = (band: PhBand): string => {
     if (isFiniteNumber(band.phMin) && isFiniteNumber(band.phMax)) {
@@ -430,64 +409,115 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
     return "";
   };
 
+  // Build smooth gradient stops
+  const gradientStops = geometry.segments.map((segment) => {
+    const color = `var(--color-${segment.colorToken.replace("color-", "")})`;
+    return `${color} ${String(segment.left)}%, ${color} ${String(segment.left + segment.width)}%`;
+  }).join(", ");
+
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-baseline justify-between gap-2 text-small text-text-secondary">
+    <div className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-surface/50 to-surface/30 p-6", className)}>
+      {/* Large pH Value Display */}
+      {isFiniteNumber(value) && (
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-small text-text-secondary">{t("result.scale.currentPh", { defaultValue: "pH" })}</p>
+          <p className="text-5xl font-bold text-text-primary">{value.toFixed(1)}</p>
+          {activeBand && (
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold",
+              phTokenStyle(activeBand.colorToken).bg,
+              phTokenStyle(activeBand.colorToken).text)}>
+              {activeBand.label}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Scale Info */}
+      <div className="flex items-baseline justify-between gap-2 text-xs text-text-tertiary">
         <span>{t("result.scale.acidSide", { value: geometry.innerMin.toFixed(1) })}</span>
+        <span className="flex items-center gap-1">
+          <span className="size-1.5 rounded-full bg-text-tertiary" aria-hidden="true" />
+          <span>{t("result.scale.neutral", { defaultValue: "Neutral" })}</span>
+          <span className="size-1.5 rounded-full bg-text-tertiary" aria-hidden="true" />
+        </span>
         <span>{t("result.scale.alkalineSide", { value: geometry.innerMax.toFixed(1) })}</span>
       </div>
 
-      {/* Con trỏ giá trị đo — đặt theo % vị trí thật trên thang. */}
-      <div className="relative h-7">
-        {markerPercent !== null && isFiniteNumber(value) ? (
-          <span
-            className={cn(
-              "absolute -translate-x-1/2 whitespace-nowrap rounded-lg px-2 py-1 text-small font-bold",
-              measuredColor ? measuredMarkerTextClass : [markerStyle.bg, markerStyle.text],
-            )}
-            style={{ left: `${String(markerPercent)}%`, ...measuredMarkerStyle }}
-          >
-            {t("result.scale.marker", { value: value.toFixed(1) })}
-          </span>
-        ) : null}
+      {/* Modern pH Bar */}
+      <div className="relative flex flex-col gap-3">
+        {/* Gradient Bar */}
+        <div className="relative h-8 w-full overflow-hidden rounded-full shadow-inner" role="img" aria-hidden="true">
+          {/* Base gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-r" style={{ backgroundImage: `linear-gradient(to right, ${gradientStops})` }} />
+
+          {/* Subtle shine overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/5 rounded-full" />
+
+          {/* Marker thumb */}
+          {markerPercent !== null ? (
+            <div
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${String(markerPercent)}%` }}
+            >
+              {/* Outer shadow ring */}
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-white/40 to-white/10 blur-md" />
+
+              {/* Main thumb */}
+              <div className={cn(
+                "relative size-6 rounded-full border-3 shadow-lg",
+                measuredColor
+                  ? "border-white/60 bg-cover"
+                  : "border-white bg-white"
+              )}
+              style={{
+                ...measuredMarkerStyle,
+                boxShadow: "0 2px 12px rgba(0, 0, 0, 0.25)"
+              }}
+              >
+                {!measuredColor && (
+                  <div className="absolute inset-1 rounded-full bg-gradient-to-br from-current to-current/80" />
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Tick marks and labels */}
+        <div className="relative h-6 px-1">
+          {geometry.ticks.map((tick) => {
+            const tickPercent = percentOf(geometry, tick);
+            const isCenter = Math.abs(tick - 7) < 0.05; // Highlight center (pH 7)
+            return (
+              <div
+                key={tick}
+                className="absolute flex -translate-x-1/2 flex-col items-center"
+                style={{ left: `${String(tickPercent)}%` }}
+              >
+                <span
+                  className={cn(
+                    "block h-1 w-0.5 bg-text-tertiary/40 rounded-full",
+                    isCenter && "h-1.5 w-0.5 bg-text-secondary"
+                  )}
+                  aria-hidden="true"
+                />
+                <span className={cn("mt-0.5 text-xs font-medium", isCenter ? "text-text-secondary font-bold" : "text-text-tertiary")}>
+                  {tick.toFixed(1)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="relative h-3 w-full rounded-full bg-background-alt" role="img" aria-hidden="true">
-        {geometry.segments.map((segment) => (
-          <span
-            key={segment.code}
-            className={cn(
-              "absolute inset-y-0 first:rounded-l-full last:rounded-r-full",
-              phTokenStyle(segment.colorToken).solid,
-            )}
-            style={{ left: `${String(segment.left)}%`, width: `${String(segment.width)}%` }}
-          />
-        ))}
-        {markerPercent !== null ? (
-          <span
-            className={cn(
-              "absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface shadow-sm",
-              measuredColor ? "" : "bg-text-primary",
-            )}
-            style={{ left: `${String(markerPercent)}%`, ...(measuredColor ? { backgroundColor: measuredColor } : {}) }}
-          />
-        ) : null}
-      </div>
-
-      <div className="relative h-5">
-        {geometry.ticks.map((tick) => (
-          <span
-            key={tick}
-            className="absolute -translate-x-1/2 text-small text-text-tertiary"
-            style={{ left: `${String(percentOf(geometry, tick))}%` }}
-          >
-            {tick.toFixed(1)}
-          </span>
-        ))}
+      {/* Zone Labels */}
+      <div className="flex justify-between px-2 text-center text-caption font-semibold text-text-secondary">
+        <span>{t("result.scale.zone.acidic", { defaultValue: "Acidic" })}</span>
+        <span className="text-primary">{t("result.scale.zone.normal", { defaultValue: "Normal" })}</span>
+        <span>{t("result.scale.zone.alkaline", { defaultValue: "Alkaline" })}</span>
       </div>
 
       {showBandLegend ? (
-        <ul className="grid gap-2 sm:grid-cols-3">
+        <ul className="grid gap-2 sm:grid-cols-3 border-t border-border/40 pt-4">
           {bands
             .slice()
             .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -496,7 +526,7 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
               const style = phTokenStyle(band.colorToken);
               const isActive = activeBand?.code === band.code;
               return (
-                <li key={band.code} className={cn("rounded-lg px-2 py-1.5", isActive ? style.bg : "bg-transparent")}>
+                <li key={band.code} className={cn("rounded-lg px-3 py-2 transition-all", isActive ? [style.bg, "shadow-sm"] : "bg-transparent hover:bg-background-alt")}>
                   <p className={cn("text-small font-bold", style.text)}>{rangeLabel(band)}</p>
                   <p className="text-small leading-snug text-text-secondary">{band.label}</p>
                 </li>
@@ -508,23 +538,15 @@ export function PhScale({ bands, value, activeBand, markerHex, showBandLegend, c
   );
 }
 
-/* ---------------- Helpers dùng chung cho màn kết quả ---------------- */
 
-/**
- * `description` của dải là chuỗi MessageFormat từ server, VD `pH {0} nằm trong khoảng tham
- * chiếu 6,3–6,6.` — `{0}` là chỗ điền giá trị pH đo được. Không thay thì người dùng thấy
- * nguyên `{0}` trên màn hình.
- */
 export function formatBandDescription(description: string, phValue: number | null): string {
   return description.replace(/\{0\}/g, isFiniteNumber(phValue) ? phValue.toFixed(1) : "—");
 }
 
-/** Dải khớp `bandCode` của kết quả — nguồn nhãn/màu duy nhất (không tự phân loại lại). */
 export function findResultBand(bands: PhBand[], result: ScanResult): PhBand | undefined {
   return bands.find((band) => band.code === result.bandCode);
 }
 
-/* ---------------- ScanResultSummary ---------------- */
 
 export interface ScanResultSummaryProps {
   result: ScanResult;
@@ -533,19 +555,9 @@ export interface ScanResultSummaryProps {
   className?: string;
 }
 
-/**
- * Khối kết quả chính theo mockup `04`: trạng thái → tiêu đề pH → mô tả dải → thang pH →
- * "Màu hạt ghi nhận" (+ % khớp) → cờ chất lượng. Dùng ở CẢ `/scan/result/:id` và
- * `/scans/:id` để hai màn luôn đọc giống nhau.
- */
 export function ScanResultSummary({ result, bands, matchLabel, className }: ScanResultSummaryProps) {
   const { t } = useTranslation("scan");
   const band = findResultBand(bands, result);
-  /**
-   * BE lược MỌI field `null` khỏi JSON (xem `GET /scans/{id}`: không có `displayHex`/
-   * `matchPercent` khi chưa đo được), nên so sánh `!== null` vẫn đúng với `undefined` và
-   * hàng "Màu hạt ghi nhận" từng hiện rỗng. Chuẩn hoá về `null` một lần tại đây.
-   */
   const displayHex = result.displayHex ?? null;
   const matchPercent = result.matchPercent ?? null;
 
@@ -565,7 +577,7 @@ export function ScanResultSummary({ result, bands, matchLabel, className }: Scan
 
       <div className="rounded-xl bg-background-alt p-4">
         <p className="mb-2 text-caption text-text-secondary">{t("result.scale.statusColorNote")}</p>
-        <PhScale bands={bands} value={result.phValue} activeBand={band} markerHex={displayHex} />
+        <PhGaugeCircular bands={bands} value={result.phValue} activeBand={band} markerHex={displayHex} size="md" />
       </div>
 
       {displayHex !== null || matchPercent !== null ? (
@@ -609,7 +621,6 @@ export function ScanResultSummary({ result, bands, matchLabel, className }: Scan
   );
 }
 
-/* ---------------- ScanAdviceCard ---------------- */
 
 function AdviceRow({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
   return (
@@ -625,11 +636,6 @@ function AdviceRow({ icon, title, body }: { icon: ReactNode; title: string; body
   );
 }
 
-/**
- * "Bạn nên làm gì?" (mockup `04`). Chỉ gồm: nhắc dùng app + chăm sóc thường ngày, và — khi
- * luật xu hướng thật sự bắn cờ — chính câu chữ của cờ đó. KHÔNG suy diễn bệnh, không bịa số
- * ngày/chuỗi kết quả (quyết định #8: chỉ đo pH).
- */
 export function ScanAdviceCard({ result, className }: { result: ScanResult; className?: string }) {
   const { t } = useTranslation("scan");
   const watchMessages = result.triggeredFlags.map((flag) => t(flag.messageKey, { defaultValue: flag.ruleCode }));
@@ -665,7 +671,6 @@ export function ScanAdviceCard({ result, className }: { result: ScanResult; clas
   );
 }
 
-/* ---------------- InconclusiveNotice ---------------- */
 
 export interface InconclusiveNoticeProps {
   title: string;
@@ -673,16 +678,12 @@ export interface InconclusiveNoticeProps {
   retryHint?: string;
   retryLabel: string;
   onRetry: () => void;
-  /** Dải `INCONCLUSIVE` của API — vẽ pill nhãn đúng như Web/M-03b (nhãn từ server, không viết cứng). */
   band?: PhBand;
-  /** Cờ chất lượng server trả về; BLOCKING xếp lên đầu. */
   flags?: QualityFlag[];
-  /** Dòng cuối, VD "Số dư giữ nguyên: 5 credit." — chỉ truyền khi có số thật. */
   footnote?: string;
   className?: string;
 }
 
-/** Màn "Chưa đủ dữ liệu" (Web/M-03b). Không trừ credit — câu chữ nói rõ điều đó. */
 export function InconclusiveNotice({
   title,
   description,
@@ -715,9 +716,7 @@ export function InconclusiveNotice({
   );
 }
 
-/* ---------------- Chọn mèo (mockup `05`) ---------------- */
 
-/** "Hôm nay 08:42" / "Hôm qua 21:40" / "28/09 07:05" — chân thẻ chọn mèo (mockup `05`). */
 function relativeScanTime(
   date: Date,
   locale: string,
@@ -733,7 +732,6 @@ function relativeScanTime(
   return t("selectCat.lastScanAt", { date: `${day} ${time}` });
 }
 
-/** Vòng tròn chọn ở mép phải mỗi thẻ — tick đậm khi đang chọn (mockup `05`). */
 function SelectionDot({ selected }: { selected: boolean }) {
   return (
     <span
@@ -752,23 +750,11 @@ export interface SelectCatOptionProps {
   cat: Cat;
   selected: boolean;
   onSelect: () => void;
-  /** Dải pH (API) — để đổi `lastClassification` thành nhãn/màu thật, không tự đặt tên. */
   bands: PhBand[];
-  /**
-   * Lượt quét gần nhất của bé (E2 `GET /scans?catId=…&limit=1`) — `GET /cats` KHÔNG trả
-   * `lastScanAt`, nên thiếu prop này thẻ từng ghi "Chưa có lượt quét nào" cho cả bé đã quét
-   * hàng chục lần. `undefined` = chưa biết (đang tải/lỗi) ⇒ không khẳng định gì; `null` = chưa
-   * từng quét.
-   */
   latestScan?: ScanListItem | null;
   className?: string;
 }
 
-/**
- * Thẻ chọn mèo đầy đủ theo mockup `05`: ảnh + tên + chip giới tính/tuổi, dòng giống • cân
- * nặng, và chân thẻ hiển thị kết quả quét gần nhất. Mọi trường đều có thể vắng trong dữ liệu
- * thật (`Cat` cho phép `null`) — thiếu thì bỏ dòng đó, KHÔNG điền giá trị mẫu.
- */
 export function SelectCatOption({ cat, selected, onSelect, bands, latestScan, className }: SelectCatOptionProps) {
   const { t, i18n } = useTranslation("scan");
 
@@ -811,7 +797,6 @@ export function SelectCatOption({ cat, selected, onSelect, bands, latestScan, cl
       )}
     >
       <span className="flex items-center gap-3">
-        {/* 56px theo Figma `05` (rect 56×56 rx28) — lớn hơn preset `md` của CatAvatar. */}
         <CatAvatar src={cat.avatarUrl} name={cat.name} size="md" className="size-14" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2">
@@ -858,7 +843,6 @@ export function SelectCatOption({ cat, selected, onSelect, bands, latestScan, cl
   );
 }
 
-/* ---------------- SharedTrayOption ---------------- */
 
 export interface SharedTrayOptionProps {
   title: string;
@@ -868,7 +852,6 @@ export interface SharedTrayOptionProps {
   className?: string;
 }
 
-/** Lựa chọn đặc biệt "Chưa rõ / Dùng chung khay" trong danh sách chọn mèo (mockup `05`). */
 export function SharedTrayOption({ title, description, selected, onSelect, className }: SharedTrayOptionProps) {
   return (
     <button
@@ -893,9 +876,7 @@ export function SharedTrayOption({ title, description, selected, onSelect, class
   );
 }
 
-/* ---------------- MultiCatTip ---------------- */
 
-/** Thẻ mẹo "N+1 khay cát" cuối màn chọn mèo (mockup `05`). */
 export function MultiCatTip({ className }: { className?: string }) {
   const { t } = useTranslation("scan");
   return (

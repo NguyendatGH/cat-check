@@ -2,9 +2,6 @@ package com.catcheck.colorchart.api.dto;
 
 import com.catcheck.colorchart.domain.ColorChart;
 
-/**
- * Dòng danh sách bảng màu cho admin (L27).
- */
 public record ColorChartSummaryResponse(
         String id,
         String code,

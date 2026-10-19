@@ -4,10 +4,9 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
-/** D18 — merge-patch ghi chú ({@code PATCH /cat-notes/{id}}). Trường {@code null} = giữ nguyên. */
 public record PatchNoteRequest(
         String noteType,
-        @Size(max = 2000, message = "Ghi chú tối đa 2000 ký tự")
+        @Size(max = 2000, message = "{validation.cat.note.max}")
         String body,
         LocalDate occurredOn
 ) {

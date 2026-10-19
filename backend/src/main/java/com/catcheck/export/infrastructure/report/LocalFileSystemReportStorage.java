@@ -17,29 +17,11 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/**
- * Hiện thực {@link ReportStorage} cho giai đoạn 1 — p13 §13.6.4: thư mục riêng
- * {@code <catcheck.storage.local.root>/reports/}, tách khỏi ảnh scan.
- *
- * <p>Đọc khoá cấu hình {@code catcheck.storage.local.root} bằng placeholder thay vì inject
- * {@code media.infrastructure.MediaProperties}: lớp đó là internal của module {@code media},
- * import nó sẽ vi phạm biên module (p7 §7.4.1). Dùng cùng một khoá để hai loại tệp nằm cùng một
- * gốc lưu trữ khi vận hành đổi đĩa, nhưng khác thư mục con.</p>
- *
- * <p>Ghi theo kiểu ghi-tạm-rồi-đổi-tên ({@code ATOMIC_MOVE}) nên không bao giờ để lại file PDF
- * nửa vời cho {@code GET /exports/{id}/download} đọc phải.</p>
- *
- * <p><b>Vì sao package tên {@code report} chứ không {@code storage}:</b> {@code .gitignore} của
- * repo có dòng {@code storage/}, khớp MỌI thư mục tên đó — kể cả thư mục mã nguồn. Lớp này đặt ở
- * {@code infrastructure/storage/} thì biên dịch và chạy bình thường nhưng <b>không bao giờ vào
- * được git</b> (đã kiểm bằng {@code git check-ignore}).</p>
- */
 @Component
 public class LocalFileSystemReportStorage implements ReportStorage {
 
     private static final Logger log = LoggerFactory.getLogger(LocalFileSystemReportStorage.class);
 
-    /** Tên file chỉ từ mã tài liệu đã chuẩn hoá — chặn mọi ký tự có thể đi ra ngoài thư mục. */
     private static final Pattern SAFE_REF = Pattern.compile("[a-z0-9]{4}/[0-9]{2}/[a-z0-9._-]{1,80}");
 
     private final Path root;
@@ -100,7 +82,6 @@ public class LocalFileSystemReportStorage implements ReportStorage {
         });
     }
 
-    /** Rỗng nếu tham chiếu không khớp khuôn an toàn hoặc trỏ ra ngoài {@link #root}. */
     private Optional<Path> resolve(String fileRef) {
         if (fileRef == null || !SAFE_REF.matcher(fileRef).matches()) {
             return Optional.empty();

@@ -12,13 +12,13 @@
     "brand": "CatCheck",
     "skipToContent": "Bỏ qua menu, tới nội dung chính",
     "openMenu": "Mở menu quản trị",
-    "backToApp": "Về ứng dụng",
+    "backToApp": "Mở giao diện người dùng",
     "staff": "Nhân sự",
     "scans": "Lượt quét",
     "consents": "Bằng chứng đồng ý",
     "monitoringRules": "Quy tắc theo dõi",
     "communityReports": "Báo cáo vi phạm",
-    "privacyRequests": "Yêu cầu DSAR",
+    "privacyRequests": "Yêu cầu dữ liệu cá nhân",
     "retention": "Lưu trữ dữ liệu",
     "policyVersions": "Phiên bản chính sách",
     "incidents": "Sự cố dữ liệu",
@@ -35,7 +35,10 @@
       "community": "Cộng đồng",
       "privacy": "Quyền riêng tư",
       "ops": "Vận hành"
-    }
+    },
+    "searchEmpty": "Không tìm thấy tính năng phù hợp",
+    "clearFilter": "Xoá bộ lọc",
+    "roleSubtitle": "Quản trị viên"
   },
   "actions": {
     "cancel": "Huỷ",
@@ -44,7 +47,9 @@
     "dryRun": "Dry-run",
     "dryRunResult": "Kết quả dry-run {{code}}",
     "dryRunCount": "Ước tính {{count}} bản ghi trong {{table}} sẽ {{action}} khi chạy retention. Không có dữ liệu nào bị thay đổi.",
-    "open": "Mở"
+    "open": "Mở",
+    "search": "Tìm tính năng…",
+    "clearSearch": "Xoá tìm kiếm"
   },
   "feedback": {
     "empty": "Chưa có dữ liệu nào.",
@@ -113,6 +118,24 @@
         "REMOVE_POST": "Gỡ bài viết",
         "HIDE_COMMENT": "Ẩn bình luận",
         "DISMISS": "Bỏ qua report"
+      },
+      "done": "Đã xử lý report.",
+      "targetTypes": {
+        "POST": "Bài viết",
+        "COMMENT": "Bình luận"
+      },
+      "reasons": {
+        "SPAM": "Spam hoặc quảng cáo",
+        "MISLEADING": "Thông tin sai lệch, gây hiểu nhầm",
+        "HARASSMENT": "Xúc phạm hoặc quấy rối",
+        "PRIVACY": "Lộ thông tin cá nhân",
+        "OTHER": "Lý do khác"
+      },
+      "consequences": {
+        "HIDE_POST": "Bài viết bị ẩn khỏi cộng đồng và report được đánh dấu đã xử lý.",
+        "REMOVE_POST": "Bài viết bị gỡ khỏi cộng đồng và report được đánh dấu đã xử lý.",
+        "HIDE_COMMENT": "Bình luận bị ẩn khỏi cộng đồng và report được đánh dấu đã xử lý.",
+        "DISMISS": "Nội dung giữ nguyên, report được đóng ở trạng thái bỏ qua."
       }
     },
     "content": {
@@ -120,7 +143,7 @@
       "title": "Quản lý nội dung"
     },
     "dashboard": {
-      "description": "Điểm vào khu vực quản trị và tình trạng kết nối hiện tại.",
+      "description": "Theo dõi vận hành và truy cập nhanh các công cụ quản trị.",
       "noApiNote": "Số liệu vận hành thật (lượt quét, người dùng hoạt động, tỉ lệ lỗi) nằm ở endpoint riêng và chưa có backend. Không dựng biểu đồ bằng số bịa.",
       "title": "Bảng quản trị"
     },
@@ -151,37 +174,146 @@
       "title": "Địa điểm"
     },
     "privacyRequests": {
-      "description": "Hàng chờ yêu cầu của chủ thể dữ liệu kèm đếm ngược thời hạn.",
+      "description": "Người dùng yêu cầu xem, sửa, xoá hoặc hạn chế dữ liệu cá nhân của họ. Mỗi yêu cầu có hạn xử lý riêng.",
       "filtersTitle": "Bộ lọc yêu cầu",
-      "listTitle": "Danh sách DSAR",
+      "listTitle": "Danh sách yêu cầu",
       "detailTitle": "Chi tiết yêu cầu",
       "requestType": "Loại yêu cầu",
       "status": "Trạng thái",
       "all": "Tất cả",
-      "ref": "Mã DSAR",
+      "ref": "Mã yêu cầu",
       "type": "Loại",
       "contact": "Email liên hệ",
       "receivedAt": "Tiếp nhận",
       "dueAt": "Hạn xử lý",
-      "ackDue": "Hạn phản hồi",
-      "fulfilDue": "Hạn thực hiện",
+      "ackDue": "Hạn xác nhận đã nhận",
+      "fulfilDue": "Hạn hoàn tất",
       "handledBy": "Người xử lý",
       "rejection": "Lý do từ chối",
-      "createTitle": "Tạo DSAR thay mặt người dùng",
-      "createDescription": "DPO hoặc Super Admin tiếp nhận yêu cầu qua email, bưu điện hoặc biểu mẫu web.",
-      "userId": "User ID",
+      "createTitle": "Tạo yêu cầu thay mặt người dùng",
+      "createDescription": "Dùng khi người dùng gửi yêu cầu qua email, thư bưu điện hoặc biểu mẫu web thay vì tự gửi trong ứng dụng. Bạn sẽ được ghi là người xử lý yêu cầu này.",
+      "userId": "Mã người dùng",
       "channel": "Kênh tiếp nhận",
       "create": "Tạo yêu cầu",
       "action": "Thao tác",
-      "extendedToInput": "Hạn mới khi gia hạn",
-      "reasonInput": "Lý do",
+      "extendedToInput": "Hạn mới (chỉ khi gia hạn)",
+      "reasonInput": "Lý do (bắt buộc khi gia hạn hoặc từ chối)",
       "apply": "Áp dụng",
       "noApiNote": "Endpoint /api/v1/privacy/requests đang có là của người dùng cuối: nó chỉ trả yêu cầu của chính tài khoản đang đăng nhập, không phải hàng chờ toàn hệ thống. Dùng nó ở màn này sẽ hiển thị sai sự thật.",
-      "title": "Yêu cầu về quyền riêng tư",
-      "kpiTotal": "Tổng yêu cầu khớp bộ lọc",
+      "title": "Yêu cầu về dữ liệu cá nhân",
+      "kpiTotal": "Khớp bộ lọc",
       "kpiOpen": "Đang mở",
       "kpiOverdue": "Quá hạn xử lý",
-      "kpiExtended": "Đã gia hạn"
+      "kpiExtended": "Đã gia hạn",
+      "types": {
+        "ACCESS_EXPORT": "Xuất dữ liệu cá nhân",
+        "RECTIFY": "Chỉnh sửa dữ liệu không chính xác",
+        "ERASE": "Xoá tài khoản",
+        "RESTRICT": "Tạm ngừng xử lý dữ liệu",
+        "OBJECT": "Phản đối việc xử lý",
+        "WITHDRAW_CONSENT": "Rút lại đồng ý",
+        "PROTECTION_MEASURE": "Yêu cầu áp dụng biện pháp bảo vệ",
+        "COMPLAINT": "Khiếu nại"
+      },
+      "statuses": {
+        "RECEIVED": "Đã nhận",
+        "IDENTITY_PENDING": "Chờ xác minh danh tính",
+        "IN_PROGRESS": "Đang xử lý",
+        "EXTENDED": "Đã gia hạn",
+        "COMPLETED": "Hoàn tất",
+        "REJECTED": "Từ chối"
+      },
+      "channels": {
+        "SELF_SERVICE": "Tự phục vụ",
+        "WEB_FORM": "Biểu mẫu web",
+        "EMAIL": "Email",
+        "POST": "Bưu điện"
+      },
+      "transitions": {
+        "ACK": "Xác nhận đã nhận",
+        "ASSIGN": "Nhận xử lý",
+        "EXTEND": "Gia hạn",
+        "COMPLETE": "Hoàn tất",
+        "REJECT": "Từ chối"
+      },
+      "closedNote": "Yêu cầu đã đóng, không thể chuyển trạng thái nữa.",
+      "created": "Đã tạo yêu cầu {{ref}}.",
+      "completeConsequence": "Yêu cầu chuyển sang Hoàn tất và không thể chuyển trạng thái tiếp.",
+      "rejectConsequence": "Yêu cầu chuyển sang Từ chối kèm lý do đã nhập và không thể chuyển trạng thái tiếp.",
+      "ackSent": "Đã xác nhận lúc",
+      "completedAt": "Đóng lúc",
+      "extensionReason": "Lý do gia hạn",
+      "viewUser": "Xem hồ sơ người dùng",
+      "kpiHints": {
+        "total": "Theo loại và trạng thái đang lọc",
+        "open": "Chưa Hoàn tất hoặc Từ chối",
+        "overdue": "Chưa đóng mà đã qua hạn",
+        "extended": "Đang ở trạng thái Đã gia hạn"
+      },
+      "kpiNote": "Ba ô Đang mở, Quá hạn và Đã gia hạn chỉ lọc theo loại yêu cầu, không theo trạng thái.",
+      "countdown": {
+        "daysLeft": "Còn {{n}} ngày",
+        "hoursLeft": "Còn {{n}} giờ",
+        "daysOverdue": "Quá hạn {{n}} ngày",
+        "hoursOverdue": "Quá hạn {{n}} giờ"
+      },
+      "explainer": {
+        "summary": "Đây là gì? Thời hạn, trạng thái và ai được xử lý",
+        "intro": "Người dùng có quyền yêu cầu CatCheck cho xem hoặc xuất, sửa, xoá, tạm ngừng xử lý dữ liệu cá nhân của họ, rút lại sự đồng ý hoặc khiếu nại. Màn này là hàng chờ các yêu cầu đó, gồm cả yêu cầu người dùng tự gửi trong ứng dụng và yêu cầu admin tạo hộ.",
+        "acronym": "Trong tài liệu kỹ thuật gọi là DSAR (Data Subject Access Request).",
+        "typesTitle": "Loại yêu cầu, thời hạn và việc cần làm",
+        "typeDays": "{{n}} ngày",
+        "deadlinesTitle": "Thời hạn",
+        "deadlineAck": "Xác nhận đã nhận: trong 2 ngày làm việc kể từ lúc tiếp nhận.",
+        "deadlineFulfil": "Hoàn tất: 10, 15 hoặc 20 ngày lịch kể từ lúc tiếp nhận, tuỳ loại (xem bảng trên).",
+        "deadlineExtend": "Gia hạn được đúng 1 lần và phải ghi lý do. Hạn mới phải sau hạn cũ và không dài thêm quá thời hạn ban đầu (ví dụ hạn 10 ngày thì gia hạn tối đa thêm 10 ngày).",
+        "deadlineOverdue": "Yêu cầu chưa đóng mà đã qua hạn (tính cả hạn đã gia hạn) bị tính là quá hạn.",
+        "statusesTitle": "Trạng thái và việc cần làm",
+        "rolesTitle": "Ai được làm gì",
+        "roleSupport": "Admin hỗ trợ: xem yêu cầu, Xác nhận đã nhận và Nhận xử lý.",
+        "roleSuper": "Super Admin: làm mọi bước (Gia hạn, Hoàn tất, Từ chối) và tạo yêu cầu thay mặt người dùng.",
+        "roleDpo": "DPO (người phụ trách bảo vệ dữ liệu): như Super Admin, và là người duy nhất được duyệt xoá dữ liệu."
+      },
+      "typeHints": {
+        "ACCESS_EXPORT": "Hệ thống tạo tệp chứa dữ liệu của người dùng và gửi email đường dẫn tải. Đường dẫn chỉ tải được 1 lần, trong 72 giờ. Yêu cầu tự chuyển Hoàn tất khi tệp sẵn sàng.",
+        "RECTIFY": "Sửa thông tin sai của người dùng theo yêu cầu (làm thủ công), rồi bấm Hoàn tất.",
+        "ERASE": "Xoá nhật ký hoạt động, nội dung trò chuyện với trợ lý AI và ghi chú đặt lịch của người dùng. Không đóng bằng nút Hoàn tất: DPO phải duyệt xoá; nếu yêu cầu do admin tạo hộ thì người duyệt phải khác người tạo.",
+        "RESTRICT": "Tạm ngừng xử lý dữ liệu của người dùng trong phạm vi được yêu cầu (làm thủ công), rồi bấm Hoàn tất.",
+        "OBJECT": "Xem xét lý do phản đối. Hợp lệ thì ngừng hoạt động xử lý đó rồi Hoàn tất; không hợp lệ thì Từ chối kèm lý do.",
+        "WITHDRAW_CONSENT": "Ngừng các xử lý dựa trên sự đồng ý mà người dùng rút lại, rồi bấm Hoàn tất.",
+        "PROTECTION_MEASURE": "Áp dụng biện pháp bảo vệ dữ liệu người dùng đề nghị (làm thủ công), rồi bấm Hoàn tất.",
+        "COMPLAINT": "Xem xét khiếu nại về cách CatCheck xử lý dữ liệu, trả lời người dùng, rồi bấm Hoàn tất."
+      },
+      "statusHints": {
+        "RECEIVED": "Mới tiếp nhận. Báo cho người dùng là đã nhận, bấm Xác nhận đã nhận (hệ thống chỉ ghi lại thời điểm, không tự gửi email), rồi Nhận xử lý.",
+        "IDENTITY_PENDING": "Xuất dữ liệu và Xoá tài khoản phải xác minh đúng chủ tài khoản trước khi thực hiện. Yêu cầu chờ ở đây cho tới khi danh tính được xác minh.",
+        "IN_PROGRESS": "Người nhận xử lý đang thực hiện. Làm xong thì bấm Hoàn tất, hoặc Từ chối kèm lý do.",
+        "EXTENDED": "Đã dời hạn 1 lần. Vẫn phải hoàn tất trước hạn mới.",
+        "COMPLETED": "Đã thực hiện xong. Yêu cầu đã đóng, không đổi được nữa.",
+        "REJECTED": "Đã từ chối kèm lý do. Yêu cầu đã đóng, không đổi được nữa."
+      },
+      "transitionHints": {
+        "ACK": "Ghi lại thời điểm đã báo cho người dùng là đã nhận yêu cầu.",
+        "ASSIGN": "Nhận yêu cầu về mình, chuyển sang Đang xử lý (hoặc Chờ xác minh danh tính nếu loại yêu cầu cần).",
+        "EXTEND": "Dời hạn 1 lần duy nhất, bắt buộc ghi lý do.",
+        "COMPLETE": "Đóng yêu cầu vì đã thực hiện xong. Không hoàn tác được.",
+        "REJECT": "Đóng yêu cầu kèm lý do từ chối. Không hoàn tác được."
+      },
+      "eraseNoComplete": "Yêu cầu xoá không đóng bằng nút Hoàn tất: DPO phải duyệt xoá. Màn này chưa có nút duyệt xoá.",
+      "exportAutoComplete": "Yêu cầu xuất dữ liệu tự chuyển Hoàn tất khi tệp xuất đã sẵn sàng.",
+      "userLookup": {
+        "emailLabel": "Email tài khoản người dùng",
+        "emailHelp": "Nhập đúng toàn bộ email đăng ký rồi bấm Tìm.",
+        "search": "Tìm",
+        "noMatch": "Không có tài khoản nào dùng email này.",
+        "select": "Chọn",
+        "selected": "Người dùng đã chọn",
+        "change": "Đổi người dùng",
+        "manualToggle": "Đã có mã người dùng? Nhập trực tiếp",
+        "manualHelp": "Mã người dùng có trên trang hồ sơ người dùng.",
+        "openUsers": "Mở danh sách người dùng",
+        "required": "Chọn người dùng trước khi tạo yêu cầu."
+      }
     },
     "privacyRetention": {
       "description": "Danh mục dữ liệu đang lưu và các mục đích xử lý đã công bố.",
@@ -216,7 +348,12 @@
       "approveReadOnly": "Chỉ DPO được duyệt reset TOTP. Bạn chỉ xem được hàng đợi.",
       "expiresAt": "Hết hạn",
       "selfRequest": "Bạn tạo yêu cầu này, cần người khác duyệt",
-      "expired": "Đã hết hạn"
+      "expired": "Đã hết hạn",
+      "userIdInvalid": "ID người dùng phải là UUID hợp lệ.",
+      "grantConsequence": "Tài khoản sẽ có thêm vai trò {{role}} và truy cập được các khu vực quản trị tương ứng.",
+      "revokeConsequence": "Tài khoản sẽ mất vai trò {{role}} và các quyền quản trị đi kèm.",
+      "requestResetConsequence": "Tạo yêu cầu reset xác thực hai lớp. Yêu cầu chỉ có hiệu lực khi một người khác duyệt.",
+      "approveConsequence": "Secret TOTP và mã khôi phục của tài khoản bị xoá; người dùng phải đăng ký lại xác thực hai lớp. Không thể hoàn tác."
     },
     "userDetail": {
       "description": "Hồ sơ một người dùng: trạng thái, gói, mèo, lượt quét, credit.",
@@ -235,7 +372,7 @@
     },
     "scans": {
       "title": "Lượt quét của người dùng",
-      "description": "Tra số liệu quét theo mã người dùng, chuyển lượt quét sang mèo khác và xem ảnh gốc khi đang xử lý DSAR."
+      "description": "Tra số liệu quét theo mã người dùng, chuyển lượt quét sang mèo khác và xem ảnh gốc khi đang xử lý yêu cầu về dữ liệu cá nhân."
     },
     "monitoringRules": {
       "title": "Quy tắc theo dõi",
@@ -281,7 +418,10 @@
     "lastSeen": "Hoạt động gần nhất",
     "expires": "Hết hạn",
     "unknownDevice": "Thiết bị không rõ",
-    "sessionsReadOnly": "Xem và thu hồi phiên đăng nhập cần vai trò ADMIN_SUPER."
+    "sessionsReadOnly": "Xem và thu hồi phiên đăng nhập cần vai trò ADMIN_SUPER.",
+    "revokeConfirmTitle": "Thu hồi mọi phiên đăng nhập",
+    "revokeConsequence": "{{count}} phiên đang mở sẽ bị đăng xuất ngay. Người dùng phải đăng nhập lại trên mọi thiết bị.",
+    "revokedCount": "Đã thu hồi {{count}} phiên."
   },
   "auditLog": {
     "filtersTitle": "Bộ lọc nhật ký",
@@ -294,12 +434,124 @@
     "actor": "Actor",
     "subject": "Đối tượng",
     "metadata": "Metadata",
-    "search": "Tìm trong trang này"
+    "search": "Tìm trong trang này",
+    "results": {
+      "SUCCESS": "Thành công",
+      "DENIED": "Bị từ chối",
+      "ERROR": "Lỗi"
+    },
+    "actorTypes": {
+      "USER": "Người dùng",
+      "ADMIN": "Quản trị viên",
+      "DPO": "Cán bộ bảo vệ dữ liệu (DPO)",
+      "SYSTEM": "Hệ thống",
+      "JOB": "Tác vụ nền"
+    },
+    "subjectTypes": {
+      "USER": "Người dùng",
+      "CAT": "Hồ sơ mèo",
+      "SCAN": "Lượt quét",
+      "SUBSCRIPTION": "Gói dịch vụ",
+      "DOG": "Hồ sơ chó",
+      "PACK": "Gói que thử",
+      "ARTICLE": "Bài viết",
+      "CONSENT": "Đồng ý",
+      "POLICY": "Chính sách",
+      "NOTIFICATION": "Thông báo",
+      "SETTING": "Cài đặt",
+      "JOB": "Tác vụ nền",
+      "SYSTEM": "Hệ thống"
+    },
+    "actions": {
+      "AUTH_LOGIN": "Đăng nhập",
+      "AUTH_LOGOUT": "Đăng xuất",
+      "AUTH_REGISTER": "Đăng ký tài khoản",
+      "AUTH_REAUTH": "Xác thực lại",
+      "AUTH_SESSION_REVOKED": "Thu hồi phiên đăng nhập",
+      "AUTH_PASSWORD_RESET_REQUEST": "Yêu cầu đặt lại mật khẩu",
+      "AUTH_PASSWORD_RESET_COMPLETE": "Hoàn tất đặt lại mật khẩu",
+      "AUTH_PASSWORD_CHANGE": "Đổi mật khẩu",
+      "AUTH_PASSWORD_CHANGED": "Đã đổi mật khẩu",
+      "AUTH_EMAIL_VERIFIED": "Xác minh email",
+      "AUTH_EMAIL_CHANGE_REQUESTED": "Yêu cầu đổi email",
+      "AUTH_EMAIL_CHANGED": "Đã đổi email",
+      "AUTH_OTP_REQUESTED": "Yêu cầu mã OTP",
+      "AUTH_OTP_VERIFIED": "Xác minh OTP thành công",
+      "AUTH_OTP_VERIFY": "Xác minh OTP",
+      "AUTH.TOTP_RESET": "Đặt lại xác thực hai lớp",
+      "IDENTITY_UNLINKED": "Gỡ liên kết đăng nhập",
+      "PROFILE_UPDATED": "Cập nhật hồ sơ",
+      "NOTIFICATION_PREFS_UPDATED": "Cập nhật tuỳ chọn thông báo",
+      "MFA_TOTP_INIT": "Bắt đầu thiết lập xác thực hai lớp",
+      "MFA_TOTP_ENROLLED": "Bật xác thực hai lớp",
+      "MFA_TOTP_VERIFY": "Xác minh mã hai lớp",
+      "MFA_TOTP_REMOVED": "Tắt xác thực hai lớp",
+      "MFA_RECOVERY_USED": "Dùng mã khôi phục",
+      "MFA_RECOVERY_REGENERATED": "Tạo lại mã khôi phục",
+      "ADMIN_USER_SEARCH": "Tra cứu người dùng",
+      "ADMIN_USER_VIEW": "Xem chi tiết người dùng",
+      "ADMIN_PII_UNMASKED": "Xem dữ liệu cá nhân chưa che",
+      "ADMIN_LOCK_ACCOUNT": "Khoá tài khoản",
+      "ADMIN_UNLOCK_ACCOUNT": "Mở khoá tài khoản",
+      "ADMIN_USER_SESSIONS_VIEW": "Xem phiên đăng nhập của người dùng",
+      "ADMIN_USER_SESSIONS_REVOKE": "Thu hồi phiên của người dùng",
+      "ADMIN_USER_CATS_VIEW": "Xem hồ sơ mèo của người dùng",
+      "ADMIN_USER_SCANS_VIEW": "Xem lượt quét của người dùng",
+      "ADMIN_USER_CREDITS_VIEW": "Xem lượt quét còn lại của người dùng",
+      "ADMIN_SCAN_IMAGE_VIEW": "Xem ảnh lượt quét",
+      "ADMIN_SCAN_REASSIGNED": "Chuyển lượt quét sang mèo khác",
+      "ADMIN_ROLE_GRANTED": "Cấp vai trò nhân sự",
+      "ADMIN_ROLE_REVOKED": "Thu hồi vai trò nhân sự",
+      "ADMIN_MFA_RESET_REQUESTED": "Yêu cầu đặt lại xác thực hai lớp",
+      "CREDIT_ADJUST": "Điều chỉnh lượt quét",
+      "CREDIT_ACTIVATION_REDEEMED": "Kích hoạt mã",
+      "ACTIVATION_CODE_BATCH_CREATE": "Sinh lô mã kích hoạt",
+      "ACTIVATION_CODE_CSV_DOWNLOAD": "Tải CSV lô mã",
+      "ACTIVATION_CODE_VOID": "Vô hiệu mã kích hoạt",
+      "PACKAGE_PLAN_UPDATE": "Cập nhật gói dịch vụ",
+      "ADMIN_SHOP_PRODUCT_CREATED": "Tạo sản phẩm",
+      "ADMIN_SHOP_PRODUCT_UPDATED": "Cập nhật sản phẩm",
+      "ADMIN_SHOP_PRODUCT_STATUS_CHANGED": "Đổi trạng thái sản phẩm",
+      "ADMIN_CHART_BACKFILL_PREVIEW": "Xem trước tính lại theo bảng màu",
+      "ADMIN_CHART_BACKFILL_APPLY": "Tính lại theo bảng màu",
+      "ADMIN_MONITORING_RULE_UPDATED": "Cập nhật quy tắc theo dõi",
+      "COMMUNITY_REPORT_MODERATE": "Xử lý báo cáo vi phạm",
+      "EXPORT_DATA": "Xuất dữ liệu cá nhân",
+      "DSAR_CREATED_ADMIN": "Tạo yêu cầu về dữ liệu cá nhân thay người dùng",
+      "DSAR_STATUS_CHANGE": "Đổi trạng thái yêu cầu về dữ liệu cá nhân",
+      "DSAR_ERASURE_APPROVED": "Duyệt xoá dữ liệu",
+      "DSAR_EXPORT_CLEANUP": "Dọn tệp xuất dữ liệu hết hạn",
+      "RETENTION_DRY_RUN": "Chạy thử chính sách lưu trữ",
+      "ADMIN_POLICY_VERSION_DRAFTED": "Soạn phiên bản chính sách",
+      "ADMIN_POLICY_VERSION_PUBLISHED": "Phát hành phiên bản chính sách",
+      "SECURITY_INCIDENT_OPENED": "Mở hồ sơ sự cố dữ liệu",
+      "SECURITY_INCIDENT_UPDATED": "Cập nhật hồ sơ sự cố dữ liệu",
+      "SECURITY.SESSIONS_PURGED_ALL": "Thu hồi toàn bộ phiên đăng nhập",
+      "ADMIN_JOB_RUN_TRIGGERED": "Chạy tay tác vụ nền",
+      "ADMIN_NOTIFICATION_OUTBOX_VIEW": "Xem hàng đợi thông báo",
+      "ADMIN_OUTBOX_RESEND": "Gửi lại thông báo",
+      "ADMIN_SETTING_UPDATED": "Cập nhật cài đặt",
+      "ADMIN_MAINTENANCE_UPDATED": "Cập nhật chế độ bảo trì",
+      "ADMIN_SYSTEM_BROADCAST": "Phát thông báo hệ thống",
+      "SCAN.SAVED": "Lưu lượt quét",
+      "SCAN.INCONCLUSIVE": "Lượt quét chưa đọc được",
+      "SCAN.DELETED": "Xoá lượt quét",
+      "SCAN.REASSIGNED": "Chuyển lượt quét sang mèo khác"
+    }
   },
   "activation": {
     "issueButton": "Sinh lô mã",
     "issueTitle": "Sinh lô mã mới",
-    "issueDescription": "Mã thô chỉ có thể tải một lần sau khi sinh lô.",
+    "issueDescription": "Mã đầy đủ chỉ lấy được một lần qua CSV ngay sau khi sinh lô.",
+    "codesMaskedHint": "Hệ thống chỉ lưu bản băm của mã nên danh sách chỉ hiện tiền tố. Cột \"Lô sản xuất\" là tên lô, không phải mã kích hoạt. Mã đầy đủ lấy từ CSV của lô.",
+    "issuedNoticeTitle": "Đã sinh {{count}} mã cho lô {{batch}}",
+    "issuedNoticeBody": "Lấy mã ngay: CSV chỉ tải được một lần. Sau khi tải, danh sách mã sẽ hiện để sao chép.",
+    "getCodesNow": "Lấy mã ngay",
+    "revealedTitle": "Mã kích hoạt của lô",
+    "revealedBody": "Lô {{batch}} · {{count}} mã. Đây là lần duy nhất mã đầy đủ hiển thị; hãy lưu file CSV vừa tải.",
+    "copyAll": "Sao chép tất cả",
+    "copyCode": "Sao chép mã {{code}}",
+    "copyFailed": "Không sao chép được. Hãy chép thủ công từ file CSV.",
     "issueSubmit": "Sinh lô",
     "filtersTitle": "Bộ lọc",
     "codesTitle": "Mã kích hoạt",
@@ -312,24 +564,33 @@
     "statusLabel": "Trạng thái",
     "allStatuses": "Tất cả trạng thái",
     "batchId": "Mã lô",
-    "colPrefix": "Tiền tố",
+    "colPrefix": "Mã (đã ẩn)",
     "colPackage": "Gói",
-    "colBatch": "Lô",
+    "colBatch": "Lô sản xuất",
     "colIssued": "Phát hành lúc",
     "colValidUntil": "Hạn kích hoạt",
     "colStatus": "Trạng thái",
-    "colTotals": "Tổng / đã dùng / đã huỷ",
+    "colTotals": "Tổng / đã dùng / đã vô hiệu",
     "colAction": "Thao tác",
     "status": {
-      "ISSUED": "Đã phát hành",
-      "REDEEMED": "Đã kích hoạt",
+      "ISSUED": "Chưa dùng",
+      "EXPIRED": "Hết hạn",
+      "REDEEMED": "Đã dùng",
       "VOID": "Đã vô hiệu"
     },
     "void": "Vô hiệu mã",
     "voidBatch": "Vô hiệu lô",
     "downloadCsv": "Tải CSV",
     "kpiTotal": "Tổng mã khớp bộ lọc",
-    "readOnlyNote": "Bạn chỉ có quyền tra cứu. Sinh lô, tải CSV và vô hiệu mã cần vai trò ADMIN_SUPER."
+    "readOnlyNote": "Bạn chỉ có quyền tra cứu. Sinh lô, tải CSV và vô hiệu mã cần vai trò ADMIN_SUPER.",
+    "voidConsequence": "Mã chưa kích hoạt này sẽ không dùng được nữa. Không thể hoàn tác.",
+    "voidBatchConsequence": "Mọi mã chưa kích hoạt trong lô sẽ không dùng được nữa; mã đã kích hoạt giữ nguyên. Không thể hoàn tác.",
+    "csvConsequence": "Tệp CSV chứa mã thô và chỉ tải được một lần. Lượt tải được ghi vào nhật ký kiểm toán.",
+    "colRedeemedAt": "Đã dùng lúc",
+    "choosePackage": "Chọn gói",
+    "packageOption": "{{code}} · {{name}} · {{credits}} credit",
+    "validUntilPreview": "Mã phải được kích hoạt trước {{date}}; quá hạn sẽ hiện trạng thái Hết hạn.",
+    "singleUseNote": "Mỗi mã chỉ dùng được một lần và là duy nhất trong hệ thống."
   },
   "packageAdmin": {
     "listTitle": "Danh sách gói",
@@ -375,7 +636,18 @@
     "runName": "Tên job",
     "runDry": "Chạy thử (dry-run), không thay đổi dữ liệu",
     "runButton": "Chạy job",
-    "runResult": "{{name}}: {{status}} — xử lý {{processed}}, xoá {{deleted}}, lỗi {{failed}}."
+    "runResult": "{{name}}: {{status}} — xử lý {{processed}}, xoá {{deleted}}, lỗi {{failed}}.",
+    "statuses": {
+      "RUNNING": "Đang chạy",
+      "SUCCESS": "Thành công",
+      "FAILED": "Lỗi",
+      "PARTIAL": "Hoàn tất một phần",
+      "SKIPPED": "Bỏ qua",
+      "SKIPPED_THRESHOLD": "Bỏ qua do vượt ngưỡng"
+    },
+    "runConfirmTitle": "Chạy job thủ công",
+    "runConsequence": "Job sẽ chạy thật và có thể ghi hoặc xoá dữ liệu. Lần chạy được ghi vào nhật ký kiểm toán.",
+    "runDryConsequence": "Chạy thử chỉ đếm, không ghi hoặc xoá dữ liệu, nhưng vẫn để lại một dòng lịch sử job."
   },
   "outbox": {
     "filtersTitle": "Bộ lọc hàng đợi",
@@ -396,7 +668,16 @@
     "search": "Tìm trong trang này",
     "colActions": "Thao tác",
     "resend": "Gửi lại",
-    "resent": "Đã đưa bản ghi về hàng đợi, sẽ gửi ở lần chạy kế tiếp."
+    "resent": "Đã đưa bản ghi về hàng đợi, sẽ gửi ở lần chạy kế tiếp.",
+    "statuses": {
+      "PENDING": "Chờ gửi",
+      "SENT": "Đã gửi",
+      "FAILED": "Lỗi"
+    },
+    "channels": {
+      "EMAIL": "Email",
+      "PUSH": "Thông báo đẩy"
+    }
   },
   "users": {
     "filtersTitle": "Bộ lọc người dùng",
@@ -423,7 +704,17 @@
       "ANONYMIZED": "Đã ẩn danh"
     },
     "kpiTotal": "Tổng tài khoản khớp bộ lọc",
-    "readOnlyNote": "Bạn chỉ có quyền xem. Khoá và mở khoá tài khoản cần vai trò ADMIN_SUPER."
+    "readOnlyNote": "Bạn chỉ có quyền xem. Khoá và mở khoá tài khoản cần vai trò ADMIN_SUPER.",
+    "onboardingStatuses": {
+      "ACCOUNT_ONLY": "Mới tạo tài khoản",
+      "CAT_CREATED": "Đã thêm mèo",
+      "SURVEY_DONE_OR_SKIPPED": "Đã qua khảo sát",
+      "COMPLETED": "Hoàn tất"
+    },
+    "lockConfirmTitle": "Khoá tài khoản",
+    "lockConsequence": "Người dùng sẽ không đăng nhập được và mọi phiên đang mở bị thu hồi. Có thể mở khoá lại sau.",
+    "unlockConfirmTitle": "Mở khoá tài khoản",
+    "unlockConsequence": "Người dùng đăng nhập lại được. Hệ thống không tự tạo lại phiên nào."
   },
   "dashboard": {
     "checkedAt": "Kiểm tra lúc {{at}}",
@@ -437,9 +728,9 @@
     "specMeSecurity": "B13–B17 · A14–A16",
     "specPhColorChart": "L27–L32 · L36 · L37",
     "specRetention": "C5 · C1",
-    "statusDescription": "Endpoint này chỉ báo máy chủ còn nói chuyện được với cơ sở dữ liệu. Nó không thay thế trang kiểm tra sức khoẻ hạ tầng.",
+    "statusDescription": "Chỉ phản ánh kết nối cơ sở dữ liệu lúc kiểm tra, không đại diện toàn bộ tình trạng hệ thống.",
     "statusTitle": "Tình trạng kết nối",
-    "wiredDescription": "Những màn đã nối endpoint thật và dùng được ngay.",
+    "wiredDescription": "Đi tới những khu vực bạn có quyền quản lý.",
     "metricsTitle": "Chỉ số vận hành",
     "metricsDescription": "Snapshot chỉ đọc từ PostgreSQL, cập nhật tự động mỗi 30 giây.",
     "metrics": {
@@ -449,7 +740,7 @@
       "failedJobs": "Job lỗi",
       "pendingOutbox": "Outbox chờ gửi"
     },
-    "wiredTitle": "Khu vực đã nối API"
+    "wiredTitle": "Truy cập nhanh"
   },
   "retention": {
     "accountLifetime": "Theo vòng đời tài khoản",
@@ -595,10 +886,25 @@
       "IN_REVIEW": "Chờ duyệt",
       "PUBLISHED": "Đã công bố"
     },
-    "submitReview": "Gửi duyệt"
+    "submitReview": "Gửi duyệt",
+    "archiveConsequence": "Bài sẽ gỡ khỏi trang người dùng và chuyển sang lưu trữ. Không sửa được bài đã lưu trữ."
   },
   "chart": {
     "addPoint": "Thêm mức",
+    "batchDefault": "Mặc định (không gắn lô)",
+    "batchDefaultHelp": "Áp dụng khi lượt quét không chỉ định lô. Máy quét hiện luôn dùng loại này.",
+    "batchSpecificHelp": "Chỉ áp dụng cho bao cát thuộc đúng lô này. Máy quét hiện chưa phân biệt lô nên bảng gắn lô chưa được dùng khi quét.",
+    "check": {
+      "minPoints": "Có ít nhất 4 mức màu",
+      "has63": "Có mức pH 6,3",
+      "has66": "Có mức pH 6,6",
+      "ascending": "Các mức tăng dần theo pH, không trùng nhau"
+    },
+    "checksLabel": "Điều kiện xuất bản",
+    "checksNote": "Kiểm theo các mức đã lưu. Máy chủ còn kiểm thêm: hai ô kề nhau phải đủ khác màu.",
+    "cloneConfirmTitle": "Tạo bản nháp từ bảng này",
+    "cloneConsequence": "Tạo phiên bản mới ở trạng thái Nháp và chép {{count}} mức màu sang. Bảng hiện tại giữ nguyên và vẫn được dùng cho tới khi bản nháp mới được xuất bản.",
+    "cloneCta": "Tạo bản nháp từ bảng này",
     "colBatch": "Lô sản xuất",
     "colCode": "Mã bảng",
     "colDisplayHex": "Hex hiển thị",
@@ -622,36 +928,119 @@
     "detailOf": "{{code}} — phiên bản {{version}}",
     "detailSubtitle": "Trạng thái: {{status}} · Nguồn: {{source}}",
     "detailTitle": "Chi tiết bảng màu",
+    "editCta": "Mở để sửa",
+    "explainer": {
+      "title": "Bảng màu pH là gì?",
+      "what": "Mặt bao cát in một dãy ô màu mẫu, mỗi ô ứng với một giá trị pH. Bảng màu ở đây lưu đúng các ô đó: màu nào thì pH bao nhiêu.",
+      "scan": "Khi người dùng chụp ảnh, máy quét so màu trong ảnh với bảng Đang dùng của dòng sản phẩm (và lô) tương ứng để đọc ra pH. Bảng sai màu thì pH đọc ra cũng sai.",
+      "lifecycleLabel": "Vòng đời của một bảng màu",
+      "draft": "Bản đang soạn. Sửa tên, dòng sản phẩm, lô và các mức màu thoải mái; chưa ảnh hưởng tới ai.",
+      "active": "Sau khi xuất bản. Máy quét dùng bảng này. Mỗi dòng sản phẩm + lô chỉ có một bảng Đang dùng.",
+      "archived": "Bảng cũ đã bị bảng mới thay thế. Giữ lại để tra cứu.",
+      "edit": "Chỉ bản nháp mới sửa được. Muốn đổi màu của bảng đang dùng: mở bảng đó, chọn “Tạo bản nháp từ bảng này”, sửa rồi xuất bản."
+    },
+    "field": {
+      "labL": "Lab L*",
+      "labA": "Lab a*",
+      "labB": "Lab b*",
+      "toleranceDeltaE": "Dung sai ΔE"
+    },
     "fieldBatch": "Lô sản xuất",
+    "fieldBatchHelp": "Để trống nếu bảng dùng chung cho mọi lô (máy quét hiện chỉ dùng loại này). Chỉ điền khi một lô in ra có màu khác.",
     "fieldCode": "Mã bảng",
     "fieldCodeHelp": "Định danh ngắn, không trùng với bảng khác.",
+    "fieldCodeHelpVersion": "Mã ngắn để nhận biết bảng. Dùng lại mã của bảng cũ sẽ tạo phiên bản mới của bảng đó.",
     "fieldName": "Tên bảng",
+    "fieldNameHelp": "Tên dễ nhận biết, ví dụ “Bao Tiêu chuẩn – lô in tháng 10”.",
     "fieldProductLine": "Dòng sản phẩm",
+    "fieldProductLineHelp": "Loại bao cát có in bảng màu này.",
     "filterStatus": "Trạng thái",
     "invalidHex": "Mã màu chưa đúng dạng #RRGGBB",
     "listDescription": "Mọi trạng thái. Chỉ bản nháp mới sửa được.",
     "listTitle": "Danh sách bảng màu",
+    "metaBatch": "Lô áp dụng",
+    "metaHelp": "Bảng áp dụng cho loại bao và lô nào.",
+    "metaProductLine": "Dòng sản phẩm",
+    "metaScan": "Máy quét",
+    "metaScanNo": "Không dùng bảng này",
+    "metaScanYes": "Đang dùng bảng này cho mọi lượt quét",
+    "metaSource": "Cách lấy màu",
+    "metaTitle": "Thông tin chung",
+    "noPoints": "Chưa có mức màu nào",
+    "phValue": "pH {{value}}",
     "placeholder": "Bảng tạm, chưa hiệu chuẩn thật",
+    "placeholderHelp": "Màu trong bảng này là màu nhập tạm, chưa đo hiệu chuẩn trên bao cát thật. Kết quả pH đọc bằng bảng này chưa đáng tin cho tới khi một bảng đã hiệu chuẩn được xuất bản thay thế.",
     "pointsCount": "{{count}} mức trong bảng",
+    "pointsHelp": "Mỗi mức là một ô màu in trên bao: giá trị pH, màu hiển thị và tên gọi. Thông số đo màu giúp máy quét so màu chính xác.",
     "pointsIncomplete": "Còn dòng chưa đủ dữ liệu. Mỗi mức cần đủ năm số, hex hiển thị dạng #RRGGBB và tên hiển thị tiếng Việt.",
     "pointsTitle": "Các mức pH của bảng",
+    "previewTitle": "Xem trước dải màu (xếp theo pH)",
+    "productLine": {
+      "MINI": "Mini",
+      "STANDARD": "Tiêu chuẩn",
+      "PLUS": "Plus"
+    },
+    "productLineNone": "Chưa chọn",
+    "publishAction": "Xuất bản bảng màu",
     "publishBody": "Bản nháp sẽ thành bản đang dùng, bản đang dùng trước đó chuyển sang lưu trữ. Máy chủ từ chối nếu bảng còn thiếu mức hoặc thiếu dải phân loại.",
+    "publishBodyOther": "Sau khi xuất bản, bảng thành Đang dùng cho dòng sản phẩm và lô đã chọn. Máy quét hiện chỉ dùng bảng của dòng Tiêu chuẩn, không gắn lô, nên bảng này chưa được dùng khi quét.",
+    "publishBodyScan": "Sau khi xuất bản, máy quét đọc pH của mọi lượt quét mới bằng bảng này và bảng không sửa được nữa.",
+    "publishConfirmTitle": "Xuất bản bảng màu",
+    "publishConflict": "Đang có bảng “{{name}}” (phiên bản {{version}}) dùng cho {{line}} · {{batch}}. Xuất bản bản nháp này sẽ thay bảng đó; bảng cũ chuyển sang Lưu trữ.",
+    "publishConsequence": "Bản nháp thành Đang dùng cho dòng sản phẩm và lô đã chọn, sau đó không sửa được nữa.",
+    "publishConsequenceReplace": "Bản nháp sẽ thay “{{name}}” (phiên bản {{version}}), bảng cũ chuyển sang Lưu trữ.",
+    "publishConsequenceScan": "Bản nháp thành Đang dùng và máy quét đọc pH của mọi lượt quét mới bằng bảng này. Sau đó không sửa được nữa.",
     "publishCta": "Công bố bảng màu",
+    "publishSection": "Xuất bản",
     "publishTitle": "Công bố",
+    "readOnlyNoPermission": "Bạn chỉ có quyền xem bảng này.",
     "readOnlyNote": "Bảng này không ở trạng thái nháp nên chỉ xem được. Sửa bản đang dùng sẽ bị máy chủ từ chối.",
+    "readOnlyPublished": "Bảng đã xuất bản hoặc lưu trữ thì không sửa trực tiếp. Muốn chỉnh màu, tạo bản nháp từ bảng này, sửa rồi xuất bản.",
     "resetPoints": "Khôi phục theo máy chủ",
     "saveMeta": "Lưu thông tin bảng",
+    "saveMetaConfirmTitle": "Lưu thông tin bảng",
+    "saveMetaConsequence": "Cập nhật tên, dòng sản phẩm và lô của bản nháp. Chưa ảnh hưởng tới kết quả quét.",
     "savePoints": "Lưu toàn bộ mức",
+    "savePointsConfirmTitle": "Lưu các mức màu",
+    "savePointsConsequence": "Thay toàn bộ mức màu của bản nháp bằng {{count}} mức đang thấy. Bản nháp chưa ảnh hưởng tới kết quả quét.",
+    "scanCurrentLabel": "Máy quét đang đọc pH bằng bảng",
+    "scanNone": "Chưa có bảng màu nào đang dùng cho máy quét (dòng Tiêu chuẩn, không gắn lô). Lượt quét sẽ báo thiếu bảng màu cho tới khi một bảng được xuất bản.",
+    "source": {
+      "MANUAL_HEX": "Nhập mã màu thủ công",
+      "CALIBRATED": "Hiệu chuẩn từ ảnh chụp mẫu",
+      "SPECTRO": "Đo bằng máy đo màu"
+    },
+    "sourceHelp": {
+      "MANUAL_HEX": "Màu được gõ tay theo mã hex, chưa qua đo đạc.",
+      "CALIBRATED": "Màu lấy từ ảnh chụp bao cát thật trong điều kiện chuẩn.",
+      "SPECTRO": "Màu đo trực tiếp trên bao in bằng thiết bị đo màu."
+    },
+    "sourceUnknown": "Không rõ",
     "status": {
       "ACTIVE": "Đang dùng",
       "ARCHIVED": "Lưu trữ",
       "DRAFT": "Nháp"
     },
+    "statusHelp": {
+      "DRAFT": "Đang soạn. Chưa ảnh hưởng tới kết quả quét, sửa thoải mái.",
+      "ACTIVE": "Đang được dùng để đọc pH cho dòng sản phẩm và lô của bảng. Không sửa trực tiếp được.",
+      "ARCHIVED": "Đã được bảng mới thay thế. Chỉ để tra cứu, không còn dùng để quét."
+    },
+    "stripError": "Không tải được dải màu",
+    "stripLabel": "Các ô màu và giá trị pH tương ứng",
     "tabBands": "Dải phân loại",
     "tabCharts": "Bảng màu",
-    "versionLabel": "Phiên bản {{version}}"
+    "techHelp": "Lab tự tính từ Hex sRGB (hoặc Hex hiển thị) khi chưa nhập; nên thay bằng giá trị đo trên ô màu thật. Dung sai ΔE là độ lệch màu tối đa vẫn được coi là khớp ô này. Hex sRGB có thể để trống.",
+    "techTitle": "Thông số đo màu (Lab, dung sai)",
+    "usedByScans": "Máy quét đang dùng",
+    "usedByScansHelp": "Mọi lượt quét hiện đọc pH bằng bảng này (bảng Đang dùng của dòng Tiêu chuẩn, không gắn lô).",
+    "versionLabel": "Phiên bản {{version}}",
+    "viewCta": "Xem"
   },
   "band": {
+    "advanced": "Nâng cao: biểu tượng",
+    "alertOff": "Không nhắc",
+    "alertOn": "Có nhắc người dùng",
     "colAlert": "Sinh cảnh báo",
     "colCode": "Mã dải",
     "colIcon": "Icon",
@@ -659,17 +1048,45 @@
     "colRange": "Khoảng pH",
     "colSeverity": "Mức độ",
     "colToken": "Token màu",
+    "confirmConsequence": "Nhãn, mô tả và cài đặt nhắc của dải này được cập nhật cho người dùng ngay sau khi lưu.",
+    "confirmTitle": "Lưu dải phân loại",
     "description": "Nhãn, mô tả và icon của từng dải. Khoảng pH do máy chủ giữ.",
+    "editAria": "Sửa dải {{label}}",
     "editorTitle": "Sửa dải {{code}}",
+    "editorTitleLabel": "Sửa dải “{{label}}”",
     "fieldDescription": "Mô tả",
+    "fieldDescriptionHelp": "Một câu giải thích đi kèm kết quả. Không đưa lời chẩn đoán hay hướng dẫn điều trị.",
     "fieldIcon": "Tên icon",
     "fieldIconHelp": "Tên icon dạng gạch nối, ví dụ check-circle.",
     "fieldLabel": "Nhãn hiển thị",
+    "fieldLabelHelp": "Tên ngắn người dùng thấy trên kết quả quét.",
     "fieldTriggersAlert": "Dải này sinh cảnh báo cho người dùng",
+    "fieldTriggersAlertHelp": "Bật thì kết quả rơi vào dải này được đánh dấu cần chú ý và có thể kèm lời nhắc cho người dùng.",
+    "intro": "Sau khi đọc được pH từ bảng màu, hệ thống xếp kết quả vào một trong các dải dưới đây để chọn nhãn, màu và lời giải thích hiển thị cho người dùng.",
     "localeNote": "Đang sửa bản {{locale}}. Máy chủ trả nhãn đã dịch theo ngôn ngữ đang chọn, nên chỉ ghi lại đúng bản ngôn ngữ này.",
+    "range": {
+      "none": "Không có khoảng pH, dùng khi không đọc được kết quả",
+      "below": "Dưới {{max}}",
+      "belowIncl": "Từ {{max}} trở xuống",
+      "above": "Trên {{min}}",
+      "aboveIncl": "Từ {{min}} trở lên",
+      "from": "Trên {{min}}",
+      "fromIncl": "Từ {{min}}",
+      "to": "đến dưới {{max}}",
+      "toIncl": "đến {{max}}"
+    },
     "rangeValue": "{{min}} … {{max}}",
     "saveCta": "Lưu dải phân loại",
+    "scaleCaption": "Mỗi đoạn màu là một dải, xếp từ pH thấp tới cao. Hai đầu thang được cắt gọn cho dễ nhìn.",
+    "scaleLabel": "Thang pH theo các dải phân loại",
+    "severity": {
+      "NORMAL": "Trong khoảng tham chiếu",
+      "ATTENTION": "Lệch nhẹ",
+      "WATCH": "Lệch rõ",
+      "NEUTRAL": "Không xếp loại"
+    },
     "thresholdLocked": "Khoảng pH không sửa được ở màn này: đổi ngưỡng bắt buộc đi kèm bước xác thực bổ sung, lớp đó chưa được nối ở máy chủ.",
+    "thresholdLockedPlain": "Khoảng pH của dải không sửa được ở màn này.",
     "title": "Dải phân loại pH"
   },
   "productAdmin": {
@@ -726,6 +1143,8 @@
   },
   "dense": {
     "kpiLabel": "Chỉ số tóm tắt",
+    "allRecordsHint": "Trên toàn bộ dữ liệu",
+    "summaryIgnoresStatusHint": "Toàn bộ dữ liệu khớp bộ lọc, mọi trạng thái",
     "onPageHint": "Tính trên trang đang xem",
     "search": "Tìm trong trang này",
     "all": "Tất cả",
@@ -740,7 +1159,8 @@
     "bulkStale": "{{count}} dòng đã bị người khác sửa trong lúc chạy. Tải lại rồi làm lại các dòng đó.",
     "yes": "Có",
     "no": "Không",
-    "close": "Đóng"
+    "close": "Đóng",
+    "scrollHint": "Cuộn ngang để xem đầy đủ cột dữ liệu"
   },
   "scans": {
     "lookupTitle": "Tra cứu theo người dùng",
@@ -752,7 +1172,7 @@
     "idleTitle": "Nhập mã người dùng để bắt đầu",
     "idleBody": "Danh sách chỉ tải khi bạn bấm Tra cứu, để không sinh dòng nhật ký thừa.",
     "emptyTitle": "Người dùng này chưa có lượt quét nào",
-    "maskedNote": "Tên mèo và ghi chú tranh chấp đang bị che. Chỉ DPO đang xử lý một yêu cầu DSAR còn mở của người dùng này mới xem được.",
+    "maskedNote": "Tên mèo và ghi chú tranh chấp đang bị che. Chỉ DPO đang xử lý một yêu cầu về dữ liệu cá nhân còn mở của người dùng này mới xem được.",
     "listTitle": "Lượt quét",
     "kpiTotal": "Tổng lượt quét",
     "kpiDisputed": "Bị báo kết quả sai",
@@ -805,7 +1225,7 @@
     "imageAlt": "Ảnh gốc của lượt quét {{id}}",
     "imageReasonNote": "Lý do này được ghi vào nhật ký truy cập ảnh. Ảnh không được lưu lại trên trình duyệt.",
     "imageErrors": {
-      "dsarRequired": "Người dùng này không có yêu cầu DSAR nào đang mở, nên chưa được xem ảnh gốc.",
+      "dsarRequired": "Người dùng này không có yêu cầu về dữ liệu cá nhân nào đang mở, nên chưa được xem ảnh gốc.",
       "notStored": "Lượt quét này không lưu ảnh gốc.",
       "expired": "Ảnh gốc đã quá thời hạn lưu và đã bị xoá."
     }
@@ -942,7 +1362,7 @@
         "admins": "Mọi quản trị viên, kể cả bạn, phải nhập lại mã xác thực hai lớp.",
         "devices": "Phiên trên các thiết bị đã ghi nhớ bị thu hồi.",
         "otp": "Mã OTP đang chờ dùng bị huỷ.",
-        "dsar": "Đường dẫn tải dữ liệu DSAR đang hiệu lực bị thu hồi."
+        "dsar": "Đường dẫn tải dữ liệu cá nhân đang hiệu lực bị thu hồi."
       },
       "incident": "Hồ sơ sự cố liên quan",
       "chooseIncident": "Chọn hồ sơ sự cố đang mở",
@@ -964,7 +1384,7 @@
       "otp": "OTP đã huỷ",
       "elapsed": "Thời gian chạy",
       "ms": "{{value}} ms",
-      "dsarLinks": "{{count}} đường dẫn DSAR đã thu hồi",
+      "dsarLinks": "{{count}} đường dẫn tải dữ liệu cá nhân đã thu hồi",
       "reloginNote": "Phiên của bạn cũng đã bị thu hồi. Thao tác tiếp theo sẽ yêu cầu đăng nhập lại."
     }
   },
@@ -1115,5 +1535,14 @@
     "confirmBody": "Mẫu \"{{template}}\" sẽ được ghi cho mọi người dùng đủ điều kiện và không thể thu hồi.",
     "confirmCheck": "Tôi đã kiểm tra nội dung và xác nhận phát thật.",
     "confirmSend": "Phát thật"
+  },
+  "roleLabels": {
+    "ADMIN_SUPER": "Quản trị cấp cao",
+    "ADMIN_SUPPORT": "Hỗ trợ khách hàng",
+    "ADMIN_CATALOG": "Quản lý danh mục",
+    "DPO": "Cán bộ bảo vệ dữ liệu (DPO)",
+    "MODERATOR": "Kiểm duyệt viên",
+    "VET": "Bác sĩ thú y",
+    "USER": "Người dùng"
   }
 }

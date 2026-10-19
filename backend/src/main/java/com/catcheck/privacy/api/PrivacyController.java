@@ -56,13 +56,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Nhóm C của p8 §8.4.3 — Quyền riêng tư, consent & DSAR (15 endpoint user-facing C1–C15).
- *
- * <p>Tên path và {@code operationId} theo p8; client sinh từ OpenAPI và test hợp đồng
- * neo vào các tên này. Mọi endpoint user KHÔNG nhận {@code userId} từ client — chủ thể
- * lấy từ phiên đăng nhập (p11 §11.5.3 lớp 1, chống IDOR).</p>
- */
 @RestController
 @RequestMapping("/api/v1/privacy")
 @Tag(name = "Privacy", description = "Consent, Trung tâm quyền riêng tư, DSAR, xoá tài khoản")
@@ -93,10 +86,6 @@ public class PrivacyController {
         this.clock = clock;
     }
 
-    /**
-     * C1 — danh mục {@code consent_purpose} đã resolve theo locale. Công khai: không
-     * cần đăng nhập (p8 §8.4.3 dòng C1, Auth: —).
-     */
     @Operation(
             operationId = "listConsentPurposes",
             summary = "Danh mục mục đích xử lý dữ liệu",
@@ -123,7 +112,6 @@ public class PrivacyController {
         return ResponseEntity.ok(PageView.of(items, items.size(), null, false));
     }
 
-    /** C2 — trạng thái hiện hành từng purpose của tôi. */
     @Operation(
             operationId = "getCurrentConsents",
             summary = "Trạng thái consent hiện hành của tôi",
@@ -138,7 +126,6 @@ public class PrivacyController {
         return ResponseEntity.ok(PageView.of(items, items.size(), null, false));
     }
 
-    /** C3 — cấp/rút một hoặc nhiều purpose; ghi consent_record append-only. */
     @Operation(
             operationId = "recordConsents",
             summary = "Cấp hoặc rút consent theo mục đích",
@@ -172,7 +159,6 @@ public class PrivacyController {
         return ResponseEntity.ok(PageView.of(items, items.size(), null, false));
     }
 
-    /** C4 — lịch sử consent của tôi — bằng chứng tuân thủ. */
     @Operation(
             operationId = "getConsentHistory",
             summary = "Lịch sử consent của tôi",
@@ -202,7 +188,6 @@ public class PrivacyController {
         return ResponseEntity.ok(PageView.of(items, items.size(), null, false));
     }
 
-    /** C5 — "Dữ liệu CatCheck đang giữ về bạn", render động từ data_inventory_item. */
     @Operation(
             operationId = "getDataInventory",
             summary = "Dữ liệu CatCheck đang giữ về bạn",
@@ -233,7 +218,6 @@ public class PrivacyController {
         return ResponseEntity.ok(PageView.of(items, items.size(), null, false));
     }
 
-    /** C6 — tạo dsar_request(ACCESS_EXPORT), 202. Giới hạn 1/24 giờ; bắt buộc step-up. */
     @Operation(
             operationId = "createDataExportRequest",
             summary = "Yêu cầu xuất dữ liệu cá nhân (DSAR)",
@@ -253,7 +237,6 @@ public class PrivacyController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(PrivacyDtoMapper.toExportStatus(request, downloadToken));
     }
 
-    /** C7 — trạng thái gói xuất DSAR theo publicRef. */
     @Operation(
             operationId = "getExportStatus",
             summary = "Trạng thái gói xuất DSAR",
@@ -268,9 +251,6 @@ public class PrivacyController {
         return ResponseEntity.ok(PrivacyDtoMapper.toExportStatus(dsarService.getByPublicRef(user.userId(), publicRef)));
     }
 
-    /**
-     * C8 — tải gói ZIP: link MỘT LẦN, 72 giờ, yêu cầu đăng nhập.
-     */
     @Operation(
             operationId = "downloadExport",
             summary = "Tải gói xuất dữ liệu (một lần, 72 giờ)",
@@ -293,7 +273,6 @@ public class PrivacyController {
                 .body(new InputStreamResource(download.stream()));
     }
 
-    /** C9 — yêu cầu xoá tài khoản ⇒ DELETION_REQUESTED, ân hạn 7 ngày (TD-05). */
     @Operation(
             operationId = "requestAccountDeletion",
             summary = "Yêu cầu xoá tài khoản",
@@ -310,7 +289,6 @@ public class PrivacyController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(PrivacyDtoMapper.toExportStatus(request));
     }
 
-    /** C10 — huỷ yêu cầu xoá trong ân hạn (cũng gọi được từ link email). */
     @Operation(
             operationId = "cancelAccountDeletion",
             summary = "Huỷ yêu cầu xoá tài khoản",
@@ -323,7 +301,6 @@ public class PrivacyController {
         return ResponseEntity.noContent().build();
     }
 
-    /** C11 — bật hạn chế xử lý ⇒ status = RESTRICTED (dữ liệu giữ nguyên, chỉ lưu trữ). */
     @Operation(
             operationId = "enableProcessingRestriction",
             summary = "Bật hạn chế xử lý dữ liệu",
@@ -340,7 +317,6 @@ public class PrivacyController {
         return ResponseEntity.noContent().build();
     }
 
-    /** C12 — rút yêu cầu hạn chế ⇒ về ACTIVE. */
     @Operation(
             operationId = "disableProcessingRestriction",
             summary = "Rút yêu cầu hạn chế xử lý",
@@ -351,7 +327,6 @@ public class PrivacyController {
         return ResponseEntity.noContent().build();
     }
 
-    /** C13 — DSAR không tự phục vụ được: RECTIFY, OBJECT, PROTECTION_MEASURE, COMPLAINT. */
     @Operation(
             operationId = "createDsarRequest",
             summary = "Tạo yêu cầu DSAR (RECTIFY/OBJECT/PROTECTION_MEASURE/COMPLAINT)",
@@ -372,9 +347,6 @@ public class PrivacyController {
         } catch (IllegalArgumentException ex) {
             type = null;
         }
-        // Bug that da sua: `DsarRequestType.valueOf` ngay tren da duoc boc try/catch, nhung
-        // `DsarChannel.valueOf` thi khong — client gui `channel` sai (vd "EMAIL_X") lam
-        // IllegalArgumentException thoat ra thanh 500 thay vi 400.
         DsarChannel channel;
         try {
             channel = request.channel() == null
@@ -387,7 +359,6 @@ public class PrivacyController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(PrivacyDtoMapper.toRequestView(created));
     }
 
-    /** C14 — danh sách yêu cầu của tôi + đếm ngược SLA (cursor pagination, p8 §8.1.4). */
     @Operation(
             operationId = "listDsarRequests",
             summary = "Danh sách yêu cầu DSAR của tôi",
@@ -430,7 +401,6 @@ public class PrivacyController {
         return ResponseEntity.ok(PageView.of(items, effectiveLimit, nextCursor, hasMore));
     }
 
-    /** C15 — chi tiết một yêu cầu; không thuộc user ⇒ 404 (p8 §8.2.5). */
     @Operation(
             operationId = "getDsarRequest",
             summary = "Chi tiết một yêu cầu DSAR",

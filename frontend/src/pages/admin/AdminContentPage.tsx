@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
 import { formatDate } from "@/shared/lib/format/formatDate";
+import { useSessionStore } from "@/entities/user";
 import {
   AdminPageHeader,
   AdminSection,
@@ -14,6 +15,7 @@ import {
   CLAIM_TYPES,
   DenseTableFrame,
   Pager,
+  ReasonConfirmDialog,
   ReasonField,
   SavedNote,
   denseRowClass,
@@ -35,21 +37,6 @@ import {
 } from "@/features/admin";
 import { useGroup2Can } from "./group2Access";
 
-/**
- * `/admin/content` — quản trị nội dung (`care_tip`).
- *
- * NỐI API THẬT, toàn bộ `content/api/AdminContentController`:
- * L40 `GET /admin/care-tips` · L41 `POST /admin/care-tips` ·
- * L42 `PATCH /admin/care-tips/{tipId}` · L43 `POST …/submit-review` ·
- * L44 `POST …/publish` · L45 `POST …/archive`.
- *
- * `reason` chỉ xuất hiện ở L44 vì đó là endpoint DUY NHẤT trong nhóm được p8 §8.4.12 (c)
- * đánh cờ `Rsn`, và cũng là nơi DTO backend (`PublishCareTipRequest`) thật sự có trường
- * `reason` với `@Size(min = 10)` — khớp p17 §17.3.8 AD11.
- *
- * `RequireRole` ở router đã chặn vai trò; trang không lặp lại logic đó.
- */
-
 const STATUS_CLASS: Record<CareTipStatus, string> = {
   DRAFT: "bg-background-alt text-text-secondary",
   IN_REVIEW: "bg-warning-bg text-warning-text",
@@ -64,8 +51,6 @@ function StatusChip({ status, label }: { status: CareTipStatus; label: string })
     </span>
   );
 }
-
-// ------------------------------------------------------------------ tạo nháp
 
 function CreateCareTipForm({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation("admin");
@@ -177,8 +162,6 @@ function CreateCareTipForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ------------------------------------------------------------------ sửa nháp
-
 function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => void }) {
   const { t } = useTranslation("admin");
   const update = useUpdateCareTip();
@@ -196,10 +179,37 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   const [sourceReference, setSourceReference] = useState(tip.sourceReference ?? "");
   const [reason, setReason] = useState("");
   const [reasonTouched, setReasonTouched] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+
+  const sessionUserId = useSessionStore((state) => state.user?.id);
 
   const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
-  /** AD20 — `claimType` khác NONE mà thiếu nguồn thì server trả 422 lúc publish. */
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
+  // Backend chặn tự duyệt bài của chính mình (CONTENT_SELF_APPROVAL_FORBIDDEN).
+  const isOwnTip = tip.authorId != null && tip.authorId === sessionUserId;
+  const dirty =
+    title.trim() !== tip.title ||
+    summary !== (tip.summary ?? "") ||
+    bodyMd !== (tip.bodyMd ?? "") ||
+    claimType !== tip.claimType ||
+    sourceReference !== (tip.sourceReference ?? "");
+  const savePayload = () => ({
+    tipId: tip.id,
+    payload: { title: title.trim(), summary, bodyMd, claimType, sourceReference },
+  });
+
+  // Gửi duyệt phải gửi đúng nội dung đang sửa: lưu trước nếu còn thay đổi chưa lưu.
+  const handleSubmitReview = async () => {
+    if (dirty) {
+      if (sourceMissing) return;
+      try {
+        await update.mutateAsync(savePayload());
+      } catch {
+        return;
+      }
+    }
+    submitReview.mutate(tip.id);
+  };
 
   return (
     <AdminSection
@@ -215,16 +225,9 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
-          update.mutate({
-            tipId: tip.id,
-            payload: {
-              title: title.trim(),
-              summary,
-              bodyMd,
-              claimType,
-              sourceReference,
-            },
-          });
+          // Nội dung có claim phải kèm nguồn; không gửi bản nháp thiếu nguồn.
+          if (sourceMissing) return;
+          update.mutate(savePayload());
         }}
       >
         <div className="grid gap-4 md:grid-cols-2">
@@ -292,7 +295,7 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
         <SavedNote visible={update.isSuccess} />
 
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="md" disabled={!editable} loading={update.isPending}>
+          <Button type="submit" size="md" disabled={!editable || sourceMissing} loading={update.isPending}>
             {t("content.saveDraft")}
           </Button>
           {canWrite && tip.status === "DRAFT" ? (
@@ -301,8 +304,9 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
               variant="tertiary"
               size="md"
               loading={submitReview.isPending}
+              disabled={update.isPending}
               onClick={() => {
-                submitReview.mutate(tip.id);
+                void handleSubmitReview();
               }}
             >
               {t("content.submitReview")}
@@ -315,17 +319,37 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
               size="md"
               loading={archive.isPending}
               onClick={() => {
-                archive.mutate(tip.id);
+                archive.reset();
+                setConfirmArchive(true);
               }}
             >
               {t("content.archive")}
             </Button>
           ) : null}
         </div>
-        <ApiErrorNote error={submitReview.error ?? archive.error} />
+        <ApiErrorNote error={submitReview.error ?? (confirmArchive ? null : archive.error)} />
       </form>
+      <ReasonConfirmDialog
+        open={confirmArchive}
+        onOpenChange={setConfirmArchive}
+        title={t("content.archive")}
+        target={tip.title}
+        consequence={t("content.archiveConsequence")}
+        confirmLabel={t("content.archive")}
+        requireReason={false}
+        destructive
+        pending={archive.isPending}
+        error={archive.error}
+        onConfirm={() => {
+          archive.mutate(tip.id, {
+            onSuccess: () => {
+              setConfirmArchive(false);
+            },
+          });
+        }}
+      />
 
-      {canPublish && tip.status === "IN_REVIEW" ? (
+      {canPublish && tip.status === "IN_REVIEW" && !isOwnTip ? (
         <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
           <p className="text-body font-semibold text-text-primary">{t("content.publishTitle")}</p>
           <p className="text-caption text-text-secondary">{t("content.publishBody")}</p>
@@ -360,8 +384,6 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   );
 }
 
-// -------------------------------------------------------------------- trang
-
 export function AdminContentPage() {
   const { t } = useTranslation("admin");
   const [locale, setLocale] = useState("");
@@ -380,7 +402,6 @@ export function AdminContentPage() {
       <AdminPageHeader
         title={t("pages.content.title")}
         description={t("pages.content.description")}
-        specRef="/api/v1/admin/care-tips — L40–L45 (p8 §8.4.12 c)"
         actions={
           canWrite ? (
             <Button

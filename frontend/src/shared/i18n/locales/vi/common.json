@@ -2,7 +2,9 @@
   "actions": {
     "back": "Quay lại",
     "cancel": "Huỷ",
+    "close": "Đóng",
     "continue": "Tiếp tục",
+    "logout": "Đăng xuất",
     "retry": "Thử lại",
     "loading": "Đang tải…"
   },
@@ -56,7 +58,10 @@
     "yesterday": "Hôm qua",
     "yourCats": "Mèo của bạn",
     "reminderOverdue": "Đã quá hạn từ {{time}}",
-    "catScannedAt": "Quét: {{time}}"
+    "catScannedAt": "Quét: {{time}}",
+    "scanForCat": "Quét cho {{name}}",
+    "reminderOverdueTitle": "Đã quá hạn kiểm tra",
+    "openCatProfile": "Xem hồ sơ"
   },
   "forbidden": {
     "description": "Tài khoản của bạn không có quyền xem trang này.",
@@ -70,6 +75,7 @@
     "dashboard": "Trang chủ",
     "history": "Lịch sử",
     "mainLabel": "Điều hướng chính",
+    "quickLabel": "Lối tắt",
     "notifications": "Thông báo",
     "profile": "Cá nhân",
     "scan": "Quét",
@@ -112,8 +118,7 @@
   },
   "welcome": {
     "disclaimer": "Hỗ trợ theo dõi sức khỏe • Không thay thế chẩn đoán thú y",
-    "sloganLeft": "CHECK WITH CARE",
-    "sloganRight": "ALWAYS THERE",
+    "slogan": "check with care, always there",
     "sloganVi": "Check để hiểu, Chăm để yêu",
     "slideTitle": "Chăm sóc thông minh bắt đầu từ việc quan sát mỗi ngày",
     "slideBody": "Theo dõi sự thay đổi màu sắc hạt cát vệ sinh và lưu trữ hồ sơ sức khỏe đường tiết niệu của mèo cưng theo thời gian.",
@@ -233,7 +238,11 @@
     "scheduleOverdue": "Đã quá hạn từ {{time}}",
     "scheduleScanFor": "{{title}} · {{name}}",
     "loadError": "Không tải được dữ liệu Trang chủ",
-    "loadErrorBody": "Kiểm tra kết nối rồi thử lại."
+    "loadErrorBody": "Kiểm tra kết nối rồi thử lại.",
+    "otherCats": "Các bé khác",
+    "catSwitcher": "Chọn bé mèo",
+    "zeroTitle": "Chưa có hồ sơ mèo nào",
+    "zeroBody": "Thêm bé mèo đầu tiên để bắt đầu theo dõi màu hạt cát."
   },
   "healthFlags": {
     "countCta": "{{count}} dấu hiệu cần xem",

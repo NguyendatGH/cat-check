@@ -18,24 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link ChartCatalog} đọc trực tiếp PostgreSQL <b>local</b> qua JDBC thuần — CHỈ dùng cho
- * {@link PipelineAccuracyHarness} (GĐ4, {@code docs/scan-production-plan.md}), KHÔNG PHẢI
- * adapter production (bản thật: {@code com.catcheck.colorchart.application.ColorChartCatalogAdapter},
- * nằm trong {@code src/main}, không được sửa).
- *
- * <p>Vì sao viết lại thay vì dựng {@code ColorChartCatalogAdapter} thủ công: adapter thật cần ba
- * Spring Data JPA repository + {@code EntityManager} — dựng tay các bean đó tốn nhiều code hơn
- * ba câu SELECT phẳng cho nhu cầu chỉ-đọc của một harness ngoài Spring. Vẫn đọc đúng ba bảng
- * {@code color_chart}/{@code color_chart_point}/{@code ph_classification_band} (p4 §4.9) và map
- * về đúng kiểu miền ({@link PhChart}, {@link PhBandClassifier.Band}) mà {@code ColorPipelineService}
- * cần — cùng ngữ nghĩa "global bands" ({@code chart_id IS NULL}) như
- * {@code PhClassificationBandRepositoryAdapter.findGlobalActiveOrderBySortOrder}.
- *
- * <p>Thông tin kết nối mặc định khớp {@code application-local.yml} (Postgres native, không
- * Docker) — ghi đè được qua system property {@code harness.db.url}/{@code harness.db.user}/
- * {@code harness.db.password} nếu cần chạy harness nhắm DB khác.
- */
 final class LocalDbChartCatalog implements ChartCatalog {
 
     private final String jdbcUrl;

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { PartyPopper } from "lucide-react";
-import { Button, Card } from "@/shared/ui";
+import { Button, Card, celebrate } from "@/shared/ui";
 import {
   ActivationCodeInput,
   OnboardingShell,
@@ -13,13 +13,8 @@ import {
   useOnboardingStore,
 } from "@/features/onboarding";
 import { isApiError } from "@/shared/api";
+import { intlLocale } from "@/shared/lib/format/locale";
 
-/**
- * Bước 4/5 — Kích hoạt gói (p9 §9.4.6 C05: không có màn design gốc, dựng theo
- * đặc tả tối thiểu). Nhập mã `CC-<PKG>-<10 ký tự Crockford>` (p5 §5.9), validate
- * định dạng client-side, bỏ qua được. Số lần quét thử còn lại đọc từ `GET /credits/balance`
- * (`trialScansRemaining`), không ghi cứng "3 lần" như DSL Web-01c-4b.
- */
 export function OnboardingActivatePage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
@@ -57,6 +52,7 @@ export function OnboardingActivatePage() {
         credits: result.creditsGranted,
         expiresAt: result.expiresAt,
       });
+      celebrate();
     } catch (error) {
       if (isApiError(error)) {
         switch (error.code) {
@@ -138,7 +134,7 @@ export function OnboardingActivatePage() {
             <div className="flex items-center justify-between gap-4">
               <dt className="text-body text-text-secondary">{t("activate.success.expiresLabel")}</dt>
               <dd className="text-body font-semibold text-text-primary">
-                {new Date(success.expiresAt).toLocaleDateString("vi-VN")}
+                {new Date(success.expiresAt).toLocaleDateString(intlLocale())}
               </dd>
             </div>
           </dl>

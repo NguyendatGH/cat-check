@@ -11,30 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 
-/**
- * Kiểm thử ước lượng CCM bằng bình phương nhỏ nhất có trọng số.
- *
- * <p>Tiêu chí nghiệm thu (p6 §6.13.2 tầng 1): với nhiễu {@code σ = 1/255}, CCM phải khôi phục lại
- * ma trận thật với sai số tương đối <b>&lt; 2%</b>. Ngưỡng này có chủ đích lỏng: mục tiêu của CCM
- * không phải là "khớp tuyệt đối" mà là gỡ bỏ sai lệch có hệ thống. 2% trên hệ số ~1 là 0.02 —
- * nhỏ hơn nhiều lần so với ngưỡng ΔE00 ~2 mà người dùng nhìn thấy được.
- */
 class CcmSolverTest {
 
-    /**
-     * Đáp ứng màu giả lập của một camera điện thoại: đường chéo lớn, rò chéo nhỏ.
-     *
-     * <p>Camera biến phản xạ chuẩn thành tín hiệu cảm biến: {@code measured = CAMERA_RESPONSE · reference}.
-     * Ma trận lưu xuống DB là phép <b>sửa</b> chiều ngược lại, nên {@link CcmSolver} phải trả về
-     * {@link Matrix3#inverse() nghịch đảo} của ma trận này — đó mới là "khôi phục được CCM" nghĩa là
-     * dùng CCM ước lượng để đưa màu đo về màu thật.
-     */
     private static final Matrix3 CAMERA_RESPONSE = new Matrix3(
             1.12, -0.06, -0.04,
             -0.09, 1.18, -0.07,
             -0.05, -0.08, 1.10);
 
-    /** CCM đúng — phép sửa chiều ngược lại đáp ứng của camera. */
     private static final Matrix3 TRUE_CCM = CAMERA_RESPONSE.inverse();
 
     private static final double SIGMA = 1.0 / 255.0;
@@ -80,7 +63,6 @@ class CcmSolverTest {
     void weightsShiftTheEstimate() {
         List<ColorSamples.Sample> clean = simulate(60, 4242L);
 
-        // Thêm hai mẫu sai lệch hẳn, đặt trọng số 0: kết quả phải y hệt bộ mẫu sạch.
         List<ColorSamples.Sample> withExcluded = new ArrayList<>(clean);
         withExcluded.add(ColorSamples.Sample.excluded(new RgbLinear(0.1, 0.9, 0.4), new RgbLinear(0.5, 0.2, 0.1)));
         withExcluded.add(ColorSamples.Sample.excluded(new RgbLinear(0.8, 0.1, 0.3), new RgbLinear(0.1, 0.6, 0.9)));
@@ -108,8 +90,6 @@ class CcmSolverTest {
     @Test
     @DisplayName("solveCentered trả về phần tuyến tính, và phát hiện trường hợp quên khử trắng")
     void solveCenteredDetectsMissingWhiteBalance() {
-        // Thêm một hằng số lệch vào toàn bộ mẫu đo = chưa khử trắng. CCM chỉ tự tâm trừ được phần
-        // tuyến tính; phần tịch phải được xử lý ở tầng white balance.
         double offset = 0.15;
         List<ColorSamples.Sample> biased = new ArrayList<>();
         for (ColorSamples.Sample sample : simulate(40, 99L)) {
@@ -157,7 +137,6 @@ class CcmSolverTest {
                 .hasMessageContaining("2");
     }
 
-    // ------------------------------------------------------------------ ma trận
 
     @Test
     @DisplayName("Ma trận: nghịch đảo khứ hồi đúng ma trận gốc")
@@ -201,16 +180,12 @@ class CcmSolverTest {
         assertThat(corrected.r()).isGreaterThan(corrected.b());
     }
 
-    // ------------------------------------------------------------------ dữ liệu mô phỏng
 
     private static List<ColorSamples.Sample> simulate(int count, long seed) {
         Random random = new Random(seed);
         double[][] grid = srgbGrid(6);
         List<ColorSamples.Sample> samples = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            // Chọn màu ngẫu nhiên trên lưới chứ không lấy N màu đầu tiên: N màu đầu tiên nằm gọn
-            // trong góc tối của lăng kính, hệ gần như suy thoái và sai số ước lượng vọt lên hàng
-            // chục phần trăm — đó là khiếm khuyết của *bộ mẫu*, không phải của thuật toán.
             double[] rgb = grid[random.nextInt(grid.length)];
             RgbLinear reference = ColorSpace.hexToLinearRgb("#" + hex(rgb));
             RgbLinear truth = CAMERA_RESPONSE.apply(reference);
@@ -223,7 +198,6 @@ class CcmSolverTest {
         return samples;
     }
 
-    /** Lưới sRGB: 6 bậc mỗi kênh, bỏ các sắc thái quá gần nhau để hệ không suy thoái. */
     private static double[][] srgbGrid(int steps) {
         List<double[]> colors = new ArrayList<>();
         int span = 255 / steps;

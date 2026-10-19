@@ -1,6 +1,5 @@
 package com.catcheck.shared.error;
 
-/** Một dịch vụ ngoài (FCM, cổng thanh toán, ...) trả lỗi - thường HTTP 502/503. */
 public class ExternalServiceException extends CatCheckException {
 
     private final String serviceName;

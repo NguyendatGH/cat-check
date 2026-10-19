@@ -13,12 +13,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Một dấu hiệu được rule đánh dấu — ánh xạ {@code health_flag} (p4 D12).
- *
- * <p>{@code catId}, {@code triggerScanId}, {@code acknowledgedBy}, {@code notificationId} là cột
- * UUID thuần trỏ sang bảng của module khác — KHÔNG dùng {@code @ManyToOne} (R6).</p>
- */
 @Entity
 @Table(name = "health_flag")
 public class HealthFlag {

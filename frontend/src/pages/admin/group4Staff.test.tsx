@@ -3,7 +3,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-// Test đối chiếu với nguồn vai trò thật, dựng bảng khả năng y như AdminLayout; chỉ test được chạm `app`.
 import { ROLES, hasAnyRole } from "@/shared/auth/roles";
 import { useSessionStore } from "@/entities/user";
 import {
@@ -17,11 +16,6 @@ import staffSource from "./AdminStaffPage.tsx?raw";
 import meSecuritySource from "./AdminMeSecurityPage.tsx?raw";
 import setup2faSource from "./AdminSetup2faPage.tsx?raw";
 import { AdminStaffPage } from "./AdminStaffPage";
-
-/**
- * Nhóm 4 — trang nhân sự: nút ghi theo `ROLES`, duyệt reset TOTP chỉ cho DPO và chặn tự duyệt
- * (quy tắc hai người), khoá i18n của ba trang đều có nghĩa.
- */
 
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -47,7 +41,6 @@ function request(id: string, requestedBy: string, expiresAt: string) {
     reason: "Mất điện thoại xác thực",
     status: "PENDING",
     expiresAt,
-    // approvedBy/approvedAt null bị server bỏ khỏi JSON (non_null).
   };
 }
 
@@ -168,6 +161,19 @@ describe("AdminStaffPage — phân quyền", () => {
       approve.click();
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
+    // Thao tác khó hoàn tác (xoá secret TOTP) phải qua bước xác nhận riêng (p17 A3).
+    expect(fetchCalls()).not.toContainEqual({
+      url: "/api/v1/admin/totp-reset-requests/req-other/approve",
+      method: "POST",
+    });
+    const dialog = document.body.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    const confirm = dialog?.querySelector<HTMLButtonElement>('button[type="submit"]');
+    expect(confirm).toBeDefined();
+    await act(async () => {
+      confirm?.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     expect(fetchCalls()).toContainEqual({
       url: "/api/v1/admin/totp-reset-requests/req-other/approve",
       method: "POST",
@@ -205,7 +211,6 @@ describe("AdminStaffPage — phân quyền", () => {
   });
 });
 
-/** Khoá mới chờ coordinator gộp từ scratchpad `i18n-group4.json` vào `admin.json`. */
 const PENDING_GROUP4_KEYS = new Set([
   "pages.staff.rolesReadOnly",
   "pages.staff.approveReadOnly",

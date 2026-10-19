@@ -16,14 +16,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link ActivationCodePort} trên {@code JdbcTemplate}.
- *
- * <p>Adapter này <b>không bao giờ</b> ghi mã thô: cột duy nhất chứa dữ liệu mã là
- * {@code code_hash}. Không có phương thức nào đọc lại mã đã phát hành — đó là thiết kế, không
- * phải thiếu sót (p5 §5.9). Màn admin L19 vì vậy chỉ tra được theo {@code code_prefix}, gói,
- * trạng thái và lô sản xuất.</p>
- */
 @Repository
 public class JdbcActivationCodeAdapter implements ActivationCodePort {
 
@@ -32,15 +24,6 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
             issued_at, valid_until, status, redeemed_by, redeemed_at
             """;
 
-    /**
-     * Phần SELECT dùng chung của L21/L22/L24: gom {@code activation_code} theo
-     * {@code production_batch}.
-     *
-     * <p>{@code MIN(package_code)} chứ không đưa {@code package_code} vào GROUP BY: theo thiết
-     * kế một lô chỉ thuộc một gói (service chặn trùng {@code production_batch} lúc phát hành),
-     * nên gom thêm cột đó chỉ làm một lô bị tách đôi nếu dữ liệu cũ lỡ vi phạm — hiển thị một
-     * dòng với gói đầu tiên trung thực hơn là hai dòng cùng {@code batchId}.</p>
-     */
     private static final String BATCH_SELECT = """
             SELECT production_batch,
                    MIN(package_code)                            AS package_code,
@@ -108,13 +91,6 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
                 .toList());
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Điều kiện {@code status = 'ISSUED'} là điều kiện quyết định, không phải tối ưu: nếu
-     * không có nó thì hai request kích hoạt cùng một mã có thể cùng thành công và tạo ra hai lô
-     * credit — phá vỡ bất biến I24 ngay cả khi đã khoá dòng.</p>
-     */
     @Override
     public boolean markRedeemed(UUID codeId, UUID userId, Instant redeemedAt) {
         return jdbc.update("""
@@ -203,9 +179,6 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
 
     @Override
     public void lockProductionBatch(String productionBatch) {
-        // xact lock tự nhả lúc commit/rollback và dùng đúng JDBC connection đang tham gia
-        // @Transactional. hashtextextended cho khoá 64-bit ổn định; collision chỉ làm hai lô
-        // độc lập tuần tự hoá tạm thời, không làm chúng dùng chung dữ liệu.
         jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", rs -> { }, productionBatch);
     }
 
@@ -219,23 +192,13 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
 
     @Override
     public Optional<ActivationCode> lockById(UUID codeId) {
-        // SELECT ... FOR UPDATE: hai request kích hoạt cùng một mã sẽ xếp hàng ở đây, nên
-        // request thứ hai đọc được trạng thái MỚI NHẤT. Phải SELECT đủ cột rồi dựng lại object:
-        // khoá không làm cho object đã nạp ở lần tra trước tự nhiên mới theo.
         return jdbc.query("SELECT " + COLUMNS + " FROM activation_code WHERE id = ? FOR UPDATE",
                 (rs, rowNum) -> map(rs), codeId).stream().findFirst();
     }
 
-    /**
-     * Mệnh đề WHERE dùng chung cho {@link #search} và {@link #count} — dựng một lần để hai câu
-     * không bao giờ lệch bộ lọc (tổng số dòng khác danh sách là lỗi khó thấy nhất của phân
-     * trang offset).
-     */
     private static String whereOf(ActivationCodeFilter filter, List<Object> args) {
         StringBuilder where = new StringBuilder();
         if (filter.codePrefix() != null) {
-            // LIKE 'x%' dùng được index ix_activation_code_prefix. ESCAPE để ký tự '%' hoặc '_'
-            // người dùng gõ vào ô tìm kiếm không biến thành ký tự đại diện.
             append(where, "code_prefix LIKE ? ESCAPE '!'");
             args.add(escapeLike(filter.codePrefix()) + "%");
         }
@@ -251,6 +214,13 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
             append(where, "production_batch = ?");
             args.add(filter.productionBatch());
         }
+        if (filter.expired() != null) {
+            // Cùng quy tắc ActivationCode.isIssuanceExpiredAt: hết hạn khi valid_until <= now.
+            append(where, filter.expired()
+                    ? "(valid_until IS NOT NULL AND valid_until <= ?)"
+                    : "(valid_until IS NULL OR valid_until > ?)");
+            args.add(RowReaders.utc(filter.asOf()));
+        }
         return where.toString();
     }
 
@@ -258,7 +228,6 @@ public class JdbcActivationCodeAdapter implements ActivationCodePort {
         where.append(where.isEmpty() ? " WHERE " : " AND ").append(condition);
     }
 
-    /** Thoát ký tự đại diện của LIKE bằng ESCAPE '!' — '!' không có nghĩa trong code_prefix. */
     private static String escapeLike(String value) {
         return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }

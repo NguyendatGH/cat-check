@@ -13,36 +13,23 @@ import {
 } from "lucide-react";
 import { Button, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
-import { findBandForPh, PhGaugeBar, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
+import { PhGaugeCircular } from "@/features/scan";
+
+const ASSESSMENT_KEY = {
+  NORMAL: "overview.assessment.good",
+  ATTENTION: "overview.assessment.attention",
+  WATCH: "overview.assessment.abnormal",
+} as const;
 import type { ScanSummary } from "@/entities/scan-result";
 import type { CatSummaryResponse } from "@/features/cat";
 import { useScanHistory } from "@/features/history";
 import { useReminders } from "@/features/reminder";
 
-/**
- * Các khối TỔNG QUAN của `/cats/:catId` ở MOBILE — dựng theo mockup
- * `06. Hồ sơ Bé Mèo (Cat Profile)`: thẻ trạng thái chỉ thị sinh học, lưới 4 chỉ số,
- * danh sách lần quét gần đây, hai nút hành động chính.
- *
- * TOÀN BỘ SỐ LIỆU LÀ THẬT:
- *  - `GET /cats/{id}/summary` → số lần quét 30 ngày, tỉ lệ trong ngưỡng, lần quét gần nhất;
- *  - `GET /scans/summary`     → tổng số lần quét, trung vị, khoảng pH;
- *  - `GET /scans`             → 2 lần quét gần nhất;
- *  - `GET /reference/ph-bands`→ nhãn/màu/ngưỡng của dải.
- *
- * KHÁC MOCKUP CÓ CHỦ ĐÍCH: ô "Chuỗi theo dõi (14 ngày)" của mockup không có endpoint nào
- * tính streak → thay bằng "Tỉ lệ trong ngưỡng" (số thật).
- *
- * Ô "Lần nhắc tiếp theo" đọc `GET /reminders?catId=…&active=true` (I1) — KHÔNG đọc
- * `summary.nextReminderAt`: backend luôn trả `null` ở trường đó dù module nhắc lịch đã chạy.
- * Trước đây ô này in "sẽ bật ở bản cập nhật sau" — hứa một tính năng thật ra đã có.
- */
 
-/* ================================================================== Lịch nhắc kế tiếp */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Lịch nhắc đang bật có `nextRunAt` sớm nhất của bé; `null` khi bé chưa có lịch nào. */
 export function useNextReminder(catId: string): { nextRunAt: string | null; isPending: boolean } {
   const { data, isPending, isError } = useReminders({ catId, active: true });
   let nextRunAt: string | null = null;
@@ -53,7 +40,6 @@ export function useNextReminder(catId: string): { nextRunAt: string | null; isPe
   return { nextRunAt, isPending: isPending && !isError };
 }
 
-/** Giá trị + dòng phụ của ô "Lần nhắc tiếp theo", dùng chung mobile/desktop. */
 export function useReminderStatText(nextRunAt: string | null): { value: string; foot: string } {
   const { t, i18n } = useTranslation("cat");
   if (!nextRunAt) return { value: t("overview.statReminderNone"), foot: t("overview.statReminderFoot") };
@@ -70,14 +56,11 @@ export function useReminderStatText(nextRunAt: string | null): { value: string; 
 
 const isBound = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
-/* ================================================================== Biomarker status */
 
 export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary: CatSummaryResponse | undefined }) {
   const { t } = useTranslation("cat");
   const lastScan = summary?.lastScan ?? null;
   const phValue = lastScan?.phValue ?? null;
-  // `classification` của lần quét gần nhất CHÍNH LÀ mã dải (IN_RANGE / SLIGHTLY_HIGH...),
-  // tra thẳng theo code trước rồi mới rơi về dò theo giá trị pH.
   const band =
     (lastScan ? bands.find((b) => b.code === lastScan.classification) : undefined) ??
     (phValue != null ? findBandForPh(bands, phValue) : undefined) ??
@@ -101,9 +84,14 @@ export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary:
           <ShieldCheck className="mt-px size-4 shrink-0 text-primary" aria-hidden="true" />
           {t("overview.biomarkerEyebrow")}
         </p>
-        <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-small font-semibold", style.bg, style.text)}>
-          {band?.severity === "NORMAL" ? t("overview.biomarkerStable") : t("overview.biomarkerWatch")}
-        </span>
+        {band && band.severity in ASSESSMENT_KEY ? (
+          <span
+            title={t("overview.assessmentHint")}
+            className={cn("shrink-0 rounded-full px-2.5 py-1 text-small font-semibold", style.bg, style.text)}
+          >
+            {t(ASSESSMENT_KEY[band.severity as keyof typeof ASSESSMENT_KEY])}
+          </span>
+        ) : null}
       </div>
 
       {phValue == null ? (
@@ -112,26 +100,28 @@ export function CatBiomarkerCard({ bands, summary }: { bands: PhBand[]; summary:
           <p className="pt-1 text-caption leading-relaxed text-text-secondary">{t("overview.biomarkerNoDataBody")}</p>
         </>
       ) : (
-        <>
-          <p className="pt-2 text-h3 font-bold text-text-primary">{band?.label ?? lastScan?.classification}</p>
-          <p className="pt-1 text-caption leading-relaxed text-text-secondary">
-            {t("overview.biomarkerBody", { count: summary?.scanCount30d ?? 0 })}
-          </p>
-
-          <div className="flex flex-wrap items-baseline justify-between gap-2 pt-4">
-            <span className="text-small text-text-tertiary">
-              {t("overview.biomarkerCurrent", { value: phValue.toFixed(1) })}
-            </span>
-            {rangeLabel ? <span className={cn("text-small font-semibold", style.text)}>{rangeLabel}</span> : null}
+        <div className="flex items-center gap-3 pt-3">
+          <PhGaugeCircular
+            bands={bands}
+            value={phValue}
+            activeBand={band ?? undefined}
+            variant="dial"
+            size="xs"
+            className="shrink-0"
+          />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <p className="text-h3 font-bold leading-tight text-text-primary">{band?.label ?? lastScan?.classification}</p>
+            {rangeLabel ? <p className={cn("text-small font-semibold", style.text)}>{rangeLabel}</p> : null}
+            <p className="text-caption leading-relaxed text-text-secondary">
+              {t("overview.biomarkerBody", { count: summary?.scanCount30d ?? 0 })}
+            </p>
           </div>
-          <PhGaugeBar bands={bands} value={phValue} className="pt-1.5" />
-        </>
+        </div>
       )}
     </section>
   );
 }
 
-/* ================================================================== 4 chỉ số */
 
 function StatTile({
   label,
@@ -228,7 +218,6 @@ export function CatStatGrid({
   );
 }
 
-/* ================================================================== Lần quét gần đây */
 
 const RECENT_LIMIT = 2;
 
@@ -321,7 +310,6 @@ export function CatRecentScansCard({
   );
 }
 
-/* ================================================================== Hành động chính */
 
 export function CatProfileActions({ name, onScan, onEdit }: { name: string; onScan: () => void; onEdit: () => void }) {
   const { t } = useTranslation("cat");

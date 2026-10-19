@@ -32,40 +32,11 @@ import type { PhBand } from "@/entities/ph-bands";
 import type { Cat, CatLastScan } from "@/entities/cat";
 import { useLogout, useProfile } from "@/features/auth";
 import { useCatList } from "@/features/cat";
+import { TourSettingsCard } from "@/features/product-tour";
 import { NotificationPreferencesForm } from "./NotificationPreferencesForm";
 import { useLastScanByCat, useScanReminderSummary, type ScanReminderSummary } from "./settingsSummaries";
 
-/**
- * `/settings` — trang Cài đặt.
- *
- * Hai bố cục tách bạch vì hai bản thiết kế khác cấu trúc:
- *   - `< lg`: thẻ hồ sơ → thẻ bé mèo → các nhóm danh sách → pháp lý → đăng xuất;
- *   - `>= lg`: hero → cột điều hướng trái DÍNH + bốn khối nội dung bên phải.
- *
- * MỌI thứ trên trang này chạy bằng dữ liệu thật: hồ sơ (`GET /users/me`), danh sách bé mèo
- * (`GET /cats`), lần quét gần nhất của từng bé (`GET /scans?catId&limit=1`) + dải pH
- * (`GET /reference/ph-bands`), lịch nhắc quét (`GET /reminders?active=true`), tuỳ chọn thông
- * báo (B11/B12 trong `NotificationPreferencesForm`), đăng xuất, và các lối vào màn hình đã có
- * backend (bảo mật, quyền riêng tư, ngôn ngữ, lịch nhắc, xuất hồ sơ).
- *
- * ĐÃ XOÁ (không phục hồi): thiết bị khay cát IoT, uỷ quyền hồ sơ cho phòng khám, gói đăng ký
- * nhận cát, hội viên/chứng chỉ, hotline, số phiên bản, và khối "Ngưỡng cảnh báo" (ba ô tick
- * đặt cứng — không endpoint nào lưu ngưỡng; dải tham chiếu thuộc `GET /reference/ph-bands`,
- * người dùng không chỉnh được). Nguyên tắc: field nào backend không trả thì BỎ khỏi UI chứ
- * không bịa rồi dán nhãn "dữ liệu mẫu" (p15 REQ-COPY-01, REQ-CLAIM-04).
- *
- * Figma dựng hero mobile bằng một ẢNH CHÂN DUNG chủ nuôi; `GET /users/me` KHÔNG có cột ảnh
- * đại diện nào (`ProfileResponse` chỉ có id/email/fullName/phone/locale/timezone/...), nên
- * khung ảnh ở đây render chữ cái đầu trên nền trang trí thay vì bịa một tấm ảnh.
- *
- * Trang nằm trong `AppLayout`: layout KHÔNG cấp padding ngang ở mobile nhưng có cấp ở `lg`,
- * nên ở đây là `px-4 lg:px-0`.
- */
 
-/**
- * Bốn khối nội dung của bản desktop, ĐÚNG thứ tự render. Cột điều hướng trái dựng TỪ mảng
- * này, nên menu không thể lệch khỏi nội dung: thêm/bỏ một khối là sửa đúng một chỗ.
- */
 const SECTIONS = [
   { id: "account", icon: UserRound },
   { id: "cats", icon: PawPrint },
@@ -81,15 +52,10 @@ function anchorId(id: SectionId): string {
   return `${ANCHOR_PREFIX}${id}`;
 }
 
-/**
- * `scroll-mt-20` = 80px: `AppLayout` có header dính `h-16` (64px) ở desktop và `h-14` (56px)
- * ở mobile, nên neo phải chừa chỗ, nếu không tiêu đề khối nhảy vào đúng dưới header.
- */
 const SECTION_ANCHOR = "scroll-mt-20";
 
 const SECTION_CARD = "rounded-2xl bg-surface p-5 shadow-brand-md";
 
-/** Nền ô icon tròn-vuông đầu mỗi khối desktop — Figma đổi màu theo nhóm nội dung. */
 const SECTION_ICON_TONES = {
   info: "bg-info text-primary-dark",
   brand: "bg-chip-bg text-primary-dark",
@@ -99,7 +65,6 @@ const SECTION_ICON_TONES = {
 
 type SectionIconTone = keyof typeof SECTION_ICON_TONES;
 
-/** Khối "Bảo mật và quyền riêng tư" — mọi dòng là một route thật đã nối backend. */
 const SETTINGS_LINKS: { key: string; icon: LucideIcon; to: string }[] = [
   { key: "security", icon: KeyRound, to: "/settings/security" },
   { key: "privacy", icon: ShieldCheck, to: "/account/privacy" },
@@ -108,12 +73,6 @@ const SETTINGS_LINKS: { key: string; icon: LucideIcon; to: string }[] = [
   { key: "export", icon: Download, to: "/export" },
 ];
 
-/**
- * Mục đang xem trong cột điều hướng desktop.
- *
- * `rootMargin` cắt 80px mép trên (header dính) và 60% mép dưới: không cắt thì cả bốn khối
- * cùng giao với viewport trên màn hình cao và mục "đang xem" không bao giờ đổi.
- */
 function useActiveSection(): SectionId {
   const [active, setActive] = useState<SectionId>("account");
 
@@ -180,7 +139,6 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-5 lg:gap-5 lg:px-0">
-      {/* ======================= DESKTOP (Web-16) ======================= */}
       <div className="hidden flex-col gap-5 lg:flex">
         <section className="flex items-start justify-between gap-6 rounded-2xl bg-surface p-6 shadow-brand-md">
           <div className="min-w-0">
@@ -196,11 +154,6 @@ export function SettingsPage() {
           </Link>
         </section>
 
-        {/*
-          1024–1279px: sidebar 288px của AppLayout + cột menu 220px chỉ chừa ~430px cho nội dung
-          — email bị bẻ giữa chữ, mục menu xuống dòng. Ở khoảng này menu thành một hàng chip
-          ngang phía trên; cột menu dính bên trái chỉ hiện từ `xl`.
-        */}
         <nav className="flex flex-wrap items-center gap-2 xl:hidden" aria-label={t("web.navLabel")}>
           {SECTIONS.map(({ id, icon: Icon }) => (
             <a
@@ -224,11 +177,6 @@ export function SettingsPage() {
         </nav>
 
         <div className="flex items-start gap-5">
-          {/*
-            Cột trái DÍNH. Trước đây nó là một khối tĩnh cao ~400px cạnh một cột phải dài
-            ~2000px nên để lại khoảng trắng khổng lồ; `sticky top-20` giữ menu trong tầm mắt
-            suốt lúc cuộn và khoảng trắng đó biến mất.
-          */}
           <div className="sticky top-20 hidden w-[260px] shrink-0 flex-col gap-3 xl:flex">
             <nav className="rounded-2xl bg-surface p-4 shadow-brand-md" aria-label={t("web.navLabel")}>
               <p className="px-1 pb-2 text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
@@ -283,7 +231,6 @@ export function SettingsPage() {
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-5">
-            {/* 1. Thông tin tài khoản — GET /users/me */}
             <section id={anchorId("account")} className={cn(SECTION_ANCHOR, SECTION_CARD)}>
               <SectionHeader
                 icon={UserRound}
@@ -301,8 +248,6 @@ export function SettingsPage() {
                 }
               />
 
-              {/* Lưới 2×2 như Web-16. Ô thứ tư của thiết kế ("Hội viên thú y") không có field
-                  nào — thay bằng ngày tạo tài khoản (`ProfileResponse.createdAt`) cùng vị trí. */}
               <dl className="grid grid-cols-2 gap-4 pt-4">
                 <InfoCell label={t("web.fieldName")} value={displayName} />
                 <InfoCell
@@ -317,7 +262,6 @@ export function SettingsPage() {
               </dl>
             </section>
 
-            {/* 2. Bé mèo — GET /cats + GET /reference/ph-bands */}
             <section id={anchorId("cats")} className={cn(SECTION_ANCHOR, SECTION_CARD)}>
               <SectionHeader
                 icon={PawPrint}
@@ -358,7 +302,6 @@ export function SettingsPage() {
               </Link>
             </section>
 
-            {/* 3. Thông báo và cảnh báo — B11/B12 */}
             <section id={anchorId("notifications")} className={cn(SECTION_ANCHOR, SECTION_CARD)}>
               <SectionHeader
                 icon={Bell}
@@ -367,11 +310,6 @@ export function SettingsPage() {
                 subtitle={t("web.alertsSubtitle")}
               />
 
-              {/*
-                Hàng "Tần suất nhắc quét định kỳ" của Web-16. Thiết kế đặt một ô chọn tần suất
-                chung cho cả tài khoản, nhưng lịch nhắc của CatCheck đặt RIÊNG cho từng bé (I1–I6),
-                nên ở đây là bản tóm tắt đọc từ `GET /reminders` + lối sang màn quản lý.
-              */}
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl bg-background-alt p-4">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-primary-dark">
                   <CalendarClock size={17} aria-hidden="true" />
@@ -392,7 +330,6 @@ export function SettingsPage() {
               <NotificationPreferencesForm className="pt-5" />
             </section>
 
-            {/* 4. Bảo mật và quyền riêng tư — lối vào các màn đã nối backend */}
             <section id={anchorId("more")} className={cn(SECTION_ANCHOR, SECTION_CARD)}>
               <SectionHeader
                 icon={ShieldCheck}
@@ -424,18 +361,14 @@ export function SettingsPage() {
                   </li>
                 ))}
               </ul>
+
+              <TourSettingsCard className="mt-3" />
             </section>
           </div>
         </div>
       </div>
 
-      {/* ======================= MOBILE (frame 15) ======================= */}
       <div className="flex flex-col gap-4 lg:hidden">
-        {/*
-          Figma đặt ảnh chân dung chủ nuôi tràn thẻ. `ProfileResponse` không có field ảnh nào
-          nên khung dưới đây giữ ĐÚNG hình khối của thiết kế (khung ảnh bo góc + vòng tròn
-          trang trí) nhưng hiển thị chữ cái đầu — không bịa ảnh cho tài khoản chưa có ảnh.
-        */}
         <section className="overflow-hidden rounded-2xl bg-surface p-4 shadow-brand-md">
           <div className="relative flex h-44 items-center justify-center overflow-hidden rounded-xl bg-background-alt">
             <span
@@ -463,7 +396,6 @@ export function SettingsPage() {
           </div>
         </section>
 
-        {/* Hồ sơ bé mèo — dữ liệu THẬT từ GET /cats + GET /reference/ph-bands */}
         <section className="rounded-2xl bg-surface p-4 shadow-brand-md">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
@@ -540,6 +472,8 @@ export function SettingsPage() {
           />
         </MobileGroup>
 
+        <TourSettingsCard tone="card" className="shadow-brand-md" />
+
         <MobileGroup icon={Headphones} title={t("mobile.groupSupport")}>
           <MobileRow
             icon={BookOpen}
@@ -595,9 +529,7 @@ export function SettingsPage() {
   );
 }
 
-/* ---------------- Thành phần phụ dùng trong trang ---------------- */
 
-/** Đầu khối desktop: ô icon + tiêu đề + phụ đề, kèm chỗ cho một CTA bên phải. */
 function SectionHeader({
   icon: Icon,
   iconTone,
@@ -629,10 +561,6 @@ function SectionHeader({
   );
 }
 
-/**
- * Câu mô tả hàng "Lịch nhắc" — số lịch nhắc quét đang bật + mốc nhắc kế tiếp, đều từ
- * `GET /reminders`. Khi chưa tải xong / không đọc được thì dùng câu mô tả chung.
- */
 function describeReminders(
   summary: ScanReminderSummary,
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -647,12 +575,6 @@ function describeReminders(
   });
 }
 
-/**
- * Ô ảnh một bé mèo (mobile: một cột; desktop: lưới 2 cột trong khối "Bé mèo của bạn").
- * Ảnh lấy từ `cat.avatarUrl` — mèo chưa có ảnh thì hiện khung giữ chỗ, KHÔNG chèn ảnh mẫu.
- * Dòng trạng thái = lần quét gần nhất (`GET /scans?catId&limit=1`): nhãn + màu của dải tra từ
- * `GET /reference/ph-bands` theo `bandCode`, kèm giá trị pH — ứng dụng không tự đặt nhãn.
- */
 function CatTile({
   cat,
   bands,
@@ -688,11 +610,6 @@ function CatTile({
       </div>
       <p className="truncate pt-2.5 text-body font-bold text-text-primary">{cat.name}</p>
       <p className="truncate text-caption text-text-secondary">{cat.breedName ?? cat.breedOther ?? cat.publicCode}</p>
-      {/*
-        Trạng thái nằm DƯỚI ảnh chứ không đè lên ảnh như Figma: nhãn dải do API trả có thể dài
-        ("Trong khoảng tham chiếu · pH 6.5"), đè lên ô ảnh hẹp ở lưới desktop thì bị cắt chữ.
-        Ở đây nó xuống dòng tự nhiên trong một khối bo góc.
-      */}
       {lastScan === null ? (
         <p className="mt-2 w-fit max-w-full rounded-lg bg-surface px-2.5 py-1 text-caption font-semibold text-text-secondary">
           {t("mobile.catNoScan")}
@@ -703,7 +620,6 @@ function CatTile({
         >
           {band.label}
           {lastScan.phValue != null ? (
-            // "· pH 6.5" không bao giờ bị bẻ đôi khi nhãn dải dài phải xuống dòng.
             <>
               {" "}
               <span className="whitespace-nowrap">{t("web.catLastScanPh", { value: lastScan.phValue.toFixed(1) })}</span>
@@ -763,7 +679,6 @@ function MobileGroup({ icon: Icon, title, children }: { icon: LucideIcon; title:
   );
 }
 
-/** Mọi hàng đều dẫn tới một route thật — không còn hàng "chỉ có trong thiết kế". */
 function MobileRow({
   icon: Icon,
   to,

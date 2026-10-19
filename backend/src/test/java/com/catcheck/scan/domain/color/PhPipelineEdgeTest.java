@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 
-/** Kiểm thử cho phần sửa đặc tả: CI dùng đúng residual, trim S7, sắp xếp quad, WB, linearization. */
 class PhPipelineEdgeTest {
 
     private static PhChart chart() {
@@ -37,7 +36,6 @@ class PhPipelineEdgeTest {
         @DisplayName("sigmaDeltaE lay residual hieu chuan S4 chu khong phai residual vuong goc")
         void ciUsesCalibrationResidualNotPerpendicularResidual() {
             ConfidenceCalculator.Thresholds thresholds = ConfidenceCalculator.Thresholds.standard();
-            // Mọi thành phần chất lượng tốt, chỉ khác residual: S4 = 3.0, vuông góc = 0.0.
             ConfidenceCalculator.Inputs good = new ConfidenceCalculator.Inputs(
                     3.0, 2.0, 2.0, 0.02, 200.0, 100.0, 0.0, 0.0, 0.0, 30);
 
@@ -53,7 +51,6 @@ class PhPipelineEdgeTest {
                     .as("residual vuong goc lon phai lam CI rong hon")
                     .isGreaterThan(widthZero);
 
-            // Ngược lại: residual S4 tăng thì CI phai rong ra, ke ca khi vuong goc = 0.
             ConfidenceCalculator.Inputs worseResidual = new ConfidenceCalculator.Inputs(
                     6.0, 2.0, 2.0, 0.02, 200.0, 100.0, 0.0, 0.0, 0.0, 30);
             var residualWorse = ConfidenceCalculator.calculate(
@@ -110,13 +107,10 @@ class PhPipelineEdgeTest {
 
             List<Lab> nine = new ArrayList<>(ten.subList(1, 10));
 
-            // 9 hạt: hai hạt lạc bị loại, phần còn lại đồng nhất nên labMedian = 50.
             assertThat(RobustStats.analyze(nine).median().l()).isCloseTo(50.0, within(0.01));
             assertThat(RobustStats.analyze(nine).blobCount()).isEqualTo(7);
             assertThat(RobustStats.analyze(nine).droppedCount()).isEqualTo(2);
 
-            // Dưới 10 mẫu thì trim = 10% làm tròn về 0, tức trimmed mean trùng mean thường —
-            // đặc tả cắt "10% mỗi đuôi" chứ không hứa cắt được trên tập nhỏ.
             assertThat(RobustStats.trimmedMeanPerChannel(nine, RobustStats.TRIM).l())
                     .as("9 mau: cut = floor(0.9) = 0 nen khong cat gi")
                     .isCloseTo(48.333, within(1e-3));
@@ -145,7 +139,6 @@ class PhPipelineEdgeTest {
         void trimmedMeanIsExact() {
             double[] values = {0, 0, 0, 0, 0, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140};
             assertThat(plainMean(values)).isCloseTo(52.5, within(1e-9));
-            // cut = floor(20 * 0.10) = 2 -> bo 2 o duoi dau va 2 o duoi cuoi.
             assertThat(RobustStats.trimmedMean(values, 0.10)).isCloseTo(48.75, within(1e-9));
         }
 
@@ -185,12 +178,10 @@ class PhPipelineEdgeTest {
             assertThat(reference.bottomRight()).containsExactly(108.0, 63.0);
             assertThat(reference.bottomLeft()).containsExactly(12.0, 61.0);
 
-            // Thứ tự quanh chu vi sau khi chuẩn hoá phải thuận chiều kim đồng hồ trên màn hình.
             assertThat(CardQuadOrdering.signedArea(reference))
                     .as("dien tich duong chung to bay thu tu doc la TL -> TR -> BR -> BL")
                     .isCloseTo(98.0 * 51.0, within(1.0));
 
-            // Hoán vị: thứ tự vào khác nhau phai cho cung mot quad.
             List<double[]> rotated = List.of(
                     corners.get(2), corners.get(3), corners.get(0), corners.get(1));
             assertThat(CardQuadOrdering.canonicalize(rotated).topLeft()).isEqualTo(reference.topLeft());
@@ -213,7 +204,6 @@ class PhPipelineEdgeTest {
             }
 
             QuadHint quad = CardQuadOrdering.canonicalize(rotated);
-            // Sau khi xoay, goc tren-trai moi la diem goc, goc duoi-phai doi lau nhat.
             assertThat(quad.topLeft()[0] + quad.topLeft()[1])
                     .as("topLeft phai la diem nho nhat theo x+y")
                     .isLessThanOrEqualTo(Math.min(
@@ -312,7 +302,6 @@ class PhPipelineEdgeTest {
                     new RgbLinear(0.30, 0.30, 0.30));
 
             var gains = WhiteBalanceSolver.fallback(background);
-            // Nen xam: ca hai uoc luong deu trung tinh nen gain phai ve 1.
             for (double gain : gains.toArray()) {
                 assertThat(gain).isCloseTo(1.0, within(0.05));
             }
@@ -334,8 +323,6 @@ class PhPipelineEdgeTest {
 
             LinearizationCurve.GrayPoly3 poly = LinearizationCurve.fit(encoded, reference);
 
-            // sRGB là hàm hai nhánh: tuyến tính dưới 0.04045, lũy thừa 2.4 phía trên. Một đa thức bậc 3
-            // không thể khớp cả hai nhánh, nên sai số ở đây là sai số xấp xỉ hợp lệ, không phải lỗi fit.
             for (int i = 0; i < encoded.length; i++) {
                 assertThat(poly.evaluate(encoded[i]))
                         .as("fit phai khop duong cong tai chinh diem mau")
@@ -350,7 +337,6 @@ class PhPipelineEdgeTest {
         @Test
         @DisplayName("da thuc khong don dieu thi roi ve sRGB chuan")
         void nonMonotonicFallsBackToStandard() {
-            // Da thuc bac 3 quay dau: tang o hai dau, lom o giua.
             var squiggle = new LinearizationCurve.GrayPoly3(0.1, 4.0, 0.0, -2.0);
             var resolved = LinearizationCurve.resolveOrStandard(squiggle);
 

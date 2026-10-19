@@ -8,11 +8,6 @@ import { formatRelative } from "@/shared/lib/format/formatRelative";
 import { createPlaceReview, placeErrorStatus, type PlaceApi, type PlaceReviewApi } from "@/features/place";
 import { Stars } from "./placeParts";
 
-/**
- * Đánh giá cơ sở: `GET /places/{id}/reviews` (id, rating, body, createdAt — CỐ Ý không có danh
- * tính người viết) + `POST /places/{id}/reviews` (upsert một đánh giá / tài khoản / cơ sở).
- * Không có tên người viết, tên mèo, nhãn "đã khám thật" hay "bệnh nhân xác thực" — API không có.
- */
 
 const BODY_MAX = 2000;
 export const REVIEW_LIMIT = 20;
@@ -39,7 +34,6 @@ function ReviewForm({ placeId }: { placeId: string }) {
       await createPlaceReview(placeId, { rating, body: body.trim() || undefined });
       setState("success");
       setBody("");
-      // Điểm trung bình + số đánh giá ở chi tiết và danh sách bản đồ đều đổi theo.
       void queryClient.invalidateQueries({ queryKey: ["place"] });
     } catch (error) {
       const status = placeErrorStatus(error);

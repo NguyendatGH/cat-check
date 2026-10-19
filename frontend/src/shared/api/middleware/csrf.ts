@@ -8,16 +8,6 @@ function readCookie(name: string): string | null {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-/**
- * Mô hình phiên: session cookie HttpOnly + CSRF token (KHÔNG có JWT/refresh token ở FE).
- * Đính header CSRF từ cookie double-submit cho mọi request thay đổi state.
- *
- * ⚠️ CÒN THIẾU so với p9 §9.6.3: khi cookie chưa có (tab mở lâu / lần tải đầu) phải gọi
- * `GET /api/v1/auth/csrf` một lần rồi thử lại đúng một lần. Hiện middleware chỉ bỏ qua
- * header → request sẽ 403. Chưa nổi lên vì `apiClient` (openapi-fetch) chưa có call site
- * thật; mọi request đang đi qua `apiFetch` của từng feature, nơi đã có `ensureCsrfCookie()`.
- * Phải bổ sung TRƯỚC khi W3 chuyển các feature sang `apiClient` (sau `npm run api:gen`).
- */
 export const csrfMiddleware: Middleware = {
   onRequest({ request }) {
     if (SAFE_METHODS.has(request.method)) {

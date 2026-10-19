@@ -21,15 +21,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Truy vấn hiển thị — {@code GET /scans}, {@code /scans/summary}, {@code /scans/{id}},
- * {@code /scans/{id}/analysis}, {@code /scans/by-request/{scanRequestId}} (p8 §8.4.5/§8.5.4).
- *
- * <p>{@code INCONCLUSIVE} không có bản ghi hiển thị được: mọi phương thức đọc theo {@code scanId}
- * ở đây loại các dòng đó ra bằng {@link #requireVisible} — đúng hợp đồng p8 §8.5.4 "scanId là
- * null khi và chỉ khi không có bản ghi mà {@code GET /scans/{id}} đọc được", ngay cả khi p4 D1
- * vẫn yêu cầu lưu {@code scan}+{@code scan_analysis} cho INCONCLUSIVE để giữ lịch sử/audit.</p>
- */
 @Service
 public class ScanQueryService {
 
@@ -60,14 +51,12 @@ public class ScanQueryService {
         return queryRepository.summarize(new HistoryFilter(userId, catId, null, null, from, to, null));
     }
 
-    /** {@code GET /scans/{id}} — chỉ chủ sở hữu, chỉ khi có bản ghi hiển thị được. */
     public Row detail(UUID userId, UUID scanId) {
         Row row = queryRepository.findRowByScanId(scanId)
                 .orElseThrow(() -> new NotFoundException(ScanErrorCode.SCAN_NOT_FOUND));
         return requireVisible(row, userId);
     }
 
-    /** {@code GET /scans/{id}/analysis} — chi tiết kỹ thuật (Lab, ΔE, calibration...). */
     public ScanAnalysis analysis(UUID userId, UUID scanId) {
         Row row = detail(userId, scanId);
         Scan scan = scanRepository.findById(scanId)
@@ -78,12 +67,9 @@ public class ScanQueryService {
     }
 
     public List<ScanAnalysisRecompute> recomputeHistoryPlaceholder() {
-        // M7 (backfill) ngoài phạm vi MVP — xem docs/handovers/A6.md. Giữ chỗ để không lộ
-        // signature giả khi W3/M7 nối tiếp.
         return List.of();
     }
 
-    /** {@code GET /scans/by-request/{scanRequestId}} — poll sau 409 SCAN_IN_PROGRESS (p6 §6.4.5). */
     public Row byRequest(UUID userId, String scanRequestId) {
         Scan scan = scanRepository.findByUserIdAndIdempotencyKey(userId, scanRequestId)
                 .orElseThrow(() -> new NotFoundException(ScanErrorCode.SCAN_REQUEST_NOT_FOUND));

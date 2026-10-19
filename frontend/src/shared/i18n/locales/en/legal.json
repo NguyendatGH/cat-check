@@ -1,0 +1,489 @@
+{
+  "pages": {
+    "complaints": {
+      "title": "Complaints"
+    },
+    "contact": {
+      "title": "Contact"
+    },
+    "cookies": {
+      "title": "Cookie policy"
+    },
+    "dataRequests": {
+      "title": "Personal data requests"
+    },
+    "medicalDisclaimer": {
+      "title": "Medical disclaimer"
+    },
+    "policyVersionDetail": {
+      "title": "Policy version details"
+    },
+    "policyVersions": {
+      "title": "Policy version history"
+    },
+    "privacy": {
+      "title": "Privacy policy"
+    },
+    "terms": {
+      "title": "Terms of use"
+    }
+  },
+  "document": {
+    "versionBanner": "Version {{version}} — effective from {{date}}",
+    "viewPreviousVersions": "View previous versions",
+    "summaryOfChangesLabel": "What changed:",
+    "notPublishedYet": "Draft — content is awaiting legal review. There is no official version to show here yet.",
+    "loadError": "Couldn't load the content. Please try again later.",
+    "hostedExternally": "The full content is hosted at:"
+  },
+  "versions": {
+    "title": "Version history",
+    "subtitle": "Version numbers and effective dates help identify which content you agreed to.",
+    "currentBadge": "Current version",
+    "viewLink": "View this version",
+    "backToDocument": "Back to document",
+    "notFoundTitle": "Document not found",
+    "notFoundDescription": "The link is invalid or the document doesn't exist.",
+    "versionLabel": "Version {{version}}",
+    "requiresReconsent": "Re-consent required",
+    "effectiveFrom": "Effective from {{from}}",
+    "effectiveRange": "Effective {{from}} – {{to}}",
+    "emptyTitle": "No versions published yet",
+    "emptyDescription": "This document has no official version yet. Once the first one is published, its version and effective date will appear here.",
+    "permalinkNote": "Each version has its own permanent link that is kept forever, even after it's superseded — you can always reopen the content you agreed to."
+  },
+  "versionDetail": {
+    "notFoundTitle": "Version not found",
+    "notFoundDescription": "There is no version {{version}} of this document. Check the link or see the list of versions.",
+    "backToVersions": "View list of versions"
+  },
+  "disclaimer": {
+    "short": {
+      "text": "This is an at-home observation, not a medical diagnosis. If you're worried about your cat, ask a veterinarian."
+    },
+    "medium": {
+      "title": "Keep in mind when reading this chart",
+      "text": "This chart helps you notice changes compared with your own cat's usual pattern. CatCheck supports at-home monitoring; it does not diagnose disease and does not replace a veterinary examination. A result outside the reference range doesn't mean your cat is ill; likewise, a result within the reference range doesn't rule out illness. Bring this history along to vet visits — it gives the vet more information."
+    },
+    "long": {
+      "title": "CatCheck helps you monitor, not diagnose",
+      "intro": "CatCheck records the color of the indicator granules in the litter tray and tracks changes over time. What you see in the app is observational information for reference only — not a lab test result, not a medical diagnosis, and not a replacement for an examination or tests at a veterinary clinic.",
+      "bullets": [
+        "Color can be affected by many factors other than your cat's health: room lighting, the phone camera, shooting angle, food, water, current medications, humidity, and how long the litter has been in contact with urine.",
+        "A single result doesn't say much. What matters is the trend — repeated changes compared with your own cat's usual level. When you see an unusual result, the common approach is to keep monitoring for another 24–48 hours, except in the emergencies listed below.",
+        "CatCheck doesn't know which cat just used the tray. If you have several cats, you need to choose the right profile yourself before saving a result. If you're not sure, skip that entry — data attached to the wrong cat is noisier than no data at all.",
+        "A result within the reference range doesn't mean your cat is completely healthy. Many health problems don't change the properties of urine."
+      ],
+      "closing": "Every decision about your cat's health should be made together with a veterinarian. Think of CatCheck as a monitoring diary to bring to vet visits, not something that answers in place of a vet."
+    },
+    "emergency": {
+      "title": "Signs that need a vet RIGHT AWAY — don't wait and watch",
+      "intro": "Take your cat to a veterinary clinic immediately if you notice:",
+      "bullets": [
+        "Your cat strains a lot but passes no urine, or only a few drops.",
+        "Your cat cries, yowls or seems in pain when using the litter box.",
+        "Your cat keeps going in and out of the tray but it stays dry.",
+        "Blood in the urine.",
+        "Your cat stops eating, vomits, is very lethargic, or has a hard, swollen belly."
+      ],
+      "closing": "A urinary blockage is an emergency and can be life-threatening within 24–48 hours. In these cases, don't use CatCheck to keep watching — call the nearest veterinary clinic."
+    },
+    "footerLine": {
+      "text": "CatCheck supports at-home health monitoring — it does not diagnose disease or replace a veterinarian.",
+      "linkLabel": "Learn more"
+    }
+  },
+  "cookies": {
+    "tableTitle": "Cookies in use",
+    "columns": {
+      "name": "Cookie name",
+      "purpose": "Purpose",
+      "group": "Category",
+      "duration": "Duration",
+      "party": "Set by"
+    },
+    "purposes": {
+      "session": "Keeps you signed in between page loads.",
+      "csrf": "Cross-site request forgery (CSRF) protection — protects your account when submitting data."
+    },
+    "groups": {
+      "essential": "Essential",
+      "measurement": "Measurement"
+    },
+    "duration": {
+      "session": "Session-based (up to 90 days if you choose \"Remember me\")"
+    },
+    "noNonEssentialYet": "At this stage, CatCheck only sets the essential cookies listed above — no measurement or advertising cookies are used yet. This table will be updated as soon as anything changes."
+  },
+  "dataRequests": {
+    "intro": "This page explains how to exercise your rights over your personal data under the Personal Data Protection Law No. 91/2025/QH15 and Decree 356/2025/ND-CP.",
+    "rightsTitle": "Your rights",
+    "rights": {
+      "known": {
+        "label": "Right to be informed",
+        "description": "Know about the processing of your personal data, unless the law provides otherwise.",
+        "sla": "Ongoing obligation — see the Privacy policy for details."
+      },
+      "consent": {
+        "label": "Right to give / withdraw consent",
+        "description": "Give or withdraw consent for each data processing purpose.",
+        "sla": "Response within 02 working days · Fulfilled within 15 days (20 days if via a third party)."
+      },
+      "viewEdit": {
+        "label": "Right to access and correct data",
+        "description": "View and request correction of inaccurate personal data.",
+        "sla": "Response within 02 working days · Fulfilled within 10 days (15 days if via a third party)."
+      },
+      "export": {
+        "label": "Right to request a copy (export) of data",
+        "description": "Receive a copy of your personal data in a readable format.",
+        "sla": "Response within 02 working days · Fulfilled within 10 days (15 days if via a third party)."
+      },
+      "erase": {
+        "label": "Right to request data deletion",
+        "description": "Request deletion of your account and related personal data.",
+        "sla": "Response within 02 working days · Fulfilled within 20 days (30 days if via a third party)."
+      },
+      "restrict": {
+        "label": "Right to restrict / object to processing",
+        "description": "Request a pause on analysis, notifications and statistics using your data — your data is kept as is.",
+        "sla": "Response within 02 working days · Fulfilled within 15 days (20 days if via a third party)."
+      },
+      "complain": {
+        "label": "Right to complain, denounce, sue and claim compensation",
+        "description": "Complain to CatCheck or the competent authority if your rights are violated.",
+        "sla": "As provided by law on complaints — see the Contact page."
+      },
+      "protectionMeasure": {
+        "label": "Right to request data protection measures",
+        "description": "Ask CatCheck to apply additional protection measures if you have concerns about data security.",
+        "sla": "Response within 02 working days · Fulfilled within 15 days."
+      }
+    },
+    "slaNote": "Timeframes are counted from when the request is submitted following the procedure below.",
+    "howToSubmitTitle": "How to submit a request",
+    "howToSubmit": {
+      "selfService": "Do it yourself in the app (recommended) — in the Privacy center in your account.",
+      "webForm": "Fill in the complaint form on the Contact page.",
+      "email": "Email the data protection officer (DPO) directly — see the address on the Contact page."
+    },
+    "goToPrivacyCenter": "Go to Privacy center",
+    "loginToSubmit": "Sign in to submit a request",
+    "verificationTitle": "Information to provide and identity verification",
+    "verificationDescription": "If you're signed in, we verify you through that session (and may ask you to re-verify with a code sent to your email). If you can't sign in, please provide your registered email and describe your request via the Contact channel — CatCheck will get back to you to verify your identity before processing.",
+    "rejectionTitle": "When a request may be refused",
+    "rejectionDescription": "CatCheck may refuse all or part of a request if fulfilling it would infringe the rights or legitimate interests of others, or if it falls under cases where the law allows refusal. When we refuse, we always tell you the reason clearly.",
+    "trackingTitle": "How to check your request status",
+    "trackingDescription": "Each request gets a reference code in the format DSAR-XXXX-XXXXXX. You can view its status and deadlines in the Privacy center in your account.",
+    "complaintTitle": "If you're not satisfied",
+    "complaintDescription": "You have the right to complain to CatCheck or to the competent personal data protection authority. See all contact channels and authority details on the",
+    "contactLink": "Contact page"
+  },
+  "contact": {
+    "intro": "For any questions, personal data requests or complaints, you can contact CatCheck through the channels below.",
+    "companyTitle": "Company information",
+    "companyName": "CatCheck Co., Ltd.",
+    "companyAddress": "Chinh Gian Ward, Thanh Khe District, Da Nang",
+    "fields": {
+      "name": "Company name",
+      "address": "Head office",
+      "hotline": "Hotline",
+      "email": "Email",
+      "workingHours": "Working hours"
+    },
+    "workingHoursValue": "Monday – Friday, 8:30–12:00 and 13:00–17:30",
+    "dpoTitle": "Data protection officer (DPO)",
+    "dpoDescription": "For any requests about personal data, consent to data processing, or privacy concerns, please contact us through the channel below.",
+    "complaintChannelTitle": "Complaint channel",
+    "complaintChannelDescription": "You can send a complaint by email or the hotline above, or open a formal complaint on the Complaints page to get a tracking code.",
+    "responseTimeCommitment": "CatCheck responds to every personal data request within 02 working days of receipt.",
+    "authorityTitle": "Competent personal data protection authority",
+    "authorityName": "Department of Cybersecurity and High-Tech Crime Prevention (A05) — Ministry of Public Security",
+    "authorityBasis": "Under Article 33(1)(a) of the Personal Data Protection Law No. 91/2025/QH15, you have the right to file a complaint or denunciation with this authority if your rights are violated.",
+    "seeAlso": "See also the procedure for exercising your rights on the",
+    "dataRequestsLink": "Personal data requests page"
+  },
+  "complaints": {
+    "intro": "CatCheck handles your complaints through the process below. At this stage, each complaint gets a tracking code and is handled by email with the data protection officer (DPO).",
+    "steps": {
+      "openTicket": "Open a formal complaint below to receive a tracking code.",
+      "emailDetails": "Email a detailed description of your complaint to the DPO (address on the Contact page), including the tracking code you received.",
+      "wait": "CatCheck responds within 02 working days of receiving complete information."
+    },
+    "openTicketCta": "Open a complaint",
+    "loginCta": "Sign in to open a complaint",
+    "successTitle": "Complaint opened",
+    "successDescription": "Your tracking code: {{publicRef}}. Please email the details of your complaint with this code to the DPO.",
+    "emailDpoLink": "See the DPO email address",
+    "alternative": "You can also contact us directly via the",
+    "contactLink": "Contact page",
+    "errors": {
+      "generic": "Couldn't open the complaint. Please try again or contact us directly by email.",
+      "rateLimited": "You've sent too many requests. Please try again later or contact us directly by email."
+    },
+    "sideHelpTitle": "Other contact channels"
+  },
+  "toc": {
+    "title": "On this page"
+  },
+  "privacyCenter": {
+    "title": "Privacy center",
+    "intro": "See what data CatCheck holds about you, turn each processing purpose on or off, get a copy of your data, and request account deletion.",
+    "loadError": "Couldn't load data from the server.",
+    "retry": "Try again",
+    "noApiBadge": "No API yet",
+    "savedAt": "Saved at {{time}}",
+    "deletionBanner": {
+      "title": "Your account is pending deletion",
+      "body": "Request {{publicRef}} was recorded at {{receivedAt}}. The system will carry out the deletion on {{scheduledAt}}.",
+      "graceNote": "During the {{days}}-day grace period, you can still cancel the request and your account returns to normal. After that, it can't be undone.",
+      "derivedNote": "The execution date shown here is calculated as the request date plus 7 days (p15 §15.4.6). The API doesn't return the deletion_scheduled_at field directly yet.",
+      "cancel": "Cancel deletion request",
+      "cancelled": "Deletion request cancelled. Your account is back to normal.",
+      "expired": "The grace period has passed — the request can no longer be cancelled.",
+      "notRequested": "No open deletion request found."
+    },
+    "consent": {
+      "title": "Data processing purposes",
+      "intro": "Each purpose is a separate choice — you turn each one on or off; CatCheck doesn't bundle them into a single box.",
+      "sourceNote": "The status below is read directly from the consent ledger on the server, not inferred by your browser.",
+      "appendOnlyNote": "Each time you turn something on or off, the system APPENDS a new line to the evidence ledger. Old lines are never edited or deleted — that's how we prove what you agreed to and when.",
+      "mandatoryBadge": "Required",
+      "sensitiveBadge": "Sensitive data",
+      "phaseBadge": "Phase {{phase}}",
+      "withdrawEffectLabel": "If turned off:",
+      "mandatoryNote": "This purpose is part of the core service you signed up for, so it can't be turned off separately. To stop entirely, use Delete account below.",
+      "toggleAria": "Turn purpose on or off: {{label}}",
+      "noneHint": "Not yet asked doesn't mean consent.",
+      "empty": "No processing purposes have been configured yet.",
+      "saveError": "Couldn't save the change. Please try again.",
+      "mandatoryError": "This required purpose can't be withdrawn.",
+      "unknownPurposeError": "This purpose is no longer valid. Please reload the page.",
+      "status": {
+        "GRANTED": "Consented",
+        "DENIED": "Declined",
+        "WITHDRAWN": "Withdrawn",
+        "NONE": "Not yet asked"
+      },
+      "evidenceTitle": "Download consent evidence file",
+      "evidenceMissing": "p15 §15.3.1 (C6) requires that you can download your consent in a printable, copyable format. PrivacyController doesn't have an endpoint returning that file yet. In the meantime, the Get a copy of your data section below includes a consents.json file in the ZIP package."
+    },
+    "history": {
+      "title": "Consent history",
+      "intro": "The evidence ledger is append-only: no edits, no deletions. Newest first.",
+      "colPurpose": "Purpose",
+      "colStatus": "Status",
+      "colTime": "Time",
+      "colPolicy": "Policy version",
+      "colMethod": "Recorded via",
+      "policyLink": "View version {{version}}",
+      "policyUnknown": "No version attached",
+      "surfaceLabel": "Recorded at: {{surface}}",
+      "empty": "No records yet.",
+      "showAll": "View full history",
+      "showLess": "Show less"
+    },
+    "inventory": {
+      "title": "Data CatCheck holds about you",
+      "intro": "This list is built dynamically from the system's data inventory, not hand-written text — when a new field is added to the system, it appears here.",
+      "labelSensitivity": "Classification",
+      "labelLegalBasis": "Legal basis",
+      "labelPurposes": "Used for",
+      "labelRetention": "Retention policy",
+      "labelStorage": "Stored in",
+      "labelCrossBorder": "Transferred abroad",
+      "labelRecipient": "Recipient",
+      "recipientNone": "Not shared with anyone",
+      "crossBorderYes": "Yes",
+      "crossBorderNo": "No",
+      "retentionNote": "The API only returns the retention policy code. The written retention period is in the p15 §15.5.1 retention table; no endpoint returns it yet.",
+      "empty": "The data inventory hasn't been loaded yet.",
+      "sensitivity": {
+        "BASIC": "Basic",
+        "SENSITIVE": "Sensitive"
+      },
+      "legalBasis": {
+        "CONSENT": "Your consent",
+        "CONTRACT": "Performance of an agreement",
+        "LEGAL_OBLIGATION": "Legal obligation",
+        "VITAL_INTEREST": "Vital interest"
+      }
+    },
+    "export": {
+      "title": "Get a copy of your data",
+      "intro": "CatCheck builds a ZIP package containing your profile, cat list, scan history, consent history and notifications, plus a file explaining each column.",
+      "sla": "Response within 02 working days, fulfilled within 10 days. At most 1 request per 24 hours.",
+      "linkRule": "The download link works once, expires after 72 hours and requires you to be signed in. CatCheck does not send the data package as an email attachment.",
+      "cta": "Request data export",
+      "created": "Request {{publicRef}} received.",
+      "latestTitle": "Latest request",
+      "download": "Download data package",
+      "expiresAt": "Link expires: {{date}}",
+      "notReady": "The data package isn't ready: the background job that builds it (DataExportJob, p15 §15.4.5) doesn't run at this stage, so there's no file to download yet.",
+      "rateLimited": "You already requested a data export in the last 24 hours. Please try again later.",
+      "gone": "The download link has expired or has already been used.",
+      "none": "You haven't requested a data export yet."
+    },
+    "restriction": {
+      "title": "Pause data processing",
+      "intro": "Your data is kept as is, but the system only stores it: no analysis, no notifications, no statistics.",
+      "sla": "Response within 02 working days, fulfilled within 15 days.",
+      "stateActive": "Processing paused",
+      "stateInactive": "Processing normally",
+      "enable": "Pause processing",
+      "disable": "Withdraw pause request",
+      "derivedNote": "There's no endpoint to read this status directly yet. The status shown is inferred from whether an open RESTRICT request exists in the list below (p15 §15.4.7).",
+      "alreadyActive": "Processing is already paused for this account."
+    },
+    "deletion": {
+      "title": "Delete account",
+      "intro": "This action can't be undone after 7 days. Please read the section below carefully before continuing.",
+      "cta": "Request account deletion",
+      "immediateTitle": "As soon as you confirm",
+      "immediate1": "All sessions are revoked and sign-in is locked — you won't be able to get back into your account.",
+      "immediate2": "All reminders are cancelled and push notification subscriptions are deleted immediately.",
+      "immediate3": "The system schedules the deletion for 7 days later and sends an email with a cancellation link.",
+      "lostTitle": "After 7 days, these are gone for good",
+      "lost1": "Your account profile is anonymised: email, full name, phone number and profile photo are removed.",
+      "lost2": "All cat profiles, health surveys and photos you took are permanently deleted, including photos still within the 14-day window.",
+      "lost3": "Scan history is de-identified: pH readings are kept but no longer linked to you or any cat. If you turned off the algorithm-improvement purpose, this data is permanently deleted.",
+      "lost4": "In-app activity logs are permanently deleted.",
+      "keptTitle": "What CatCheck is required to keep",
+      "kept1": "Consent ledger: kept for another 05 years under a pseudonym — required to prove valid consent was obtained.",
+      "kept2": "Rights request (DSAR) records: kept for 05 years in anonymised form.",
+      "kept3": "Audit logs: kept for 24 months, linked to a pseudonym instead of your identity.",
+      "kept4": "Credit and activation code records: kept for reconciliation, with all free-text content removed.",
+      "backupNote": "Data remains in backups for up to 30 days according to the rotation cycle. CatCheck doesn't edit backups because doing so would break their integrity.",
+      "exportFirstTitle": "Consider getting a copy of your data first",
+      "exportFirst": "Once deleted, it can't be restored. Consider requesting a data export in the section above before continuing.",
+      "confirmTitle": "Confirm account deletion",
+      "confirmEmailLabel": "Re-enter your account email to confirm",
+      "confirmEmailMismatch": "The email doesn't match the signed-in account.",
+      "confirmCta": "I understand, delete my account",
+      "cancelCta": "Later",
+      "alreadyRequested": "There is already an open deletion request for this account.",
+      "optionsMissing": "p15 §15.4.6 (Phase 2) requires letting you choose whether to keep community content anonymised or delete it entirely. The POST /privacy/account-deletion endpoint doesn't accept any options yet, so that choice isn't shown here.",
+      "requested": "Deletion request {{publicRef}} recorded."
+    },
+    "requests": {
+      "title": "Other data requests",
+      "intro": "The four request types below need a person to handle them. Open a request to get a reference code and start the response-time clock.",
+      "noContentField": "This form only opens a request and issues a reference code — the API doesn't accept a detailed description yet. Please email the details to the data protection team, including the reference code.",
+      "open": "Open request",
+      "created": "Request {{publicRef}} opened.",
+      "listTitle": "Your requests",
+      "listEmpty": "You haven't submitted any requests yet.",
+      "ackDue": "Response due: {{date}}",
+      "fulfilDue": "Fulfilment due: {{date}}",
+      "receivedAt": "Submitted {{date}}",
+      "type": {
+        "ACCESS_EXPORT": "Export personal data",
+        "RECTIFY": "Correct inaccurate data",
+        "ERASE": "Delete account",
+        "RESTRICT": "Pause data processing",
+        "OBJECT": "Object to processing",
+        "WITHDRAW_CONSENT": "Withdraw consent",
+        "PROTECTION_MEASURE": "Request protection measures",
+        "COMPLAINT": "Complaint"
+      },
+      "status": {
+        "RECEIVED": "Received",
+        "IDENTITY_PENDING": "Awaiting identity verification",
+        "IN_PROGRESS": "In progress",
+        "EXTENDED": "Extended",
+        "COMPLETED": "Completed",
+        "REJECTED": "Rejected"
+      }
+    },
+    "stepUp": {
+      "title": "Verify your identity again",
+      "intro": "This action affects all of your personal data, so CatCheck needs to be sure it's really you.",
+      "windowNote": "After verifying, you have about 5 minutes to complete the action.",
+      "methodLabel": "Verification method",
+      "methodEmailOtp": "Code sent to email",
+      "methodPassword": "Current password",
+      "sendCode": "Send code",
+      "resendCode": "Resend code",
+      "codeSent": "Code sent to {{email}}.",
+      "codeLabel": "Verification code",
+      "passwordLabel": "Current password",
+      "submit": "Confirm",
+      "cancel": "Cancel",
+      "required": "You need to verify your identity again before doing this.",
+      "failed": "Verification failed. Check the code or password and try again.",
+      "otpInvalid": "Incorrect code.",
+      "otpExpired": "The code has expired. Please request a new one.",
+      "otpLocked": "Too many attempts. Please wait a moment and try again.",
+      "cooldown": "Please wait before resending the code.",
+      "deliveryFailed": "Couldn't send the email with the code. Please try again later.",
+      "passwordUnavailable": "This account has no password set. Please verify with a code sent to your email.",
+      "noEmail": "Couldn't read the email for the current session."
+    },
+    "aside": {
+      "slaTitle": "Time commitments",
+      "slaAck": "We respond to every request within 02 working days.",
+      "slaExport": "Data export: 10 days.",
+      "slaErase": "Account deletion: 20 days (7-day grace period, executed on day 7).",
+      "slaRestrict": "Pausing processing, objections, complaints: 15 days.",
+      "linksTitle": "Read more",
+      "linkPrivacy": "Privacy policy",
+      "linkDataRequests": "How to exercise your rights",
+      "linkContact": "Contact and complaints",
+      "gapsTitle": "Not yet supported by the API",
+      "gapEvidence": "Download consent evidence file (p15 §15.3.1 C6).",
+      "gapRetention": "Written retention period for each data category (p15 §15.5.1).",
+      "gapRestrictionState": "Read the processing-pause status directly (p15 §15.4.7).",
+      "gapCommunityChoice": "Choice to keep or delete community content when deleting an account (p15 §15.4.6, Phase 2)."
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "rateLimited": "You're going a bit fast. Please try again in a few minutes."
+    },
+    "accessLog": {
+      "title": "Data access log",
+      "intro": "Reads or changes to your data made by others (administrators, data protection officers, system processes) are recorded here.",
+      "actor": "Performed by: {{actor}}",
+      "actors": {
+        "USER": "You",
+        "ADMIN": "Administrator",
+        "DPO": "Data protection officer",
+        "SYSTEM": "System",
+        "JOB": "Automated process"
+      },
+      "results": {
+        "SUCCESS": "Succeeded",
+        "DENIED": "Denied",
+        "ERROR": "Error"
+      },
+      "actions": {
+        "generic": "Accessed your data",
+        "ADMIN_USER_VIEW": "Viewed your account profile",
+        "ADMIN_USER_SEARCH": "Found your account in a search",
+        "ADMIN_USER_CATS_VIEW": "Viewed your cat profiles",
+        "ADMIN_USER_SCANS_VIEW": "Viewed your scan history",
+        "ADMIN_USER_CREDITS_VIEW": "Viewed your scan credit balance",
+        "ADMIN_USER_SESSIONS_VIEW": "Viewed your sign-in sessions",
+        "ADMIN_USER_SESSIONS_REVOKE": "Signed out one of your sessions",
+        "ADMIN_SCAN_IMAGE_VIEW": "Viewed a photo from one of your scans",
+        "ADMIN_SCAN_REASSIGNED": "Moved a scan to a different cat profile",
+        "ADMIN_PII_UNMASKED": "Viewed your unmasked contact details",
+        "ADMIN_LOCK_ACCOUNT": "Locked your account",
+        "ADMIN_UNLOCK_ACCOUNT": "Unlocked your account",
+        "ADMIN_MFA_RESET_REQUESTED": "Requested a reset of your two-factor authentication",
+        "ADMIN_ROLE_GRANTED": "Granted a role to your account",
+        "ADMIN_ROLE_REVOKED": "Revoked a role from your account",
+        "ADMIN_NOTIFICATION_OUTBOX_VIEW": "Viewed notifications sent to you",
+        "ADMIN_OUTBOX_RESEND": "Resent a notification to you"
+      },
+      "empty": "No access has been recorded yet.",
+      "pendingNote": "The server has opened the log-reading path but hasn't connected it to the audit store yet, so the list is currently always empty. Empty here really means empty — there are no sample rows."
+    }
+  },
+  "careTip": {
+    "notFoundTitle": "Article not found",
+    "notFound": "This care article is no longer published or the link is incorrect.",
+    "reviewedAt": "Reviewed on {{date}}",
+    "sourceLabel": "Reference:",
+    "disclaimer": "For reference only; it does not replace a veterinarian's diagnosis."
+  }
+}

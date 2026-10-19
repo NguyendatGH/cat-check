@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
 
-/** Hiện thực {@link ActiveReminderQuery} (cổng do {@code reminder} công bố cho {@code ai}). */
 @Component
 public class ActiveReminderQueryAdapter implements ActiveReminderQuery {
 

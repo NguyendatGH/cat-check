@@ -6,12 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * G3 ({@code docs/cat-rag-credit-pipeline.md} B2) — hạn mức gọi {@code POST /activations}.
- *
- * <p>Ngưỡng theo {@link ActivationRateLimitRule}: 5/15 phút theo user, 20/giờ theo IP (xem javadoc
- * của enum đó cho lý do chọn số — KHÔNG trích từ p11, context/ đã xoá).</p>
- */
 class Bucket4jActivationRateLimiterTest {
 
     private final Bucket4jActivationRateLimiter limiter = new Bucket4jActivationRateLimiter();
@@ -59,7 +53,6 @@ class Bucket4jActivationRateLimiterTest {
 
     @Test
     void userRuleAndIpRuleDoNotShareABucketForTheSameSubjectString() {
-        // Cùng một chuỗi vẫn phải là hai thùng riêng vì bucketNamespace() có tiền tố tên quy tắc.
         String sameString = "shared-subject";
         for (int i = 0; i < 5; i++) {
             assertThat(limiter.tryConsume(ActivationRateLimitRule.ACTIVATION_BY_USER, sameString)).isTrue();
@@ -83,7 +76,6 @@ class Bucket4jActivationRateLimiterTest {
         for (int i = 0; i < 4; i++) {
             assertThat(limiter.rejectIfLimited(ActivationRateLimitRule.ACTIVATION_BY_USER, userId)).isNull();
         }
-        // Lần thứ 5: vẫn còn trong hạn mức (đã dùng 4, hạn mức 5).
         assertThat(limiter.rejectIfLimited(ActivationRateLimitRule.ACTIVATION_BY_USER, userId)).isNull();
 
         ActivationRateLimiter.RetryAfter retryAfter =

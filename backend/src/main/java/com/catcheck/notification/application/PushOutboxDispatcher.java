@@ -23,33 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Đẩy {@code notification_outbox} qua FCM — thân của {@code RetryFailedNotificationsJob}
- * (p12 §12.6.3, mỗi 15 phút).
- *
- * <p>Xử lý response theo đúng p12 §12.3.9 / research §5.5:</p>
- * <table>
- *   <tr><th>Kết quả FCM</th><th>Việc phải làm</th></tr>
- *   <tr><td>OK</td><td>{@code status = SENT}, lưu {@code fcm_message_id}, reset
- *       {@code failure_count}</td></tr>
- *   <tr><td>{@code UNREGISTERED} / {@code INVALID_ARGUMENT}</td><td>thu hồi subscription
- *       <b>NGAY</b>, KHÔNG retry — dòng outbox vào {@code FAILED}</td></tr>
- *   <tr><td>{@code UNAVAILABLE} / {@code INTERNAL} / {@code QUOTA_EXCEEDED}</td><td>tăng
- *       {@code failure_count}, backoff; {@code failure_count > 10} ⇒ revoke
- *       {@code STALE}</td></tr>
- * </table>
- *
- * <p><b>Khi chưa cấu hình credential</b> ({@code FIREBASE_SERVICE_ACCOUNT_PATH} rỗng): các dòng
- * đã claim được giữ nguyên {@code PENDING} và <b>không</b> bị tính một lần thử — nếu tính thì
- * mỗi 15 phút một lần, sau 75 phút toàn bộ thông báo push của hệ thống rơi vào dead letter chỉ
- * vì môi trường chưa có khoá.</p>
- */
 @Service
 public class PushOutboxDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(PushOutboxDispatcher.class);
 
-    /** research §5.5: lỗi tạm liên tiếp quá ngưỡng này thì coi là chết. */
     private static final int MAX_CONSECUTIVE_FAILURES = 10;
     private static final int MAX_ERROR_LENGTH = 1000;
 
@@ -102,7 +80,6 @@ public class PushOutboxDispatcher {
         return new OutboxDispatchReport(batch.size(), sent, retried, failed, skipped);
     }
 
-    /** Một multicast cho mỗi thông báo (p12 §12.3.2: KHÔNG loop gửi tuần tự từng thiết bị). */
     private Counters dispatchOne(UUID notificationId, List<PendingPush> entries, Instant now) {
         Counters counters = new Counters();
         PendingPush first = entries.get(0);
@@ -139,7 +116,6 @@ public class PushOutboxDispatcher {
                 counters.sent++;
             }
             case PERMANENT_FAILURE -> {
-                // Không retry: token/FID đã chết hẳn (p12 §12.3.9).
                 subscriptions.revokeById(entry.pushSubscriptionId(), revokeReasonFor(result.errorCode()), now);
                 outbox.markFailed(entry.outboxId(), entry.attempts() + 1, result.errorCode(),
                         truncate(result.errorMessage()));
@@ -162,7 +138,6 @@ public class PushOutboxDispatcher {
                     counters.retried++;
                 }
             }
-            // Giữ nguyên PENDING, không tăng attempts.
             case SKIPPED -> counters.skipped++;
         }
     }
@@ -197,7 +172,6 @@ public class PushOutboxDispatcher {
         return value.length() > MAX_ERROR_LENGTH ? value.substring(0, MAX_ERROR_LENGTH) : value;
     }
 
-    /** Bộ đếm cục bộ, không phải trạng thái chia sẻ giữa các lượt chạy. */
     private static final class Counters {
         private int sent;
         private int retried;

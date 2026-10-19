@@ -14,17 +14,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Kiểm thử {@link CardLayoutCatalogAdapter} — map JSON {@code reference_card_layout.layout} (p4 D8)
- * sang {@link CardLayout}. Dữ liệu JSON dưới đây CHÉP ĐÚNG cấu trúc thật đọc bằng
- * {@code psql ... select layout from reference_card_layout where code='CC-CARD'} (rect/ref_lab/role
- * của 5 patch NEUTRAL + 1 COLOR + 1 PH_LEVEL để kiểm cả việc lọc role) — không phải mô phỏng, đây
- * CHÍNH LÀ hình dạng JSON thật, chỉ rút gọn danh sách patch cho test ngắn gọn.
- *
- * <p>Cố tình trộn {@code Integer}/{@code Double} trong map test (giống Jackson deserialize JSONB
- * thật — số nguyên ra {@code Integer}, số thập phân ra {@code Double}) để chứng minh adapter dùng
- * {@code Number} chứ không ép kiểu cứng.
- */
 class CardLayoutCatalogAdapterTest {
 
     private static final String CODE = "CC-CARD";

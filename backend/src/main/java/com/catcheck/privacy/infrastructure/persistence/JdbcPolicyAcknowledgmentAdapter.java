@@ -8,11 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
-/**
- * {@link PolicyAcknowledgmentPort} trên {@code JdbcTemplate} — append-only (V6 REVOKE
- * UPDATE, DELETE). UNIQUE (user_id, policy_version_id, surface) đảm bảo một bản chỉ ghi
- * một lần cho một điểm chạm.
- */
 @Repository
 public class JdbcPolicyAcknowledgmentAdapter implements PolicyAcknowledgmentPort {
 

@@ -7,14 +7,7 @@ import { cn } from "@/shared/lib/cn";
 import { ONBOARDING_STEPS, type Breed, type OnboardingStep, type PhBand } from "./types";
 import { formatActivationCode } from "./schemas";
 
-/**
- * Component dùng chung cho luồng onboarding — gom trong 1 file root vì config
- * boundaries (eslint.config.js) thiếu policy feature→feature nên import giữa các file
- * cùng feature bị chặn. W3 sửa config thì tách lại thư mục components/ (xem
- * docs/handovers/A7.md).
- */
 
-/* ---------------- OnboardingStepper ---------------- */
 
 const STEP_I18N_KEYS: Record<OnboardingStep, string> = {
   1: "cat",
@@ -23,6 +16,9 @@ const STEP_I18N_KEYS: Record<OnboardingStep, string> = {
   4: "activate",
   5: "success",
 };
+
+// Bỏ qua được theo hợp đồng hiện tại: khảo sát sức khoẻ (skipped) và kích hoạt mã.
+const OPTIONAL_STEPS: ReadonlySet<OnboardingStep> = new Set<OnboardingStep>([2, 4]);
 
 interface OnboardingStepperProps {
   current: OnboardingStep;
@@ -34,18 +30,18 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
   const total = ONBOARDING_STEPS.length;
   const progressPercent = Math.round((current / total) * 100);
   const currentLabel = t(`stepper.steps.${STEP_I18N_KEYS[current]}`);
+  const optionalTag = t("stepper.optionalTag");
 
   return (
-    // Desktop (W1 Web-01c-3/4/5): dải bước nằm trong một thẻ trắng riêng phía trên nội dung.
     <div className="w-full lg:rounded-2xl lg:border lg:border-border lg:bg-surface lg:p-5 lg:shadow-brand-md">
       <div className="mb-2 flex items-center justify-between gap-3">
-        {/* M1 01c-3/4: nhãn bước là chữ đậm màu primary-dark kèm icon chân mèo, kèm tên bước
-            hiện tại khi chưa có hàng tròn bên dưới (dưới md). */}
         <p className="flex min-w-0 items-center gap-2 text-caption font-bold text-primary-dark">
           <LogoPawIcon size={16} />
           <span className="truncate">
             {t("stepper.label", { current, total })}
-            <span className="md:hidden">{` · ${currentLabel}`}</span>
+            <span className="md:hidden">
+              {` · ${currentLabel}${OPTIONAL_STEPS.has(current) ? ` (${optionalTag})` : ""}`}
+            </span>
           </span>
         </p>
         <p className="shrink-0 text-caption font-bold text-primary-dark" aria-hidden="true">
@@ -75,8 +71,6 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
           const isClickable = isDone && onStepClick;
           return (
             <Fragment key={step}>
-              {/* `min-w-20` + `whitespace-nowrap`: nhãn "Miễn trừ y tế"/"Kích hoạt gói" không bị
-                  bẻ thành 2 dòng lệch khi cột chỉ rộng 80px. */}
               <li className="flex min-w-20 shrink-0 flex-col items-center gap-1.5">
                 <button
                   type="button"
@@ -107,6 +101,9 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
                   >
                     {label}
                   </span>
+                  {OPTIONAL_STEPS.has(step) ? (
+                    <span className="text-small text-text-tertiary">{optionalTag}</span>
+                  ) : null}
                 </button>
               </li>
               {index < total - 1 ? (
@@ -120,11 +117,11 @@ export function OnboardingStepper({ current, onStepClick }: OnboardingStepperPro
           );
         })}
       </ol>
+      <p className="mt-2 hidden text-center text-small text-text-tertiary md:block">{t("stepper.optionalHint")}</p>
     </div>
   );
 }
 
-/* ---------------- OnboardingShell ---------------- */
 
 interface OnboardingShellProps {
   step: OnboardingStep;
@@ -134,25 +131,9 @@ interface OnboardingShellProps {
   onStepClick?: (step: OnboardingStep) => void;
   children: ReactNode;
   footer: ReactNode;
-  /**
-   * Khối full-width chen giữa header và vùng 2 cột (hero màn Hoàn tất, W1 Web-01c-5).
-   * Hiện ở MỌI breakpoint — mobile vẫn xếp dọc như cũ.
-   */
   hero?: ReactNode;
-  /**
-   * Cột phải của bản web 1280px (W1 Web-01c-3/4/5 — "2 cột: form + panel preview").
-   * CHỈ render từ `lg` trở lên; mobile không dựng DOM này nên bố cục 1 cột giữ nguyên.
-   */
   aside?: ReactNode;
-  /**
-   * Desktop (W1 Web-01c-3/4): cột trái là một THẺ TRẮNG chứa cả tiêu đề + form + CTA,
-   * không phải nội dung trần trên nền trang. Mobile không đổi (thẻ chỉ bật từ `lg`).
-   */
   panel?: boolean;
-  /**
-   * Ẩn tiêu đề trang khỏi phần nhìn thấy (vẫn giữ `h1` cho screen reader) — màn Hoàn tất
-   * dùng hero làm tiêu đề, thiết kế không có dòng tiêu đề thứ hai (M1 01d, W1 Web-01c-5).
-   */
   titleHidden?: boolean;
 }
 
@@ -199,7 +180,6 @@ export function OnboardingShell({
     <div
       className={cn(
         "mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6",
-        // Bản web rộng 1280px: nới khung để 2 cột 7/5 có chỗ (OnboardingLayout đã có px-4).
         aside && "lg:max-w-6xl",
       )}
     >
@@ -221,16 +201,12 @@ export function OnboardingShell({
 
           <div className="flex flex-1 flex-col gap-6 lg:flex-none">{children}</div>
 
-          {/* Desktop: CTA nằm ngay dưới nội dung (Figma Web-01c-3/4, DSL Web-01c-4a/4b: nút
-              theo sau ô nhập với pt 8) — KHÔNG dính đáy màn. Thanh dính + `mt-auto` trên màn
-              1440 đẩy nút xuống đáy, để lại khoảng trống ~300px giữa ô nhập mã và nút. */}
           <footer className="sticky bottom-0 mt-auto border-t border-border bg-background py-4 lg:static lg:mt-0 lg:border-0 lg:bg-transparent lg:pb-0 lg:pt-2">
             {footer}
           </footer>
         </div>
 
         {aside ? (
-          // Dính theo cuộn: cột trái (form khảo sát) dài gấp 2–3 lần cột phải.
           <aside className="hidden lg:sticky lg:top-6 lg:flex lg:basis-5/12 lg:shrink-0 lg:flex-col lg:gap-5">
             {aside}
           </aside>
@@ -240,9 +216,7 @@ export function OnboardingShell({
   );
 }
 
-/* ---------------- PhBandBar ---------------- */
 
-/** Màu từng dải pH theo `severity` của `GET /reference/ph-bands` (token `--color-ph-*`). */
 const PH_SEVERITY_BAR: Record<PhBand["severity"], string> = {
   NORMAL: "bg-[var(--color-ph-normal)]",
   ATTENTION: "bg-[var(--color-ph-mild)]",
@@ -250,13 +224,7 @@ const PH_SEVERITY_BAR: Record<PhBand["severity"], string> = {
   NEUTRAL: "bg-[var(--color-ph-unknown)]",
 };
 
-/**
- * Thanh dải pH tham chiếu (M1 01d, W1 Web-01c-3/4/5) — một segment cho mỗi band trả về,
- * KHÔNG hard-code ngưỡng. Rỗng khi API chưa trả dữ liệu.
- */
 export function PhBandBar({ bands, className }: { bands: PhBand[]; className?: string }) {
-  // Dải không có biên nào (INCONCLUSIVE — "chưa đủ dữ liệu") là một trạng thái, không phải một
-  // khoảng pH: vẽ nó thành đoạn xám cuối thang khiến thang trông như có vùng pH "không rõ".
   const ranged = bands.filter((b) => typeof b.phMin === "number" || typeof b.phMax === "number");
   if (ranged.length === 0) return null;
   return (
@@ -268,7 +236,6 @@ export function PhBandBar({ bands, className }: { bands: PhBand[]; className?: s
   );
 }
 
-/* ---------------- OptionCard + QuestionField ---------------- */
 
 interface OptionCardProps {
   name: string;
@@ -280,24 +247,12 @@ interface OptionCardProps {
   description?: string;
   badge?: string;
   disabled?: boolean;
-  /** Ảnh minh hoạ bên trái (vd 3 loại cát vệ sinh, M1 01c-4) — khớp thumbnail thật của Figma. */
   imageUrl?: string;
-  /** Icon nhỏ bên trái khi Figma dùng icon thay vì ảnh (vd tiền sử bệnh, loại thức ăn). */
   icon?: ReactNode;
-  /** Chú thích phụ căn phải trong hàng tiêu đề (M1 01c-4 câu 2: "Cần giám sát nhạy"…). */
   meta?: string;
-  /**
-   * `row` (mặc định) — icon/ảnh bên trái, nội dung bên phải.
-   * `stack` — icon ở trên, tiêu đề + mô tả bên dưới (M1 01c-4 câu "Chế độ ăn").
-   */
   layout?: "row" | "stack";
 }
 
-/**
- * Thẻ chọn 1/nhiều lựa chọn — khớp Figma (CatCheck-Demo 26mOVF2zdu4cI1EPz2Syxw, M1 01c-3/4):
- * lựa chọn ĐANG CHỌN tô nền đặc `primary-dark` + chữ trắng (không phải viền + tint nhạt như
- * trước) — nền đặc tự thân đã là tín hiệu chọn nên ẩn luôn chấm radio/checkbox phụ.
- */
 export function OptionCard({
   name,
   value,
@@ -313,8 +268,6 @@ export function OptionCard({
   meta,
   layout = "row",
 }: OptionCardProps) {
-  // Figma W1 Web-01c-4: lựa chọn KHÔNG có ảnh/icon vẫn có ô chọn (tròn cho radio, vuông cho
-  // checkbox) ở mép trái — thiếu nó thẻ trông như một ô chữ trơn, không ra "đang chọn được".
   const hasVisual = Boolean(imageUrl ?? icon);
   const leading = imageUrl ? (
     <img src={imageUrl} alt="" className="size-11 shrink-0 rounded-lg object-cover" />
@@ -368,7 +321,6 @@ export function OptionCard({
       />
       {leading}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        {/* `flex-wrap`: huy hiệu "Khuyến dùng" xuống dòng khi chật, thay vì bóp tiêu đề vỡ 3 dòng. */}
         <span className="flex flex-wrap items-start gap-x-2 gap-y-1">
           <span className={cn("text-body font-semibold", checked ? "text-white" : "text-text-primary")}>{title}</span>
           {badge ? (
@@ -404,9 +356,7 @@ interface QuestionFieldProps {
   hint?: string;
   error?: string;
   children: ReactNode;
-  /** Số thứ tự câu hỏi (huy hiệu tròn bên trái nhãn) — khớp Figma M1 01c-4. */
   number?: number;
-  /** Chú thích căn phải cùng hàng với nhãn ("Chọn 1", "Ảnh hưởng độ pH" — M1 01c-4). */
   meta?: string;
 }
 
@@ -438,19 +388,14 @@ export function QuestionField({ label, hint, error, children, number, meta }: Qu
   );
 }
 
-/* ---------------- FieldLabel ---------------- */
 
 interface FieldLabelProps {
   children: ReactNode;
-  /** Gắn nhãn vào input cụ thể; bỏ trống khi nhãn đứng trước một nhóm (fieldset). */
   htmlFor?: string;
-  /** Dấu `*` đỏ sau nhãn — M1 01c-3 đánh dấu 3 trường bắt buộc (tên, giống, giới tính). */
   required?: boolean;
-  /** Hành động căn phải cùng hàng nhãn ("Tất cả giống" — M1 01c-3). */
   action?: ReactNode;
 }
 
-/** Nhãn trường của luồng onboarding — có dấu bắt buộc + slot hành động bên phải. */
 export function FieldLabel({ children, htmlFor, required, action }: FieldLabelProps) {
   const text = (
     <>
@@ -477,7 +422,6 @@ export function FieldLabel({ children, htmlFor, required, action }: FieldLabelPr
   );
 }
 
-/* ---------------- AvatarUpload ---------------- */
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png"];
@@ -511,7 +455,6 @@ export function AvatarUpload({ file, previewUrl, onChange, error }: AvatarUpload
   const displayedError = error ?? localError;
 
   return (
-    // Desktop (W1 Web-01c-3): khối upload nằm ngang trong panel nền nhạt thay vì cột giữa.
     <div className="flex flex-col items-center gap-2 lg:flex-row lg:gap-5 lg:rounded-2xl lg:bg-background-alt lg:p-5">
       <div className="relative shrink-0">
         <button
@@ -568,7 +511,6 @@ export function AvatarUpload({ file, previewUrl, onChange, error }: AvatarUpload
       />
 
       <div className="flex flex-col items-center gap-1 lg:flex-1 lg:items-start">
-        {/* Desktop (W1 Web-01c-3): nút tải ảnh hiện tường minh cạnh khung tròn. */}
         <Button
           type="button"
           variant="tertiary"
@@ -590,7 +532,6 @@ export function AvatarUpload({ file, previewUrl, onChange, error }: AvatarUpload
   );
 }
 
-/* ---------------- BreedPicker ---------------- */
 
 interface BreedPickerProps {
   breeds: Breed[] | undefined;
@@ -600,8 +541,9 @@ interface BreedPickerProps {
   error?: string;
 }
 
-/** Số giống hiện sẵn thành chip chọn nhanh (M1 01c-3: hàng chip cuộn ngang + "Tất cả giống"). */
 const QUICK_BREED_COUNT = 6;
+// Catalog code for mixed / unknown breed (V7 seed); pinned first so owners who don't know can still continue.
+const UNKNOWN_BREED_CODE = "MIXED_UNKNOWN";
 
 export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPickerProps) {
   const { t } = useTranslation("onboarding");
@@ -617,12 +559,15 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
     return breeds.filter((b) => b.name.toLowerCase().includes(q));
   }, [breeds, query]);
 
-  // Giống đang chọn luôn nằm trong hàng chip, kể cả khi nó được chọn từ hộp thoại đầy đủ.
+  const breedName = (breed: { code: string; name: string }) =>
+    breed.code === UNKNOWN_BREED_CODE ? t("cat.breed.unknown") : breed.name;
+
   const quick = useMemo(() => {
     if (!breeds) return [];
-    const head = breeds.slice(0, QUICK_BREED_COUNT);
-    if (!selected || head.some((b) => b.code === selected.code)) return head;
-    return [selected, ...head.slice(0, QUICK_BREED_COUNT - 1)];
+    const unknown = breeds.find((b) => b.code === UNKNOWN_BREED_CODE);
+    const pinned = [unknown, selected].filter((b, i, all): b is NonNullable<typeof b> => !!b && all.indexOf(b) === i);
+    const rest = breeds.filter((b) => !pinned.includes(b));
+    return [...pinned, ...rest].slice(0, QUICK_BREED_COUNT);
   }, [breeds, selected]);
 
   return (
@@ -646,11 +591,6 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
 
         {loading ? <p className="py-2 text-caption text-text-tertiary">{t("cat.breed.loading")}</p> : null}
 
-        {/* W1 Web-01c-3: trên desktop giống mèo là MỘT ô chọn cạnh ô tên, không phải hàng chip
-            — hàng chip cuộn ngang bị thân thẻ cột trái cắt cụt, nhìn như lỗi tràn. */}
-        {/* Mở hộp thoại qua `setOpen` chứ KHÔNG phải `DialogTrigger` thứ hai: Radix chỉ giữ một
-            `triggerRef` (cái mount sau cùng) để trả focus lúc đóng — nút này ẩn ở mobile nên
-            focus sẽ rơi về `body`. Trigger duy nhất là link "Tất cả giống" luôn hiển thị. */}
         {loading ? null : (
           <button
             type="button"
@@ -664,7 +604,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
               error && "outline outline-2 outline-danger",
             )}
           >
-            <span className="truncate">{selected?.name ?? t("cat.breed.placeholder")}</span>
+            <span className="truncate">{selected ? breedName(selected) : t("cat.breed.placeholder")}</span>
             <ChevronDown className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
           </button>
         )}
@@ -695,7 +635,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
                   )}
                 >
                   {isSelected ? <Check className="size-4" aria-hidden="true" strokeWidth={3} /> : null}
-                  {breed.name}
+                  {breedName(breed)}
                 </button>
               );
             })}
@@ -750,7 +690,7 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
                           : "text-text-primary hover:bg-background-alt",
                       )}
                     >
-                      <span>{breed.name}</span>
+                      <span>{breedName(breed)}</span>
                       {isSelected ? <Check className="size-4 shrink-0" aria-hidden="true" /> : null}
                     </button>
                   </li>
@@ -769,7 +709,6 @@ export function BreedPicker({ breeds, loading, value, onChange, error }: BreedPi
   );
 }
 
-/* ---------------- ActivationCodeInput ---------------- */
 
 interface ActivationCodeInputProps {
   value: string;
@@ -801,12 +740,10 @@ export function ActivationCodeInput({ value, onChange, error, disabled }: Activa
   );
 }
 
-/** Dạng gửi lên API: `CC-<GÓI>-<10 ký tự>` (có gạch — backend cắt thân mã theo dấu gạch cuối). */
 export function toCanonicalCode(value: string): string {
   return formatActivationCode(value);
 }
 
-/* ---------------- DisclaimerScroll ---------------- */
 
 const BOTTOM_THRESHOLD_PX = 8;
 
@@ -848,7 +785,6 @@ export function DisclaimerScroll({ children, onReachBottom }: DisclaimerScrollPr
   );
 }
 
-/* ---------------- Checkbox ---------------- */
 
 interface CheckboxProps {
   checked: boolean;
@@ -857,7 +793,6 @@ interface CheckboxProps {
   description?: string;
   error?: string;
   disabled?: boolean;
-  /** Tô nền cảnh báo (vàng nhạt) khi mô tả là 1 lời cảnh báo — khớp Figma 01c-3 "Đã triệt sản". */
   warn?: boolean;
 }
 
@@ -870,7 +805,6 @@ export function Checkbox({ checked, onChange, label, description, error, disable
       <label
         className={cn(
           "flex min-h-11 cursor-pointer items-start gap-3 rounded-xl p-4 shadow-xs transition-colors",
-          // Web: ô nằm trong thẻ trắng (panel) — thêm viền, nếu không trắng chồng trắng.
           warn ? "bg-warning-bg" : "bg-surface lg:border lg:border-border lg:shadow-none",
           disabled && "cursor-not-allowed opacity-50",
         )}
@@ -914,7 +848,6 @@ export function Checkbox({ checked, onChange, label, description, error, disable
   );
 }
 
-/* ---------------- FieldError ---------------- */
 
 export function FieldError({ message }: { message?: string }) {
   const { t } = useTranslation("onboarding");

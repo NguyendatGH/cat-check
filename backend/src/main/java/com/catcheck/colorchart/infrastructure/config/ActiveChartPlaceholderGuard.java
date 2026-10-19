@@ -12,22 +12,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Chặn khởi động ở prod khi bất kỳ bảng màu đang {@code ACTIVE} là placeholder
- * (docs/scan-production-plan.md GĐ7 — "kiểm tra khởi động cấm bảng màu placeholder ở prod").
- *
- * <p>Chỉ chạy ở profile {@code prod} ({@code @Profile("prod")}) — không ảnh hưởng local/staging/
- * test. {@link ApplicationRunner} chạy SAU khi context đã khởi tạo xong (DB sẵn sàng), và ném
- * ngoại lệ ở đây khiến {@code SpringApplication.run(...)} fail-fast, đúng yêu cầu "không để app
- * chạy production với bảng giả".</p>
- *
- * <p>Dùng lại {@link ColorChartRepository#findAllByStatus} (đã có sẵn, phục vụ trang quản trị)
- * thay vì viết truy vấn mới — duyệt TOÀN BỘ bảng {@code status = ACTIVE} (mọi dòng sản phẩm/lô,
- * không chỉ bản mặc định): một placeholder còn ACTIVE ở bất kỳ lô nào cũng phải chặn khởi động.</p>
- *
- * <p>Không log PII — thông điệp chỉ nêu {@code code}/{@code version} của bảng màu, đây là tài
- * sản hiệu chuẩn nội bộ (p4 D5), không phải dữ liệu người dùng.</p>
- */
 @Component
 @Profile("prod")
 public class ActiveChartPlaceholderGuard implements ApplicationRunner {

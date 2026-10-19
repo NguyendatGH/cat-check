@@ -10,10 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bộ chuyển đổi từ cổng {@link CatRepository} sang Spring Data — cùng khuôn với
- * {@code content.infrastructure.persistence.CareTipRepositoryAdapter}.
- */
 @Repository
 class CatRepositoryAdapter implements CatRepository {
 

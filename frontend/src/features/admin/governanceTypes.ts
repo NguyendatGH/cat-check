@@ -1,18 +1,8 @@
-/**
- * Kiểu dữ liệu cho 5 trang quản trị mới. Mỗi kiểu chép đúng DTO backend đã đối chiếu.
- *
- * Backend chạy `default-property-inclusion: non_null` nên trường `null` bị bỏ khỏi JSON:
- * trường có thể rỗng khai `?: T | null`.
- */
 
-// ---------------------------------------------------------------- dữ liệu quét
-// scan/api/AdminScanController (L5, L6, L18)
 
-/** `scan/api/dto/AdminScanItemResponse`. Không có trường nào trỏ tới ảnh. */
 export interface AdminScanItem {
   scanId: string;
   catId?: string | null;
-  /** Đã che khi `masked = true`. */
   catName?: string | null;
   assignment: string;
   capturedAt: string;
@@ -29,14 +19,11 @@ export interface AdminScanItem {
   creditCharged: boolean;
   trial: boolean;
   disputed: boolean;
-  /** Đã che khi `masked = true`. */
   disputedNote?: string | null;
   reassignCount: number;
-  /** Chỉ có giá trị với DPO đang xử lý DSAR. */
   imageStored?: boolean | null;
 }
 
-/** `scan/api/dto/AdminScanListResponse` — phân trang offset. */
 export interface AdminScanList {
   items: AdminScanItem[];
   page: {
@@ -46,14 +33,11 @@ export interface AdminScanList {
     totalPages: number;
     hasMore: boolean;
   };
-  /** Response đang che văn bản tự do. */
   masked: boolean;
 }
 
-/** Đích chuyển scan: một mèo của chủ scan, hoặc "chưa rõ bé nào". */
 export type ReassignTarget = { kind: "cat"; catId: string } | { kind: "shared" };
 
-/** `scan/api/dto/AdminReassignCatResponse`. */
 export interface AdminReassignResult {
   scanId: string;
   fromCatId?: string | null;
@@ -62,7 +46,6 @@ export interface AdminReassignResult {
   reassignCount: number;
 }
 
-/** Phần cần dùng của `cat/api/dto/AdminCatResponse` (GET /admin/users/{userId}/cats). */
 export interface AdminUserCat {
   catId: string;
   publicCode?: string | null;
@@ -76,12 +59,9 @@ export interface AdminUserCatList {
   masked: boolean;
 }
 
-// ------------------------------------------------------------- quy tắc theo dõi
-// insight/api/AdminMonitoringRuleController (L38, L39)
 
 export type MonitoringRuleSeverity = "INFO" | "ATTENTION" | "URGENT";
 
-/** `insight/api/dto/AdminMonitoringRuleResponse`. Mỗi dòng mang `etag` riêng cho `If-Match`. */
 export interface AdminMonitoringRule {
   code: string;
   name: string;
@@ -97,18 +77,14 @@ export interface AdminMonitoringRule {
   etag: string;
 }
 
-/** `insight/api/dto/UpdateMonitoringRuleRequest` — merge-patch, vắng trường = không đổi. */
 export interface UpdateMonitoringRulePayload {
   enabled?: boolean;
-  /** Thay TOÀN BỘ map, không merge từng khoá. */
   params?: Record<string, unknown>;
   cooldownHours?: number;
   pushEnabled?: boolean;
   reason: string;
 }
 
-// ------------------------------------------------------------------- bảo mật
-// privacy/api/AdminSecurityIncidentController (L59–L61), AdminSecuritySessionController (L62)
 
 export const INCIDENT_SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 export type IncidentSeverity = (typeof INCIDENT_SEVERITIES)[number];
@@ -122,7 +98,6 @@ export const INCIDENT_CATEGORIES = [
 ] as const;
 export type IncidentCategory = (typeof INCIDENT_CATEGORIES)[number];
 
-/** `privacy/api/dto/AdminSecurityIncidentResponse`. */
 export interface AdminSecurityIncident {
   id: string;
   publicRef: string;
@@ -140,13 +115,11 @@ export interface AdminSecurityIncident {
   retainUntil?: string | null;
   handledBy?: string | null;
   reportRef?: string | null;
-  /** `detectedAt + 72 giờ`, server tính sẵn. */
   authorityDeadline?: string | null;
   authorityNotificationOverdue?: boolean | null;
   createdAt: string;
 }
 
-/** `AdminSecurityIncidentController.PageResponse` — envelope offset phẳng. */
 export interface AdminSecurityIncidentPage {
   items: AdminSecurityIncident[];
   page: number;
@@ -156,7 +129,6 @@ export interface AdminSecurityIncidentPage {
   hasMore: boolean;
 }
 
-/** `privacy/api/dto/OpenSecurityIncidentRequest`. */
 export interface OpenSecurityIncidentPayload {
   severity: IncidentSeverity;
   category: IncidentCategory;
@@ -168,7 +140,6 @@ export interface OpenSecurityIncidentPayload {
   reason: string;
 }
 
-/** `privacy/api/dto/UpdateSecurityIncidentRequest` — merge-patch. */
 export interface UpdateSecurityIncidentPayload {
   severity?: IncidentSeverity;
   category?: IncidentCategory;
@@ -184,7 +155,6 @@ export interface UpdateSecurityIncidentPayload {
   reason: string;
 }
 
-/** `privacy/api/dto/PurgeAllSessionsResponse`. */
 export interface PurgeAllSessionsResult {
   incidentRef?: string | null;
   revokedCount?: number | null;
@@ -194,8 +164,6 @@ export interface PurgeAllSessionsResult {
   elapsedMillis?: number | null;
 }
 
-// ------------------------------------------------------------ phiên bản chính sách
-// privacy/api/AdminPolicyVersionController (L46–L48)
 
 export const POLICY_TYPES = [
   "TERMS",
@@ -213,7 +181,6 @@ export type PolicyLocale = (typeof POLICY_LOCALES)[number];
 
 export type PolicyVersionStatus = "DRAFT" | "SCHEDULED" | "EFFECTIVE" | "SUPERSEDED";
 
-/** `privacy/api/dto/AdminPolicyVersionResponse` — không có `contentMd`. */
 export interface AdminPolicyVersion {
   id: string;
   policyType: PolicyType;
@@ -233,7 +200,6 @@ export interface AdminPolicyVersion {
   status: PolicyVersionStatus;
 }
 
-/** `privacy/api/dto/AdminPolicyVersionListResponse`. */
 export interface AdminPolicyVersionPage {
   items: AdminPolicyVersion[];
   page: number;
@@ -243,7 +209,6 @@ export interface AdminPolicyVersionPage {
   hasMore: boolean;
 }
 
-/** `privacy/api/dto/CreatePolicyVersionRequest`. */
 export interface CreatePolicyVersionPayload {
   policyType: PolicyType;
   version: string;
@@ -258,19 +223,14 @@ export interface CreatePolicyVersionPayload {
   reason: string;
 }
 
-/** `privacy/api/dto/PublishPolicyVersionRequest`. */
 export interface PublishPolicyVersionPayload {
-  /** `null`/vắng = giữ ngày hiệu lực của bản nháp. */
   effectiveFrom?: string;
   reason: string;
 }
 
-// ------------------------------------------------------------------- consent
-// privacy/api/AdminPrivacyConsentController (L55)
 
 export type ConsentRecordStatus = "GRANTED" | "DENIED" | "WITHDRAWN";
 
-/** `privacy/api/dto/AdminConsentRecordView`. */
 export interface AdminConsentRecord {
   id: string;
   userId: string;

@@ -29,10 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * {@code CatRepository.findByIdAndOwnerId} cố ý trả cả hồ sơ đã xoá mềm (để D5 trả 409); mọi
- * thao tác khác phải coi hồ sơ đó là không tồn tại.
- */
 class CatProfileServiceSoftDeletedTest {
 
     private static final Instant NOW = Instant.parse("2026-10-10T00:00:00Z");

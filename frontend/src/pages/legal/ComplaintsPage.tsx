@@ -8,20 +8,6 @@ import { cn } from "@/shared/lib/cn";
 import { useCreateDsarRequest } from "./hooks";
 import { LEGAL_ASIDE, LEGAL_ASIDE_CARD, LEGAL_COLUMN, LEGAL_SHELL, LEGAL_SPLIT } from "./shell";
 
-/**
- * `/legal/complaints` (p9 §9.4.3 #14). p15 §15.4.1 (H11.5) xếp quy trình khiếu nại
- * THƯƠNG MẠI (Điều 11.1.d Luật TMĐT) vào Phase 3, nhưng route này đã được đăng ký và
- * đang HOẠT ĐỘNG THẬT trong `router.tsx` (không phải `ComingSoonPage`) — theo brief A2-FE
- * "tự kiểm route thực tế, đừng đoán", trang được dựng đầy đủ chức năng thay vì để trống.
- *
- * `POST /privacy/requests` (C13, `CreateDsarRequest`) chỉ nhận `{requestType, channel}` —
- * KHÔNG có trường nội dung khiếu nại. Vì vậy trang chỉ mở được một hồ sơ khiếu nại có mã
- * tra cứu (để bắt đầu đồng hồ SLA theo p15 §15.4.1), còn NỘI DUNG chi tiết phải gửi qua
- * kênh email DPO ở `/legal/contact` — không bịa thêm field mà backend chưa hỗ trợ.
- *
- * DESKTOP (>= lg): quy trình + nút mở hồ sơ ở cột chính 560px (trang ngắn, không cần mục
- * lục), kênh liên hệ thay thế tách sang thẻ ở cột phụ 360px.
- */
 export function ComplaintsPage() {
   const { t } = useTranslation(["legal", "common"]);
   const navigate = useNavigate();

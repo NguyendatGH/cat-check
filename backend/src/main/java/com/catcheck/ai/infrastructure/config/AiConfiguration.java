@@ -11,6 +11,7 @@ public class AiConfiguration {
 
     @Bean
     AiRuntimeConfig aiRuntimeConfig(AiProperties properties) {
-        return new AiRuntimeConfig(properties.maxContextChunks(), properties.maxHistoryMessages());
+        return new AiRuntimeConfig(properties.maxContextChunks(), properties.maxHistoryMessages(),
+                properties.minVectorSimilarity());
     }
 }

@@ -5,16 +5,6 @@ import com.catcheck.insight.domain.MonitoringRule;
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * L38 — một rule trong màn cấu hình cảnh báo (p8 §8.4.12 L38).
- *
- * <p>Khác hẳn {@link MonitoringRuleResponse} (F4, cho người dùng cuối): ở đây trả <b>đủ</b> cột
- * nội bộ của {@code monitoring_rule} (p4 D11) vì đó chính là thứ admin đang cấu hình. Lý do F4
- * cố ý che {@code params} là để người dùng không suy luận ngược ngưỡng cảnh báo — lý do đó
- * không áp cho chính người đặt ngưỡng.</p>
- *
- * @param etag ETag của dòng, để L39 dùng làm {@code If-Match} mà không phải gọi thêm một GET
- */
 public record AdminMonitoringRuleResponse(
         String code,
         String name,

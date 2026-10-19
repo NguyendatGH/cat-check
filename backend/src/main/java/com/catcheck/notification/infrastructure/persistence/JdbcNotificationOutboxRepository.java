@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Bảng {@code notification_outbox} (V13, p4 F5) — giao vận push. */
 @Repository
 class JdbcNotificationOutboxRepository implements NotificationOutboxRepository {
 
@@ -31,10 +30,6 @@ class JdbcNotificationOutboxRepository implements NotificationOutboxRepository {
                 """, notificationId, pushSubscriptionId, NotificationRowReaders.offset(nextAttemptAt));
     }
 
-    /**
-     * Join sẵn {@code push_subscription} (lọc {@code revoked_at IS NULL} — thiết bị đã thu hồi
-     * giữa lúc xếp hàng và lúc gửi thì bỏ qua) và {@code notification} (lấy nội dung đã render).
-     */
     @Override
     public List<PendingPush> claimPending(Instant now, int limit) {
         return jdbc.query("""

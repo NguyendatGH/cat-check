@@ -11,15 +11,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Dải phân loại pH hiển thị — ánh xạ 1-1 với bảng {@code ph_classification_band} (p4 D7).
- *
- * <p>{@code chartId = null} nghĩa là dải <b>toàn cục</b> (áp cho mọi bảng màu). Khác null = ghi đè
- * riêng cho một bảng màu.
- *
- * <p>{@code colorToken} lưu <b>tên token</b> thiết kế ({@code color-ph-*}), không lưu mã hex —
- * đổi theme thì không phải UPDATE dữ liệu (p4 D7).
- */
 @Entity
 @Table(name = "ph_classification_band")
 public class PhClassificationBand {

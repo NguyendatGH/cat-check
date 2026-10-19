@@ -9,6 +9,7 @@ import com.catcheck.community.api.CommunityErrorCode;
 import com.catcheck.community.domain.CommunityReport;
 import com.catcheck.community.domain.port.CommunityRepository;
 import com.catcheck.shared.error.BusinessRuleException;
+import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.error.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @Service
 public class CommunityModerationService {
     private static final List<String> ACTIONS = List.of("HIDE_POST", "REMOVE_POST", "HIDE_COMMENT", "DISMISS");
+    private static final List<String> OPEN_STATUSES = List.of("OPEN", "REVIEWING");
 
     private final CommunityRepository repository;
     private final AuditLogService auditLogService;
@@ -34,26 +36,43 @@ public class CommunityModerationService {
         String normalized = status == null || status.isBlank() ? "OPEN" : status.strip().toUpperCase(Locale.ROOT);
         int safePage = Math.max(page, 0);
         int safeSize = Math.clamp(size, 1, 100);
-        return new Page(repository.findReports(normalized, safePage * safeSize, safeSize), safePage, safeSize,
+        int offset = (int) Math.min((long) safePage * safeSize, Integer.MAX_VALUE);
+        return new Page(repository.findReports(normalized, offset, safeSize), safePage, safeSize,
                 repository.countReports(normalized));
     }
 
     @Transactional
     public CommunityReport moderate(UUID reportId, String action, String reason, ModerationContext context) {
-        CommunityReport report = repository.findReport(reportId)
+        // Khoá dòng report: hai người kiểm duyệt đồng thời không cùng vượt qua kiểm tra OPEN.
+        CommunityReport report = repository.findReportForUpdate(reportId)
                 .orElseThrow(() -> new NotFoundException(CommunityErrorCode.REPORT_NOT_FOUND));
         String normalizedAction = action == null ? "" : action.strip().toUpperCase(Locale.ROOT);
         if (!ACTIONS.contains(normalizedAction)) {
             throw new BusinessRuleException(CommunityErrorCode.MODERATION_ACTION_INVALID, normalizedAction);
         }
+        // Report đã đóng không xử lý lại; thao tác phải khớp loại nội dung, nếu không report bị
+        // đóng (RESOLVED) trong khi bài/bình luận vẫn nguyên trạng.
+        if (!OPEN_STATUSES.contains(report.status()) || !actionMatchesTarget(normalizedAction, report)) {
+            throw new BusinessRuleException(CommunityErrorCode.MODERATION_ACTION_INVALID, normalizedAction);
+        }
+        // Tra tác giả TRƯỚC khi đổi trạng thái nội dung và không lọc theo trạng thái — sau HIDE/REMOVE
+        // nội dung không còn PUBLISHED.
+        UUID authorId = repository.findContentAuthor(report.postId(), report.commentId()).orElse(null);
+        if (authorId != null && authorId.equals(context.adminId())) {
+            throw new ConflictException(CommunityErrorCode.MODERATION_SELF_FORBIDDEN);
+        }
         repository.moderateReport(reportId, normalizedAction);
+        // subject_user_id là FK tới app_user: chỉ được ghi id tác giả nội dung, không phải id bài/bình luận
+        // (id nội dung nằm trong metadata.targetId). ck_audit_subject_type không có COMMENT nên bình luận
+        // được ghi theo người bị ảnh hưởng (USER); bài viết dùng ARTICLE.
         auditLogService.record(AuditEvent.builder()
                 .actor(AuditActor.admin(context.adminId(), context.role()))
-                .subject(AuditSubjectType.ARTICLE, report.targetId())
+                .subject(subjectType(report), authorId)
                 .action("COMMUNITY_REPORT_MODERATE")
                 .outcome(AuditOutcome.SUCCESS)
                 .meta("reportId", reportId)
                 .meta("targetType", report.targetType())
+                .meta("targetId", report.targetId())
                 .meta("action", normalizedAction)
                 .meta("reason", reason)
                 .requestId(context.requestId())
@@ -61,6 +80,18 @@ public class CommunityModerationService {
                 .userAgent(context.userAgent())
                 .build());
         return repository.findReport(reportId).orElseThrow();
+    }
+
+    static AuditSubjectType subjectType(CommunityReport report) {
+        return report.postId() != null ? AuditSubjectType.ARTICLE : AuditSubjectType.USER;
+    }
+
+    private static boolean actionMatchesTarget(String action, CommunityReport report) {
+        return switch (action) {
+            case "HIDE_POST", "REMOVE_POST" -> report.postId() != null;
+            case "HIDE_COMMENT" -> report.commentId() != null;
+            default -> true;
+        };
     }
 
     public record Page(List<CommunityReport> items, int page, int size, long totalElements) {

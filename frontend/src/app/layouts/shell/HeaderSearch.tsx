@@ -12,7 +12,6 @@ import { listPlaces } from "@/features/place";
 import { listShopProducts } from "@/features/shop";
 import iconSearch from "@/shared/assets/icons/web-dashboard/header-search.svg";
 
-/** Số ký tự tối thiểu trước khi lọc — 1 ký tự khớp gần như mọi thứ, chỉ gây nhiễu. */
 const MIN_QUERY = 2;
 const MAX_PER_GROUP = 4;
 const SEARCH_STALE_MS = 5 * 60 * 1000;
@@ -34,10 +33,6 @@ const GROUP_LABEL_KEY: Record<GroupKey, string> = {
   products: "webShell.searchGroupProducts",
 };
 
-/**
- * So khớp không phân biệt hoa/thường và dấu tiếng Việt ("thao dien" khớp "Thảo Điền").
- * `đ/Đ` không tách được bằng NFD nên đổi tay.
- */
 function normalize(value: string): string {
   return value
     .normalize("NFD")
@@ -51,20 +46,6 @@ function matches(needle: string, ...haystack: (string | null | undefined)[]): bo
   return haystack.some((h) => typeof h === "string" && normalize(h).includes(needle));
 }
 
-/**
- * Ô tìm kiếm ở header desktop (Figma 16:7475). Thiết kế ghi "Tìm kiếm kết quả quét, bệnh lý,
- * phòng khám…" nhưng ô đó trước đây KHÔNG làm gì và chữ "bệnh lý" là tuyên bố y tế. Nay nó
- * tìm thật trên ba nguồn có API:
- * - hồ sơ mèo — `GET /cats` (cùng query key với sidebar, không gọi thêm);
- * - phòng khám & cơ sở — `GET /places` (công khai);
- * - sản phẩm — `GET /shop/products` (công khai).
- * Lần quét không có endpoint tìm theo chữ nên KHÔNG được hứa trong placeholder.
- *
- * ponytail: lọc phía client trên tối đa 50 bản ghi mỗi danh sách (giới hạn mặc định của hai
- * endpoint) và bỏ qua tham số `query` của server — vì server so khớp có dấu ("thao" không ra
- * "Thảo Điền"). Trần: >50 cơ sở/sản phẩm thì phần dư không tìm thấy. Nâng cấp: server so khớp
- * bỏ dấu (`unaccent`) rồi chuyển sang `?query=` có debounce.
- */
 export function HeaderSearch({ signedIn }: { signedIn: boolean }) {
   const { t } = useTranslation("common");
   const navigate = useNavigate();

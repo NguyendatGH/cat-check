@@ -1,22 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { i18n, TFunction } from "i18next";
 import { AlertTriangle, Bell, Check, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Button, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useAcknowledgeHealthFlag, useHealthFlags } from "./hooks";
 import type { HealthFlagSeverity, HealthFlagView } from "./types";
 
-/**
- * UI của module Cảnh báo. Đặt trong feature (không ở `pages/`) vì CẢ hai trang Trang chủ và
- * Hồ sơ mèo đều dùng, mà `boundaries` cấm page import page.
- *
- * Nội dung mô tả một dấu hiệu LUÔN là `explanationVi` do server render và lưu lại
- * (`health_flag.explanation_vi`) — client không tự ghép câu từ `messageParams`: bản đã gửi
- * qua push/PDF phải trùng chữ với bản hiện trên màn hình. Tiêu đề lấy từ i18n theo
- * `ruleCode`, rơi về `ruleCode` thô nếu rule mới chưa có khoá dịch.
- */
 
-/** `Partial`: backend có thể thêm mức mới, rơi về `ATTENTION` thay vì vỡ render. */
 const SEVERITY_STYLE: Partial<Record<HealthFlagSeverity, { chip: string; icon: typeof Info }>> = {
   INFO: { chip: "bg-info text-info-text", icon: Info },
   ATTENTION: { chip: "bg-warning-bg text-warning-text", icon: AlertTriangle },
@@ -29,6 +20,26 @@ function severityStyle(severity: HealthFlagSeverity) {
   return SEVERITY_STYLE[severity] ?? SEVERITY_FALLBACK;
 }
 
+/**
+ * Explanation text for a flag: the client-side `messageKey` translation (looked up under
+ * `common:healthFlags.message.<messageKey>`, interpolated with `messageParams`) when the
+ * ACTIVE language has it; otherwise the server's Vietnamese snapshot `explanationVi`.
+ */
+export function resolveFlagExplanation(
+  flag: Pick<HealthFlagView, "messageKey" | "messageParams" | "explanationVi">,
+  t: TFunction<"common">,
+  i18n: Pick<i18n, "exists" | "resolvedLanguage" | "language">,
+): string | null {
+  if (flag.messageKey) {
+    const key = `healthFlags.message.${flag.messageKey}`;
+    const lng = i18n.resolvedLanguage ?? i18n.language;
+    if (i18n.exists(key, { ns: "common", lng, fallbackLng: false })) {
+      return t(key, { ...flag.messageParams, lng } as never) as unknown as string;
+    }
+  }
+  return flag.explanationVi;
+}
+
 export interface HealthFlagRowProps {
   flag: HealthFlagView;
   onAcknowledge: (flagId: string) => void;
@@ -38,6 +49,7 @@ export interface HealthFlagRowProps {
 export function HealthFlagRow({ flag, onAcknowledge, acknowledging }: HealthFlagRowProps) {
   const { t, i18n } = useTranslation("common");
   const { chip, icon: Icon } = severityStyle(flag.severity);
+  const explanation = resolveFlagExplanation(flag, t, i18n);
 
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-3">
@@ -54,8 +66,8 @@ export function HealthFlagRow({ flag, onAcknowledge, acknowledging }: HealthFlag
         </span>
       </div>
 
-      {flag.explanationVi ? (
-        <p className="text-caption leading-relaxed text-text-secondary">{flag.explanationVi}</p>
+      {explanation ? (
+        <p className="text-caption leading-relaxed text-text-secondary">{explanation}</p>
       ) : null}
 
       <div className="flex items-center justify-between gap-2">
@@ -89,17 +101,13 @@ export function HealthFlagRow({ flag, onAcknowledge, acknowledging }: HealthFlag
 }
 
 export interface HealthFlagListProps {
-  /** Giới hạn theo một bé mèo; bỏ trống = mọi bé của tài khoản. */
   catId?: string | undefined;
-  /** `false` khi chưa đăng nhập — endpoint cần phiên, gọi sẽ 403. */
   enabled?: boolean;
-  /** Chỉ lấy mục chưa xác nhận (mặc định) hay lấy tất cả. */
   unacknowledgedOnly?: boolean;
   limit?: number;
   className?: string;
 }
 
-/** G1 + G3 — danh sách dấu hiệu theo dõi kèm nút "Đã hiểu" cho từng mục. */
 export function HealthFlagList({
   catId,
   enabled = true,
@@ -162,16 +170,11 @@ export function HealthFlagList({
 
 export interface HealthFlagDisclosureProps {
   catId?: string | undefined;
-  /** `cat.unacknowledgedFlagCount` / `summary.unacknowledgedFlagCount` do server tính. */
   count: number;
   enabled?: boolean;
   className?: string;
 }
 
-/**
- * Con số `unacknowledgedFlagCount` dưới dạng NÚT: bấm vào bung danh sách thật (G1) thay vì
- * một badge chết. Không có cảnh báo nào thì không render gì — không chiếm chỗ vô ích.
- */
 export function HealthFlagDisclosure({ catId, count, enabled = true, className }: HealthFlagDisclosureProps) {
   const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);

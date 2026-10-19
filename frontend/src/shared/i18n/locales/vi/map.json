@@ -18,6 +18,7 @@
     "nearbyFound": "Có thêm {{count}} phòng khám thú y quanh bạn từ OpenStreetMap.",
     "nearbyNone": "Không tìm thấy thêm phòng khám thú y nào trong bán kính {{radius}} km trên OpenStreetMap.",
     "moreOnGoogle": "Tìm thêm quanh bạn trên Google Maps",
+    "googleSearchQuery": "phòng khám thú y",
     "nearbyError": "Chưa tra được phòng khám quanh bạn trên OpenStreetMap, đang hiển thị danh sách CatCheck."
   },
   "source": {
@@ -63,9 +64,11 @@
     "loading": "Đang tải danh sách cơ sở…",
     "loadError": "Chưa tải được danh sách cơ sở.",
     "empty": "Không có cơ sở nào khớp bộ lọc này.",
-    "emptyQuery": "Không có cơ sở nào khớp “{{query}}”.",
+    "emptyQuery": "Không có cơ sở nào khớp \"{{query}}\".",
     "reset": "Xem tất cả cơ sở",
-    "dataNote": "Tên, địa chỉ, số điện thoại và chuyên khoa do CatCheck tổng hợp, chưa phải thông tin cơ sở tự xác nhận."
+    "dataNote": "Tên, địa chỉ, số điện thoại và chuyên khoa do CatCheck tổng hợp, chưa phải thông tin cơ sở tự xác nhận.",
+    "recommendedTitle": "Được Khuyến Nghị",
+    "recommendedBadge": "Gần nhất"
   },
   "actions": {
     "call": "Gọi cơ sở",

@@ -9,11 +9,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
-/**
- * Cache in-memory bằng Caffeine. Ở M0 chưa có cache region nghiệp vụ nào — cấu hình mặc định
- * (TTL 10 phút, tối đa 10_000 entry/region) áp dụng chung cho mọi tên cache mà module nghiệp
- * vụ khai báo qua {@code @Cacheable} từ M1+.
- */
 @Configuration
 @EnableCaching
 public class CacheConfig {

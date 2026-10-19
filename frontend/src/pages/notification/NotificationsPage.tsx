@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { format, isToday, isYesterday } from "date-fns";
@@ -18,7 +18,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Badge, EmptyState, ErrorState, SkeletonLoader } from "@/shared/ui";
+import { Badge, EmptyState, ErrorState, Pagination, SkeletonLoader } from "@/shared/ui";
+import { cn } from "@/shared/lib/cn";
 import { useSessionStore } from "@/entities/user";
 import {
   useHideNotification,
@@ -29,32 +30,11 @@ import {
   type NotificationItem,
 } from "@/features/notification";
 
-/**
- * `/notifications` — hộp thư thông báo trong ứng dụng. Vào từ icon chuông ở header
- * (`AppLayout` mobile và desktop đều trỏ `ROUTE_PATTERNS.notifications`), nên đây là một
- * nhánh điều hướng chính chứ không phải màn phụ.
- *
- * ĐÃ NỐI API THẬT (p8 §8.4.7 G4–G8) — 5 endpoint của `NotificationController`:
- * danh sách cursor, số chưa đọc, đánh dấu đã đọc một/tất cả, ẩn khỏi hộp thư.
- * Bố cục giữ nguyên bản kiểm kê thiết kế `X1 §9` (2 cột ở web, 1 cột ở mobile); khối "chưa
- * nối máy chủ" của bản cũ được thay bằng các trạng thái thật: đang tải / lỗi / rỗng /
- * "chưa đọc" rỗng.
- *
- * Hai điểm hợp đồng khác spec, đã ghi handoff:
- * - `templateCode` là TÊN ENUM (`REMINDER_SCAN_DUE`), không phải `reminder.scan_due` như p4 F2
- *   / X1 mô tả ⇒ bảng icon dưới đây khớp theo tên enum (H15.108).
- * - Không có template `health_flag.*`: thứ gần nhất là `SCAN_RESULT_ATTENTION` (H15.109).
- *
- * Trang nằm trong `TaskLayout`: layout đã cấp `px-4 py-6` + hộp 944px, trang không tự thêm.
- */
 
 type InboxTab = "all" | "unread";
 
-/**
- * Icon theo `template_code`. Khoá là tên hằng `NotificationTemplate` của backend — chỉ liệt
- * kê 12 template có `writesInAppRecord = true` (2 template OTP và marketing không bao giờ
- * vào hộp thư in-app). Template lạ rơi về `Bell`, không vỡ trang.
- */
+const PER_PAGE = 8;
+
 const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   WELCOME_ONBOARDING: PartyPopper,
   REMINDER_SCAN_DUE: CalendarClock,
@@ -70,10 +50,6 @@ const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   SYSTEM_MAINTENANCE: Wrench,
 };
 
-/**
- * Bốn loại thông báo giới thiệu ở cột phải — giữ đúng bản kiểm kê X1 §9. Đây là nội dung
- * tĩnh (giải thích "những gì sẽ về hộp thư này"), KHÔNG phải dữ liệu giả thay cho API.
- */
 const NOTIFICATION_KINDS = [
   { key: "healthFlag", icon: AlertTriangle },
   { key: "credit", icon: Ticket },
@@ -89,6 +65,8 @@ export function NotificationsPage() {
   const { t } = useTranslation(["notification", "common"]);
   const navigate = useNavigate();
   const [tab, setTab] = useState<InboxTab>("all");
+  const [page, setPage] = useState(0);
+  const listTopRef = useRef<HTMLDivElement>(null);
   const signedIn = Boolean(useSessionStore((s) => s.user));
 
   const inbox = useNotificationInbox(signedIn);
@@ -99,24 +77,42 @@ export function NotificationsPage() {
 
   const items = useMemo(() => inbox.data?.pages.flatMap((page) => page.items) ?? [], [inbox.data]);
 
-  /**
-   * Lọc "Chưa đọc" ở CLIENT theo đúng X1 §9 ("lọc client, không đổi URL") — G4 không có tham
-   * số `read`. Hệ quả phải biết: bộ lọc chỉ thấy những trang ĐÃ tải, nên khi còn trang sau,
-   * tab "Chưa đọc" rỗng không có nghĩa là không còn thông báo chưa đọc nào. Số thật luôn nằm
-   * ở badge (`unread-count`), và nút "Tải thêm" vẫn hiện để kéo tiếp.
-   */
   const visible = useMemo(() => (tab === "unread" ? items.filter((item) => !item.read) : items), [items, tab]);
+
+  const pageCount = Math.max(1, Math.ceil(visible.length / PER_PAGE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const pageItems = useMemo(
+    () => visible.slice(currentPage * PER_PAGE, (currentPage + 1) * PER_PAGE),
+    [visible, currentPage],
+  );
+
+  const goToPage = (next: number) => {
+    const scrollUp = () => {
+      listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    if (next < pageCount) {
+      setPage(next);
+      scrollUp();
+      return;
+    }
+    if (inbox.hasNextPage) {
+      void inbox.fetchNextPage().then(() => {
+        setPage(next);
+        scrollUp();
+      });
+    }
+  };
 
   const dayGroups = useMemo(() => {
     const map = new Map<string, NotificationItem[]>();
-    visible.forEach((item) => {
+    pageItems.forEach((item) => {
       const key = dayGroupKey(item.createdAt);
       const list = map.get(key) ?? [];
       list.push(item);
       map.set(key, list);
     });
     return [...map.entries()];
-  }, [visible]);
+  }, [pageItems]);
 
   const dayLabel = (key: string): string => {
     const date = new Date(key);
@@ -141,7 +137,7 @@ export function NotificationsPage() {
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-5 lg:px-0 lg:py-0">
       <header data-reveal>
         <div>
-          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">{t("app.wordmark")}</p>
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">{t("common:app.wordmark")}</p>
           <h1 className="text-[28px] font-bold leading-tight tracking-[-0.04em] text-text-primary lg:text-h1">
             {t("pages.list.title")}
           </h1>
@@ -153,7 +149,7 @@ export function NotificationsPage() {
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:justify-between" data-reveal>
             <div
-              className="flex w-full items-center gap-1 rounded-2xl border border-primary/10 bg-surface p-1 shadow-[0_6px_20px_rgba(47,79,178,0.06)] sm:w-fit"
+              className="flex w-full items-center gap-1 rounded-2xl border border-border/40 bg-background-alt/80 p-1 shadow-xs backdrop-blur-xs sm:w-fit"
               role="tablist"
               aria-label={t("pages.list.title")}
             >
@@ -165,12 +161,14 @@ export function NotificationsPage() {
                   aria-selected={tab === option.value}
                   onClick={() => {
                     setTab(option.value);
+                    setPage(0);
                   }}
-                  className={
+                  className={cn(
+                    "tab-pill-animated cursor-pointer min-h-10 flex-1 rounded-xl px-4 text-caption font-semibold transition-all duration-200 active:scale-[0.97] sm:flex-none",
                     tab === option.value
-                      ? "min-h-10 flex-1 rounded-xl bg-primary px-4 text-caption font-semibold text-white shadow-[0_5px_12px_rgba(47,79,178,0.2)] sm:flex-none"
-                      : "min-h-10 flex-1 rounded-xl px-4 text-caption font-semibold text-text-secondary transition-colors hover:bg-background-alt sm:flex-none"
-                  }
+                      ? "bg-primary-dark font-bold text-white shadow-[0_4px_12px_rgba(13,54,154,0.25),inset_0_1px_0_rgba(255,255,255,0.2)]"
+                      : "text-text-secondary hover:bg-surface hover:text-text-primary",
+                  )}
                 >
                   {option.label}
                   {option.value === "unread" && unreadCount > 0 ? ` (${String(unreadCount)})` : ""}
@@ -195,99 +193,106 @@ export function NotificationsPage() {
             </button>
           </div>
 
-          {/* ---------- đang tải lần đầu ---------- */}
-          {inbox.isPending && signedIn ? (
-            <div className="flex flex-col gap-2" aria-busy="true">
-              <SkeletonLoader className="h-20 rounded-xl" />
-              <SkeletonLoader className="h-20 rounded-xl" />
-              <SkeletonLoader className="h-20 rounded-xl" />
-            </div>
-          ) : null}
+          <div ref={listTopRef} key={`${tab}-${String(currentPage)}`} className="tab-content-enter flex scroll-mt-20 flex-col gap-5">
+            {inbox.isPending && signedIn ? (
+              <div className="flex flex-col gap-2" aria-busy="true">
+                <SkeletonLoader className="h-20 rounded-xl" />
+                <SkeletonLoader className="h-20 rounded-xl" />
+                <SkeletonLoader className="h-20 rounded-xl" />
+              </div>
+            ) : null}
 
-          {/* ---------- lỗi ---------- */}
-          {inbox.isError ? (
-            <ErrorState
-              title={t("inbox.errorTitle")}
-              description={t("inbox.errorBody")}
-              retryLabel={t("common:actions.retry")}
-              onRetry={() => {
-                void inbox.refetch();
-              }}
-            />
-          ) : null}
+            {inbox.isError ? (
+              <ErrorState
+                title={t("inbox.errorTitle")}
+                description={t("inbox.errorBody")}
+                retryLabel={t("common:actions.retry")}
+                onRetry={() => {
+                  void inbox.refetch();
+                }}
+              />
+            ) : null}
 
-          {/* ---------- danh sách ---------- */}
-          {dayGroups.map(([key, group]) => (
-            <section key={key} className="flex flex-col gap-2">
-              <p className="px-1 text-caption font-semibold text-text-tertiary">{dayLabel(key)}</p>
-              <ul className="flex flex-col gap-2">
-                {group.map((item) => {
-                  const Icon = TEMPLATE_ICONS[item.templateCode] ?? Bell;
-                  return (
-                    <li
-                      key={item.id}
-                      className="motion-card group flex items-start gap-3 rounded-2xl border border-primary/10 bg-surface p-4 shadow-[0_6px_18px_rgba(47,79,178,0.05)]"
-                      data-unread={item.read ? undefined : "true"}
-                    >
-                      <Icon size={18} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          openNotification(item);
-                        }}
-                        className="flex min-w-0 flex-1 flex-col gap-1 text-left"
+            {dayGroups.map(([key, group]) => (
+              <section key={key} className="flex flex-col gap-2">
+                <p className="px-1 text-caption font-semibold text-text-tertiary">{dayLabel(key)}</p>
+                <ul className="flex flex-col gap-2">
+                  {group.map((item) => {
+                    const Icon = TEMPLATE_ICONS[item.templateCode] ?? Bell;
+                    return (
+                      <li
+                        key={item.id}
+                        className="motion-card group flex items-start gap-3 rounded-2xl border border-primary/10 bg-surface p-4 shadow-[0_6px_18px_rgba(47,79,178,0.05)]"
+                        data-unread={item.read ? undefined : "true"}
                       >
-                        <span className="flex flex-wrap items-center gap-2">
-                          <span className="text-body font-semibold text-text-primary">{item.title}</span>
-                          {item.read ? null : <Badge tone="brand">{t("inbox.unreadBadge")}</Badge>}
-                        </span>
-                        <span className="text-caption text-text-secondary">{item.body}</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={hide.isPending}
-                        onClick={() => {
-                          hide.mutate(item.id);
-                        }}
-                        aria-label={t("inbox.hide")}
-                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-text-tertiary hover:bg-background-alt hover:text-text-secondary disabled:opacity-50"
-                      >
-                        <X size={15} aria-hidden="true" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+                        <Icon size={18} className="mt-0.5 shrink-0 text-primary-dark" aria-hidden="true" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openNotification(item);
+                          }}
+                          className="flex min-w-0 flex-1 flex-col gap-1 text-left"
+                        >
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="text-body font-semibold text-text-primary">{item.title}</span>
+                            {item.read ? null : <Badge tone="brand">{t("inbox.unreadBadge")}</Badge>}
+                          </span>
+                          <span className="text-caption text-text-secondary">{item.body}</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={hide.isPending}
+                          onClick={() => {
+                            hide.mutate(item.id);
+                          }}
+                          aria-label={t("inbox.hide")}
+                          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-text-tertiary hover:bg-background-alt hover:text-text-secondary disabled:opacity-50"
+                        >
+                          <X size={15} aria-hidden="true" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
 
-          {/* ---------- rỗng ---------- */}
-          {inbox.isSuccess && visible.length === 0 ? (
-            <EmptyState
-              icon={<Inbox size={22} aria-hidden="true" />}
-              title={tab === "unread" ? t("inbox.emptyUnreadTitle") : t("inbox.emptyTitle")}
-              description={tab === "unread" ? t("inbox.emptyUnreadBody") : t("inbox.emptyBody")}
-              className="rounded-[28px] border border-primary/10 bg-gradient-to-br from-surface via-surface to-info/35 shadow-[0_14px_34px_rgba(47,79,178,0.08)]"
-            />
-          ) : null}
+            {inbox.isSuccess && visible.length === 0 ? (
+              <EmptyState
+                icon={<Inbox size={22} aria-hidden="true" />}
+                title={tab === "unread" ? t("inbox.emptyUnreadTitle") : t("inbox.emptyTitle")}
+                description={tab === "unread" ? t("inbox.emptyUnreadBody") : t("inbox.emptyBody")}
+                className="rounded-[28px] border border-primary/10 bg-gradient-to-br from-surface via-surface to-info/35 shadow-[0_14px_34px_rgba(47,79,178,0.08)]"
+              />
+            ) : null}
 
-          {/* ---------- tải thêm ---------- */}
-          {inbox.hasNextPage ? (
-            <button
-              type="button"
-              disabled={inbox.isFetchingNextPage}
-              onClick={() => {
-                void inbox.fetchNextPage();
-              }}
-              className="flex min-h-11 items-center justify-center gap-2 self-center rounded-xl border border-border px-4 text-caption font-semibold text-primary hover:bg-background-alt disabled:opacity-60"
-            >
-              {inbox.isFetchingNextPage ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : null}
-              {t("inbox.loadMore")}
-            </button>
-          ) : null}
+            {visible.length > 0 ? (
+              <div className="flex flex-col items-center gap-2 pt-1">
+                <Pagination
+                  page={currentPage}
+                  pageCount={pageCount}
+                  hasMore={inbox.hasNextPage}
+                  loading={inbox.isFetchingNextPage}
+                  onPageChange={goToPage}
+                  labels={{
+                    nav: t("inbox.pagination.nav"),
+                    previous: t("inbox.pagination.previous"),
+                    next: t("inbox.pagination.next"),
+                    page: (n) => t("inbox.pagination.page", { page: n }),
+                  }}
+                />
+                <p className="text-small text-text-tertiary">
+                  {t(inbox.hasNextPage ? "inbox.pagination.rangeMore" : "inbox.pagination.range", {
+                    from: currentPage * PER_PAGE + 1,
+                    to: currentPage * PER_PAGE + pageItems.length,
+                    total: visible.length,
+                  })}
+                </p>
+              </div>
+            ) : null}
+          </div>
         </div>
 
-        {/* ---------- Bốn loại thông báo (p4 F2) ---------- */}
         <aside className="flex w-full flex-col gap-4 rounded-[28px] border border-primary/10 bg-surface p-5 shadow-[0_12px_30px_rgba(47,79,178,0.07)] lg:w-[360px] lg:shrink-0" data-reveal>
           <h2 className="text-h3 font-bold text-text-primary">{t("inbox.kindsTitle")}</h2>
           <p className="text-caption leading-relaxed text-text-secondary">{t("inbox.kindsLead")}</p>

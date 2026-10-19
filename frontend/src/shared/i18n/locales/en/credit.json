@@ -1,0 +1,161 @@
+{
+  "pages": {
+    "activate": {
+      "title": "Activate credit code"
+    },
+    "credits": {
+      "title": "Your credits"
+    },
+    "plans": {
+      "title": "Plans"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again."
+  },
+  "activateCta": "Enter activation code",
+  "tabs": {
+    "overview": "Overview",
+    "ledger": "Transaction history"
+  },
+  "balance": {
+    "availableLabel": "Available credits",
+    "unit": "credits",
+    "trialRemaining": "{{count}} trial scans left",
+    "nearestExpiring": "{{amount}} credits expiring soon — {{remaining}}",
+    "errorTitle": "Couldn't load your credit balance"
+  },
+  "batch": {
+    "sectionTitle": "Batch details",
+    "emptyTitle": "No credit batches yet",
+    "emptyDescription": "Activate the code printed on your litter bag to get credits for your next scan.",
+    "remainingOfTotal": "{{remaining}}/{{total}} credits left",
+    "activatedAt": "Activated on {{date}}",
+    "expired": "Expired",
+    "remainingDaysHours": "{{days}} days {{hours}} hours left",
+    "remainingHours": "{{hours}} hours left",
+    "remainingSoon": "Expiring soon"
+  },
+  "ledger": {
+    "sectionTitle": "Transaction history",
+    "emptyTitle": "No transactions yet",
+    "emptyDescription": "Credits added to or deducted from your account will appear here.",
+    "errorTitle": "Couldn't load transaction history",
+    "loadMore": "Load more",
+    "types": {
+      "GRANT": "Package activated",
+      "CONSUME": "Used for a saved scan result",
+      "EXPIRE": "Credit batch expired",
+      "REFUND": "Credit refund",
+      "ADJUST": "Adjusted by an administrator"
+    },
+    "balanceAfter": "Balance after: {{count}}",
+    "batchInfo": "Batch {{name}} · valid until {{date}}"
+  },
+  "entitlement": {
+    "sectionTitle": "Current feature access",
+    "currentPackage": "Highest package activated: {{name}}",
+    "noPackage": "You haven't activated a package yet — you're using trial scans.",
+    "errorTitle": "Couldn't load feature access",
+    "features": {
+      "history": "View scan history",
+      "trend": "View trend charts",
+      "reminder": "Schedule scan reminders",
+      "export": "Export PDF records",
+      "storeImage": "Save original photos"
+    }
+  },
+  "activate": {
+    "subtitle": "Enter the code printed on your CatCheck litter bag to get more credits.",
+    "inputLabel": "Activation code",
+    "inputPlaceholder": "CC-PLUS-XXXXXXXXXX",
+    "formatHint": "Printed on the packaging, in the format CC-<PACKAGE>-<10 characters>.",
+    "required": "Please enter an activation code.",
+    "invalidFormat": "The activation code format is incorrect.",
+    "checking": "Checking...",
+    "submit": "Activate",
+    "paste": "Paste",
+    "pasted": "Pasted",
+    "clear": "Clear",
+    "formatValid": "Valid format",
+    "exampleCode": "Example: CC-PLUS-7K3M9QX2RT",
+    "currentBalance": "Available balance",
+    "guideTitle": "Where do I find the activation code?",
+    "guideStep1Title": "Back of the litter bag",
+    "guideStep1Desc": "Look for the security scratch label on the back or inside of your CatCheck litter bag.",
+    "guideStep2Title": "Scratch off the silver coating",
+    "guideStep2Desc": "Scratch gently to reveal the 10-character code, in the format CC-<PACKAGE>-XXXXXXXXXX.",
+    "guideStep3Title": "Enter & get credits",
+    "guideStep3Desc": "Enter the code in the field above to add scans to your wallet instantly.",
+    "perksTitle": "Benefits by package",
+    "shopPrompt": "Don't have an activation code?",
+    "shopCta": "Buy litter in the Shop",
+    "errors": {
+      "malformed": "The activation code format is incorrect. Check the code printed on the packaging.",
+      "invalid": "The activation code is incorrect. Check the code printed on the packaging.",
+      "alreadyUsed": "This code has already been used.",
+      "expired": "This code's activation period has expired."
+    },
+    "success": {
+      "title": "Activation successful!",
+      "packageLabel": "Package",
+      "creditsLabel": "Credits received",
+      "creditsValue": "+{{credits}} credits",
+      "expiresLabel": "Expires",
+      "statusLabel": "Status",
+      "statusReady": "Ready to use",
+      "continue": "Go to Credits",
+      "scanNow": "Start scanning now"
+    },
+    "perks": {
+      "aiTitle": "AI assistant",
+      "aiDesc_one": "Ask up to {{count}} message per hour, without using scans.",
+      "aiDesc_other": "Ask up to {{count}} messages per hour, without using scans.",
+      "scans_one": "{{count}} scan",
+      "scans_other": "{{count}} scans",
+      "validity_one": "Valid for {{count}} day from code activation.",
+      "validity_other": "Valid for {{count}} days from code activation.",
+      "historyBasic": "Basic history",
+      "historyAdvanced": "Full history",
+      "trend": "pH trend chart",
+      "reminder": "Tracking reminders",
+      "export": "Report export",
+      "storeImage": "Save scan photos",
+      "cats_one": "{{count}} cat profile",
+      "cats_other": "{{count}} cat profiles",
+      "catsUnlimited": "Unlimited cat profiles",
+      "loadError": "Couldn't load the package list. Please try again later."
+    }
+  },
+  "catalog": {
+    "sectionTitle": "Package catalog",
+    "credits": "{{count}} credits",
+    "validity": "valid {{days}} days",
+    "weight": "{{value}} kg of litter",
+    "catsLimit": "Up to {{count}} cat profiles",
+    "catsUnlimited": "No limit on cat profiles for this package",
+    "emptyTitle": "No packages on sale yet",
+    "emptyDescription": "New packages will appear here when available.",
+    "errorTitle": "Couldn't load the package catalog",
+    "currentBadge": "Current package"
+  },
+  "welcome": {
+    "title": "Welcome to CatCheck!",
+    "message": "Welcome gift: {{credits}} scans, valid for {{days}} days",
+    "batchName": "Welcome gift"
+  },
+  "wallet": {
+    "plansCta": "Compare plans",
+    "creditHint": "1 credit = 1 saved scan result"
+  },
+  "plans": {
+    "eyebrow": "Plans",
+    "title": "Every CatCheck litter bag unlocks a plan",
+    "subtitle": "Buy a CatCheck litter bag, then enter the code printed on it. The plan's credits and features start right away.",
+    "perksLabel": "Features you can unlock",
+    "listLabel": "Available plans",
+    "cta": "Activate {{name}}",
+    "notIncluded": "not included",
+    "showPlan": "Show {{name}}"
+  }
+}

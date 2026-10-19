@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { Button, EmptyState } from "@/shared/ui";
-import { toast } from "sonner";
+import { toast } from "@/shared/ui";
 import { isApiError } from "@/shared/api";
 import {
   InlineAlert,
@@ -16,12 +16,6 @@ import {
 } from "@/features/auth";
 import { AuthCard } from "./AuthCard";
 
-/**
- * `/auth/reset-password` (p9 §9.4.3 #6) — bước cuối quên mật khẩu. Cần `passwordResetTicket`
- * đã lấy ở `/auth/forgot-password` (otp_ticket, KHÔNG phải token trong URL — xem
- * `docs/handovers/A1-fe.md`). Đặt xong, backend thu hồi MỌI phiên (p11 §11.3.2) nên luôn
- * điều hướng về đăng nhập, không tự đăng nhập lại giúp người dùng.
- */
 export function ResetPasswordPage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();

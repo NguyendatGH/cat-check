@@ -5,14 +5,6 @@ import com.catcheck.scan.domain.color.port.VisionEngine;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.opencv.opencv_core.Mat;
 
-/**
- * Ảnh XYZ 3 kênh {@code double} — dùng cho S6 (tách hạt chỉ thị).
- *
- * <p>Đầu vào là ảnh đã nâng lên XYZ chứ không phải BGR: ngưỡng tách dựa trên {@code L*}, chroma
- * và khoảng cách màu so với nền — ba đại lượng chỉ tồn tại trong không gian này. Chuyển sang XYZ
- * ở đây cũng giữ được lời cấm {@code cvtColor} 8-bit: số 8-bit đi vào là <b>một</b> byte/kênh,
- * còn toàn bộ phép quyết định diễn ra trên {@code double}.
- */
 public final class OpenCvXyzFrame implements VisionEngine.XyzFrame, AutoCloseable {
 
     private final Mat mat;
@@ -47,7 +39,6 @@ public final class OpenCvXyzFrame implements VisionEngine.XyzFrame, AutoCloseabl
         return new VisionEngine.FrameSize(width, height);
     }
 
-    /** Toàn bộ ảnh dạng mảng phẳng X,Y,Z,X,Y,Z… theo hàng (một lần gọi JNI). */
     public double[] toDoubleArray() {
         Mat contiguous = mat.isContinuous() ? mat : mat.clone();
         try {

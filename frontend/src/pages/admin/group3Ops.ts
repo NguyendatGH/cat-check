@@ -1,24 +1,19 @@
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
-import { hasRole, useSessionStore } from "@/entities/user";
 import { ApiError } from "@/shared/api";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
-import { ADMIN_REASON_MIN_LENGTH } from "@/features/admin";
-import { ROLES } from "@/shared/auth/roles";
+import { ADMIN_REASON_MIN_LENGTH, useAdminCan } from "@/features/admin";
+import type { ROLES } from "@/shared/auth/roles";
 
-/** Khả năng của nhóm vận hành. Khoá và vai trò lấy thẳng từ `ROLES`, không sao chép. */
 export type Group3Capability = Extract<
   keyof typeof ROLES,
   "dashboard" | "jobs" | "jobRun" | "outbox" | "broadcast" | "broadcastIncident" | "auditLog"
 >;
 
-/** `can(key)` — người dùng hiện tại có vai trò cho khả năng này không. */
+/** Narrowed view of {@link useAdminCan}; stable across renders while capabilities are unchanged. */
 export function useGroup3Can(): (key: Group3Capability) => boolean {
-  const user = useSessionStore((state) => state.user);
-  return (key) => hasRole(user, ROLES[key]);
+  return useAdminCan();
 }
-
-// ------------------------------------------------------------------- broadcast
 
 export const BROADCAST_TEMPLATES = ["SYSTEM_MAINTENANCE", "PRIVACY_INCIDENT_NOTICE"] as const;
 export type BroadcastTemplate = (typeof BROADCAST_TEMPLATES)[number];
@@ -26,7 +21,6 @@ export const INCIDENT_TEMPLATE: BroadcastTemplate = "PRIVACY_INCIDENT_NOTICE";
 export const BROADCAST_TITLE_MAX = 200;
 export const BROADCAST_BODY_MAX = 4000;
 
-/** Mẫu mà người dùng được phát: mẫu sự cố cần `broadcastIncident`, mẫu thường cần `broadcast`. */
 export function allowedBroadcastTemplates(can: (key: Group3Capability) => boolean): BroadcastTemplate[] {
   return BROADCAST_TEMPLATES.filter((code) => can(code === INCIDENT_TEMPLATE ? "broadcastIncident" : "broadcast"));
 }
@@ -60,10 +54,6 @@ export interface BroadcastRequest {
   confirmed: boolean;
 }
 
-/**
- * Dựng body gửi backend. Trả `null` khi form sai hoặc khi phát thật mà chưa xác nhận;
- * chế độ thử không cần xác nhận và luôn gửi `confirmed: false`.
- */
 export function buildBroadcastRequest(
   form: BroadcastForm,
   mode: "dry" | "send",
@@ -81,9 +71,6 @@ export function buildBroadcastRequest(
   };
 }
 
-// ------------------------------------------------------------------- outbox, job
-
-/** Backend chỉ cho gửi lại bản ghi FAILED (khác trạng thái ⇒ 409). */
 export function canResendOutbox(can: (key: Group3Capability) => boolean, status: string): boolean {
   return can("outbox") && status === "FAILED";
 }
@@ -92,15 +79,12 @@ export function isJobRunValid(jobName: string, reason: string): boolean {
   return jobName.trim().length > 0 && reason.trim().length >= ADMIN_REASON_MIN_LENGTH;
 }
 
-// ------------------------------------------------------------------- gọi API ghi
-
 function readCsrf(): string | null {
   const match = new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`).exec(document.cookie);
   const raw = match?.[1];
   return raw !== undefined && raw !== "" ? decodeURIComponent(raw) : null;
 }
 
-/** POST tới `/api/v1/admin/...`; backend bắt buộc `Idempotency-Key` cho ba lệnh ghi này. */
 async function adminPost<T>(path: string, json?: unknown): Promise<T> {
   const headers = new Headers({
     Accept: "application/json",
@@ -121,7 +105,7 @@ async function adminPost<T>(path: string, json?: unknown): Promise<T> {
     try {
       problem = (await response.json()) as { detail?: string; errorCode?: string };
     } catch {
-      // body không phải JSON
+      // Body lỗi không phải JSON: giữ thông điệp mặc định theo mã HTTP.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

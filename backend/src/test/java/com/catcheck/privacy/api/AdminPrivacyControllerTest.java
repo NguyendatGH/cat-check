@@ -24,14 +24,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Nhánh phân quyền + {@code Rsn} của L52/L53 ở tầng API (p8 §8.4.12, p14 §14.2.2 ô Q10/Q9).
- *
- * <p>Bài test gọi thẳng controller thay vì qua MockMvc vì thứ đang kiểm là bộ gác
- * {@code AdminGuard} mà <b>mỗi</b> endpoint phải tự gọi — p14 §14.5.1 mục 2: "UI ẩn nút với
- * vai trò không có quyền, nhưng server vẫn phải kiểm độc lập". Lớp chặn chung
- * ({@code mfaLevel = TOTP}) đã có bài riêng ở {@code AdminMfaGateFilterTest}.</p>
- */
 class AdminPrivacyControllerTest {
 
     private static final UUID ACTOR = UUID.fromString("0199a1c4-3f7b-7d21-9c88-3ae51f2b6630");

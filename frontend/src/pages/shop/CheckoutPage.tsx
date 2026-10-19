@@ -20,16 +20,6 @@ import { usePaymentMethodStore } from "./paymentMethodStore";
 import { exceedsStock, formatVnd, type ShopPaymentMethodId } from "./shopFormat";
 import { ProductGlyph, ShippingFee } from "./shopUi";
 
-/**
- * `/checkout` — Xác nhận đơn trước khi đặt (không có PNG riêng; theo khung `Giỏ hàng` + `Đặt
- * hàng thành công`).
- *
- * Thu đúng ba field `CheckoutRequest` của backend cần (`receiverName`, `receiverPhone`,
- * `shippingAddress`) + `paymentMethod` thuộc enum `COD`/`MOMO`/`BANK_TRANSFER`, kiểm tra ở
- * client trước khi gửi (xem `checkoutForm.ts`). Thanh toán trực tuyến chưa tích hợp — nói rõ.
- * Dòng hàng và tổng tiền là `GET /api/v1/cart`; lỗi `CART_EMPTY`/`STOCK_UNAVAILABLE` của máy
- * chủ được báo đúng nguyên nhân.
- */
 
 const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon | null> = {
   COD: Banknote,
@@ -55,7 +45,6 @@ export function CheckoutPage() {
   const cartQuery = useShopCart();
   const createOrder = useCreateOrder();
   const paymentMethodId = usePaymentMethodStore((s) => s.paymentMethodId);
-  // Tên hiển thị của tài khoản (API phiên) làm giá trị gợi ý — người dùng sửa được.
   const displayName = useSessionStore((s) => s.user?.displayName ?? "");
   const [values, setValues] = useState<CheckoutFormValues>({
     receiverName: displayName,
@@ -97,7 +86,7 @@ export function CheckoutPage() {
       },
       {
         onSuccess: (order) => {
-          void navigate(`/orders/${order.id}`, { replace: true });
+          void navigate(`/orders/${order.id}`, { replace: true, state: { justPlaced: true } });
         },
       },
     );

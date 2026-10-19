@@ -5,6 +5,9 @@
     },
     "credits": {
       "title": "Credit của bạn"
+    },
+    "plans": {
+      "title": "Các gói"
     }
   },
   "errors": {
@@ -84,13 +87,7 @@
     "guideStep2Desc": "Cào nhẹ để xem mã 10 ký tự, có dạng CC-<GÓI>-XXXXXXXXXX.",
     "guideStep3Title": "Nhập & nhận credit",
     "guideStep3Desc": "Điền mã vào ô trên để nạp thêm lượt quét vào ví ngay lập tức.",
-    "perksTitle": "Quyền lợi khi nạp credit",
-    "perk1Title": "Phân tích nước tiểu AI",
-    "perk1Desc": "Nhận diện dải màu hạt cát và kiểm tra độ pH tự động qua camera.",
-    "perk2Title": "Cảnh báo sớm tiết niệu",
-    "perk2Desc": "Phát hiện sớm dấu hiệu bất thường về sỏi và sức khỏe đường tiểu của mèo.",
-    "perk3Title": "Xuất hồ sơ thú y",
-    "perk3Desc": "Lưu trữ biểu đồ xu hướng nhiều ngày và xuất file báo cáo khi cần khám.",
+    "perksTitle": "Quyền lợi theo từng gói",
     "shopPrompt": "Chưa có mã kích hoạt?",
     "shopCta": "Mua cát tại Cửa hàng",
     "errors": {
@@ -109,6 +106,25 @@
       "statusReady": "Sẵn sàng sử dụng",
       "continue": "Về trang Credit",
       "scanNow": "Bắt đầu quét ngay"
+    },
+    "perks": {
+      "aiTitle": "Trợ lý AI",
+      "aiDesc_one": "Hỏi đáp tối đa {{count}} tin nhắn mỗi giờ, không trừ lượt quét.",
+      "aiDesc_other": "Hỏi đáp tối đa {{count}} tin nhắn mỗi giờ, không trừ lượt quét.",
+      "scans_one": "{{count}} lượt quét",
+      "scans_other": "{{count}} lượt quét",
+      "validity_one": "Dùng trong {{count}} ngày kể từ khi kích hoạt mã.",
+      "validity_other": "Dùng trong {{count}} ngày kể từ khi kích hoạt mã.",
+      "historyBasic": "Lịch sử cơ bản",
+      "historyAdvanced": "Lịch sử đầy đủ",
+      "trend": "Biểu đồ xu hướng pH",
+      "reminder": "Nhắc lịch theo dõi",
+      "export": "Xuất báo cáo",
+      "storeImage": "Lưu ảnh quét",
+      "cats_one": "{{count}} hồ sơ mèo",
+      "cats_other": "{{count}} hồ sơ mèo",
+      "catsUnlimited": "Không giới hạn hồ sơ mèo",
+      "loadError": "Không tải được danh sách gói. Vui lòng thử lại sau."
     }
   },
   "catalog": {
@@ -122,5 +138,24 @@
     "emptyDescription": "Khi có gói mới, danh mục sẽ hiện ở đây.",
     "errorTitle": "Không tải được danh mục gói",
     "currentBadge": "Gói hiện tại"
+  },
+  "welcome": {
+    "title": "Chào mừng bạn đến với CatCheck!",
+    "message": "Quà chào mừng: {{credits}} lượt quét, dùng trong {{days}} ngày",
+    "batchName": "Quà chào mừng"
+  },
+  "wallet": {
+    "plansCta": "So sánh các gói",
+    "creditHint": "1 credit = 1 lần lưu kết quả quét"
+  },
+  "plans": {
+    "eyebrow": "Bảng gói",
+    "title": "Mỗi túi cát CatCheck mở khóa một gói",
+    "subtitle": "Mua túi cát CatCheck rồi nhập mã in trên bao. Credit và tính năng của gói được kích hoạt ngay.",
+    "perksLabel": "Tính năng có thể mở khóa",
+    "listLabel": "Các gói hiện có",
+    "cta": "Kích hoạt {{name}}",
+    "notIncluded": "không bao gồm",
+    "showPlan": "Xem {{name}}"
   }
 }

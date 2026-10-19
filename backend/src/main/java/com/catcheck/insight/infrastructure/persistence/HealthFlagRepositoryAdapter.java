@@ -16,11 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link HealthFlagRepository} — CRUD đơn giản qua JPA, {@link #findByFilter} qua
- * {@code JdbcTemplate} vì cần JOIN {@code cat} để lọc theo {@code user_id} (bảng
- * {@code health_flag} chỉ có {@code cat_id}, không có {@code user_id} — p4 D12).
- */
 @Repository
 class HealthFlagRepositoryAdapter implements HealthFlagRepository {
 
@@ -37,13 +32,6 @@ class HealthFlagRepositoryAdapter implements HealthFlagRepository {
         this.clock = clock;
     }
 
-    /**
-     * {@code ON CONFLICT DO NOTHING}, không bắt {@code DataIntegrityViolationException}.
-     *
-     * <p>Hàm chạy TRONG transaction của {@code ScanPersistenceService} (listener đồng bộ): bắt lỗi
-     * trùng {@code dedupe_key} không cứu được vì Postgres huỷ cả transaction sau INSERT lỗi
-     * ("current transaction is aborted") và Spring đánh dấu rollback-only (hỏng {@code POST /scans}).</p>
-     */
     @Override
     public Optional<HealthFlag> saveIfNotDuplicate(HealthFlag flag) {
         int inserted = jdbc.update("""
@@ -90,8 +78,6 @@ class HealthFlagRepositoryAdapter implements HealthFlagRepository {
 
     @Override
     public boolean isCatOwnedByUser(UUID catId, UUID userId) {
-        // Lọc deleted_at IS NULL: mèo đã xoá mềm (D5) coi như không tồn tại, health flag của nó không
-        // được xem/ack qua G2/G3 (cùng cách CatJpaRepository/AdminCatViewService ở module cat).
         Long count = jdbc.queryForObject(
                 "SELECT count(*) FROM cat WHERE id = ? AND owner_id = ? AND deleted_at IS NULL",
                 Long.class, catId, userId);

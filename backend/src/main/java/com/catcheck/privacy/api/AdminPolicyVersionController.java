@@ -30,24 +30,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * L46, L47, L48 — quản trị phiên bản văn bản chính sách (p8 §8.4.12 mục (c), ô {@code Q22}).
- *
- * <p><b>Ba tập vai trò khác nhau, lấy đúng từ bảng p8 và khớp p11 §11.5.4:</b> L46 cho
- * {@code DPO, ADMIN_SUPER} (dòng {@code policy_version}: Super <i>"Đọc"</i>, DPO
- * <i>"Đọc + publish"</i>); L47 và L48 <b>chỉ</b> {@code DPO} — p14 §14.2.2 ô {@code Q22} ghi
- * {@code ADMIN_SUPER = ❌} tường minh. Đây là một trong rất ít chỗ mà {@code ADMIN_SUPER}
- * <i>không</i> làm được việc, và đó là chủ ý: người quyết định nội dung pháp lý phải là người
- * chịu trách nhiệm pháp lý.</p>
- *
- * <p><b>Controller riêng, không gộp vào {@code AdminPrivacyController}:</b> file đó đang được
- * gói DSAR/retention/sự cố sửa song song, và {@code policy_version} là một miền tách bạch
- * (soạn/publish văn bản) chứ không phải một bước của quy trình DSAR.</p>
- *
- * <p>Toàn bộ {@code /api/v1/admin/**} đã bị {@code AdminMfaGateFilter} chặn khi phiên chưa đạt
- * {@code mfaLevel = TOTP} (p8 §8.4.12 điều kiện chung #1); ở đây chỉ còn phần p8 cấp tới từng
- * endpoint.</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/policy-versions")
 @Tag(name = "Quản trị phiên bản chính sách",
@@ -56,7 +38,6 @@ public class AdminPolicyVersionController {
 
     static final Set<String> READ_ROLES = Set.of("DPO", "ADMIN_SUPER");
 
-    /** p14 §14.2.2 ô Q22: publish chính sách chỉ {@code DPO}, {@code ADMIN_SUPER} = ❌. */
     static final Set<String> WRITE_ROLES = Set.of("DPO");
 
     private final PolicyVersionAdminService adminService;
@@ -65,7 +46,6 @@ public class AdminPolicyVersionController {
         this.adminService = adminService;
     }
 
-    // ------------------------------------------------------------------ L46
 
     @Operation(
             operationId = "listAdminPolicyVersions",
@@ -86,7 +66,6 @@ public class AdminPolicyVersionController {
                 adminService.list(policyType, locale, page, size));
     }
 
-    // ------------------------------------------------------------------ L47
 
     @Operation(
             operationId = "createAdminPolicyVersion",
@@ -120,7 +99,6 @@ public class AdminPolicyVersionController {
                 .body(body);
     }
 
-    // ------------------------------------------------------------------ L48
 
     @Operation(
             operationId = "publishAdminPolicyVersion",
@@ -144,13 +122,7 @@ public class AdminPolicyVersionController {
         return ResponseEntity.status(HttpStatus.OK).body(AdminPolicyVersionResponse.from(row));
     }
 
-    // ------------------------------------------------------------------ nội bộ
 
-    /**
-     * Parse ở controller (không ở service) để {@code 400} của một mã loại sai không phải đi qua
-     * tầng nghiệp vụ; ArchUnit R4 cấm method public của controller TRẢ VỀ type {@code ..domain..}
-     * nhưng không cấm dùng nó trong thân method.
-     */
     private static PolicyType parseType(String policyType) {
         try {
             return PolicyType.valueOf(policyType.strip().toUpperCase(Locale.ROOT));
@@ -159,11 +131,6 @@ public class AdminPolicyVersionController {
         }
     }
 
-    /**
-     * Gộp "kiểm {@code reason}" và "dựng ngữ cảnh audit" vào một lời gọi — tách ra thì một
-     * endpoint mới có thể dựng ngữ cảnh mà quên kiểm {@code reason}, và lỗi đó chỉ lộ ra khi có
-     * người đọc lại {@code audit_log} nhiều tháng sau (p15 REQ-AUD-03).
-     */
     private static PolicyVersionAdminService.PolicyAdminAction action(
             SecurityPrincipal principal, String reason, HttpServletRequest request) {
         return new PolicyVersionAdminService.PolicyAdminAction(
@@ -175,7 +142,6 @@ public class AdminPolicyVersionController {
                 request.getHeader("User-Agent"));
     }
 
-    /** Vai trò MẠNH NHẤT đã cho phép hành động đi qua — {@code audit_log.actor_role} (p4 §4.6.3). */
     private static String actorRole(SecurityPrincipal principal) {
         for (String candidate : List.of("DPO", "ADMIN_SUPER")) {
             if (AdminGuard.hasAnyRole(principal, Set.of(candidate))) {

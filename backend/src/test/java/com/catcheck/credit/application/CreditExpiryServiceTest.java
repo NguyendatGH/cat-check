@@ -18,15 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Nghiệp vụ hết hạn credit (p5 R3, p12 §12.6.2) với cổng trong bộ nhớ.
- *
- * <p>Ba điều phải đúng cùng lúc, nếu không sổ cái lệch vĩnh viễn ({@code credit_ledger} là
- * append-only): dòng ledger loại {@code EXPIRE} đúng bằng phần chưa dùng, {@code remaining_amount}
- * về 0, {@code status = EXPIRED}. Thêm một điều nữa dễ bị bỏ sót:
- * {@code ref_type = JOB}/{@code ref_id = job_run.id} theo p4 §4.4.6 — nếu không, dòng
- * {@code EXPIRE} không truy ngược được về lần chạy nào sinh ra nó.</p>
- */
 class CreditExpiryServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-03T05:05:00Z");
@@ -76,8 +67,6 @@ class CreditExpiryServiceTest {
 
     @Test
     void secondRunOverTheSameBatchWritesNoDuplicateLedgerRow() {
-        // Idempotency của p12 §12.6.2: "điều kiện remaining_amount > 0 làm lần chạy sau không
-        // ghi ledger trùng".
         InMemoryCreditStore.Batch batch = store.addBatch(userId, NOW.minusSeconds(60), 4, 10);
 
         assertTrue(service.expireBatch(batch.id, jobRunId, NOW));
@@ -99,8 +88,6 @@ class CreditExpiryServiceTest {
 
     @Test
     void exhaustedBatchNeedsNoExpireRow() {
-        // Lô đã tiêu hết trước hạn: remaining = 0 nên không có gì để thu hồi, và một dòng
-        // EXPIRE với amount = 0 sẽ vi phạm ck_credit_ledger_amount.
         InMemoryCreditStore.Batch batch = store.addBatch(userId, NOW.minusSeconds(60), 3, 3);
         batch.remainingAmount = 0;
 
@@ -110,7 +97,6 @@ class CreditExpiryServiceTest {
 
     @Test
     void lockedRowIsSkippedNotWaitedOn() {
-        // FOR UPDATE SKIP LOCKED: lô đang bị transaction khác giữ thì bỏ qua, gặp lại giờ sau.
         InMemoryCreditStore.Batch batch = store.addBatch(userId, NOW.minusSeconds(60), 4, 10);
         store.locked.add(batch.id);
 

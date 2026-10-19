@@ -1,10 +1,7 @@
 import { create } from "zustand";
+import { localIsoDate } from "@/shared/lib/format/locale";
 import { EXPORT_SECTIONS, type ExportRangePreset, type ExportSection, type ExportWizardStep } from "./types";
 
-/**
- * Store zustand cho wizard export 3 bước (chọn mèo → khoảng thời gian → mục nội dung), khớp
- * mockup `10. Xuất Hồ sơ Sức khỏe`. Session-only — không persist (dữ liệu tạm giữa các bước).
- */
 
 interface ExportWizardStore {
   step: ExportWizardStep;
@@ -13,6 +10,8 @@ interface ExportWizardStore {
   rangePreset: ExportRangePreset;
   customFrom: string;
   customTo: string;
+  /** True once the user picked custom dates; until then the defaults are refreshed on use. */
+  customRangeEdited: boolean;
   sections: ExportSection[];
   setStep: (step: ExportWizardStep) => void;
   setCat: (cat: { id: string; name: string }) => void;
@@ -22,16 +21,19 @@ interface ExportWizardStore {
   reset: () => void;
 }
 
-const today = new Date().toISOString().slice(0, 10);
-const thirtyDaysAgo = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+/** Default custom range: last 30 days ending today, in LOCAL time, computed when needed (not frozen at load). */
+function defaultCustomRange(): { customFrom: string; customTo: string } {
+  const now = new Date();
+  return { customFrom: localIsoDate(now, -29), customTo: localIsoDate(now) };
+}
 
 export const useExportWizardStore = create<ExportWizardStore>((set) => ({
   step: 1,
   catId: null,
   catName: null,
   rangePreset: "30D",
-  customFrom: thirtyDaysAgo,
-  customTo: today,
+  ...defaultCustomRange(),
+  customRangeEdited: false,
   sections: [...EXPORT_SECTIONS],
   setStep: (step) => {
     set({ step });
@@ -40,10 +42,14 @@ export const useExportWizardStore = create<ExportWizardStore>((set) => ({
     set({ catId: cat.id, catName: cat.name });
   },
   setRangePreset: (rangePreset) => {
-    set({ rangePreset });
+    set((state) =>
+      rangePreset === "CUSTOM" && !state.customRangeEdited
+        ? { rangePreset, ...defaultCustomRange() }
+        : { rangePreset },
+    );
   },
   setCustomRange: (customFrom, customTo) => {
-    set({ customFrom, customTo });
+    set({ customFrom, customTo, customRangeEdited: true });
   },
   toggleSection: (section) => {
     set((state) => ({
@@ -58,8 +64,8 @@ export const useExportWizardStore = create<ExportWizardStore>((set) => ({
       catId: null,
       catName: null,
       rangePreset: "30D",
-      customFrom: thirtyDaysAgo,
-      customTo: today,
+      ...defaultCustomRange(),
+      customRangeEdited: false,
       sections: [...EXPORT_SECTIONS],
     });
   },

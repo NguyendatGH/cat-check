@@ -45,12 +45,6 @@ class MonitoringRuleRepositoryAdapter implements MonitoringRuleRepository {
         return jpaRepository.findAllByOrderBySortOrderAscCodeAsc();
     }
 
-    /**
-     * {@code saveAndFlush} + {@code refresh} chứ không phải {@code save} trần: trigger
-     * {@code trg_monitoring_rule_updated_at} ghi {@code updated_at} ở phía DB, nên nếu không đọc
-     * lại thì {@code ETag} trả về cho client lệch với dòng đã lưu và lần PATCH kế tiếp luôn
-     * {@code 412} (xem javadoc cổng).
-     */
     @Override
     public MonitoringRule saveAndReload(MonitoringRule rule) {
         MonitoringRule saved = jpaRepository.saveAndFlush(rule);

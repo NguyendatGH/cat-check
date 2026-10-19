@@ -1,28 +1,44 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { loadSession, useSessionStore } from "@/entities/user";
+import { playSplash } from "@/shared/lib/motion/splash";
+import { resolveRedirectTarget } from "@/shared/auth/landing";
 import { Button, EmptyState, SkeletonLoader } from "@/shared/ui";
-import { useAuthSessionQuery } from "@/features/auth";
+import { useAuthFlowStore, useAuthSessionQuery } from "@/features/auth";
 
-/**
- * `/auth/oauth/complete` (p9 §9.4.3 #7, P15 §15.3.3). Google OAuth là redirect toàn trang
- * do backend điều khiển (p11 §11.1.4) — SPA không tự gọi API OAuth, chỉ cần kiểm tra lại
- * phiên khi Google trả về đây rồi vào app.
- *
- * Backend cấu hình success handler để tạo session CatCheck rồi redirect thẳng về route này.
- */
 export function OAuthCompletePage() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useAuthSessionQuery(true);
+  const [searchParams] = useSearchParams();
+  // Tài khoản có TOTP: backend chưa tạo phiên, chuyển sang bước 2 của /auth/login.
+  const mfaRequired = searchParams.get("mfa") === "required";
+  const setPendingLoginMfaMethods = useAuthFlowStore((s) => s.setPendingLoginMfaMethods);
+  const { data, isLoading, isError } = useAuthSessionQuery(!mfaRequired);
+
+  const queryClient = useQueryClient();
+  const setSession = useSessionStore((state) => state.setSession);
+  const started = useRef(false);
 
   useEffect(() => {
-    if (data?.authenticated) {
-      window.location.assign("/dashboard");
-    }
-  }, [data]);
+    if (!mfaRequired) return;
+    setPendingLoginMfaMethods(["TOTP"]);
+    void navigate("/auth/login", { replace: true });
+  }, [mfaRequired, navigate, setPendingLoginMfaMethods]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!data?.authenticated || started.current) return;
+    started.current = true;
+    const next = searchParams.get("next");
+    playSplash(loadSession(), (user) => {
+      queryClient.removeQueries();
+      setSession(user);
+      void navigate(user ? resolveRedirectTarget(next, user.roles) : "/auth/login", { replace: true });
+    });
+  }, [data, navigate, queryClient, searchParams, setSession]);
+
+  if (mfaRequired || isLoading) {
     return (
       <div className="flex flex-col items-center gap-4 py-12">
         <SkeletonLoader shape="circle" />

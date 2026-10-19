@@ -1,22 +1,3 @@
-/**
- * MSW handlers + worker cho `features/scan` — chế độ degraded khi backend chưa có (cùng quy ước
- * `features/onboarding/mocks.ts`). W3 thay bằng API thật: xoá import handlers này khỏi bootstrap;
- * `hooks.ts` giữ nguyên vì đã theo hợp đồng p8 §8.5.4.
- *
- * Endpoint mock (khớp p8 §8.5.4 nhóm E + D1 rút gọn cho bước chọn mèo):
- *  - GET  /api/v1/scan/config
- *  - GET  /api/v1/cats?status=ACTIVE                (D1, rút gọn — chỉ để chọn mèo trước khi quét)
- *  - POST /api/v1/scans                             (E1, multipart)
- *  - GET  /api/v1/scans/:scanId                     (E4)
- *  - GET  /api/v1/scans/by-request/:scanRequestId   (E6)
- *  - POST /api/v1/scans/:scanId/reassign-cat        (E9)
- *  - POST /api/v1/scans/:scanId/dispute             (E10)
- *  - DELETE /api/v1/scans/:scanId/dispute           (E11)
- *  - DELETE /api/v1/scans/:scanId                   (E8)
- *
- * Hai mèo demo dùng chung id với `features/cat/mocks.ts` (Luna) để nhất quán khi cả hai bộ mock
- * cùng chạy — không import lẫn nhau (boundaries cấm feature → feature), chỉ trùng GIÁ TRỊ hằng.
- */
 
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";
@@ -84,11 +65,6 @@ function catNameOf(catId: string | null): string | null {
   return DEMO_CATS.find((c) => c.id === catId)?.name ?? null;
 }
 
-/**
- * Bảng màu placeholder `CHART-PLACEHOLDER-v1` (ORCHESTRATOR §2) rút gọn cho mô phỏng — CHỈ dùng
- * để tạo dữ liệu demo nhất quán, KHÔNG phải nguồn sự thật hiển thị (đó luôn là
- * `entities/ph-bands`, tra qua API thật `/reference/ph-bands`).
- */
 function classify(value: number): ScanClassification {
   if (value < 6.0) return "LOW";
   if (value < 6.3) return "SLIGHTLY_LOW";
@@ -181,9 +157,6 @@ function problem(status: number, code: string, detail: string) {
       status,
       detail,
       instance: "/mock",
-      // Tên field là `errorCode`, KHÔNG phải `code`: `GlobalExceptionHandler` của backend gọi
-      // `problemDetail.setProperty("errorCode", ...)`. Mock từng phát `code` nên khớp với
-      // wrapper client cũng đang đọc sai — hai cái sai che nhau, chỉ lộ ra khi chạy server thật.
       errorCode: code,
     },
     { status },

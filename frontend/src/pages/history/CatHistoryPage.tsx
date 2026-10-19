@@ -1,22 +1,25 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
-import { Camera, LineChart } from "lucide-react";
+import { Camera } from "lucide-react";
 import { Skeleton as AntSkeleton } from "antd";
 import { Button, EmptyState, ErrorState } from "@/shared/ui";
+import { intlLocale } from "@/shared/lib/format/locale";
 import { CatAvatar, useFormatCatAge } from "@/entities/cat";
 import { DisclaimerBanner } from "@/entities/disclaimer";
-import { findBandForPh, PhGaugeBar, usePhBands } from "@/entities/ph-bands";
+import { findBandForPh, usePhBands } from "@/entities/ph-bands";
 import { displayableScanCount } from "@/entities/scan-result";
 import type { ScanListItem } from "@/entities/scan-result";
 import { useExportWizardStore } from "@/features/export";
 import {
+  ActivityChart,
   CatSwitcherBar,
+  dayKey,
   ExportCtaCard,
   FilterChips,
   HistoryTipCard,
   MonthGroupHeader,
-  PhBandLegendRow,
+  HistoryToolbar,
   ScanTimelineItem,
   formatScanTimestamp,
   monthGroupKey,
@@ -25,21 +28,23 @@ import {
   useScanHistory,
   useScanSummary,
   type HistoryFilterKey,
+  type HistoryRangeKey,
 } from "@/features/history";
+import { HistorySpectrumCard } from "./HistorySpectrumCard";
 import tipScanFrequency from "@/shared/assets/images/web-history/tip-scan-frequency.jpg";
 import { WebHistoryScreen } from "./webHistory";
 
-/** `/cats/:catId/history` — timeline lịch sử quét theo mèo (p8 §8.5.4 E2/E3, mockup `07`
- * cho mobile, `Web - 06 & 07` cho desktop). */
 export function CatHistoryPage() {
   const { t } = useTranslation(["history", "cat", "scan", "common"]);
   const { catId } = useParams<{ catId: string }>();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<HistoryFilterKey>("ALL");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [range, setRange] = useState<HistoryRangeKey>("3");
+  const [search, setSearch] = useState("");
 
   const { data: cat } = useCat(catId);
   const { data: bands } = usePhBands();
-  const { data: summary } = useScanSummary(catId);
   const formatAge = useFormatCatAge();
   const {
     data: history,
@@ -52,16 +57,69 @@ export function CatHistoryPage() {
   } = useScanHistory(catId, filter);
 
   const items: ScanListItem[] = useMemo(() => history?.pages.flatMap((p) => p.items) ?? [], [history]);
+  const rangeStart = useMemo(() => {
+    if (range === "all") return null;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (Number(range) - 1));
+    return start;
+  }, [range]);
+
+  // Summary KPIs follow the same window as the list: the selected day, otherwise the range.
+  const summaryWindow = useMemo<{ from?: string; to?: string }>(() => {
+    if (selectedDay) {
+      const [y, m, d] = selectedDay.split("-").map(Number);
+      const start = new Date(y, m - 1, d);
+      const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+      return { from: start.toISOString(), to: end.toISOString() };
+    }
+    return rangeStart ? { from: rangeStart.toISOString() } : {};
+  }, [selectedDay, rangeStart]);
+  const { data: summary } = useScanSummary(catId, summaryWindow.from, summaryWindow.to);
+
+  const locale = intlLocale();
+  const visibleItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const bandLabel = new Map((bands ?? []).map((b) => [b.code, b.label.toLowerCase()]));
+    return items.filter((item) => {
+      const captured = new Date(item.capturedAt);
+      if (selectedDay) {
+        if (dayKey(captured) !== selectedDay) return false;
+      } else if (rangeStart && captured < rangeStart) {
+        return false;
+      }
+      if (!query) return true;
+      const haystack = [
+        item.phValue?.toFixed(1),
+        bandLabel.get(item.bandCode),
+        item.catName?.toLowerCase(),
+        captured.toLocaleDateString(locale),
+      ];
+      return haystack.some((value) => value?.includes(query));
+    });
+  }, [items, bands, selectedDay, rangeStart, search, locale]);
+
+  const oldestLoaded = items.at(-1);
+  const canLoadMore =
+    hasNextPage &&
+    !selectedDay &&
+    (rangeStart === null || (oldestLoaded !== undefined && new Date(oldestLoaded.capturedAt) >= rangeStart));
+
+  const resetFilters = () => {
+    setSelectedDay(null);
+    setSearch("");
+    setRange("all");
+  };
   const groups = useMemo(() => {
     const map = new Map<string, ScanListItem[]>();
-    items.forEach((item) => {
+    visibleItems.forEach((item) => {
       const key = monthGroupKey(item.capturedAt);
       const list = map.get(key) ?? [];
       list.push(item);
       map.set(key, list);
     });
     return [...map.entries()];
-  }, [items]);
+  }, [visibleItems]);
 
   const monthLabel = useCallback(
     (key: string) => {
@@ -76,14 +134,11 @@ export function CatHistoryPage() {
   );
 
   const setExportCat = useExportWizardStore((s) => s.setCat);
-  /** Xuất hồ sơ PDF với bé đang xem đã được chọn sẵn ở bước 1. */
   const openExport = () => {
     if (cat) setExportCat({ id: cat.id, name: cat.name });
     void navigate("/export");
   };
 
-  // Dải của trung vị 30 ngày — dùng cho dòng trạng thái ở thanh chuyển bé và nhãn cạnh
-  // "Trung bình". Tra từ `bands` (API), không hard-code ngưỡng.
   const medianBand = summary?.median != null ? findBandForPh(bands ?? [], summary.median) : null;
   const catMeta = [
     formatAge(cat?.ageMonths),
@@ -93,6 +148,27 @@ export function CatHistoryPage() {
   ]
     .filter(Boolean)
     .join(" • ");
+
+  const toolbar = (
+    <HistoryToolbar
+      range={range}
+      onRangeChange={setRange}
+      search={search}
+      onSearchChange={setSearch}
+      selectedDay={selectedDay}
+      onSelectDay={setSelectedDay}
+    />
+  );
+
+  const filteredEmpty = (
+    <div className="content-enter flex flex-col items-center gap-2 rounded-2xl bg-surface px-4 py-8 text-center shadow-xs">
+      <p className="text-body font-semibold text-text-primary">{t("state.filteredEmptyTitle")}</p>
+      <p className="text-small text-text-secondary">{t("state.filteredEmptyBody")}</p>
+      <Button variant="tertiary" onClick={resetFilters}>
+        {t("state.showAll")}
+      </Button>
+    </div>
+  );
 
   let mobileContent: ReactNode;
   if (isPending) {
@@ -121,7 +197,6 @@ export function CatHistoryPage() {
   } else {
     mobileContent = (
       <div className="flex flex-col gap-4 p-4">
-        {/* Thanh "đang xem bé nào + đổi bé" (mockup `07` đầu màn) */}
         <CatSwitcherBar
           name={cat?.name ?? t("pages.catHistory.title")}
           avatar={<CatAvatar src={cat?.avatarUrl} name={cat?.name ?? "?"} size="md" />}
@@ -138,24 +213,12 @@ export function CatHistoryPage() {
         <DisclaimerBanner variant="short" />
 
         {summary && summary.count > 0 ? (
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface max-lg:border-transparent max-lg:shadow-xs p-4">
-            {/* Tiêu đề và chip trung bình tự xuống hàng khi chật — trước đây chip `shrink-0` ép
-                "Phổ pH gần đây" vỡ thành bốn dòng ở 390px. */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-body font-bold text-text-primary">
-                <LineChart className="size-4 shrink-0 text-primary" aria-hidden="true" />
-                {t("spectrum.title")}
-              </p>
-              {summary.median != null ? (
-                <span className="rounded-full bg-chip-bg px-2.5 py-1 text-small font-semibold text-primary-dark">
-                  {medianBand
-                    ? t("spectrum.averageWithBand", { value: summary.median.toFixed(1), label: medianBand.label })
-                    : t("spectrum.average", { value: summary.median.toFixed(1) })}
-                </span>
-              ) : null}
-            </div>
-            <PhGaugeBar bands={bands ?? []} value={summary.median} />
-            <PhBandLegendRow bands={bands ?? []} />
+          <HistorySpectrumCard bands={bands ?? []} median={summary.median} scanCount={displayableScanCount(summary)} />
+        ) : null}
+
+        {items.length > 0 ? (
+          <div className="rounded-xl bg-surface p-4 shadow-xs">
+            <ActivityChart items={items} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
           </div>
         ) : null}
 
@@ -168,6 +231,8 @@ export function CatHistoryPage() {
             DISPUTED: t("filters.DISPUTED"),
           }}
         />
+
+        {items.length > 0 ? toolbar : null}
 
         {items.length === 0 ? (
           <EmptyState
@@ -185,8 +250,10 @@ export function CatHistoryPage() {
               </Button>
             }
           />
+        ) : visibleItems.length === 0 ? (
+          filteredEmpty
         ) : (
-          <div className="flex flex-col gap-4">
+          <div key={`${range}-${selectedDay ?? ""}`} className="content-enter flex flex-col gap-4">
             {groups.map(([key, group]) => {
               const { month, year } = parseMonthGroupKey(key);
               return (
@@ -211,7 +278,7 @@ export function CatHistoryPage() {
                 </div>
               );
             })}
-            {hasNextPage ? (
+            {canLoadMore ? (
               <Button
                 variant="tertiary"
                 loading={isFetchingNextPage}
@@ -239,7 +306,6 @@ export function CatHistoryPage() {
 
   return (
     <div className="contents">
-      {/* Desktop (>= lg): bố cục Figma `Web - 06 & 07`, panel dòng thời gian y tế. */}
       <div data-reveal className="hidden lg:block">
         <WebHistoryScreen
           catName={cat?.name ?? null}
@@ -248,6 +314,11 @@ export function CatHistoryPage() {
           bands={bands ?? []}
           summary={summary}
           groups={groups}
+          activityItems={items}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+          toolbar={toolbar}
+          filteredEmpty={items.length > 0 && visibleItems.length === 0 ? filteredEmpty : null}
           totalLoaded={items.length}
           totalRecords={summary ? displayableScanCount(summary) : null}
           filter={filter}
@@ -257,7 +328,7 @@ export function CatHistoryPage() {
           onRetry={() => {
             void refetch();
           }}
-          hasNextPage={hasNextPage}
+          hasNextPage={canLoadMore}
           isFetchingNextPage={isFetchingNextPage}
           onLoadMore={() => {
             void fetchNextPage();
@@ -276,7 +347,6 @@ export function CatHistoryPage() {
           timestampLabel={timestampLabel}
         />
       </div>
-      {/* Mobile (< lg): giữ nguyên luồng cũ, kể cả trạng thái loading/lỗi. */}
       <div data-reveal className="lg:hidden">{mobileContent}</div>
     </div>
   );

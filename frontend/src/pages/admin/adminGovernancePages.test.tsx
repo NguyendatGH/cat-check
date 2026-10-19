@@ -10,10 +10,6 @@ import { AdminPrivacyConsentsPage } from "./AdminPrivacyConsentsPage";
 import { AdminScansPage } from "./AdminScansPage";
 import { AdminSecurityPage } from "./AdminSecurityPage";
 
-/**
- * Kiểm khói cho 5 trang quản trị mới: dựng được với dữ liệu "như server gửi" (trường null bị
- * bỏ khỏi JSON), ẩn/hiện nút ghi theo bảng khả năng, và đổi sang thông báo quyền khi API trả 403.
- */
 
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -121,7 +117,6 @@ async function renderPage(page: ReactElement, capabilities: AdminCapabilities = 
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
-  // Chờ query và render lại sau khi fetch xong.
   for (let i = 0; i < 3; i += 1) {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));

@@ -18,19 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Nội dung chăm sóc công khai — F7, F8. Không cần đăng nhập.
- *
- * <p>Locale lấy từ header {@code Accept-Language} qua {@code LocaleResolver} của
- * {@code shared.i18n.LocaleConfig} ({@code catcheck.i18n.default-locale=vi} khi client không gửi
- * header) — p8 §8.1.7. Controller KHÔNG tự đọc header, để một chỗ duy nhất quyết định ngôn ngữ.</p>
- */
 @RestController
 @RequestMapping("/api/v1/care-tips")
 @Tag(name = "Nội dung chăm sóc", description = "F7, F8 — đọc nội dung đã công bố")
 public class PublicContentController {
 
-    /** p8 §8.1.4: {@code limit} mặc định 20, tối đa 100. */
     private static final int DEFAULT_LIMIT = 20;
     private static final int MAX_LIMIT = 100;
 
@@ -52,13 +44,9 @@ public class PublicContentController {
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit,
             Locale locale) {
 
-        // p8 §8.1.4: vượt trần trả 400 VALIDATION_FAILED, KHÔNG âm thầm kẹp xuống — kẹp âm thầm làm
-        // client tưởng đã lấy hết dữ liệu rồi hiển thị thiếu bài.
         if (limit < 1 || limit > MAX_LIMIT) {
-            throw new BusinessRuleException(
-                    ContentErrorCode.VALIDATION_FAILED, "limit phải nằm trong 1.." + MAX_LIMIT);
+            throw new BusinessRuleException(ContentErrorCode.VALIDATION_FAILED, "limit");
         }
-        // R4: kiểu enum của domain không được nằm trong chữ ký controller, nên chuyển ở đây.
         CareTipCategory categoryFilter = EnumParam.parse(CareTipCategory.class, category, "category");
         CareTipKind kindFilter = EnumParam.parse(CareTipKind.class, kind, "kind");
         List<CareTipSummaryResponse> items = careTipQueryService

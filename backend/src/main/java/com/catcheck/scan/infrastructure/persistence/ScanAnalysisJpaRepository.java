@@ -13,15 +13,6 @@ import java.util.UUID;
 
 interface ScanAnalysisJpaRepository extends JpaRepository<ScanAnalysis, UUID> {
 
-    /**
-     * Điều kiện ứng viên backfill (p6 §6.5.4), dùng chung cho câu lấy lô và câu đếm.
-     *
-     * <p>Ngoài cửa sổ/engine/Lab, scan phải được quét theo một bảng màu CÙNG
-     * {@code (product_line, production_batch)} với bảng đang backfill ({@code scan.chart_id} là
-     * bảng có hiệu lực lúc quét). Thiếu điều kiện này thì backfill bảng {@code MINI} ghi đè kết
-     * quả của mọi scan {@code STANDARD}. SQL thuần đọc {@code color_chart} — cùng cách
-     * {@link JdbcScanQueryRepository} đã JOIN bảng đó, không dùng type Java của colorchart.</p>
-     */
     String BACKFILL_CANDIDATE_FILTER = """
              FROM scan_analysis a
              JOIN scan s ON s.id = a.scan_id
@@ -40,11 +31,6 @@ interface ScanAnalysisJpaRepository extends JpaRepository<ScanAnalysis, UUID> {
 
     List<ScanAnalysis> findByScanIdOrderByComputedAtDesc(UUID scanId);
 
-    /**
-     * Ứng viên backfill (p6 §6.5.4). Sắp theo {@code computed_at, id} — khoá sắp xếp phải DUY
-     * NHẤT, nếu không phân trang bằng offset có thể bỏ sót hoặc trả trùng dòng khi nhiều scan
-     * có cùng {@code computed_at} (thật: hai scan trong cùng millisecond lúc tải cao).
-     */
     @Query(value = "SELECT a.*" + BACKFILL_CANDIDATE_FILTER + " ORDER BY a.computed_at ASC, a.id ASC",
             nativeQuery = true)
     List<ScanAnalysis> findBackfillCandidates(@Param("chartId") UUID chartId,

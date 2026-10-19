@@ -17,24 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Bảng {@code notification} (V13, p4 F2).
- *
- * <p><b>Hai chỗ lệch giữa spec và DDL, đã xử lý tại đây và ghi lại để không ai "sửa nhầm":</b></p>
- * <ol>
- *   <li><b>p8 G8 "ẩn khỏi hộp thư (soft)" không có cột tương ứng.</b> p4 F2 liệt kê đủ 17 cột và
- *       KHÔNG có {@code deleted_at}/{@code hidden_at}; V13 cũng vậy. Thêm migration là vi phạm
- *       quy tắc cứng số 2 (danh mục V1–V17 ở p4 §4.9.2 là đóng). Giải pháp: đánh dấu bằng khoá
- *       {@code hiddenAt} trong {@code payload} (JSONB) và lọc {@code payload->>'hiddenAt' IS NULL}.
- *       Cần một cột thật thì phải xin bổ sung vào danh mục migration của p4 trước.</li>
- *   <li><b>{@code template_code} không có CHECK</b> (p4 §4.4.7 cố ý: danh mục template đổi
- *       thường xuyên hơn schema) nên dòng có mã lạ vẫn vào được DB — ví dụ do một bản deploy cũ.
- *       Khi đọc, dòng như vậy bị <b>bỏ qua</b> thay vì làm cả trang inbox ném
- *       {@code IllegalArgumentException}.</li>
- * </ol>
- *
- * <p>Mọi câu lệnh của người dùng đều mang {@code user_id = ?} — không dựa vào tầng trên nhớ lọc.</p>
- */
 @Repository
 class JdbcNotificationRepository implements NotificationRepository {
 
@@ -43,7 +25,6 @@ class JdbcNotificationRepository implements NotificationRepository {
             ref_type, ref_id, dedupe_key, attempt_count, scheduled_at, sent_at, read_at, created_at
             """;
 
-    /** Điều kiện của hộp thư: in-app, đã phát thật, chưa bị user ẩn. */
     private static final String INBOX_FILTER = """
              WHERE user_id = ?
                AND channel = 'IN_APP'
@@ -61,8 +42,6 @@ class JdbcNotificationRepository implements NotificationRepository {
 
     @Override
     public Optional<Notification> insertIfAbsent(Notification notification) {
-        // ON CONFLICT DO NOTHING + RETURNING: va uq_notification_dedupe thì KHÔNG có dòng nào
-        // trả về, nên Optional.empty() chính là tín hiệu "đã phát trước đó" (p12 §12.4).
         List<UUID> inserted = jdbc.query("""
                 INSERT INTO notification (user_id, channel, template_code, payload, title_snapshot,
                                           body_snapshot, status, ref_type, ref_id, dedupe_key,
@@ -96,8 +75,6 @@ class JdbcNotificationRepository implements NotificationRepository {
         List<Object> args = new ArrayList<>();
         args.add(userId);
         if (cursor != null) {
-            // Keyset: UUID v7 đã sắp theo thời gian nên (created_at, id) là thứ tự ổn định và
-            // dùng đúng index ix_notification_user_created (p8 §8.1.4).
             sql.append(" AND (created_at, id) < (?, ?)");
             args.add(NotificationRowReaders.offset(cursor.createdAt()));
             args.add(cursor.id());
@@ -125,7 +102,6 @@ class JdbcNotificationRepository implements NotificationRepository {
         return count == null ? 0L : count;
     }
 
-    /** Cố ý KHÔNG lọc {@code hiddenAt}: G6/G8 phải idempotent, ẩn lần hai vẫn {@code 204}. */
     @Override
     public Optional<Notification> findByIdForUser(UUID notificationId, UUID userId) {
         return jdbc.query("SELECT " + COLUMNS + """
@@ -179,7 +155,6 @@ class JdbcNotificationRepository implements NotificationRepository {
                 .stream().filter(java.util.Objects::nonNull).findFirst();
     }
 
-    /** Trả {@code null} khi {@code template_code} không còn trong registry — xem javadoc class. */
     private Notification read(ResultSet rs) throws SQLException {
         Optional<NotificationTemplate> template =
                 NotificationTemplate.fromCode(rs.getString("template_code"));

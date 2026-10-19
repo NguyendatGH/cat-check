@@ -25,14 +25,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L55 — p8 ghi {@code R:DPO} và p14 ô {@code Q25} để ❌ cho cả {@code ADMIN_SUPER}.
- *
- * <p>Đây là ô mà p14 ghi rõ bản trước "không có dòng nào" và được bổ sung theo p11 §11.5.4,
- * nên nhánh "ADMIN_SUPER bị từ chối" là khẳng định đáng giữ nhất ở đây: nó dễ bị nới ra một
- * cách thiện chí ("Super thì xem gì chẳng được") và hậu quả là bảng bằng chứng pháp lý thành
- * dữ liệu hỗ trợ khách hàng.</p>
- */
 class AdminPrivacyConsentControllerTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T03:00:00Z");
@@ -82,8 +74,6 @@ class AdminPrivacyConsentControllerTest {
 
         assertThat(page.items()).hasSize(2);
         assertThat(page.hasMore()).isTrue();
-        // Cursor phải mang CẢ id của dòng cuối: 4 dòng consent ghi cùng transaction có
-        // occurred_at giống hệt nhau, cursor chỉ có thời điểm sẽ bỏ sót phần còn lại của nhóm.
         String decoded = new String(java.util.Base64.getUrlDecoder().decode(page.nextCursor()),
                 java.nio.charset.StandardCharsets.UTF_8);
         assertThat(decoded).isEqualTo(last.occurredAt() + "|" + last.id());

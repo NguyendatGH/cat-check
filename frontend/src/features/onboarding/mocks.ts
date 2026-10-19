@@ -1,19 +1,3 @@
-/**
- * MSW handlers + worker cho onboarding — chế độ degraded khi backend chưa có (W1 song song).
- * W3 thay bằng API thật: chỉ cần xoá import handlers này khỏi main.tsx; hooks trong
- * `features/onboarding/hooks.ts` giữ nguyên vì đã theo hợp đồng p8.
- *
- * Endpoint mock (khớp p8):
- *  - GET  /api/v1/reference/cat-breeds        (F2)
- *  - POST /api/v1/cats                        (D1)
- *  - PATCH /api/v1/cats/:catId                (D2 merge-patch)
- * - PUT  /api/v1/cats/:catId/avatar          (D10 multipart)
- *  - POST /api/v1/cats/:catId/health-survey   (D14)
- *  - POST /api/v1/activations                 (H1)
- *  - GET  /api/v1/credits/balance             (H2)
- *  - GET  /api/v1/reference/ph-bands          (F1)
- *  - GET  /api/v1/cats/:catId/summary         (D12)
- */
 
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";
@@ -28,22 +12,6 @@ import type {
   SurveyAnswers,
 } from "./types";
 
-/**
- * MSW handlers cho onboarding — chế độ degraded khi backend chưa có (W1 song song).
- * W3 thay bằng API thật: chỉ cần xoá import handlers này khỏi main.tsx; hooks trong
- * `features/onboarding/hooks/` giữ nguyên vì đã theo hợp đồng p8.
- *
- * Endpoint mock (khớp p8):
- *  - GET  /api/v1/reference/cat-breeds        (F2)
- *  - POST /api/v1/cats                        (D1)
- *  - PATCH /api/v1/cats/:catId                (D2 merge-patch)
- *  - PUT  /api/v1/cats/:catId/avatar          (D10 multipart)
- *  - POST /api/v1/cats/:catId/health-survey   (D14)
- *  - POST /api/v1/activations                 (H1)
- *  - GET  /api/v1/credits/balance             (H2)
- *  - GET  /api/v1/reference/ph-bands          (F1)
- *  - GET  /api/v1/cats/:catId/summary         (D12)
- */
 
 const BREEDS: BreedListResponse = {
   items: [
@@ -60,11 +28,6 @@ const BREEDS: BreedListResponse = {
   ],
 };
 
-/**
- * Dải pH mock — BARE ARRAY và `severity` CHỮ HOA, khớp đúng response thật của
- * `GET /reference/ph-bands` (6 dải, dải đầu không có `phMin`, dải cuối không có `phMax`).
- * Mock lệch hợp đồng thật thì MSW xanh mà chạy thật đỏ — đúng loại lỗi mock sinh ra.
- */
 const phBandList: PhBandListResponse = [
   {
     code: "LOW",
@@ -127,11 +90,6 @@ interface MockActivationCode {
   status: "ACTIVE" | "REDEEMED" | "EXPIRED";
 }
 
-/**
- * Mã mock — bao gồm cả ví dụ trong spec `CC-PLUS-7K3M9QX2RT` (p5 §5.9) để demo
- * khớp tài liệu. Lưu ý: hệ thống thật có checksum ở ký tự cuối (p5 §5.9) — mock
- * bỏ qua checksum, chỉ tra cứu registry.
- */
 const ACTIVATION_CODES: MockActivationCode[] = [
   {
     code: "CCPLUS7K3M9QX2RT",
@@ -193,9 +151,6 @@ function problem(status: number, code: string, detail: string, extra?: Record<st
       status,
       detail,
       instance: "",
-      // Tên field là `errorCode`, KHÔNG phải `code`: `GlobalExceptionHandler` của backend gọi
-      // `problemDetail.setProperty("errorCode", ...)`. Mock từng phát `code` nên khớp với
-      // wrapper client cũng đang đọc sai — hai cái sai che nhau, chỉ lộ ra khi chạy server thật.
       errorCode: code,
       ...extra,
     },
@@ -231,7 +186,6 @@ function emptyBalance(): CreditBalance {
   return { availableBalance: 0, trialScansUsed: 0, trialScansRemaining: 3, batches: [] };
 }
 
-/** Trạng thái trong bộ nhớ của mock — mèo đã tạo trong phiên dev. */
 const createdCats = new Map<string, CreatedCat>();
 
 export const handlers = [
@@ -265,7 +219,6 @@ export const handlers = [
     const body = (await request.json()) as Partial<CatProfileDraft>;
     const id = String(params.catId);
     const existing = createdCats.get(id);
-    // merge-patch (RFC 7369): vắng = không đổi — merge vào bản hiện có.
     const merged: CatProfileDraft = {
       name: body.name ?? existing?.name ?? "",
       breedCode: body.breedCode ?? existing?.breedCode ?? "",
@@ -362,7 +315,6 @@ export const handlers = [
         },
         id,
       );
-    // Khớp response thật của D12 (xem CatSummary) — tài khoản mock chưa có lần quét nào.
     const summary: CatSummary = {
       catId: cat.id,
       lastScan: null,

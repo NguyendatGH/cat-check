@@ -26,17 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-/**
- * Quản trị nội dung — L40 đến L45.
- *
- * <p>Kiểm tra vai trò nằm trong controller (tầng api) chứ không ở service, vì đây là quyết định
- * "ai được gọi API này" — thuộc tầng web theo p8 §8.3. Nhưng tên vai trò cụ thể thì do
- * {@link ContentRoleGuard} giữ, để không rải chuỗi {@code "ADMIN_CATALOG"} khắp các controller.</p>
- *
- * <p>Chưa gắn {@code Aud} (ghi {@code audit_log}) và {@code S1:TOTP} vì {@code content} chỉ được
- * phụ thuộc module {@code audit} chứ chưa có cổng ghi, và bước xác thực hai lớp thuộc tầng web
- * dùng chung. Xem {@code docs/handovers/A3.md} mục "Còn lại".</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin/care-tips")
 @Tag(name = "Quản trị nội dung", description = "L40–L45 — soạn, duyệt, công bố nội dung")
@@ -63,7 +52,6 @@ public class AdminContentController {
             @RequestParam(defaultValue = "20") int size) {
 
         contentRoleGuard.requireContentAdmin(principal);
-        // R4: enum domain không được nằm trong chữ ký controller.
         CareTipStatus statusFilter = EnumParam.parse(CareTipStatus.class, status, "status");
         AdminPage<CareTip> result = careTipAdminService.listForAdmin(locale, statusFilter, page, size);
         return new OffsetPageResponse<>(

@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Hiện thực {@link HealthFlagExportQuery} (cổng do {@code insight} công bố cho {@code export}). */
 @Component
 public class HealthFlagExportQueryAdapter implements HealthFlagExportQuery {
 

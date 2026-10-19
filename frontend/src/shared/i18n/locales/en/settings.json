@@ -1,0 +1,350 @@
+{
+  "pages": {
+    "language": {
+      "title": "Language"
+    },
+    "notifications": {
+      "title": "Notification settings"
+    },
+    "profile": {
+      "title": "Profile"
+    },
+    "root": {
+      "title": "Settings"
+    },
+    "security": {
+      "title": "Account security"
+    }
+  },
+  "web": {
+    "heroTitle": "Account settings",
+    "heroBody": "Manage your account details, cats, notifications and security.",
+    "exportCta": "Export data",
+    "navLabel": "Sections on the settings page",
+    "navHeading": "On this page",
+    "nav": {
+      "account": "Account details",
+      "cats": "Your cats",
+      "notifications": "Notifications and alerts",
+      "more": "Security and privacy"
+    },
+    "catCount": "{{count}} cats",
+    "accountTitle": "Account details",
+    "accountSubtitle": "The owner's sign-in and contact details",
+    "edit": "Edit",
+    "fieldName": "Full name",
+    "fieldEmail": "Sign-in email",
+    "fieldPhone": "Phone number",
+    "fieldMemberSince": "Account created",
+    "emailVerified": "Verified by OTP",
+    "emailUnverified": "Not verified",
+    "phoneEmpty": "Not provided",
+    "catsTitle": "Your cats",
+    "catsSubtitle": "Cats being tracked in this account",
+    "catsAdd": "Add a cat",
+    "catsManage": "Manage cat profiles",
+    "catsEmpty": "No cats in this account yet. Add your first cat to start tracking.",
+    "catLastScanPh": "· pH {{value}}",
+    "alertsTitle": "Notifications and alerts",
+    "alertsSubtitle": "Choose how you get messages and which notifications you want",
+    "remindersTitle": "Scan reminders",
+    "remindersManage": "Manage reminders",
+    "remindersNone": "No scan reminders are on",
+    "remindersActive": "{{count}} scan reminders on",
+    "remindersActiveNext": "{{count}} scan reminders on · next reminder {{next}}",
+    "moreTitle": "Security and privacy",
+    "moreSubtitle": "Password, two-factor authentication, display language and personal data",
+    "links": {
+      "security": {
+        "title": "Account security",
+        "note": "Password, two-factor authentication, signed-in devices"
+      },
+      "privacy": {
+        "title": "Privacy and data",
+        "note": "Data processing consent, access requests and account deletion"
+      },
+      "language": {
+        "title": "Display language",
+        "note": "Tiếng Việt or English"
+      },
+      "reminders": {
+        "title": "Tracking reminders",
+        "note": "Set regular scan reminders for each cat"
+      },
+      "export": {
+        "title": "Export health record",
+        "note": "Create a PDF report to send to your vet"
+      }
+    },
+    "logout": "Sign out"
+  },
+  "mobile": {
+    "catCompanions": "{{count}} cat companions",
+    "editAccount": "Edit account",
+    "catsTitle": "Your cats",
+    "catsSubtitle": "Cats being tracked in this account",
+    "catsAdd": "Add a cat",
+    "catsManage": "Manage cat profiles",
+    "catsEmpty": "No cats in this account yet. Add your first cat to start tracking.",
+    "catNoScan": "No scans yet",
+    "groupMonitoring": "Tracking and reminders",
+    "groupData": "Data and security",
+    "groupSupport": "Support and community",
+    "rows": {
+      "reminders": {
+        "title": "Tracking reminders",
+        "note": "Set regular scan reminders for each cat"
+      },
+      "notifications": {
+        "title": "Notifications and alerts",
+        "note": "Choose channels and notification types"
+      },
+      "export": {
+        "title": "Export health record",
+        "note": "Create a PDF report to send to your vet"
+      },
+      "security": {
+        "title": "Account security",
+        "note": "Password, two-factor authentication, signed-in devices"
+      },
+      "privacy": {
+        "title": "Privacy and data",
+        "note": "Data processing consent, access requests and account deletion"
+      },
+      "language": {
+        "title": "Display language",
+        "note": "Tiếng Việt or English"
+      },
+      "guides": {
+        "title": "Owner community",
+        "note": "Ask questions and share cat care tips"
+      },
+      "contact": {
+        "title": "Contact CatCheck",
+        "note": "Send a question or service feedback"
+      }
+    },
+    "disclaimerTitle": "Tracking, not diagnosis",
+    "disclaimerBody": "CatCheck tracks pH trends from the color of indicator litter granules. Results are only meant to help you notice changes early; they do not replace a urine test or a veterinarian's assessment.",
+    "legalTerms": "Terms of use",
+    "legalPrivacy": "Privacy policy",
+    "legalSafety": "Medical disclaimer",
+    "logout": "Sign out",
+    "exportAction": "Export"
+  },
+  "notifications": {
+    "intro": "Choose your alert channel, notification types and quiet hours. Changes are saved immediately.",
+    "alertChannelLegend": "Alerts for results that need attention",
+    "alertChannelNote": "This alert type cannot be turned off — you only choose the channel.",
+    "alertChannels": {
+      "PUSH_AND_INAPP": {
+        "title": "Push and in-app",
+        "body": "Get them even when CatCheck isn't open"
+      },
+      "INAPP_ONLY": {
+        "title": "In-app only",
+        "body": "Only shown in the notification center when you open CatCheck"
+      }
+    },
+    "typesLegend": "Other notifications",
+    "toggles": {
+      "creditAlertsEnabled": {
+        "title": "Scans about to expire",
+        "body": "Reminds you before the scans in your package expire"
+      },
+      "reportReadyEnabled": {
+        "title": "PDF record ready",
+        "body": "Lets you know when your record export can be downloaded"
+      },
+      "normalResultEnabled": {
+        "title": "Normal results",
+        "body": "Off by default — turn on only if you also want to hear about scans with nothing unusual"
+      },
+      "imageRetentionWarningEnabled": {
+        "title": "Photos about to be deleted",
+        "body": "Off by default — all photos are deleted automatically after 14 days"
+      }
+    },
+    "quietHoursLegend": "Quiet hours",
+    "quietHours": {
+      "title": "Do not disturb",
+      "range": "From {{start}} to {{end}} in your account's time zone",
+      "quietHoursStart": "Start",
+      "quietHoursEnd": "End"
+    },
+    "saving": "Saving…",
+    "saved": "Saved",
+    "saveFailed": "Couldn't save. Please try again.",
+    "unavailable": "The server hasn't enabled notification preferences yet. This section will work as soon as the endpoint is turned on.",
+    "installLink": {
+      "title": "Add CatCheck to your home screen",
+      "body": "Required on iPhone/iPad to receive push notifications"
+    }
+  },
+  "profile": {
+    "intro": "The owner's identity details. Your email is used to sign in and receive alerts.",
+    "logoutHelp": "End the sign-in session on this device.",
+    "sectionBasic": "Basic information",
+    "sectionEmail": "Sign-in email",
+    "sectionIdentities": "Linked accounts",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Nguyễn Văn A",
+    "phone": "Phone number",
+    "phonePlaceholder": "09xx xxx xxx",
+    "phoneHelp": "Contact number, optional — leave blank if you'd rather not share it.",
+    "timezone": "Time zone",
+    "save": "Save changes",
+    "saved": "Changes saved.",
+    "saveFailed": "Couldn't save. Please try again.",
+    "emailCurrent": "Current email",
+    "emailVerified": "Verified",
+    "emailUnverified": "Not verified",
+    "emailChangeCta": "Change email",
+    "emailChangeHelp": "Changing your email requires an OTP sent to the new address.",
+    "emailNew": "New email",
+    "emailNewPlaceholder": "you@example.com",
+    "emailChangeSubmit": "Send verification code",
+    "emailChangeSent": "We sent a code to {{email}}. Enter it to finish.",
+    "emailOtp": "Verification code",
+    "emailOtpSubmit": "Confirm email change",
+    "emailChanged": "Email changed successfully.",
+    "cancel": "Cancel",
+    "identityLocal": "Password sign-in",
+    "identityGoogle": "Google",
+    "identityLastUsed": "Last used: {{at}}",
+    "identityUnlink": "Unlink",
+    "identityEmpty": "No external accounts linked yet.",
+    "validation": {
+      "fullNameRequired": "Please enter your full name.",
+      "fullNameMax": "Full name can be at most 120 characters.",
+      "phoneInvalid": "Invalid phone number.",
+      "emailInvalid": "Invalid email."
+    },
+    "loadFailed": "Couldn't load your profile. Please try again.",
+    "sectionAvatar": "Profile picture",
+    "avatarHelp": "Shown in the top corner of the app. Only you can see it.",
+    "avatarSaved": "Profile picture updated.",
+    "avatarRemoved": "Profile picture removed.",
+    "avatarFailed": "Couldn't update your profile picture. Please try again.",
+    "unsaved": "Unsaved changes",
+    "myCats": {
+      "title": "My cats",
+      "count": "{{count}} cats · Manage profiles, add a new cat",
+      "empty": "No cats yet · Add a cat profile"
+    }
+  },
+  "security": {
+    "intro": "Password, two-factor authentication and signed-in devices.",
+    "sectionPassword": "Change password",
+    "sectionMfa": "Two-factor authentication (TOTP)",
+    "sectionSessions": "Signed-in devices",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Re-enter new password",
+    "changePasswordSubmit": "Change password",
+    "changePasswordNote": "Changing your password signs out all other devices.",
+    "changePasswordDone": "Password changed. Other devices have been signed out.",
+    "changePasswordFailed": "Couldn't change password. Check your current password.",
+    "mfaStatusNone": "Off",
+    "mfaStatusPending": "Awaiting confirmation",
+    "mfaStatusActive": "On",
+    "mfaStatusLocked": "Temporarily locked",
+    "mfaEnableCta": "Turn on two-factor authentication",
+    "mfaDisableCta": "Turn off two-factor authentication",
+    "mfaBody": "Add a 6-digit code from an authenticator app each time you sign in.",
+    "mfaSecretLabel": "Secret key (enter manually if you can't scan)",
+    "mfaCodeLabel": "6-digit code from your authenticator app",
+    "mfaConfirmCta": "Confirm and turn on",
+    "mfaRecoveryTitle": "Recovery codes",
+    "mfaRecoveryBody": "Store these codes somewhere safe. Each code can be used once.",
+    "mfaRecoveryRemaining": "{{count}} unused recovery codes left.",
+    "mfaRecoveryRegenerate": "Regenerate recovery codes",
+    "mfaFailed": "That didn't work. Check the code and try again.",
+    "sessionCurrent": "This device",
+    "sessionLastSeen": "Last active: {{at}}",
+    "sessionUnknownDevice": "Unknown device",
+    "sessionRevoke": "Sign out",
+    "sessionRevokeAll": "Sign out all other devices",
+    "sessionEmpty": "No other sessions.",
+    "sessionLimitNote": "Up to 20 sessions at once. Once the limit is reached, new sign-ins will be refused.",
+    "sessionsLoadFailed": "Couldn't load signed-in devices.",
+    "newPasswordLength": "The new password must be 8 to 72 characters.",
+    "changePasswordInvalidNew": "The new password isn't valid. Use 8 to 72 characters."
+  },
+  "language": {
+    "intro": "The language used for the interface and the notifications we send you.",
+    "optionVi": "Tiếng Việt",
+    "optionViNote": "CatCheck's default language",
+    "optionEn": "English",
+    "optionEnNote": "Translation in progress — some content may still appear in Vietnamese",
+    "current": "In use",
+    "saveFailed": "Couldn't save the language to your account. Please try again.",
+    "savedLocalOnly": "Language changed on this device.",
+    "saved": "Language saved to your account."
+  },
+  "install": {
+    "lead": "Add CatCheck to your home screen to open it quickly like an app: full screen, its own icon, no need to type the address again.",
+    "standaloneTitle": "You're using app mode",
+    "standaloneBody": "This window is running full screen, which means CatCheck already has a shortcut on this device. On other devices you'll still need to add it.",
+    "promptTitle": "Install directly from this browser",
+    "promptBody": "Your browser says it can install CatCheck. Tap the button below, then confirm in the browser's dialog.",
+    "promptCta": "Install CatCheck",
+    "promptAccepted": "Your browser accepted the request. Check your home screen or app list.",
+    "promptDismissed": "You closed the dialog. You can install it any time, or do it manually using the steps below.",
+    "promptUnavailableTitle": "This browser hasn't offered installation",
+    "promptUnavailableBody": "The automatic install button only appears in some browsers, and only after you've used the site for a while. Safari on iPhone and iPad never shows it. The manual steps below always work.",
+    "manualTitle": "How to add it manually",
+    "iosTitle": "iPhone / iPad — Safari",
+    "iosStep1": "Open CatCheck in Safari. Other browsers on iOS can't add it to the home screen.",
+    "iosStep2": "Tap the Share button in the toolbar — the square with an upward arrow.",
+    "iosStep3": "Scroll down and choose “Add to Home Screen”.",
+    "iosStep4": "Name it, then tap “Add”. The CatCheck icon will appear on your home screen.",
+    "androidTitle": "Android — Chrome",
+    "androidStep1": "Tap the three-dot button in the top right, next to the address bar.",
+    "androidStep2": "Choose “Install app”, or “Add to Home screen” if you don't see the first option.",
+    "androidStep3": "Confirm in the dialog that appears.",
+    "desktopTitle": "Computer — Chrome / Edge",
+    "desktopStep1": "Click the install icon at the end of the address bar, or open the browser menu and choose the option to install CatCheck.",
+    "notesTitle": "Good to know before adding",
+    "note1": "This is just a full-screen shortcut. Your account, data and camera permissions stay the same as in the browser.",
+    "note2": "CatCheck still needs a connection to send scan photos and load results — adding it to the home screen doesn't make it work offline.",
+    "note3": "To remove it, delete the icon from your home screen like any other app."
+  },
+  "privacy": {
+    "showAll": "Show all ({{count}})",
+    "showLess": "Show less",
+    "notApplicable": "—",
+    "surface": {
+      "register": "Account sign-up",
+      "privacy_center": "Privacy center",
+      "onboarding": "Initial setup",
+      "scan_first": "Before the first scan",
+      "cookie_banner": "Cookie notice"
+    },
+    "retention": {
+      "INACTIVE_ACCOUNT": "Per the inactive account policy",
+      "SCAN_IMAGE_RAW": "Per the scan photo retention period",
+      "SCAN_ANALYSIS_LIFECYCLE": "Per the scan result lifecycle",
+      "ACTIVITY_LOG": "Per the activity log retention period",
+      "PUSH_SUBSCRIPTION_IDLE": "Per the retention period for unused push subscriptions",
+      "NOTIFICATION_SEND_LOG": "Per the notification send log retention period",
+      "AUDIT_LOG": "Per the audit log retention period",
+      "SECURITY_INCIDENT": "Per the security incident record retention period",
+      "CONSENT_RECORD": "Per the consent evidence retention period"
+    },
+    "missing": {
+      "evidence": "Downloading the consent evidence file — this feature doesn't have a server endpoint yet. In the meantime, the data package under \"Get a copy of your data\" includes your consent history.",
+      "retention": "The server currently returns only retention policy codes, not a written retention period for each data category.",
+      "restriction": "The restriction status above is inferred from your request list; the server doesn't yet have a way to read the status directly.",
+      "communityChoice": "Choosing whether to keep or delete community content when deleting your account — the server doesn't support this choice yet."
+    },
+    "gaps": {
+      "evidence": "Download the consent evidence file.",
+      "retention": "Retention periods for each data category.",
+      "restrictionState": "Read the processing restriction status directly.",
+      "communityChoice": "Choose whether to keep or delete community content when deleting your account."
+    },
+    "deletionDerivedNote": "The effective date above is inferred from the request date plus a 7-day grace period; it is not a value returned by the server.",
+    "requestsNoContent": "This form only opens a case and issues a reference code. For details, please email the personal data protection team and include your reference code."
+  }
+}

@@ -14,19 +14,6 @@ import {
 } from "./hooks";
 import type { NotificationItem, NotificationListResponse } from "./types";
 
-/**
- * Nhóm G của p8 §8.4.7. Test khoá vào đúng những chỗ gãy khi nối API thật:
- *  1. **Cursor**: trang 2 phải mang `cursor` của trang 1 và chỉ đi tiếp khi `page.hasMore`
- *     — đọc nhầm `nextCursor` (có thể khác null ở trang cuối) là lặp vô hạn.
- *  2. **Invalidate sau khi đánh dấu đã đọc**: badge chuông là query RIÊNG
- *     (`/notifications/unread-count`), không tự giảm theo danh sách. Invalidate phải phủ gốc
- *     `['notification']`, nếu không số trên chuông đứng im sau khi user đã đọc.
- *  3. Đúng method/URL cho 5 endpoint còn lại (một ký tự sai là 404/405 lúc chạy thật).
- *
- * Dựng hook bằng `react-dom/client` + `act` thay vì `@testing-library/react`: package đó có
- * trong devDependencies nhưng peer `@testing-library/dom` KHÔNG được cài, và brief cấm thêm
- * gói mới (giống `features/insight/hooks.test.tsx`).
- */
 
 const ITEM: NotificationItem = {
   id: "0199cc00-0000-7000-8000-000000000001",
@@ -58,7 +45,6 @@ interface HookHandle<T> {
   unmount: () => void;
 }
 
-/** `renderHook` tối giản — đủ cho việc đọc giá trị hook qua nhiều lần render lại. */
 async function renderHook<T>(useHookFn: () => T, client: QueryClient): Promise<HookHandle<T>> {
   const box: { current: T | undefined } = { current: undefined };
   function Probe() {
@@ -92,7 +78,6 @@ async function renderHook<T>(useHookFn: () => T, client: QueryClient): Promise<H
   };
 }
 
-/** Chờ `predicate` thành true, mỗi vòng bọc trong `act` để React xả hết cập nhật. */
 async function waitUntil(predicate: () => boolean, label: string): Promise<void> {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     if (predicate()) return;
@@ -148,7 +133,6 @@ describe("useNotificationInbox — G4 (phân trang cursor)", () => {
 
     const secondUrl = String(fetchMock.mock.calls[1]?.[0]);
     expect(new URLSearchParams(secondUrl.split("?")[1]).get("cursor")).toBe("cursor-trang-2");
-    // `nextCursor` của trang 2 KHÁC null nhưng `hasMore = false` ⇒ phải dừng, không lặp.
     expect(hook.current.hasNextPage).toBe(false);
     hook.unmount();
   });
@@ -195,7 +179,6 @@ describe("mutation hộp thư — G6/G7/G8", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(`/api/v1/notifications/${ITEM.id}/read`);
     expect(init.method).toBe("POST");
-    // Gốc `['notification']` phủ CẢ `inbox` LẪN `unread-count` — badge chuông phải giảm theo.
     const keys = invalidate.mock.calls.map((call) => JSON.stringify(call[0]?.queryKey));
     expect(keys).toContain(JSON.stringify(["notification"]));
     hook.unmount();
@@ -266,8 +249,6 @@ describe("thiết bị push — G9/G10/G11", () => {
     });
     await waitUntil(() => hook.current.isSuccess, "upsert xong");
 
-    // `body` khai kiểu hẹp hơn `RequestInit` ở đây để đọc được JSON đã gửi mà không phải
-    // stringify một `BodyInit` (eslint `no-base-to-string`).
     const [url, init] = fetchMock.mock.calls[0] as [string, { method: string; body: string }];
     expect(url).toBe("/api/v1/push/subscriptions");
     expect(init.method).toBe("PUT");

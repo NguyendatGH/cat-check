@@ -1,13 +1,3 @@
-/**
- * MSW handlers + worker cho `features/history` — chế độ degraded khi backend chưa có (cùng quy
- * ước `features/onboarding/mocks.ts`). Dữ liệu demo ĐỘC LẬP với `features/scan/mocks.ts` (mỗi
- * feature tự seed — không import lẫn nhau, boundaries cấm feature → feature).
- *
- * Endpoint mock (khớp p8 §8.5.4):
- *  - GET /api/v1/scans          (E2, phân trang con trỏ + lọc classification[]/disputed)
- *  - GET /api/v1/scans/summary  (E3)
- *  - GET /api/v1/cats/:catId    (D3, rút gọn — chỉ để hiển thị tên mèo ở header)
- */
 
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";

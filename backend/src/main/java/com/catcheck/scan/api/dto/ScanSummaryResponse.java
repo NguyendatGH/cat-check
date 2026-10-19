@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 
-/** {@code GET /api/v1/scans/summary} (p8 §8.4.5 E3). */
 public record ScanSummaryResponse(
         long count,
         Map<String, Long> byClassification,

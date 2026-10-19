@@ -27,19 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * B11/B12 với cổng trong bộ nhớ — không cần Testcontainers.
- *
- * <p>Shape là tám field phẳng của p8 §8.5, lưu ở {@code user_notification_preference}.
- * Ba điều cần chắc: (1) tài khoản chưa có dòng tuỳ chọn thì GET trả mặc định của p4 F4 chứ
- * không nổ — nếu nổ thì chính màn cài đặt không mở nổi để user tạo dòng đó; (2) PUT ghi đủ
- * tám field rồi đọc lại được; (3) user không tồn tại thì 404 và không ghi gì.</p>
- *
- * <p>KHÔNG còn test "tắt kênh bắt buộc bị từ chối": với shape p8 thì ràng buộc p12 §12.9.1 là
- * ràng buộc KIỂU — {@code AttentionAlertChannel} không có giá trị tắt, nên không biểu diễn
- * được trạng thái sai để mà test. Giá trị lạ bị chặn lúc parse body, xem
- * {@code UpdateNotificationPreferencesRequestTest}.</p>
- */
 class ProfileServiceNotificationPreferencesTest {
 
     private static final UUID USER_ID = UUID.fromString("018f0000-0000-7000-8000-000000000001");
@@ -50,8 +37,6 @@ class ProfileServiceNotificationPreferencesTest {
 
     private ProfileService service() {
         AuditLogService audit = event -> auditActions.add(event.action());
-        // identityRepository/piiCipher khong duoc cham toi trong hai luong nay nen de null —
-        // truyen fake rong chi lam nhieu test.
         return new ProfileService(accounts, null, null, audit, CLOCK, "target/avatars-test", null);
     }
 
@@ -92,7 +77,6 @@ class ProfileServiceNotificationPreferencesTest {
 
     @Test
     void gio_im_lang_vat_qua_nua_dem_la_hop_le() {
-        // p4 F4: `start > end` KHÔNG phải lỗi — 22:00 → 07:00 là trường hợp mặc định.
         accounts.users.add(USER_ID);
         NotificationPreferences wanted = new NotificationPreferences(
                 AttentionAlertChannel.PUSH_AND_INAPP, true, true, false, false, true,
@@ -119,17 +103,11 @@ class ProfileServiceNotificationPreferencesTest {
         assertNull(accounts.preferences.get(USER_ID));
     }
 
-    /** Chỉ hai method của B11/B12 có nghĩa; phần còn lại của cổng không được chạm tới. */
     private static final class FakeUserAccountRepository implements UserAccountRepository {
 
         private final java.util.Map<UUID, NotificationPreferences> preferences = new java.util.HashMap<>();
-        /** Tài khoản tồn tại — tách khỏi `preferences` vì nay hai thứ nằm ở hai bảng. */
         private final java.util.Set<UUID> users = new java.util.HashSet<>();
 
-        /**
-         * Service chỉ hỏi "dòng app_user có tồn tại không", không đọc field nào — nên một bản
-         * ghi tối thiểu là đủ, không cần dựng hồ sơ thật.
-         */
         private static final UserAccount ACCOUNT_PRESENT = new UserAccount(
                 USER_ID, null, null, null, null, null, null, null,
                 AppLocale.VI, "Asia/Ho_Chi_Minh", UserStatus.ACTIVE, null,
@@ -147,7 +125,6 @@ class ProfileServiceNotificationPreferencesTest {
 
         @Override
         public Optional<UserAccount> findById(UUID userId) {
-            // Service chỉ cần biết dòng app_user có tồn tại hay không; nội dung không dùng tới.
             return users.contains(userId) ? Optional.of(ACCOUNT_PRESENT) : Optional.empty();
         }
 

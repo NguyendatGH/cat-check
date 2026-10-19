@@ -29,16 +29,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Cổng trong bộ nhớ cho test của module notification — kiểm chứng luật phát thông báo
- * (p12 §12.1, §12.5.3, §12.9) mà không cần Testcontainers.
- */
 final class NotificationTestDoubles {
 
     private NotificationTestDoubles() {
     }
 
-    /** Bảng {@code notification} trong bộ nhớ, giữ nguyên ngữ nghĩa UNIQUE của {@code dedupe_key}. */
     static final class FakeNotifications implements NotificationRepository {
 
         final List<Notification> rows = new ArrayList<>();
@@ -112,7 +107,6 @@ final class NotificationTestDoubles {
         }
     }
 
-    /** Bảng {@code notification_outbox} trong bộ nhớ. */
     static final class FakePushOutbox implements NotificationOutboxRepository {
 
         record Row(UUID notificationId, UUID subscriptionId, Instant nextAttemptAt) {
@@ -151,9 +145,7 @@ final class NotificationTestDoubles {
             failed.put(id, errorCode);
         }
 
-        /* --------------------------------------------------- L67 (gui lai FAILED) */
 
-        /** Dong duoc dat {@code FAILED} ⇒ {@code requeueFailed} thanh cong dung mot lan. */
         @Override
         public boolean requeueFailed(UUID id, Instant now) {
             if (!failed.containsKey(id)) {
@@ -181,7 +173,6 @@ final class NotificationTestDoubles {
         final Map<UUID, Instant> requeued = new LinkedHashMap<>();
     }
 
-    /** Bảng {@code email_outbox} trong bộ nhớ. */
     static final class FakeEmailOutbox implements EmailOutboxRepository {
 
         final List<EmailOutboxMessage> rows = new ArrayList<>();
@@ -210,7 +201,6 @@ final class NotificationTestDoubles {
             failed.add(id);
         }
 
-        /* --------------------------------------------------- L67 (gui lai FAILED) */
 
         final Set<UUID> failed = new HashSet<>();
         final Map<UUID, Instant> requeued = new LinkedHashMap<>();
@@ -233,7 +223,6 @@ final class NotificationTestDoubles {
         }
     }
 
-    /** Bảng {@code push_subscription} trong bộ nhớ. */
     static final class FakeSubscriptions implements PushSubscriptionRepository {
 
         final List<PushSubscription> active = new ArrayList<>();
@@ -273,7 +262,23 @@ final class NotificationTestDoubles {
 
         @Override
         public int revokeInstallationIdOwnedByOtherUser(String installationId, UUID newOwnerId, Instant now) {
-            return 0;
+            return revokeOwnedByOther(row -> installationId.equals(row.installationId()), newOwnerId);
+        }
+
+        @Override
+        public int revokeLegacyTokenOwnedByOtherUser(String legacyToken, UUID newOwnerId, Instant now) {
+            return revokeOwnedByOther(row -> legacyToken.equals(row.legacyToken()), newOwnerId);
+        }
+
+        private int revokeOwnedByOther(java.util.function.Predicate<PushSubscription> device, UUID newOwnerId) {
+            List<PushSubscription> hits = active.stream()
+                    .filter(row -> device.test(row) && !row.userId().equals(newOwnerId))
+                    .toList();
+            hits.forEach(row -> {
+                active.remove(row);
+                revoked.put(row.id(), PushRevokeReason.USER_DISABLED);
+            });
+            return hits.size();
         }
 
         @Override
@@ -297,15 +302,11 @@ final class NotificationTestDoubles {
             return failureCounts.merge(subscriptionId, 1, Integer::sum);
         }
 
-        /* ------------------------------------- CleanupDeadPushTokensJob (p12 §12.3.9) */
 
-        /** Dòng đã bị {@link #deleteDead} xoá — fake không mô phỏng điều kiện thời gian. */
         final List<UUID> deleted = new ArrayList<>();
 
-        /** Số dòng "đủ điều kiện xoá" mà fake này báo cáo; test đặt tay. */
         long deadCount;
 
-        /** Tổng số dòng mà fake này báo cáo — mẫu số của ngưỡng an toàn 20%. */
         long totalCount;
 
         @Override
@@ -328,7 +329,6 @@ final class NotificationTestDoubles {
         }
     }
 
-    /** Tuỳ chọn thông báo cố định. */
     static final class FakePreferences implements NotificationPreferenceRepository {
 
         UserNotificationPreference preference = UserNotificationPreference.defaults();
@@ -339,7 +339,6 @@ final class NotificationTestDoubles {
         }
     }
 
-    /** Consent gate: mặc định CHƯA đồng ý gì cả — đúng tinh thần p15 §15.3.1 C4. */
     static final class FakeConsentGate implements ConsentGatePort {
 
         final Set<String> granted = new HashSet<>();
@@ -350,12 +349,10 @@ final class NotificationTestDoubles {
         }
     }
 
-    /** Người nhận cố định. */
     static final class FakeRecipients implements NotificationRecipientPort {
 
         NotificationRecipient recipient;
 
-        /** L72 — danh sách id để fan-out; để rỗng thì broadcast không có ai nhận. */
         final List<UUID> broadcastIds = new ArrayList<>();
 
         @Override
@@ -372,7 +369,6 @@ final class NotificationTestDoubles {
         }
     }
 
-    /** {@link PushMessageSender} trả kết quả dựng sẵn cho từng subscription. */
     static final class FakePushSender implements PushMessageSender {
 
         boolean enabled = true;

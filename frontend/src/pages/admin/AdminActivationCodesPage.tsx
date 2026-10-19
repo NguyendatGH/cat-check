@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Plus, ShieldOff } from "lucide-react";
-import { Button, Input } from "@/shared/ui";
+import { Check, Copy, Download, Plus, ShieldOff } from "lucide-react";
+import { Button, Dialog, DialogContent, DialogDescription, DialogTitle, Input, toast } from "@/shared/ui";
 import {
+  ACTIVATION_CODE_STATUSES,
   AdminPageHeader,
   AdminQueryError,
   AdminSelect,
@@ -13,8 +14,10 @@ import {
   KpiTile,
   MutationErrorNote,
   Pager,
+  ReasonConfirmDialog,
   ReasonField,
   TableSkeleton,
+  activationEffectiveStatus,
   denseRowClass,
   denseTableClass,
   denseTdClass,
@@ -24,42 +27,112 @@ import {
   isReasonValid,
   useAdminActivationBatches,
   useAdminActivationCodes,
+  useAdminActivationCodeSummary,
+  useAdminPackagePlans,
   useDownloadActivationBatchCsv,
   useIssueActivationBatch,
   useVoidActivationBatch,
   useVoidActivationCode,
 } from "@/features/admin";
-import type { ActivationCodeStatus } from "@/features/admin";
+import type {
+  ActivationBatch,
+  ActivationCodeAdmin,
+  ActivationCodeEffectiveStatus,
+  IssuedActivationBatch,
+} from "@/features/admin";
 import { useGroup1Can } from "./group1Access";
 
 const PAGE_SIZE = 20;
-const CODE_STATUSES: ActivationCodeStatus[] = ["ISSUED", "REDEEMED", "VOID"];
+const DAY_MS = 86_400_000;
+
+const STATUS_TONE: Record<ActivationCodeEffectiveStatus, "neutral" | "success" | "warning"> = {
+  ISSUED: "neutral",
+  EXPIRED: "warning",
+  REDEEMED: "success",
+  VOID: "warning",
+};
+
+/** Chọn gói từ danh sách gói đang bán; chỉ gọi API gói khi form sinh lô đang mở. */
+function IssuePackageSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation("admin");
+  const plans = useAdminPackagePlans(false);
+  const options = (plans.data ?? []).filter((plan) => plan.active);
+  if (plans.isError || (plans.data && options.length === 0)) {
+    return (
+      <Input
+        label={t("activation.packageCode")}
+        value={value}
+        className="h-10"
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        required
+      />
+    );
+  }
+  return (
+    <AdminSelect
+      label={t("activation.packageCode")}
+      value={value}
+      className="h-10"
+      onChange={(event) => {
+        onChange(event.target.value);
+      }}
+      required
+    >
+      <option value="">{t("activation.choosePackage")}</option>
+      {options.map((plan) => (
+        <option key={plan.code} value={plan.code}>
+          {t("activation.packageOption", { code: plan.code, name: plan.name, credits: plan.creditAmount })}
+        </option>
+      ))}
+    </AdminSelect>
+  );
+}
 
 export function AdminActivationCodesPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  // Sinh lô, tải CSV và vô hiệu mã/lô: backend chỉ cho ADMIN_SUPER (ROLES.activationCodesWrite).
   const canManage = can("activationCodesWrite");
   const [prefix, setPrefix] = useState("");
   const [packageCode, setPackageCode] = useState("");
-  const [status, setStatus] = useState<ActivationCodeStatus | "">("");
+  const [status, setStatus] = useState<ActivationCodeEffectiveStatus | "">("");
   const [batchId, setBatchId] = useState("");
   const [page, setPage] = useState(0);
   const [batchPage, setBatchPage] = useState(0);
-  const [reason, setReason] = useState("");
+  // Lý do hỏi tại thời điểm hành động (p17 A3): form sinh lô có ô lý do riêng, còn vô hiệu/tải CSV hỏi trong hộp xác nhận.
+  const [issueReason, setIssueReason] = useState("");
+  const [issuePackageCode, setIssuePackageCode] = useState("");
+  const [pendingAction, setPendingAction] = useState<
+    | { kind: "voidCode"; code: ActivationCodeAdmin }
+    | { kind: "voidBatch"; batch: ActivationBatch }
+    | { kind: "csv"; batch: ActivationBatch }
+    | null
+  >(null);
   const [showIssueForm, setShowIssueForm] = useState(false);
+  // Raw codes exist only in the one-time CSV; keep them on screen after download so admins can copy them.
+  const [revealedCodes, setRevealedCodes] = useState<{ batch: string; codes: string[] } | null>(null);
+  const [justIssued, setJustIssued] = useState<IssuedActivationBatch | null>(null);
   const [quantity, setQuantity] = useState("100");
   const [validForDays, setValidForDays] = useState("365");
   const [productionBatch, setProductionBatch] = useState("");
 
   const codes = useAdminActivationCodes({ prefix, packageCode, status, batchId, page, size: PAGE_SIZE });
+  const codeSummary = useAdminActivationCodeSummary({ prefix, packageCode, batchId });
   const batches = useAdminActivationBatches(batchPage, PAGE_SIZE);
   const issue = useIssueActivationBatch();
   const voidCode = useVoidActivationCode();
   const voidBatch = useVoidActivationBatch();
   const downloadCsv = useDownloadActivationBatchCsv();
-  const canWrite = canManage && isReasonValid(reason);
+  const canIssue = canManage && isReasonValid(issueReason);
+  const activeMutation =
+    pendingAction?.kind === "voidCode" ? voidCode : pendingAction?.kind === "voidBatch" ? voidBatch : downloadCsv;
   const codeItems = codes.data?.items ?? [];
+  const validDays = Number(validForDays);
+  const validUntilPreview =
+    Number.isInteger(validDays) && validDays >= 1 && validDays <= 3650
+      ? formatAdminDateTime(new Date(Date.now() + validDays * DAY_MS).toISOString())
+      : null;
 
   function downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
@@ -77,7 +150,6 @@ export function AdminActivationCodesPage() {
       <AdminPageHeader
         title={t("pages.activationCodes.title")}
         description={t("pages.activationCodes.description")}
-        specRef="L19–L24 · GET/POST /api/v1/admin/activation-codes"
         actions={
           canManage ? (
             <Button
@@ -101,19 +173,22 @@ export function AdminActivationCodesPage() {
             className="flex flex-col gap-3"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!canWrite) return;
+              if (!canIssue) return;
               issue.mutate(
                 {
-                  packageCode: packageCode.trim().toUpperCase(),
+                  packageCode: issuePackageCode.trim().toUpperCase(),
                   quantity: Number(quantity),
                   productionBatch: productionBatch.trim(),
                   validForDays: Number(validForDays),
-                  reason: reason.trim(),
+                  reason: issueReason.trim(),
                 },
                 {
-                  onSuccess: () => {
+                  onSuccess: (issued) => {
+                    setJustIssued(issued);
                     setShowIssueForm(false);
+                    setIssueReason("");
                     setBatchId(productionBatch.trim());
+                    setPage(0);
                     setBatchPage(0);
                   },
                 },
@@ -121,15 +196,7 @@ export function AdminActivationCodesPage() {
             }}
           >
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              <Input
-                label={t("activation.packageCode")}
-                value={packageCode}
-                className="h-10"
-                onChange={(event) => {
-                  setPackageCode(event.target.value);
-                }}
-                required
-              />
+              <IssuePackageSelect value={issuePackageCode} onChange={setIssuePackageCode} />
               <Input
                 label={t("activation.productionBatch")}
                 value={productionBatch}
@@ -164,10 +231,16 @@ export function AdminActivationCodesPage() {
                 required
               />
             </div>
+            {validUntilPreview ? (
+              <p className="text-caption text-text-secondary">
+                {t("activation.validUntilPreview", { date: validUntilPreview })}
+              </p>
+            ) : null}
+            <p className="text-caption text-text-secondary">{t("activation.singleUseNote")}</p>
             <ReasonField
-              value={reason}
-              onChange={setReason}
-              showError={issue.isError || reason.length > 0}
+              value={issueReason}
+              onChange={setIssueReason}
+              showError={issue.isError || issueReason.length > 0}
               disabled={issue.isPending}
             />
             <MutationErrorNote error={issue.error} />
@@ -177,7 +250,7 @@ export function AdminActivationCodesPage() {
                 variant="primary"
                 size="sm"
                 loading={issue.isPending}
-                disabled={!canWrite || !packageCode.trim() || !productionBatch.trim()}
+                disabled={!canIssue || !issuePackageCode.trim() || !productionBatch.trim()}
               >
                 {t("activation.issueSubmit")}
               </Button>
@@ -221,12 +294,12 @@ export function AdminActivationCodesPage() {
             value={status}
             className="h-10"
             onChange={(event) => {
-              setStatus(event.target.value as ActivationCodeStatus | "");
+              setStatus(event.target.value as ActivationCodeEffectiveStatus | "");
               setPage(0);
             }}
           >
             <option value="">{t("activation.allStatuses")}</option>
-            {CODE_STATUSES.map((value) => (
+            {ACTIVATION_CODE_STATUSES.map((value) => (
               <option key={value} value={value}>
                 {t(`activation.status.${value}`)}
               </option>
@@ -242,29 +315,66 @@ export function AdminActivationCodesPage() {
             }}
           />
         </div>
-        {canManage ? (
-          <ReasonField value={reason} onChange={setReason} showError={reason.length > 0} />
-        ) : (
-          <p className="text-caption text-text-secondary">{t("activation.readOnlyNote")}</p>
-        )}
+        {canManage ? null : <p className="text-caption text-text-secondary">{t("activation.readOnlyNote")}</p>}
       </DensePanel>
+
+      {justIssued ? (
+        <div
+          role="status"
+          className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-bg px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0">
+            <p className="text-body font-semibold text-text-primary">
+              {t("activation.issuedNoticeTitle", { count: justIssued.quantity, batch: justIssued.productionBatch })}
+            </p>
+            <p className="text-caption text-text-secondary">{t("activation.issuedNoticeBody")}</p>
+          </div>
+          {justIssued.csvAvailable ? (
+            <Button
+              type="button"
+              size="sm"
+              leftIcon={<Download className="size-4" aria-hidden="true" />}
+              onClick={() => {
+                downloadCsv.reset();
+                setPendingAction({
+                  kind: "csv",
+                  batch: {
+                    batchId: justIssued.batchId,
+                    productionBatch: justIssued.productionBatch,
+                    packageCode: justIssued.packageCode,
+                    totalCodes: justIssued.quantity,
+                    issuedCodes: justIssued.quantity,
+                    redeemedCodes: 0,
+                    voidedCodes: 0,
+                    issuedAt: justIssued.issuedAt,
+                    validUntil: justIssued.validUntil,
+                    csvAvailable: true,
+                  },
+                });
+              }}
+            >
+              {t("activation.getCodesNow")}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {codes.data ? (
         <KpiGrid label={t("dense.kpiLabel")}>
           <KpiTile label={t("activation.kpiTotal")} value={formatAdminNumber(codes.data.totalElements)} tone="info" />
-          {CODE_STATUSES.map((value) => (
+          {ACTIVATION_CODE_STATUSES.map((value) => (
             <KpiTile
               key={value}
               label={t(`activation.status.${value}`)}
-              value={formatAdminNumber(codeItems.filter((code) => code.status === value).length)}
-              hint={t("dense.onPageHint")}
-              tone={value === "REDEEMED" ? "success" : value === "VOID" ? "warning" : "neutral"}
+              value={codeSummary.data ? formatAdminNumber(codeSummary.data.byStatus[value] ?? 0) : "—"}
+              hint={t("dense.summaryIgnoresStatusHint")}
+              tone={STATUS_TONE[value]}
             />
           ))}
         </KpiGrid>
       ) : null}
 
-      <DensePanel title={t("activation.codesTitle")}>
+      <DensePanel title={t("activation.codesTitle")} description={t("activation.codesMaskedHint")}>
         {codes.isPending ? <TableSkeleton /> : null}
         {codes.isError ? (
           <AdminQueryError
@@ -301,6 +411,9 @@ export function AdminActivationCodesPage() {
                     <th scope="col" className={denseThClass}>
                       {t("activation.colStatus")}
                     </th>
+                    <th scope="col" className={denseThClass}>
+                      {t("activation.colRedeemedAt")}
+                    </th>
                     {canManage ? (
                       <th scope="col" className={denseThClass}>
                         {t("activation.colAction")}
@@ -322,7 +435,12 @@ export function AdminActivationCodesPage() {
                       <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
                         {formatAdminDateTime(code.validUntil)}
                       </td>
-                      <td className={`${denseTdClass} whitespace-nowrap`}>{t(`activation.status.${code.status}`)}</td>
+                      <td className={`${denseTdClass} whitespace-nowrap`}>
+                        {t(`activation.status.${activationEffectiveStatus(code)}`)}
+                      </td>
+                      <td className={`${denseTdClass} whitespace-nowrap font-mono tabular-nums`}>
+                        {code.redeemedAt ? formatAdminDateTime(code.redeemedAt) : EMPTY_CELL}
+                      </td>
                       {canManage ? (
                         <td className={denseTdClass}>
                           {code.status === "ISSUED" ? (
@@ -330,9 +448,10 @@ export function AdminActivationCodesPage() {
                               variant="tertiary"
                               size="sm"
                               leftIcon={<ShieldOff size={14} />}
-                              disabled={!canWrite || voidCode.isPending}
+                              disabled={voidCode.isPending}
                               onClick={() => {
-                                voidCode.mutate({ codeId: code.id, reason: reason.trim() });
+                                voidCode.reset();
+                                setPendingAction({ kind: "voidCode", code });
                               }}
                             >
                               {t("activation.void")}
@@ -355,7 +474,7 @@ export function AdminActivationCodesPage() {
             />
           </>
         ) : null}
-        <MutationErrorNote error={voidCode.error} />
+        {pendingAction === null ? <MutationErrorNote error={voidCode.error} /> : null}
       </DensePanel>
 
       <DensePanel title={t("activation.batchesTitle")}>
@@ -421,16 +540,10 @@ export function AdminActivationCodesPage() {
                                 variant="tertiary"
                                 size="sm"
                                 leftIcon={<Download size={14} />}
-                                disabled={!canWrite || downloadCsv.isPending}
+                                disabled={downloadCsv.isPending}
                                 onClick={() => {
-                                  downloadCsv.mutate(
-                                    { batchId: batch.batchId, reason: reason.trim() },
-                                    {
-                                      onSuccess: (blob) => {
-                                        downloadBlob(blob, `activation-codes-${batch.batchId}.csv`);
-                                      },
-                                    },
-                                  );
+                                  downloadCsv.reset();
+                                  setPendingAction({ kind: "csv", batch });
                                 }}
                               >
                                 {t("activation.downloadCsv")}
@@ -440,9 +553,10 @@ export function AdminActivationCodesPage() {
                               variant="tertiary"
                               size="sm"
                               leftIcon={<ShieldOff size={14} />}
-                              disabled={!canWrite || voidBatch.isPending}
+                              disabled={voidBatch.isPending || batch.issuedCodes <= 0}
                               onClick={() => {
-                                voidBatch.mutate({ batchId: batch.batchId, reason: reason.trim() });
+                                voidBatch.reset();
+                                setPendingAction({ kind: "voidBatch", batch });
                               }}
                             >
                               {t("activation.voidBatch")}
@@ -463,8 +577,155 @@ export function AdminActivationCodesPage() {
             />
           </>
         ) : null}
-        <MutationErrorNote error={voidBatch.error ?? downloadCsv.error} />
+        {pendingAction === null ? <MutationErrorNote error={voidBatch.error ?? downloadCsv.error} /> : null}
       </DensePanel>
+      <ReasonConfirmDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+        title={
+          pendingAction?.kind === "voidCode"
+            ? t("activation.void")
+            : pendingAction?.kind === "voidBatch"
+              ? t("activation.voidBatch")
+              : t("activation.downloadCsv")
+        }
+        target={
+          pendingAction === null
+            ? ""
+            : pendingAction.kind === "voidCode"
+              ? `${pendingAction.code.codePrefix}•••• · ${pendingAction.code.packageCode}`
+              : `${pendingAction.batch.productionBatch} · ${pendingAction.batch.packageCode}`
+        }
+        consequence={
+          pendingAction?.kind === "voidCode"
+            ? t("activation.voidConsequence")
+            : pendingAction?.kind === "voidBatch"
+              ? t("activation.voidBatchConsequence")
+              : t("activation.csvConsequence")
+        }
+        confirmLabel={
+          pendingAction?.kind === "voidCode"
+            ? t("activation.void")
+            : pendingAction?.kind === "voidBatch"
+              ? t("activation.voidBatch")
+              : t("activation.downloadCsv")
+        }
+        destructive={pendingAction?.kind !== "csv"}
+        pending={activeMutation.isPending}
+        error={activeMutation.error}
+        onConfirm={(reason) => {
+          if (pendingAction === null) return;
+          const done = () => {
+            setPendingAction(null);
+          };
+          if (pendingAction.kind === "voidCode") {
+            voidCode.mutate({ codeId: pendingAction.code.id, reason }, { onSuccess: done });
+          } else if (pendingAction.kind === "voidBatch") {
+            voidBatch.mutate({ batchId: pendingAction.batch.batchId, reason }, { onSuccess: done });
+          } else {
+            const { batchId: target } = pendingAction.batch;
+            downloadCsv.mutate(
+              { batchId: target, reason },
+              {
+                onSuccess: (blob) => {
+                  downloadBlob(blob, `activation-codes-${target}.csv`);
+                  void blob.text().then((text) => {
+                    setRevealedCodes({ batch: pendingAction.batch.productionBatch, codes: parseCodesCsv(text) });
+                  });
+                  if (justIssued?.batchId === target) setJustIssued(null);
+                  done();
+                },
+              },
+            );
+          }
+        }}
+      />
+      <RevealedCodesDialog
+        value={revealedCodes}
+        onClose={() => {
+          setRevealedCodes(null);
+        }}
+      />
     </div>
+  );
+}
+
+/** First column of the issuance CSV ("code,package_code,production_batch,valid_until"). */
+function parseCodesCsv(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .slice(1)
+    .map((line) => line.split(",")[0]?.trim() ?? "")
+    .filter((code) => code.length > 0);
+}
+
+function RevealedCodesDialog({
+  value,
+  onClose,
+}: {
+  value: { batch: string; codes: string[] } | null;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("admin");
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+    } catch {
+      toast.error(t("activation.copyFailed"));
+    }
+  };
+
+  return (
+    <Dialog
+      open={value !== null}
+      onOpenChange={(open) => {
+        if (!open) {
+          setCopied(null);
+          onClose();
+        }
+      }}
+    >
+      <DialogContent aria-label={t("activation.revealedTitle")}>
+        <DialogTitle>{t("activation.revealedTitle")}</DialogTitle>
+        <DialogDescription>
+          {t("activation.revealedBody", { batch: value?.batch ?? "", count: value?.codes.length ?? 0 })}
+        </DialogDescription>
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant="tertiary"
+            leftIcon={copied === "all" ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+            onClick={() => {
+              void copy(value?.codes.join("\n") ?? "", "all");
+            }}
+          >
+            {t("activation.copyAll")}
+          </Button>
+        </div>
+        <ul className="mt-2 flex max-h-80 flex-col gap-1 overflow-y-auto">
+          {value?.codes.map((code) => (
+            <li key={code} className="flex items-center justify-between gap-2 rounded-md bg-background-alt px-3 py-1.5">
+              <code className="font-mono text-small text-text-primary">{code}</code>
+              <button
+                type="button"
+                aria-label={t("activation.copyCode", { code })}
+                onClick={() => {
+                  void copy(code, code);
+                }}
+                className="flex size-9 items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-primary"
+              >
+                {copied === code ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Removes expired DSAR archives and records the cleanup in the shared job ledger. */
 @Component
 @ConditionalOnProperty(prefix = "catcheck.jobs", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DsarExportCleanupJob {

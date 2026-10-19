@@ -5,17 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Vẽ biểu đồ pH theo thời gian dạng SVG thuần (string template, không dùng thư viện chart) —
- * đúng phương án p13 §13.7. Dải tham chiếu 6.3–6.6 tô nền nhạt xuyên suốt; điểm ngoài dải dùng
- * KÝ HIỆU khác (tam giác) chứ không chỉ đổi màu (p13 §13.5 — không truyền đạt phân loại chỉ bằng
- * màu, quan trọng khi in đen trắng).
- *
- * <p>Ranh giới 6.3/6.6 hard-code tạm ở đây: {@code export} không phụ thuộc
- * {@code scan.domain.color}/{@code colorchart} (xem {@code docs/handovers/A6.md}) nên không đọc
- * được {@code ph_classification_band} động; đây đúng bằng hằng số mà p13 tự trích dẫn trực tiếp
- * trong văn bản của chính nó (§13.3 Khối 4, §13.5), không phải số tự bịa.</p>
- */
 final class SvgTrendChartBuilder {
 
     private static final double REF_LOW = 6.3;
@@ -33,7 +22,7 @@ final class SvgTrendChartBuilder {
     record Point(LocalDate date, double phValue, boolean outOfRange) {
     }
 
-    static String build(List<Point> points) {
+    static String build(List<Point> points, DateTimeFormatter fmt) {
         if (points.isEmpty()) {
             return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + WIDTH + "\" height=\"" + HEIGHT + "\"></svg>";
         }
@@ -53,18 +42,15 @@ final class SvgTrendChartBuilder {
         svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").append(WIDTH).append(' ').append(HEIGHT)
                 .append("\" width=\"100%\" height=\"auto\" font-family=\"DejaVu Sans, sans-serif\">");
 
-        // Nền trắng.
         svg.append("<rect x=\"0\" y=\"0\" width=\"").append(WIDTH).append("\" height=\"").append(HEIGHT)
                 .append("\" fill=\"#ffffff\"/>");
 
-        // Dải tham chiếu 6.3-6.6: nền nhạt + viền nét đứt (giữ ý nghĩa khi in đen trắng, p13 §13.5).
         double yRefTop = yOf(REF_HIGH, minPh, maxPh, plotHeight);
         double yRefBottom = yOf(REF_LOW, minPh, maxPh, plotHeight);
         svg.append("<rect x=\"").append(PAD_LEFT).append("\" y=\"").append(round(yRefTop))
                 .append("\" width=\"").append(plotWidth).append("\" height=\"").append(round(yRefBottom - yRefTop))
                 .append("\" fill=\"#e3f4ec\" stroke=\"#7fbf9e\" stroke-dasharray=\"4,3\"/>");
 
-        // Trục Y: nhãn min/ref/max.
         for (double tick : new double[] {minPh, REF_LOW, REF_HIGH, maxPh}) {
             double y = yOf(tick, minPh, maxPh, plotHeight);
             svg.append("<line x1=\"").append(PAD_LEFT).append("\" y1=\"").append(round(y))
@@ -74,14 +60,11 @@ final class SvgTrendChartBuilder {
                     .append(String.format(Locale.US, "%.1f", tick)).append("</text>");
         }
 
-        // Trục X: ngày đầu/cuối.
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
         svg.append("<text x=\"").append(PAD_LEFT).append("\" y=\"").append(HEIGHT - 8)
                 .append("\" font-size=\"9\" fill=\"#374151\">").append(firstDate.format(fmt)).append("</text>");
         svg.append("<text x=\"").append(WIDTH - PAD_RIGHT - 30).append("\" y=\"").append(HEIGHT - 8)
                 .append("\" font-size=\"9\" fill=\"#374151\">").append(lastDate.format(fmt)).append("</text>");
 
-        // Đường nối các điểm.
         StringBuilder polyline = new StringBuilder();
         for (Point p : points) {
             double x = xOf(p.date(), firstDate, spanDays, plotWidth);
@@ -91,7 +74,6 @@ final class SvgTrendChartBuilder {
         svg.append("<polyline points=\"").append(polyline.toString().trim())
                 .append("\" fill=\"none\" stroke=\"#1f6f4a\" stroke-width=\"2\"/>");
 
-        // Điểm dữ liệu: hình tròn (trong dải) hoặc tam giác (ngoài dải) - khác biệt cả hình dạng.
         for (Point p : points) {
             double x = xOf(p.date(), firstDate, spanDays, plotWidth);
             double y = yOf(p.phValue(), minPh, maxPh, plotHeight);

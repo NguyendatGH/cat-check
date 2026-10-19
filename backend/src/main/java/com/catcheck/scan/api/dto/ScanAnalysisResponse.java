@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 
-/** {@code GET /api/v1/scans/{id}/analysis} — màn "Phân tích chi tiết" (p8 §8.4.5 E5, p6 §6.8.2). */
 public record ScanAnalysisResponse(
         BigDecimal labL,
         BigDecimal labA,

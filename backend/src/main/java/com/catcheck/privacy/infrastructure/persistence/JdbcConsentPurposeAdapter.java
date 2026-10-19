@@ -8,11 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * {@link ConsentPurposePort} trên {@code JdbcTemplate} — danh mục cấu hình, chỉ đọc.
- * {@code CHECK (is_mandatory OR default_state = FALSE)} của V17... của V6 đã ép bất biến I17
- * ở DB; adapter không cần kiểm lại.
- */
 @Repository
 public class JdbcConsentPurposeAdapter implements ConsentPurposePort {
 

@@ -8,10 +8,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Trước đây module ai không có {@code ErasureParticipant}: xoá tài khoản xong, nội dung
- * {@code ai_message} (câu hỏi lưu nguyên văn, có thể có email/SĐT) vẫn còn nguyên.
- */
 class AiErasureParticipantTest {
 
     private final AiKnowledgePort repository = Mockito.mock(AiKnowledgePort.class);

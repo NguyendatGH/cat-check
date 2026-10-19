@@ -3,27 +3,25 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssistantPage } from "./AssistantPage";
 
-/**
- * Backend nạp lịch sử của `conversationId` vào prompt cho MỌI câu hỏi, còn `catId` chỉ làm giàu
- * câu hỏi hiện tại. Đổi bé mà giữ `conversationId` thì câu hỏi về bé B được trả lời kèm lịch sử
- * (và dữ kiện sức khoẻ) đã nói về bé A.
- */
 const chat = vi.hoisted(() => ({ chatWithAssistant: vi.fn() }));
 
-vi.mock("@/features/assistant", () => ({ chatWithAssistant: chat.chatWithAssistant }));
+vi.mock("@/features/assistant", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/assistant")>()),
+  chatWithAssistant: chat.chatWithAssistant,
+}));
 vi.mock("@/features/cat", () => ({
   useCatList: () => ({
     data: {
       items: [
-        { id: "cat-a", name: "Mướp", isPrimary: true },
-        { id: "cat-b", name: "Mun", isPrimary: false },
+        { id: "cat-a", name: "Mướp", isPrimary: true, avatarUrl: null },
+        { id: "cat-b", name: "Mun", isPrimary: false, avatarUrl: null },
       ],
     },
   }),
 }));
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "vi" } }),
 }));
 
 beforeEach(() => {
@@ -54,8 +52,11 @@ describe("AssistantPage — đổi bé trong lúc trò chuyện", () => {
     });
 
     const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
-    const select = container.querySelector("select") as HTMLSelectElement;
-    expect(select.value).toBe("cat-a");
+    const catChip = (name: string) =>
+      Array.from(container.querySelectorAll<HTMLButtonElement>('[role="radio"]')).find((chip) =>
+        chip.textContent.includes(name),
+      ) as HTMLButtonElement;
+    expect(catChip("Mướp").getAttribute("aria-checked")).toBe("true");
 
     const type = (value: string) => {
       act(() => {
@@ -76,20 +77,75 @@ describe("AssistantPage — đổi bé trong lúc trò chuyện", () => {
 
     type("Mèo của tôi uống ít nước?");
     await send();
-    expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(1, "Mèo của tôi uống ít nước?", undefined, "cat-a");
+    expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(
+      1,
+      "Mèo của tôi uống ít nước?",
+      undefined,
+      "cat-a",
+      expect.any(String),
+    );
 
-    // Cùng bé: hội thoại được nối tiếp.
     type("Còn thức ăn?");
     await send();
-    expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(2, "Còn thức ăn?", "conv-1", "cat-a");
+    expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(2, "Còn thức ăn?", "conv-1", "cat-a", expect.any(String));
 
     act(() => {
-      select.value = "cat-b";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
+      catChip("Mun").click();
     });
+    expect(catChip("Mun").getAttribute("aria-checked")).toBe("true");
     type("Bé này thì sao?");
     await send();
-    expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(3, "Bé này thì sao?", undefined, "cat-b");
+    expect(chat.chatWithAssistant).toHaveBeenNthCalledWith(
+      3,
+      "Bé này thì sao?",
+      undefined,
+      "cat-b",
+      expect.any(String),
+    );
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("gửi lại một câu hỏi lỗi dùng lại đúng request key để server trả lại câu trả lời cũ", async () => {
+    chat.chatWithAssistant.mockRejectedValueOnce(new Error("network"));
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<AssistantPage />);
+      await Promise.resolve();
+    });
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(textarea, "Uống nước?");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const settle = async (click: () => void) => {
+      await act(async () => {
+        click();
+        await Promise.resolve();
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      });
+    };
+
+    await settle(() => {
+      (container.querySelector('button[aria-label="send"]') as HTMLButtonElement).click();
+    });
+    const retryButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent.includes("retry"),
+    ) as HTMLButtonElement;
+    await settle(() => {
+      retryButton.click();
+    });
+
+    expect(chat.chatWithAssistant).toHaveBeenCalledTimes(2);
+    const [firstKey, retryKey] = chat.chatWithAssistant.mock.calls.map((call: unknown[]) => call[3]);
+    expect(retryKey).toBe(firstKey);
 
     act(() => {
       root.unmount();

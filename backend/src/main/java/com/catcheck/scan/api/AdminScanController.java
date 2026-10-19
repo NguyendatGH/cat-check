@@ -33,34 +33,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Dữ liệu quét ở màn quản trị — <b>L5</b> ({@code GET /admin/users/{userId}/scans}), <b>L6</b>
- * ({@code GET /admin/scans/{scanId}/image}) và <b>L18</b>
- * ({@code POST /admin/scans/{scanId}/reassign-cat}), p8 §8.4.12 mục (a).
- *
- * <p><b>Vai trò</b> chép đúng cột {@code R:} của p8, ánh xạ 1-1 sang ma trận p11 §11.5.4:
- * L5 đọc cho {@code ADMIN_SUPER}/{@code ADMIN_SUPPORT}/{@code DPO} (ô Q4); L6 <b>chỉ
- * {@code DPO}</b> (ô Q5 — <i>"vai trò duy nhất"</i>); L18 cho
- * {@code ADMIN_SUPPORT}/{@code ADMIN_SUPER}. p14 §14.5.1 mục 2: UI ẩn nút với vai trò không có
- * quyền, nhưng <b>server vẫn phải kiểm độc lập</b> — đó là việc của {@code AdminGuard} ở đây,
- * bộ gác chuỗi filter chỉ biết "có phải nhóm admin không".</p>
- *
- * <p><b>Chưa có:</b> step-up re-auth ({@code SW} của p8 cho L5/L6 — một lớp NGOÀI
- * {@code mfaLevel} mà {@code AdminMfaGateFilter} đã kiểm) và chế độ xem tạm thời tự đóng sau 15
- * phút mà p14 §14.3.2 mô tả. Handoff H15.102 (step-up) và H15.104 (cửa sổ 15 phút).</p>
- */
 @RestController
 @RequestMapping("/api/v1/admin")
 @Tag(name = "Quản trị dữ liệu quét", description = "L5, L6, L18 — số liệu scan, ảnh scan (DSAR), gán lại mèo")
 public class AdminScanController {
 
-    /** p8 L5 / p11 §11.5.4 "Kết quả scan": Super và Support đọc số liệu, DPO đọc khi xử lý DSAR. */
     static final Set<String> SCAN_READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_SUPPORT", "DPO");
 
-    /** p8 L6 / p14 ô Q5: ảnh scan là của {@code DPO} và chỉ DPO. */
     static final Set<String> IMAGE_ROLES = Set.of("DPO");
 
-    /** p8 L18: gán lại mèo sau cửa sổ 24 giờ là việc của tổng đài. */
     static final Set<String> REASSIGN_ROLES = Set.of("ADMIN_SUPPORT", "ADMIN_SUPER");
 
     private static final String SHARED_UNKNOWN = "SHARED_UNKNOWN";
@@ -73,12 +54,7 @@ public class AdminScanController {
         this.queryService = queryService;
     }
 
-    // ------------------------------------------------------------------- L5
 
-    /**
-     * {@code reason} là query param vì {@code GET} không có body — cùng đánh đổi đã ghi cho L12
-     * và L22 (giá trị đi vào access log của proxy). Xem handoff H15.101.
-     */
     @Operation(
             operationId = "listAdminUserScans",
             summary = "L5 — số liệu quét của một người dùng",
@@ -98,8 +74,6 @@ public class AdminScanController {
         AdminScanService.AdminScanPage result =
                 adminScanService.listUserScans(userId, page, size, context);
 
-        // Một lần tra tên cho mỗi mèo KHÁC NHAU, không mỗi dòng: một trang 100 scan của nhà hai
-        // mèo chỉ cần hai câu, không phải 100 (N+1 nhìn thấy được ngay trên màn hỗ trợ).
         Map<UUID, String> catNames = new HashMap<>();
         List<AdminScanItemResponse> items = result.rows().stream()
                 .map(row -> AdminScanItemResponse.from(
@@ -113,7 +87,6 @@ public class AdminScanController {
                 items, result.page(), result.size(), result.totalElements(), !result.fullData());
     }
 
-    // ------------------------------------------------------------------- L6
 
     @Operation(
             operationId = "getAdminScanImage",
@@ -138,14 +111,10 @@ public class AdminScanController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(stream.contentType()))
                 .contentLength(stream.bytes())
-                // `no-store`, KHÔNG `private, max-age=300` như E7: đây là ảnh của người KHÁC, mở
-                // dưới một cơ sở pháp lý có thời hạn. Để nó nằm trong cache trình duyệt của admin
-                // là giữ lại quyền truy cập sau khi quyền đã hết.
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(new InputStreamResource(stream.content()));
     }
 
-    // ------------------------------------------------------------------ L18
 
     @Operation(
             operationId = "reassignAdminScanCat",
@@ -177,12 +146,7 @@ public class AdminScanController {
                 result.reassignCount());
     }
 
-    /* ---------------------------------------------------------------- helper */
 
-    /**
-     * UUID sai định dạng ⇒ {@code 400 VALIDATION_FAILED} chứ không phải 500: {@code toCatId} là
-     * chuỗi trong DTO (hợp đồng E9 cũng vậy), nên Spring không tự chuyển kiểu hộ.
-     */
     private static UUID parseCatId(String value) {
         try {
             return UUID.fromString(value.strip());

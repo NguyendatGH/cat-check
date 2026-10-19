@@ -37,7 +37,6 @@ function render(scan: ScanListItem): string {
 
 describe("ScanTimelineItem", () => {
   it("lần quét không có độ tin cậy (server bỏ hẳn key `confidence`) không in chip NaN", () => {
-    // JSON thật từ `GET /scans`: `confidence`/`phValue`/`confidenceBand` null ⇒ không có key.
     const fromServer = {
       scanId: "s1",
       capturedAt: "2026-10-10T01:00:00Z",

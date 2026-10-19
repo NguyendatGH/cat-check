@@ -22,10 +22,6 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Chuyển mọi exception thành {@link ProblemDetail} (RFC 9457) — dùng ProblemDetail của Spring 7,
- * KHÔNG tự viết class ProblemDetail riêng, theo đúng yêu cầu ở CLAUDE.md/p7.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -51,14 +47,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /**
-     * {@link RateLimitedException} — cùng {@link ProblemDetail} của {@link #handleCatCheckException},
-     * NHƯNG kèm header {@code Retry-After} khi biết số giây phải chờ.
-     *
-     * <p>p8 §8.3.5(d)/p16 NFR-40: mọi {@code 429} (login, OTP, MFA, đặt lại mật khẩu) bắt buộc có
-     * {@code Retry-After} lấy từ {@link RateLimitedException#retryAfterSeconds()}. {@code @ExceptionHandler}
-     * chọn handler khớp kiểu cụ thể nhất nên không cần sửa {@code handleCatCheckException}.</p>
-     */
     @ExceptionHandler(RateLimitedException.class)
     public ResponseEntity<ProblemDetail> handleRateLimited(RateLimitedException ex, Locale locale) {
         ErrorCode errorCode = ex.errorCode();
@@ -79,7 +67,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex, Locale locale) {
-        // Chỉ trả field + message đã dịch, KHÔNG trả rejected value (có thể chứa PII).
         List<ValidationViolation> violations = ex.getBindingResult().getFieldErrors().stream()
                 .map((FieldError fieldError) -> new ValidationViolation(fieldError.getField(), fieldError.getDefaultMessage()))
                 .toList();
@@ -92,13 +79,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /**
-     * Route khong ton tai → 404, KHONG phai 500.
-     *
-     * <p>Neu de {@code handleUnexpected} nuot {@code NoResourceFoundException}, endpoint co trong spec
-     * nhung chua implement (F3 {@code /reference/packages}, F4 {@code /reference/monitoring-rules},
-     * F9/F10 {@code /policies/{code}/versions}) se tra 500 kem stack trace vao log thay vi "chua co".</p>
-     */
     @ExceptionHandler(NoResourceFoundException.class)
     public ProblemDetail handleNotFound(NoResourceFoundException ex, Locale locale) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -107,12 +87,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /**
-     * Multipart thieu part bat buoc → 400. Truoc day roi vao {@code handleUnexpected} thanh 500:
-     * client gui thieu part ({@code POST /scans} can ca {@code metadata} lan {@code image}) bi
-     * bao "loi may chu" thay vi "ban gui thieu du lieu", va moi lan nhu vay ghi mot stack trace
-     * ERROR vao log.
-     */
     @ExceptionHandler(MissingServletRequestPartException.class)
     public ProblemDetail handleMissingPart(MissingServletRequestPartException ex, Locale locale) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -125,7 +99,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /** Thiếu query param bắt buộc (vd {@code /places/nearby} thiếu {@code longitude}) → 400, không phải 500. */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ProblemDetail handleMissingParameter(MissingServletRequestParameterException ex, Locale locale) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -138,7 +111,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /** Sai method (vd GET vào route chỉ có POST) → 405 kèm header {@code Allow}, không phải 500. */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ProblemDetail> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, Locale locale) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -154,23 +126,17 @@ public class GlobalExceptionHandler {
         return builder.body(problemDetail);
     }
 
-    /** Tham số path/query sai kiểu (vd id không phải UUID) → 400, không phải 500. */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex, Locale locale) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, messageResolver.resolve("validation.failed", locale));
         problemDetail.setTitle("VALIDATION_FAILED");
         problemDetail.setProperty("errorCode", "VALIDATION_FAILED");
-        // Chỉ trả tên tham số, KHÔNG trả giá trị bị từ chối (có thể chứa PII).
         problemDetail.setProperty("violations", List.of(new ValidationViolation(ex.getName(), "invalid")));
         problemDetail.setProperty("timestamp", clock.instant());
         return problemDetail;
     }
 
-    /**
-     * Body không đọc được (JSON hỏng, sai kiểu field) → 400, không phải 500. Không trả message của
-     * Jackson: nó lộ cấu trúc DTO nội bộ và có thể trích lại một phần giá trị người dùng gửi.
-     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail handleNotReadable(HttpMessageNotReadableException ex, Locale locale) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -181,13 +147,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /**
-     * Bat bien mien bi vi pham boi DU LIEU NGUOI DUNG → 400, khong phai 500.
-     *
-     * <p>Vd {@code Cat#applyAgeSource} nem {@code IllegalArgumentException} tho khi thieu ca
-     * birthDate lan approxAgeMonths, birthDate tuong lai, so thang ngoai khoang. Gui ca hai nguon
-     * tuoi la {@code CatAgeConflictException}, da doi sang {@code CAT_AGE_CONFLICT} truoc khi toi day.</p>
-     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex, Locale locale) {
         log.warn("Vi pham bat bien mien: {}", ex.getClass().getSimpleName());
@@ -200,11 +159,6 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    /**
-     * Tệp vượt giới hạn multipart của servlet → 413, không phải 500. Giới hạn tầng này
-     * (`spring.servlet.multipart.max-file-size`) chỉ là chặn thô; từng nghiệp vụ (scan 8MB,
-     * avatar 5MB) vẫn tự kiểm và trả mã lỗi riêng.
-     */
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     public ProblemDetail handleUploadTooLarge(
             org.springframework.web.multipart.MaxUploadSizeExceededException ex, Locale locale) {
@@ -218,15 +172,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception ex, Locale locale) {
-        // Bug thật đã sửa: handler này trước đây KHÔNG log gì cả — mọi lỗi 500 ngoài dự kiến
-        // biến mất hoàn toàn khỏi log, không cách nào debug được (phát hiện lúc test đăng ký
-        // thật local: request trả 500 nhưng log rỗng). Không log message của `ex` trực tiếp nếu
-        // exception đến từ tầng có thể mang giá trị nhạy cảm — nhưng đây là nhánh "không mong
-        // muốn" (mọi CatCheckException nghiệp vụ đã có handler riêng ở trên), nên đây luôn là
-        // lỗi lập trình/hạ tầng (NPE, lỗi SQL, bean thiếu...), không phải luồng nghiệp vụ đọc PII.
-        // Exception message can carry request values from framework, JDBC, or an upstream
-        // service. This boundary has no reliable way to redact every such value, so log types and
-        // stack frames only (RedactedThrowable); the response remains intentionally generic too.
         log.error("Loi khong mong muon xu ly {}", ex.getClass().getSimpleName(), RedactedThrowable.of(ex));
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, messageResolver.resolve("error.unexpected", locale));

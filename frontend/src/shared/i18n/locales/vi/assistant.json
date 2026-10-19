@@ -11,7 +11,24 @@
   "error": "Không gửi được câu hỏi. Vui lòng thử lại.",
   "selectCat": {
     "label": "Hỏi về bé mèo nào?",
-    "generalOption": "Không chọn — hỏi chung"
+    "generalOption": "Hỏi chung"
   },
-  "askingAbout": "Đang hỏi về: {{name}}"
+  "askingAbout": "Đang hỏi về: {{name}}",
+  "welcome": "Chào bạn! Mình có thể giúp gì?",
+  "welcomeNamed": "Hôm nay bé {{name}} thế nào?",
+  "suggestionsTitle": "Gợi ý câu hỏi",
+  "suggestions": [
+    "Bao lâu nên thay cát vệ sinh một lần?",
+    "Làm sao đọc màu hạt chỉ thị pH cho đúng?",
+    "Màu pH thay đổi bất thường thì nên làm gì?",
+    "Có mẹo nào giúp bé uống nhiều nước hơn không?"
+  ],
+  "copy": "Chép",
+  "copied": "Đã chép",
+  "retry": "Gửi lại",
+  "failedToSend": "Chưa gửi được.",
+  "jumpToLatest": "Tin nhắn mới nhất",
+  "charCount": "{{count}}/{{max}}",
+  "switchedTo": "Đang hỏi về {{name}}",
+  "switchedGeneral": "Đang hỏi chung"
 }

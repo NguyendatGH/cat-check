@@ -5,7 +5,6 @@ import com.catcheck.notification.api.dto.PushSubscriptionView;
 import com.catcheck.notification.domain.Notification;
 import com.catcheck.notification.domain.PushSubscription;
 
-/** Map miền → DTO. Viết tay (research §11: không dùng MapStruct cho DTO dạng record). */
 final class NotificationDtoMapper {
 
     private NotificationDtoMapper() {

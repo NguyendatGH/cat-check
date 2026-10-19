@@ -1,0 +1,135 @@
+{
+  "pages": {
+    "catHistory": {
+      "title": "Tracking history"
+    }
+  },
+  "filters": {
+    "ALL": "All",
+    "ABNORMAL": "Abnormal",
+    "DISPUTED": "Disputed",
+    "allWithCount": "All ({{count}})"
+  },
+  "monthGroup": {
+    "label": "{{month}}/{{year}}",
+    "count": "{{count}} recorded"
+  },
+  "timestamp": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "item": {
+    "disputedBadge": "Disputed",
+    "detailLink": "View details",
+    "confidence": "Confidence {{value}}%",
+    "nearBoundary": "Near threshold",
+    "hasNote": "Has note",
+    "phSummary": "{{label}} • pH {{value}}",
+    "phUnknown": "{{label}} • no pH yet"
+  },
+  "spectrum": {
+    "title": "Recent pH spectrum",
+    "average": "Average {{value}}",
+    "averageWithBand": "Average {{value}} • {{label}}",
+    "monthTitle": "pH spectrum for month {{month}}",
+    "bandRange": "{{label}} ({{min}} – {{max}})",
+    "bandBelow": "{{label}} (below {{max}})",
+    "bandAbove": "{{label}} (above {{min}})",
+    "empty": "Not enough data to build a pH spectrum yet.",
+    "basedOn": "Based on {{count}} scans"
+  },
+  "export": {
+    "title": "Need to share records with a vet clinic?",
+    "description": "Export a log of scans in the time range you choose as a PDF report to bring along when you take your cat to the vet.",
+    "cta": "Export PDF health report"
+  },
+  "state": {
+    "emptyTitle": "No scans yet",
+    "emptyDescription": "Start your first scan to track your cat's pH readings.",
+    "emptyCta": "Scan now",
+    "loadError": "Couldn't load history. Please try again.",
+    "loadMore": "Load more",
+    "filteredEmptyTitle": "No matching scans",
+    "filteredEmptyBody": "Try a longer time range or different keywords.",
+    "showAll": "View all history"
+  },
+  "web": {
+    "eyebrow": "HEALTH HISTORY",
+    "title": "Litter color scan timeline",
+    "subtitle": "All indicator litter color scans, grouped by month and filterable by record type.",
+    "subtitleNamed": "All of {{name}}'s indicator litter color scans, grouped by month and filterable by record type.",
+    "unknownCat": "No cat selected",
+    "valueUnavailable": "—",
+    "filterLabel": "Record filter",
+    "kpiTotal": "YOUR CAT'S SCANS",
+    "kpiTotalFoot": "Scans with a result over the whole tracking period.",
+    "kpiMedian": "MEDIAN PH",
+    "kpiMedianFoot": "Median of scans with a result.",
+    "kpiRange": "RECORDED PH RANGE",
+    "kpiRangeValue": "{{min}} – {{max}}",
+    "kpiRangeFoot": "Lowest and highest values measured.",
+    "kpiLowConf": "LOW CONFIDENCE",
+    "kpiLowConfFoot": "Plus {{count}} scans that couldn't produce a result.",
+    "timelineTitle": "Scan timeline",
+    "timelineSubtitle": "Each point is a litter color scan saved to the record.",
+    "recordCount": "{{count}} records",
+    "phValue": "pH {{value}}",
+    "confidence": "Confidence {{value}}%",
+    "nearBoundary": "Near threshold",
+    "hasNote": "Has note",
+    "tipTitle": "How often should I scan?",
+    "tipBody": "Scanning regularly every 2–3 days helps you learn your cat's usual pH level and notice right away when the litter color changes.",
+    "recordCountPartial": "Showing {{loaded}}/{{total}} records",
+    "noSwatch": "No color data",
+    "trendsCta": "View pH trends over time"
+  },
+  "sharedTray": {
+    "lead": "Scans where you chose “Not sure / Shared tray” are kept separately here.",
+    "bannerTitle": "Why are these scans kept separately?",
+    "bannerBody": "Multi-cat homes often share one tray, so CatCheck can't tell which cat just used it. Results here aren't added to any cat's history and aren't compared with any cat's usual levels.",
+    "countLabel": "{{count}} recorded",
+    "assignCta": "Assign to a cat",
+    "assignNote": "Remember which cat just used the tray? You can reassign it within the allowed time after scanning; after that, the result stays here.",
+    "emptyTitle": "No shared tray records yet",
+    "emptyDescription": "When you choose “Not sure / Shared tray” while scanning, the result will appear here.",
+    "loadError": "Couldn't load the shared tray log. Please try again."
+  },
+  "switcher": {
+    "changeCat": "Switch cat",
+    "ariaLabel": "Cat being viewed",
+    "statusWithBand": "Latest pH reading: {{label}}",
+    "statusNone": "No pH data yet"
+  },
+  "tip": {
+    "title": "How often should I scan?",
+    "body": "Scanning regularly every 2–3 days helps you learn your cat's usual pH level and notice right away when the litter color changes."
+  },
+  "activity": {
+    "title": "Scan activity",
+    "less": "Less",
+    "more": "More",
+    "summary": "{{count}} scans · {{days}} days",
+    "cellLabel": "{{date}}: {{count}} scans"
+  },
+  "toolbar": {
+    "rangeLabel": "Time range",
+    "range": {
+      "3": "3 days",
+      "7": "7 days",
+      "30": "30 days",
+      "all": "All"
+    },
+    "search": "Search scans",
+    "searchPlaceholder": "Search by pH, result, cat name or date",
+    "clearSearch": "Clear keywords",
+    "pickDate": "Pick a date",
+    "clearDate": "Clear date filter"
+  },
+  "search": {
+    "placeholder": "Search by pH, result, cat name or date",
+    "clear": "Clear keywords",
+    "reset": "Clear filters",
+    "resultCount_one": "{{count}} result",
+    "resultCount_other": "{{count}} results"
+  }
+}

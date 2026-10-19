@@ -74,15 +74,6 @@ public class JdbcShopRepository implements ShopRepository {
     @Override
     @Transactional
     public Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address) {
-        // FOR UPDATE tren CA HAI bang (khong chi `p`): neu chi khoa shop_product, mot double-submit
-        // (double-click "Dat hang") tao hai transaction doc cung shop_cart_line se khong duoc Postgres
-        // phat hien dung — giao dich thu hai, sau khi bi chan boi khoa tren `p` roi duoc mo khoa, van
-        // dung lai dong shop_cart_line CU (da bi giao dich dau xoa) thay vi nhan ra gio hang da rong,
-        // va tao ra DON HANG THU HAI. Xac nhan bang thuc nghiem truc tiep tren Postgres that (hai
-        // session dong thoi): FOR UPDATE OF p -> session thu hai van thay dong gio hang da xoa; FOR
-        // UPDATE (ca hai bang) -> session thu hai dung thay 0 dong, nem CART_EMPTY nhu mong doi.
-        // Dong gio hang van con sau khi admin chuyen san pham sang DRAFT/ARCHIVED (setCartLine chi
-        // chan luc them) — doc status trong cung cau khoa de khong dat duoc hang da ngung ban.
         List<UUID> notPublished = new ArrayList<>();
         List<CartLine> lines = jdbc.query("""
                 SELECT p.id, p.sku, p.name, p.description, p.image_url, p.price_vnd, p.compare_at_price_vnd,
@@ -101,8 +92,6 @@ public class JdbcShopRepository implements ShopRepository {
         }
         long subtotal = lines.stream().mapToLong(CartLine::totalVnd).sum();
         long shipping = subtotal >= 500000 ? 0 : 30000;
-        // order_code lay 10 hex NGAU NHIEN cua gen_random_uuid(). Truoc day lay 10 hex DAU cua uuidv7()
-        // = phan timestamp (do phan giai ~256 ms): hai don bat ky trong cung ~256 ms trung ma -> 500.
         UUID id = jdbc.queryForObject("""
                 INSERT INTO shop_order (order_code, user_id, payment_method, receiver_name, receiver_phone, shipping_address, subtotal_vnd, shipping_fee_vnd, total_vnd)
                 VALUES ('CC-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)), ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id

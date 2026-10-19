@@ -47,14 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * L33–L35 — backfill bảng màu (p8 §8.4.12 mục (c), p6 §6.5.4).
- *
- * <p>Điều quan trọng nhất ở đây: <b>preview không được chạm vào kết quả đang hiển thị</b>, và
- * apply phải đổi {@code is_current} theo cặp (bật bản mới, tắt bản cũ) chứ không để lại hai bản
- * hiện hành — index partial unique của {@code scan_analysis} sẽ chặn, nhưng chặn giữa lô thì cả
- * lô mất.</p>
- */
 class ChartBackfillServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T10:00:00Z");
@@ -67,6 +59,11 @@ class ChartBackfillServiceTest {
     private final RecordingJobRunPort jobRuns = new RecordingJobRunPort();
 
     private ChartBackfillService service(boolean placeholder) {
+        return service(placeholder, new NoOpTransactionManager());
+    }
+
+    private ChartBackfillService service(boolean placeholder,
+                                         org.springframework.transaction.PlatformTransactionManager txManager) {
         JobRunner runner = new JobRunner(
                 new JobRunRecorder(jobRuns, new UuidV7(CLOCK), CLOCK),
                 jobProperties(),
@@ -81,7 +78,7 @@ class ChartBackfillServiceTest {
                 Runnable::run,
                 new UuidV7(CLOCK),
                 CLOCK,
-                new NoOpTransactionManager());
+                txManager);
     }
 
     @Test
@@ -94,7 +91,6 @@ class ChartBackfillServiceTest {
         ScanAnalysisRecompute row = recomputes.rows.getFirst();
         assertEquals(original.getId(), row.getScanAnalysisId());
         assertEquals(CHART_ID, row.getChartId());
-        // Preview la ban NHAP: khong duoc tao dong scan_analysis nao, khong duoc tat is_current.
         assertEquals(1, analyses.store.size(), "L33 khong duoc tao dong scan_analysis moi");
         assertTrue(analyses.store.get(original.getId()).isCurrent(),
                 "L33 khong duoc tat is_current cua ban goc");
@@ -106,7 +102,6 @@ class ChartBackfillServiceTest {
 
     @Test
     void previewFlagsFlippedClassificationAndDeltaPh() {
-        // Lab nay khop muc pH 8.0 cua bang mau test; ban goc dang luu 5.6/LOW nen phan loai lat.
         analysis(5.6, ScanClassification.LOW, new Lab(50.0, -10.0, -20.0));
 
         service(false).startPreview(CHART_ID, Period.ofDays(90));
@@ -210,6 +205,23 @@ class ChartBackfillServiceTest {
     }
 
     @Test
+    void applyCommitsOneTransactionPerBatchInsteadOfOneForTheWholeJob() {
+        int rows = ChartBackfill.BATCH_SIZE + 1;
+        for (int i = 0; i < rows; i++) {
+            analysis(5.6, ScanClassification.LOW, new Lab(50.0, -10.0, -20.0));
+        }
+        CountingTransactionManager txManager = new CountingTransactionManager();
+        ChartBackfillService service = service(false, txManager);
+        service.startPreview(CHART_ID, Period.ofDays(90));
+        txManager.commits = 0;
+
+        service.startApply(CHART_ID);
+
+        assertEquals(2, txManager.commits, "501 dong = 2 lo, moi lo mot transaction rieng");
+        assertEquals(rows, analyses.store.values().stream().filter(a -> a.getRecomputeOf() != null).count());
+    }
+
+    @Test
     void impactIsEmptyWhenNoPreviewHasRun() {
         ChartBackfill.BackfillImpact impact = service(false).impact(CHART_ID);
 
@@ -219,7 +231,6 @@ class ChartBackfillServiceTest {
         assertTrue(impact.samples().isEmpty());
     }
 
-    // ------------------------------------------------------------------ fixtures
 
     private ScanAnalysis analysis(double ph, ScanClassification classification, Lab lab) {
         UUID scanId = UUID.randomUUID();
@@ -247,6 +258,16 @@ class ChartBackfillServiceTest {
         return analysis;
     }
 
+    private static final class CountingTransactionManager extends NoOpTransactionManager {
+
+        private int commits;
+
+        @Override
+        public void commit(org.springframework.transaction.TransactionStatus status) {
+            commits++;
+        }
+    }
+
     private static JobProperties jobProperties() {
         JobProperties.JobSetting setting = new JobProperties.JobSetting(
                 true, "0 5 * * * *", Duration.ofMinutes(50), 500, 5_000, false);
@@ -254,7 +275,6 @@ class ChartBackfillServiceTest {
                 setting, setting, setting, setting, setting, setting, setting, setting);
     }
 
-    /** Bảng màu hai mức (5.5 và 8.0) — đủ để {@code ChartMatcher} nội suy. */
     private static final class FixedCatalog implements ChartCatalog {
 
         private final boolean placeholder;
@@ -298,10 +318,6 @@ class ChartBackfillServiceTest {
         }
     }
 
-    /**
-     * {@code scan_analysis} trong bộ nhớ. {@code computedAt} giữ riêng vì entity không có setter
-     * cho cột đó (nó là {@code updatable = false}).
-     */
     private static final class InMemoryAnalyses implements ScanAnalysisRepository {
 
         private final Map<UUID, ScanAnalysis> store = new LinkedHashMap<>();
@@ -332,7 +348,6 @@ class ChartBackfillServiceTest {
             return Optional.ofNullable(store.get(id));
         }
 
-        /** Bộ lọc dòng sản phẩm/lô theo {@code chartId} là SQL — xem {@code ChartBackfillProductLineIntegrationTest}. */
         @Override
         public List<ScanAnalysis> findBackfillCandidates(UUID chartId, Instant computedFrom,
                                                          String engineVersionPrefix, int limit, int offset) {
@@ -361,11 +376,6 @@ class ChartBackfillServiceTest {
         }
     }
 
-    /**
-     * {@code scan} trong bộ nhớ. {@code flushPendingWrites} chỉ đếm số lần gọi: điều cần kiểm là
-     * L35 có đẩy lệnh {@code UPDATE is_current = false} xuống DB trước khi INSERT bản mới hay
-     * không — fake không có constraint nên không tự nổ như Postgres.
-     */
     private final class InMemoryScans implements ScanRepository {
 
         private final Map<UUID, Scan> store = new LinkedHashMap<>();
@@ -392,7 +402,6 @@ class ChartBackfillServiceTest {
         }
     }
 
-    /** {@code scan_analysis_recompute} trong bộ nhớ. */
     private static final class InMemoryRecomputes implements ScanAnalysisRecomputeRepository {
 
         private final List<ScanAnalysisRecompute> rows = new ArrayList<>();

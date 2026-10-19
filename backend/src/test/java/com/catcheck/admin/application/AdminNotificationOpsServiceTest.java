@@ -19,10 +19,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * L67 {@code POST /admin/notifications/outbox/{id}/resend} va L72
- * {@code POST /admin/system/broadcast} (p8 §8.4.12 muc (f)).
- */
 class AdminNotificationOpsServiceTest {
 
     private static final UUID ADMIN = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -34,7 +30,6 @@ class AdminNotificationOpsServiceTest {
     private final AdminNotificationOpsService service =
             new AdminNotificationOpsService(outbox, broadcast, audit);
 
-    // ----------------------------------------------------------------- L67
 
     @Test
     @DisplayName("L67 duong thanh cong: ghi audit, KHONG doi reason (p8 L67)")
@@ -47,12 +42,8 @@ class AdminNotificationOpsServiceTest {
         assertThat(audit.events).hasSize(1);
         AuditEvent event = audit.events.getFirst();
         assertThat(event.action()).isEqualTo("ADMIN_OUTBOX_RESEND");
-        // Kieu UUID, KHONG phai String: `PiiRedactor` cua module audit bo qua gia tri kieu UUID
-        // nhung che moi String dai >= 32 ky tu thanh "[REDACTED]_BLOB" — mot UUID da .toString()
-        // se bien mat khoi so audit (do that tren DB local truoc khi sua).
         assertThat(event.metadata()).containsEntry("outboxId", OUTBOX_ID);
         assertThat(event.metadata().get("outboxId")).isInstanceOf(java.util.UUID.class);
-        // p16 §16.6.3: dia chi nhan la PII, khong duoc vao audit metadata.
         assertThat(event.metadata().toString()).doesNotContain("@");
     }
 
@@ -74,7 +65,6 @@ class AdminNotificationOpsServiceTest {
         assertThat(audit.events).as("hai nhanh loi khong ghi audit thanh cong").isEmpty();
     }
 
-    // ----------------------------------------------------------------- L72
 
     @Test
     @DisplayName("L72 template ngoai hai gia tri p8 ⇒ 422, va KHONG goi cong gui")

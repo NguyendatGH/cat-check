@@ -23,20 +23,20 @@ function csrfToken(): string | null {
 }
 
 /**
- * @param catId tuỳ chọn — khi có, câu hỏi được làm giàu bằng ngữ cảnh của một bé mèo cụ thể
- *              (xem backend `ai.api.dto.AiChatRequest.catId`). Mèo không thuộc người dùng hiện
- *              tại được backend xử lý y hệt "không gửi catId", không có lỗi riêng ở đây.
+ * `requestKey` identifies one question: retrying with the same key returns the stored answer
+ * instead of asking the provider again (server-side idempotency).
  */
 export async function chatWithAssistant(
   message: string,
   conversationId?: string,
   catId?: string,
+  requestKey: string = crypto.randomUUID(),
 ): Promise<AiChatResponse> {
   const headers = new Headers({
     Accept: "application/json",
     "Content-Type": "application/json",
     "Accept-Language": currentAcceptLanguage(),
-    [IDEMPOTENCY_HEADER_NAME]: crypto.randomUUID(),
+    [IDEMPOTENCY_HEADER_NAME]: requestKey,
   });
   const csrf = csrfToken();
   if (csrf !== null) headers.set(CSRF_HEADER_NAME, csrf);
@@ -51,7 +51,7 @@ export async function chatWithAssistant(
     try {
       detail = (await response.json()) as { detail?: string; errorCode?: string };
     } catch {
-      // Keep the HTTP status when the server did not return ProblemDetail JSON.
+      // Non-JSON error body: fall back to the HTTP status below.
     }
     throw new ApiError(
       detail?.detail ?? `Request failed with status ${String(response.status)}`,

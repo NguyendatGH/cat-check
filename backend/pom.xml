@@ -49,6 +49,10 @@
              UnsatifiedLinkError luc class-init (xem research-integrations.md §15.2). -->
         <openblas.version>0.3.34-1.5.14</openblas.version>
         <archunit.version>1.5.1</archunit.version>
+        <!-- Embedding RAG cuc bo (docs/AI_HYBRID_RAG_PLAN.md muc 3): ONNX Runtime chay model,
+             DJL tokenizers doc tokenizer.json cua HuggingFace. -->
+        <onnxruntime.version>1.31.0</onnxruntime.version>
+        <djl.version>0.38.0</djl.version>
     </properties>
 
     <dependencyManagement>
@@ -165,6 +169,18 @@
             <groupId>com.bucket4j</groupId>
             <artifactId>bucket4j_jdk17-core</artifactId>
             <version>${bucket4j.version}</version>
+        </dependency>
+
+        <!-- ===== RAG embedding cuc bo ===== -->
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+            <version>${onnxruntime.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.djl.huggingface</groupId>
+            <artifactId>tokenizers</artifactId>
+            <version>${djl.version}</version>
         </dependency>
 
         <!-- ===== Push notification (Firebase Cloud Messaging) ===== -->

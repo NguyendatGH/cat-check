@@ -9,10 +9,13 @@ import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.PermissionDeniedException;
 import com.catcheck.shared.error.RateLimitedException;
 import com.catcheck.shared.i18n.MessageResolver;
+import com.catcheck.shared.testing.NoOpTransactionManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -30,7 +33,6 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-/** Kiểm chứng luồng RAG ở tầng application mà không gọi provider ngoài hay Docker. */
 class AiChatServiceTest {
 
     private static final UUID USER_ID = UUID.randomUUID();
@@ -38,12 +40,6 @@ class AiChatServiceTest {
     private static final UUID CAT_ID = UUID.randomUUID();
     private static final Instant NOW = Instant.parse("2026-10-04T07:00:00Z");
 
-    /**
-     * Sao chép NGUYÊN VĂN từ {@code frontend/src/shared/i18n/locales/vi/cat.json} khoá
-     * {@code disclaimer.emergency} — PHẢI khớp tuyệt đối giá trị {@code ai.emergency.body} của
-     * {@code messages/ai_vi.properties}. Nếu test này đỏ sau khi ai cập nhật nội dung khẩn cấp ở
-     * một trong hai nơi mà quên nơi còn lại, đây chính là tín hiệu "sửa một bên phải sửa cả hai".
-     */
     private static final String EXPECTED_EMERGENCY_BODY =
             "⚠️ Những dấu hiệu cần đi thú y NGAY — đừng chờ theo dõi thêm\n\n"
             + "Hãy đưa bé đến cơ sở thú y ngay lập tức nếu bạn thấy:\n"
@@ -70,7 +66,7 @@ class AiChatServiceTest {
         assertThat(result.provider()).isEqualTo("retrieval-fallback");
         assertThat(result.citations()).extracting(AiChatService.Citation::title)
                 .containsExactly("Theo dõi màu pH");
-        assertThat(knowledge.synced).isTrue();
+        assertThat(knowledge.synced).as("indexing happens outside the request path").isFalse();
         assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
         assertThat(knowledge.savedCitationMessageId).isNotNull();
     }
@@ -112,7 +108,7 @@ class AiChatServiceTest {
         service(knowledge, messages -> {
             sentMessages.addAll(messages);
             return Optional.of("Hãy theo dõi sức khỏe định kỳ [1].");
-        }).chat(USER_ID, null, null, question, "vi");
+        }).chat(USER_ID, UUID.randomUUID(), null, question, "vi");
 
         String providerText = sentMessages.stream().map(message -> message.get("content"))
                 .reduce("", (left, right) -> left + "\n" + right);
@@ -184,7 +180,6 @@ class AiChatServiceTest {
         assertThat(knowledge.searchedLocales).isEmpty();
     }
 
-    /** Câu mà khi bỏ dấu sẽ trùng chữ với dấu hiệu khẩn cấp (non/nôn, màu/máu, rắn/rặn). */
     @ParameterizedTest
     @ValueSource(strings = {
             "Mèo non nên ăn gì?",
@@ -200,6 +195,54 @@ class AiChatServiceTest {
 
         assertThat(result.provider()).isNotEqualTo("emergency-template");
         assertThat(knowledge.searchedLocales).containsExactly("vi");
+    }
+
+    /** M6: provider LLM bên ngoài phải được gọi NGOÀI mọi transaction DB. */
+    @Test
+    void providerIsCalledOutsideAnyDatabaseTransaction() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.documents = true;
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay cát hằng ngày", "/care-tips/ve-sinh", "Dọn cát bẩn hằng ngày.", 1));
+        TrackingTransactionManager txManager = new TrackingTransactionManager();
+        List<Integer> openTransactionsAtProviderCall = new ArrayList<>();
+        AiProviderPort provider = messages -> {
+            openTransactionsAtProviderCall.add(txManager.open);
+            return Optional.of("Dọn khay mỗi ngày [1].");
+        };
+        AiChatService service = new AiChatService(knowledge, retrieval(knowledge), provider, new AiRuntimeConfig(6, 8),
+                new FakeCatContextPort(), new FakeAiChatRateLimiter(), userId -> AccountStatus.ACTIVE,
+                realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC), txManager);
+
+        AiChatService.ChatResult result = service.chat(USER_ID, null, null, "Cách vệ sinh khay cát thế nào?", "vi");
+
+        assertThat(result.provider()).isEqualTo("openai-compatible");
+        assertThat(openTransactionsAtProviderCall).containsExactly(0);
+        assertThat(txManager.begun).isEqualTo(2);
+        assertThat(txManager.open).isZero();
+        assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
+    }
+
+    private static final class TrackingTransactionManager extends NoOpTransactionManager {
+        int open;
+        int begun;
+
+        @Override
+        public TransactionStatus getTransaction(TransactionDefinition definition) {
+            open++;
+            begun++;
+            return super.getTransaction(definition);
+        }
+
+        @Override
+        public void commit(TransactionStatus status) {
+            open--;
+        }
+
+        @Override
+        public void rollback(TransactionStatus status) {
+            open--;
+        }
     }
 
     private static final class CountingProvider implements AiProviderPort {
@@ -228,6 +271,25 @@ class AiChatServiceTest {
     }
 
     @Test
+    void systemPromptTellsTheModelToAnswerInTheRequestLanguage() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Theo dõi pH", "/care-tips/ph", "Đo dưới ánh sáng ổn định.", 1));
+        List<String> systemPrompts = new ArrayList<>();
+        AiProviderPort provider = messages -> {
+            systemPrompts.add(messages.getFirst().get("content"));
+            return Optional.of("Câu trả lời [1]");
+        };
+
+        service(knowledge, provider).chat(USER_ID, null, null, "Cách đo pH?", "vi");
+        service(knowledge, provider).chat(USER_ID, null, null, "How do I measure pH?", "en");
+
+        assertThat(systemPrompts).hasSize(2);
+        assertThat(systemPrompts.get(0)).contains("tiếng Việt").doesNotContain("English");
+        assertThat(systemPrompts.get(1)).contains("Always answer in English").doesNotContain("Luôn trả lời");
+    }
+
+    @Test
     void rejectsConversationOwnedByAnotherUser() {
         FakeKnowledge knowledge = new FakeKnowledge();
         knowledge.conversation = new AiKnowledgePort.Conversation(CONVERSATION_ID, UUID.randomUUID());
@@ -244,7 +306,7 @@ class AiChatServiceTest {
         AiProviderPort provider = mock(AiProviderPort.class);
 
         AiChatService.ChatResult result = service(knowledge, provider)
-                .chat(USER_ID, null, null, "Mèo nhà tôi bị bệnh gì?", "vi");
+                .chat(USER_ID, null, null, "Mèo nhà tôi thích đồ chơi nào?", "vi");
 
         assertThat(result.answer()).contains("chưa tìm thấy tài liệu");
         assertThat(result.citations()).isEmpty();
@@ -253,7 +315,6 @@ class AiChatServiceTest {
         assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
     }
 
-    // ============================================================== catId / CatContext (A2-A4)
 
     @Test
     void urgentHealthFlagShortCircuitsToTheVerbatimEmergencyTemplateWithoutCallingTheProvider() {
@@ -279,8 +340,6 @@ class AiChatServiceTest {
         assertThat(result.answer()).contains(EXPECTED_EMERGENCY_BODY);
         assertThat(result.answer()).contains("/cats/" + CAT_ID);
         verifyNoInteractions(provider);
-        // Nhánh khẩn cấp KHÔNG được chạm vào kho tri thức chung — không có bằng chứng kiểm soát
-        // được nào cần thiết, và trả lời đã cố định sẵn.
         assertThat(knowledge.searchedLocales).isEmpty();
         assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
         assertThat(knowledge.savedCitationMessageId).isNotNull();
@@ -312,20 +371,9 @@ class AiChatServiceTest {
         String userPrompt = sentMessages.getLast().get("content");
         assertThat(userPrompt).contains("THÔNG TIN BÉ MÈO:");
         assertThat(userPrompt).contains("pH 6.8", "SLIGHTLY_HIGH", "Mun");
-        // Chỉ số liệu thô — KHÔNG được có câu diễn giải/khuyến nghị tự chế nào trong khối này.
         assertThat(userPrompt).doesNotContain("nên cho", "có thể bị", "nên đưa");
     }
 
-    /**
-     * Bug thật đã sửa: {@code fallbackAnswer} trước đây nhận thêm {@code catContextBlock} và in
-     * thẳng khối "THÔNG TIN BÉ MÈO" (cân nặng/pH/nhắc nhở...) lên đầu CÂU TRẢ LỜI HIỂN THỊ CHO
-     * NGƯỜI DÙNG, không chỉ trong prompt ẩn gửi LLM — xác nhận thật bằng chạy qua UI: hỏi "Cách
-     * vệ sinh khay cát thế nào?" (không liên quan tới mèo) với một mèo không khẩn cấp đang được
-     * chọn, khi chưa cấu hình LLM (provider rỗng), trả về ngay: "THÔNG TIN BÉ MÈO:\n- Tên:
-     * Bo\n..." rồi mới tới nội dung thật. Không có LLM nào "diễn giải"/lọc khối đó trong nhánh
-     * fallback, nên nó luôn lộ nguyên văn — gây rối cho MỌI câu hỏi hễ có chọn mèo, kể cả câu
-     * hỏi không liên quan gì tới dữ liệu riêng của mèo đó.
-     */
     @Test
     void fallbackAnswerNeverLeaksRawCatContextIntoTheUserFacingText() {
         FakeKnowledge knowledge = new FakeKnowledge();
@@ -340,7 +388,7 @@ class AiChatServiceTest {
                 new CatContextPort.LatestScanSummary(NOW, new BigDecimal("6.5"), "IN_RANGE",
                         new BigDecimal("0.8"), "NONE", false),
                 null, List.of(), List.of(), null, List.of(), null);
-        AiProviderPort provider = messages -> Optional.empty(); // chưa cấu hình LLM, như môi trường local hiện tại
+        AiProviderPort provider = messages -> Optional.empty();
 
         AiChatService.ChatResult result = service(knowledge, provider, catContextPort)
                 .chat(USER_ID, null, CAT_ID, "Cách vệ sinh khay cát thế nào?", "vi");
@@ -357,7 +405,7 @@ class AiChatServiceTest {
         knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
                 UUID.randomUUID(), "Theo dõi pH", "/care-tips/ph", "Đo dưới ánh sáng ổn định.", 1));
         FakeCatContextPort catContextPort = new FakeCatContextPort();
-        catContextPort.contextToReturn = null; // mô phỏng CatContextPort trả Optional.empty()
+        catContextPort.contextToReturn = null;
         List<Map<String, String>> sentMessages = new ArrayList<>();
 
         AiChatService.ChatResult result = service(knowledge, messages -> {
@@ -385,17 +433,10 @@ class AiChatServiceTest {
                 .isEqualTo(42L);
 
         verifyNoInteractions(provider);
-        assertThat(knowledge.hasDocumentsCalled).isFalse();
+        assertThat(knowledge.searchedLocales).isEmpty();
         assertThat(limiter.consumedSubjects).containsExactly(USER_ID.toString());
     }
 
-    /**
-     * {@code [n]} trong prompt/câu trả lời là VỊ TRÍ chunk trong danh sách ({@code i + 1}). Trước
-     * bản sửa, citation trả về/lưu lại dùng {@code chunk.rank()} của SQL — {@code row_number()} ở
-     * {@code AiKnowledgeRepository#search} sắp theo khoá khác ORDER BY ngoài (thiếu
-     * {@code c.ordinal}), nên khi {@code ts_rank}/{@code updated_at} bằng nhau (mọi tài liệu đồng bộ
-     * trong một transaction có cùng {@code updated_at}) "[1]" trong câu trả lời có thể trỏ nhầm nguồn.
-     */
     @Test
     void citationNumbersFollowThePositionUsedForTheMarkersNotTheSqlRank() {
         FakeKnowledge knowledge = new FakeKnowledge();
@@ -416,12 +457,6 @@ class AiChatServiceTest {
         assertThat(knowledge.savedCitationRanks).containsExactly(1, 2);
     }
 
-    /**
-     * I19 (p4 §4.4.9), {@code docs/cat-rag-credit-pipeline.md} A4-(5): tài khoản {@code RESTRICTED}
-     * (và mọi trạng thái khác {@code ACTIVE}) không được lưu tin nhắn mới hay gửi câu hỏi ra LLM.
-     * Trước bản sửa, {@code chat} không đọc trạng thái tài khoản ⇒ vẫn lưu USER+ASSISTANT và gọi
-     * provider.
-     */
     @Test
     void restrictedAccountIsRejectedBeforeAnyMessageIsStoredOrTheProviderIsCalled() {
         FakeKnowledge knowledge = new FakeKnowledge();
@@ -439,7 +474,7 @@ class AiChatServiceTest {
 
         verifyNoInteractions(provider);
         assertThat(knowledge.savedRoles).isEmpty();
-        assertThat(knowledge.hasDocumentsCalled).isFalse();
+        assertThat(knowledge.searchedLocales).isEmpty();
         assertThat(limiter.consumedSubjects).isEmpty();
     }
 
@@ -454,6 +489,134 @@ class AiChatServiceTest {
 
         verifyNoInteractions(provider);
         assertThat(knowledge.savedRoles).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Mèo bị bệnh gì vậy?", "Liều lượng thuốc cho mèo 4kg?", "cho meo uong thuoc gi",
+            "Bạn chẩn đoán giúp mình"})
+    void diagnosisOrDosageRequestsGetTheRefusalTemplateWithoutRetrievalOrProvider(String question) {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        CountingProvider provider = new CountingProvider();
+
+        AiChatService.ChatResult result = service(knowledge, provider).chat(USER_ID, null, null, question, "vi");
+
+        assertThat(result.provider()).isEqualTo("refusal-template");
+        assertThat(result.answer()).contains("bác sĩ thú y");
+        assertThat(provider.calls).isZero();
+        assertThat(knowledge.searchedLocales).isEmpty();
+        assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Không có trích dẫn nào.", "Theo nguồn [3].", "Theo nguồn [1] và [0]."})
+    void generatedAnswerWithoutValidCitationsIsReplacedByTheRetrievalFallback(String generated) {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.chunks = List.of(
+                new AiKnowledgePort.RetrievedChunk(UUID.randomUUID(), "Nguồn A", "/care-tips/a", "Nội dung A.", 1),
+                new AiKnowledgePort.RetrievedChunk(UUID.randomUUID(), "Nguồn B", "/care-tips/b", "Nội dung B.", 2));
+
+        AiChatService.ChatResult result = service(knowledge, messages -> Optional.of(generated))
+                .chat(USER_ID, null, null, "Câu hỏi về khay cát", "vi");
+
+        assertThat(result.provider()).isEqualTo("retrieval-fallback");
+        assertThat(result.answer()).doesNotContain(generated).contains("Theo tài liệu CatCheck");
+    }
+
+    @Test
+    void retryWithTheSameRequestKeyReplaysTheAnswerWithoutAnotherProviderCallOrRateLimitHit() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay", "/care-tips/ve-sinh", "Dọn cát hằng ngày.", 1));
+        FakeAiChatRateLimiter limiter = new FakeAiChatRateLimiter();
+        int[] calls = {0};
+        AiChatService service = service(knowledge, messages -> {
+            calls[0]++;
+            return Optional.of("Dọn cát hằng ngày [1].");
+        }, new FakeCatContextPort(), limiter);
+        UUID key = UUID.randomUUID();
+
+        AiChatService.ChatResult first = service.chat(USER_ID, null, null, "Cách vệ sinh khay cát?", "vi", key);
+        AiChatService.ChatResult retry = service.chat(USER_ID, null, null, "Cách vệ sinh khay cát?", "vi", key);
+
+        assertThat(retry.messageId()).isEqualTo(first.messageId());
+        assertThat(retry.answer()).isEqualTo(first.answer());
+        assertThat(calls[0]).isEqualTo(1);
+        assertThat(limiter.consumedSubjects).hasSize(1);
+        assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT");
+    }
+
+    @Test
+    void duplicateRequestStillInProgressIsRejectedBeforeCallingTheProvider() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay", "/care-tips/ve-sinh", "Dọn cát hằng ngày.", 1));
+        UUID key = UUID.randomUUID();
+        knowledge.usedRequestKeys.add(AiChatService.scopedRequestKey(USER_ID, key)); // câu hỏi đã ghi, câu trả lời chưa có
+        AiProviderPort provider = mock(AiProviderPort.class);
+
+        assertThatThrownBy(() -> service(knowledge, provider)
+                .chat(USER_ID, null, null, "Cách vệ sinh khay cát?", "vi", key))
+                .isInstanceOf(com.catcheck.shared.error.ConflictException.class)
+                .extracting(ex -> ((com.catcheck.shared.error.ConflictException) ex).errorCode())
+                .isEqualTo(AiErrorCode.AI_REQUEST_IN_PROGRESS);
+        verifyNoInteractions(provider);
+    }
+
+    @Test
+    void failedTurnReleasesTheRequestKeySoARetryWithTheSameKeyRunsAgain() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay", "/care-tips/ve-sinh", "Dọn cát hằng ngày.", 1));
+        int[] calls = {0};
+        AiChatService service = service(knowledge, messages -> {
+            if (calls[0]++ == 0) {
+                throw new IllegalStateException("provider down");
+            }
+            return Optional.of("Dọn cát hằng ngày [1].");
+        });
+        UUID key = UUID.randomUUID();
+
+        assertThatThrownBy(() -> service.chat(USER_ID, null, null, "Cách vệ sinh khay cát?", "vi", key))
+                .isInstanceOf(IllegalStateException.class);
+        AiChatService.ChatResult retry = service.chat(USER_ID, null, null, "Cách vệ sinh khay cát?", "vi", key);
+
+        assertThat(retry.provider()).isEqualTo("openai-compatible");
+        assertThat(calls[0]).isEqualTo(2);
+        assertThat(knowledge.savedRoles).containsExactly("USER", "USER", "ASSISTANT");
+    }
+
+    @Test
+    void twoUsersSendingTheSameRawRequestKeyDoNotBlockOrReplayEachOther() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        knowledge.chunks = List.of(new AiKnowledgePort.RetrievedChunk(
+                UUID.randomUUID(), "Vệ sinh khay", "/care-tips/ve-sinh", "Dọn cát hằng ngày.", 1));
+        CountingProvider provider = new CountingProvider();
+        UUID key = UUID.randomUUID();
+
+        AiChatService.ChatResult first = service(knowledge, provider)
+                .chat(USER_ID, null, null, "Cách vệ sinh khay cát?", "vi", key);
+        AiChatService.ChatResult second = service(knowledge, provider)
+                .chat(UUID.randomUUID(), null, null, "Cách vệ sinh khay cát?", "vi", key);
+
+        assertThat(second.messageId()).isNotEqualTo(first.messageId());
+        assertThat(provider.calls).isEqualTo(2);
+        assertThat(knowledge.savedRoles).containsExactly("USER", "ASSISTANT", "USER", "ASSISTANT");
+    }
+
+    @Test
+    void diagnosisRefusalFollowsTheRequestLanguageButEmergencyCopyStaysVietnamese() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        CountingProvider provider = new CountingProvider();
+
+        AiChatService.ChatResult refusal = service(knowledge, provider)
+                .chat(USER_ID, null, null, "Can you diagnose my cat?", "en");
+        AiChatService.ChatResult emergency = service(knowledge, provider)
+                .chat(USER_ID, null, null, "Nước tiểu có máu thì sao?", "en");
+
+        assertThat(refusal.provider()).isEqualTo("refusal-template");
+        assertThat(refusal.answer()).startsWith("I can't diagnose");
+        assertThat(emergency.answer()).isEqualTo(EXPECTED_EMERGENCY_BODY);
+        assertThat(provider.calls).isZero();
     }
 
     private static AiChatService service(FakeKnowledge knowledge, AiProviderPort provider) {
@@ -472,15 +635,15 @@ class AiChatServiceTest {
     private static AiChatService service(FakeKnowledge knowledge, AiProviderPort provider,
             FakeCatContextPort catContextPort, FakeAiChatRateLimiter rateLimiter,
             UserAccountPort userAccountPort) {
-        return new AiChatService(knowledge, provider, new AiRuntimeConfig(6, 8), catContextPort, rateLimiter,
-                userAccountPort, realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC));
+        return new AiChatService(knowledge, retrieval(knowledge), provider, new AiRuntimeConfig(6, 8), catContextPort,
+                rateLimiter, userAccountPort, realMessageResolver(), Clock.fixed(NOW, ZoneOffset.UTC),
+                new NoOpTransactionManager());
     }
 
-    /**
-     * {@code MessageResolver} thật đọc {@code messages/ai_vi.properties} THẬT (không
-     * {@code StaticMessageSource} giả) — để test đường khẩn cấp kiểm chứng đúng nội dung sẽ chạy
-     * ở production, không chỉ hành vi gọi hàm.
-     */
+    private static HybridRetrievalService retrieval(FakeKnowledge knowledge) {
+        return new HybridRetrievalService(knowledge, AiEmbeddingPort.NONE, new AiRuntimeConfig(6, 8));
+    }
+
     private static MessageResolver realMessageResolver() {
         ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
         messageSource.setBasenames("classpath:messages/ai");
@@ -525,26 +688,22 @@ class AiChatServiceTest {
         boolean documents;
         boolean synced;
         boolean onlyVietnamese;
-        boolean hasDocumentsCalled;
         List<RetrievedChunk> chunks = List.of();
         final List<String> searchedLocales = new ArrayList<>();
         List<String[]> history = List.of();
         Conversation conversation;
         final List<String> savedRoles = new ArrayList<>();
         final List<String> savedContents = new ArrayList<>();
+        final java.util.Set<UUID> usedRequestKeys = new java.util.HashSet<>();
+        final Map<UUID, AiChatService.ChatResult> repliesByKey = new java.util.HashMap<>();
         UUID savedCitationMessageId;
         final List<Integer> savedCitationRanks = new ArrayList<>();
 
         @Override
-        public boolean hasDocuments() {
-            hasDocumentsCalled = true;
-            return documents;
-        }
-
-        @Override
-        public List<RetrievedChunk> search(String locale, String query, int limit) {
+        public CandidateSet searchCandidates(String locale, List<String> terms, float[] queryEmbedding,
+                                             String embeddingModel, int perBranch) {
             searchedLocales.add(locale);
-            return onlyVietnamese && !"vi".equals(locale) ? List.of() : chunks;
+            return new CandidateSet(onlyVietnamese && !"vi".equals(locale) ? List.of() : chunks, List.of());
         }
 
         @Override
@@ -555,10 +714,35 @@ class AiChatServiceTest {
         }
 
         @Override
-        public UUID saveMessage(UUID conversationId, String role, String content, String provider) {
-            savedRoles.add(role);
+        public Optional<UUID> saveUserMessage(UUID conversationId, String content, UUID requestKey) {
+            if (requestKey != null && !usedRequestKeys.add(requestKey)) {
+                return Optional.empty();
+            }
+            savedRoles.add("USER");
             savedContents.add(content);
-            return UUID.randomUUID();
+            return Optional.of(UUID.randomUUID());
+        }
+
+        @Override
+        public void releaseRequestKey(UUID requestKey) {
+            usedRequestKeys.remove(requestKey);
+        }
+
+        @Override
+        public UUID saveAssistantMessage(UUID conversationId, String content, String provider, UUID requestKey) {
+            savedRoles.add("ASSISTANT");
+            savedContents.add(content);
+            UUID id = UUID.randomUUID();
+            if (requestKey != null) {
+                repliesByKey.put(requestKey, new AiChatService.ChatResult(conversationId, id, content, provider,
+                        List.of(), NOW));
+            }
+            return id;
+        }
+
+        @Override
+        public Optional<AiChatService.ChatResult> findReply(UUID userId, UUID requestKey) {
+            return Optional.ofNullable(repliesByKey.get(requestKey));
         }
 
         @Override
@@ -573,10 +757,19 @@ class AiChatServiceTest {
         }
 
         @Override
-        public int syncPublishedCareTips() {
+        public SyncResult syncPublishedCareTips() {
             synced = true;
             documents = true;
-            return 1;
+            return new SyncResult(1, 1, 0);
+        }
+
+        @Override
+        public List<PendingChunk> chunksNeedingEmbedding(String embeddingModel, int limit) {
+            return List.of();
+        }
+
+        @Override
+        public void saveEmbeddings(String embeddingModel, Map<UUID, float[]> embeddings) {
         }
 
         @Override

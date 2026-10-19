@@ -5,11 +5,6 @@ import { toast } from "@/shared/ui";
 import { getShopCart, shopKeys, useRemoveCartLine, useSetCartLine, type ShopProductApi } from "@/features/shop";
 import { maxOrderQuantity } from "./shopFormat";
 
-/**
- * Thao tác trên dòng giỏ (tăng/giảm/xoá). Không cập nhật lạc quan: nút của dòng đang gửi bị
- * khoá cho tới khi máy chủ trả `CartResponse` mới — nhờ vậy số lượng và tổng tiền hiển thị
- * luôn là con số của máy chủ. Lỗi ⇒ toast + tải lại giỏ (hook mutation tự invalidate).
- */
 export function useCartLineActions() {
   const { t } = useTranslation("shop");
   const setLine = useSetCartLine();
@@ -44,11 +39,6 @@ export function useCartLineActions() {
   };
 }
 
-/**
- * Thêm sản phẩm vào giỏ: đọc số lượng đang có trong giỏ THẬT (cache `GET /cart`, tải nếu
- * chưa có), cộng thêm, chặn ở `min(tồn kho, 99)` rồi `PUT /cart/{productId}`.
- * `goToCheckout` (nút "Mua ngay") chỉ chuyển trang SAU KHI máy chủ đã ghi dòng giỏ.
- */
 export function useAddToCart() {
   const { t } = useTranslation("shop");
   const navigate = useNavigate();
@@ -58,7 +48,6 @@ export function useAddToCart() {
   const add = async (product: ShopProductApi, quantity: number, options: { goToCheckout?: boolean } = {}) => {
     let existing: number;
     try {
-      // Dùng cache giỏ nếu còn mới (mutation luôn ghi phản hồi máy chủ vào đó), không thì tải lại.
       const cart = await queryClient.query({ queryKey: shopKeys.cart(), queryFn: getShopCart, staleTime: 5_000 });
       existing = cart.lines.find((line) => line.product.id === product.id)?.quantity ?? 0;
     } catch {

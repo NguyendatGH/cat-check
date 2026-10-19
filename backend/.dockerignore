@@ -1,4 +1,6 @@
 target/
+# Ảnh người dùng và model tải về cục bộ: không gửi vào build context (model được tải trong Dockerfile).
+data/
 .git/
 *.md
 !README.md

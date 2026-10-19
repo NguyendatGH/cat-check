@@ -1,17 +1,22 @@
-// features/community — client cho Community API (/api/v1/community/**).
-// Mọi import từ bên ngoài PHẢI qua file này (boundaries/entry-point).
 export {
   COMMUNITY_CATEGORIES,
+  COMMUNITY_IMAGE,
   COMMUNITY_LIMITS,
+  COMMUNITY_REPLY_PAGE_SIZE,
+  COMMUNITY_REPLY_PREVIEW,
   COMMUNITY_REPORT_REASONS,
   createCommunityComment,
+  listCommunityCommentReplies,
   createCommunityPost,
   getCommunityPost,
   listCommunityPosts,
   reportCommunityContent,
   setCommunityReaction,
+  uploadCommunityPostImage,
   type CommunityCategory,
   type CommunityCommentApi,
+  type CommunityCommentRepliesApi,
+  type CreateCommunityCommentPayload,
   type CommunityPageApi,
   type CommunityPostApi,
   type CommunityPostDetailApi,
@@ -20,14 +25,18 @@ export {
   type CommunityReportReason,
   type CreateCommunityPostPayload,
 } from "./api";
+export { communityCommentErrorKey, type CommunityCommentErrorKey } from "./commentError";
 export { communityReportErrorKey, type CommunityReportErrorKey } from "./reportError";
 export {
   COMMUNITY_PAGE_SIZE,
   communityKeys,
   useCommunityFeed,
   useCommunityPost,
+  useCommunityCommentLike,
   useCommunityReaction,
+  useCommunityReplies,
   useCreateCommunityComment,
   useCreateCommunityPost,
+  useCommunityTagSuggestions,
   useReportCommunityContent,
 } from "./hooks";

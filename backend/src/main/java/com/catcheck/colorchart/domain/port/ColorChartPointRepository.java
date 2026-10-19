@@ -5,9 +5,6 @@ import com.catcheck.colorchart.domain.ColorChartPoint;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Cổng đọc/ghi {@code color_chart_point}.
- */
 public interface ColorChartPointRepository {
 
     List<ColorChartPoint> findByChartIdOrderBySortOrder(UUID chartId);

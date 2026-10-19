@@ -43,17 +43,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
-/**
- * {@link ImageStorage} trên Cloudinary, gọi REST bằng {@link RestClient} (không thêm SDK).
- *
- * <p>Ảnh được tải lên với {@code type=authenticated} nên KHÔNG công khai; chỉ URL giao hàng có
- * chữ ký mới xem được. {@code public_id = {folder}/{khoá không đuôi}}; đuôi file của khoá dùng để
- * dựng URL giao hàng.</p>
- *
- * <p><b>TTL bị bỏ qua</b>: URL ký kiểu {@code s--sig--} của Cloudinary không hết hạn (chữ ký chỉ
- * ràng buộc đường dẫn). {@link #presignedUrl} vì vậy trả URL ổn định; coi nó là URL riêng tư,
- * không công khai đại trà. Bí mật và URL ký không bao giờ được đưa vào message/log.</p>
- */
 public class CloudinaryImageStorage implements ImageStorage {
 
     private static final Logger log = LoggerFactory.getLogger(CloudinaryImageStorage.class);
@@ -89,7 +78,6 @@ public class CloudinaryImageStorage implements ImageStorage {
         return PROVIDER;
     }
 
-    // ------------------------------------------------------------------ write
 
     @Override
     public StoredImage put(String namespace, ImageUpload upload) {
@@ -174,7 +162,6 @@ public class CloudinaryImageStorage implements ImageStorage {
         }
     }
 
-    // ------------------------------------------------------------------- read
 
     @Override
     public Optional<InputStream> open(StorageKey key) {
@@ -191,7 +178,6 @@ public class CloudinaryImageStorage implements ImageStorage {
         }
     }
 
-    /** TTL bị bỏ qua: xem Javadoc lớp. */
     @Override
     public URI presignedUrl(StorageKey key, Duration ttl) {
         return deliveryUrl(key);
@@ -212,7 +198,6 @@ public class CloudinaryImageStorage implements ImageStorage {
         }
     }
 
-    // ----------------------------------------------------------------- delete
 
     @Override
     public void delete(StorageKey key) {
@@ -304,7 +289,6 @@ public class CloudinaryImageStorage implements ImageStorage {
                                     : Instant.parse(String.valueOf(r.get("created_at")));
                             result.add(new Resource(new StorageKey(keyValue + format), created));
                         } catch (RuntimeException ignored) {
-                            // bỏ qua tài nguyên có tên không hợp lệ với StorageKey
                         }
                     }
                 }
@@ -320,7 +304,6 @@ public class CloudinaryImageStorage implements ImageStorage {
         return result;
     }
 
-    // --------------------------------------------------------------- internals
 
     private void postSigned(String path, Map<String, String> signedParams, boolean failOnError) {
         Map<String, String> params = new TreeMap<>(signedParams);
@@ -336,7 +319,6 @@ public class CloudinaryImageStorage implements ImageStorage {
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientResponseException ex) {
-            // destroy/rename trên khoá không còn: "không ném lỗi nếu khoá đã biến mất"
             if (isNotFound(ex.getStatusCode()) && !path.endsWith("rename")) {
                 return;
             }
@@ -355,7 +337,6 @@ public class CloudinaryImageStorage implements ImageStorage {
     }
 
     private BusinessRuleException ioError(String operation, RuntimeException ex) {
-        // Không đưa message của ex vào log/lỗi: có thể chứa URL ký.
         log.warn("Cloudinary {} thất bại ({})", operation, ex.getClass().getSimpleName());
         return new BusinessRuleException(MediaErrorCode.STORAGE_IO_ERROR, "Lưu trữ ảnh lỗi: " + operation);
     }
@@ -365,7 +346,6 @@ public class CloudinaryImageStorage implements ImageStorage {
         return folder == null || folder.isBlank() ? "" : folder.replaceAll("^/+|/+$", "") + "/";
     }
 
-    /** {@code {folder}/{khoá không đuôi}}. */
     String publicId(StorageKey key) {
         return folderPrefix() + stripExtension(key.value());
     }
@@ -374,20 +354,17 @@ public class CloudinaryImageStorage implements ImageStorage {
         return deliveryUrl(config.cloudName(), config.apiSecret(), publicId(key), extensionOf(key.value()));
     }
 
-    /** URL giao hàng ký của type authenticated. {@code ext} có thể rỗng (biến thể không đuôi). */
     static URI deliveryUrl(String cloudName, String apiSecret, String publicId, String ext) {
         String path = ext.isEmpty() ? publicId : publicId + "." + ext;
         String signature = deliverySignature(path, apiSecret);
         return URI.create(DELIVERY_BASE + cloudName + "/image/" + TYPE + "/s--" + signature + "--/" + path);
     }
 
-    /** 8 ký tự đầu của base64url(SHA-1(toSign + secret)). */
     static String deliverySignature(String toSign, String apiSecret) {
         byte[] digest = sha1((toSign + apiSecret).getBytes(StandardCharsets.UTF_8));
         return Base64.getUrlEncoder().withoutPadding().encodeToString(digest).substring(0, 8);
     }
 
-    /** Chữ ký API: k=v sắp theo tên, nối '&', cộng secret, SHA-1 hex. */
     static String sign(Map<String, String> params, String apiSecret) {
         StringBuilder sb = new StringBuilder();
         new TreeMap<>(params).forEach((k, v) -> {

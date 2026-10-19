@@ -5,12 +5,31 @@ import HttpBackend from "i18next-http-backend";
 import { NAMESPACES } from "./namespaces";
 import { DEFAULT_LOCALE } from "@/shared/config/constants";
 
-/**
- * i18next-http-backend nạp file JSON tĩnh từ /locales/{{lng}}/{{ns}}.json (public/locales),
- * được đồng bộ từ src/shared/i18n/locales/** lúc build/dev (xem vite.config.ts, hàm
- * syncLocalesToPublic) — nguồn sự thật duy nhất vẫn là src/shared/i18n/locales/**.
- * Chỉ "vi" có nội dung ở M0 — "en" để thư mục rỗng (chờ dịch), fallbackLng: "vi".
- */
+const LOCALE_STORAGE_KEY = "catcheck.locale";
+
+// Chỉ trang Cài đặt ngôn ngữ ghi khoá này; detector không tự cache vì init sẽ ghi cả mặc định "vi",
+// khiến không còn phân biệt được thiết bị chưa có lựa chọn.
+export function getStoredLocale(): string | null {
+  try {
+    return localStorage.getItem(LOCALE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredLocale(locale: string): void {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // Chế độ riêng tư: vẫn đổi ngôn ngữ cho phiên hiện tại.
+  }
+}
+
+// `index.html` cố định lang="vi"; `languageChanged` phát cả lúc init xong lẫn khi đổi ngôn ngữ.
+i18n.on("languageChanged", (lng) => {
+  document.documentElement.lang = lng;
+});
+
 void i18n
   .use(HttpBackend)
   .use(LanguageDetector)
@@ -25,9 +44,12 @@ void i18n
     backend: {
       loadPath: "/locales/{{lng}}/{{ns}}.json",
     },
+    // Mặc định tiếng Việt; chỉ dùng tiếng Anh khi người dùng tự chọn ở Cài đặt. Không đoán theo
+    // trình duyệt, và dùng khoá mới để bỏ giá trị "en" mà khoá cũ đã tự lưu theo navigator.
     detection: {
-      order: ["localStorage", "navigator"],
-      caches: ["localStorage"],
+      order: ["localStorage"],
+      lookupLocalStorage: LOCALE_STORAGE_KEY,
+      caches: [],
     },
     returnNull: false,
   });

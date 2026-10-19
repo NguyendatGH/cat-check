@@ -40,11 +40,6 @@ import litterBentonite from "@/shared/assets/images/onboarding-litter-bentonite.
 import litterOrganic from "@/shared/assets/images/onboarding-litter-organic.jpg";
 import { cn } from "@/shared/lib/cn";
 
-/**
- * Tên trường hợp lệ của form = chính shape của `surveySchema` (nguồn kiểu duy nhất). Danh
- * sách/thứ tự/lựa chọn CÂU HỎI đến từ F6 `GET /reference/health-survey/{version}`; chỗ này
- * chỉ là cầu nối kiểu để `react-hook-form` biết trường nào là chuỗi, trường nào là mảng.
- */
 type SurveyFieldName = keyof SurveyFormValues;
 type MultiFieldName = { [K in SurveyFieldName]: SurveyFormValues[K] extends string[] ? K : never }[SurveyFieldName];
 type SingleFieldName = Exclude<SurveyFieldName, MultiFieldName>;
@@ -59,8 +54,6 @@ function isMultiField(key: SurveyFieldName): key is MultiFieldName {
   return Array.isArray(EMPTY_SURVEY_ANSWERS[key]);
 }
 
-/** Ảnh thật từng loại cát (M1 01c-4) — trích từ SVG thiết kế gốc, không dùng cho SILICA vì
- * Figma không mock lựa chọn này riêng (trùng hình với CATCHECK_SMART trong bản thiết kế). */
 const LITTER_TYPE_IMAGES: Partial<Record<string, string>> = {
   CATCHECK_SMART: litterSilica,
   BENTONITE: litterBentonite,
@@ -69,14 +62,7 @@ const LITTER_TYPE_IMAGES: Partial<Record<string, string>> = {
 
 const ICON_PROPS = { size: 20, "aria-hidden": true } as const;
 
-/** Icon từng lựa chọn — khớp Figma M1 01c-4. `urinationFrequency`/`symptoms` KHÔNG có icon
- * vì Figma không mock 2 câu hỏi này (chỉ 4 câu: litter/tiền sử/ăn uống/lịch quét — lịch quét
- * thuộc M5 reminder, đã loại theo ORCHESTRATOR §2, thay bằng `urinationFrequency` có sẵn
- * trong `SurveyAnswers`); không tự bịa icon khi không có nguồn thiết kế — 2 câu đó nhận ô
- * radio/checkbox mặc định của `OptionCard` như bản web W1 Web-01c-4. */
 const OPTION_ICONS: Partial<Record<string, Partial<Record<string, ReactNode>>>> = {
-  // SILICA là lựa chọn duy nhất không có ảnh thật trong Figma — dùng icon để 4 thẻ cùng
-  // chiều cao và cùng có khối dẫn bên trái.
   litterType: { SILICA: <Droplets {...ICON_PROPS} /> },
   urinaryHistory: {
     NONE: <CheckCircle2 {...ICON_PROPS} />,
@@ -91,15 +77,8 @@ const OPTION_ICONS: Partial<Record<string, Partial<Record<string, ReactNode>>>> 
   },
 };
 
-/**
- * Bố cục lưới từng câu — M1 01c-4: câu 1 & 2 xếp dọc trên mobile, câu 3 hai cột. Đây là dữ
- * liệu THIẾT KẾ theo khoá câu hỏi, không phải định nghĩa câu hỏi; khoá lạ (backend thêm câu
- * mới) rơi về `QUESTION_GRID_DEFAULT`.
- */
 const QUESTION_GRID: Record<string, string> = {
   litterType: "grid-cols-1 lg:grid-cols-2",
-  // 1 cột ở mọi breakpoint (M1 01c-4): mỗi lựa chọn có chú thích phụ căn phải, 2 cột làm
-  // chú thích vỡ 3 dòng trong thẻ cột trái bản web.
   urinaryHistory: "grid-cols-1",
   dietType: "grid-cols-2",
   urinationFrequency: "grid-cols-1 sm:grid-cols-2",
@@ -108,19 +87,14 @@ const QUESTION_GRID: Record<string, string> = {
 
 const QUESTION_GRID_DEFAULT = "grid-cols-1 sm:grid-cols-2";
 
-/** Câu hỏi dùng thẻ xếp dọc (icon trên, chữ dưới) — M1 01c-4 câu "Chế độ ăn". */
 const STACKED_QUESTIONS = new Set<string>(["dietType"]);
 
-/** Câu hỏi có mô tả phụ dưới tên lựa chọn (M1 01c-4 / W1 Web-01c-4). */
 const QUESTIONS_WITH_DESCRIPTION = new Set<string>(["litterType", "dietType"]);
 
-/** Câu hỏi có chú thích căn phải ở nhãn (M1 01c-4: "Chọn 1", "Ảnh hưởng độ pH"). */
 const QUESTIONS_WITH_META = new Set<string>(["litterType", "dietType"]);
 
-/** Lựa chọn tiền sử có chú thích phụ căn phải (M1 01c-4). */
 const URINARY_NOTE_VALUES = new Set<string>(["CYSTITIS_OR_STONES", "UNKNOWN"]);
 
-/** Lựa chọn được gắn nhãn "Khuyến dùng" trong thiết kế (M1 01c-4 câu 1). */
 const RECOMMENDED_LITTER = "CATCHECK_SMART";
 
 const GUIDE_STEPS = ["step1", "step2", "step3"] as const;
@@ -131,14 +105,6 @@ interface SurveyAsideProps {
   bands: PhBand[];
 }
 
-/**
- * Cột phải desktop (W1 Web-01c-4): thẻ nhận diện bé mèo (dữ liệu THẬT từ `createdCat`),
- * dải pH tham chiếu (`GET /reference/ph-bands`) và 3 bước hướng dẫn quét lần đầu.
- *
- * KHÔNG dựng card "Phân tích Sơ bộ của AI / Mức rủi ro FLUTD ban đầu" của mockup: backend
- * không trả chỉ số nào như vậy và nó là phát ngôn y tế (W1 §5 đã đánh dấu mâu thuẫn với
- * quyết định #6). Khối bảo mật "HIPAA" cũng bị bỏ — W1 §5 ghi rõ HIPAA không áp dụng ở VN.
- */
 function SurveyAside({ cat, catName, bands }: SurveyAsideProps) {
   const { t } = useTranslation("onboarding");
   const normalBand = bands.find((b) => b.severity === "NORMAL");
@@ -233,26 +199,15 @@ function SurveyAside({ cat, catName, bands }: SurveyAsideProps) {
   );
 }
 
-/**
- * Bước 2/5 — Khảo sát sức khoẻ ban đầu (M1 01c-4, W1 Web-01c-4; p2 US-E2-02).
- * 5 câu hỏi — khớp JSONB `answers` của `cat_health_survey` (p4 C3). Bỏ qua được
- * (ghi `skipped = true`), hoàn tất sau trong Cài đặt.
- *
- * Desktop (`lg:`): 2 cột ~7/5 — bộ câu hỏi bên trái, panel bối cảnh bên phải
- * ({@link SurveyAside}). Mobile giữ nguyên 1 cột.
- */
 export function OnboardingHealthSurveyPage() {
   const { t } = useTranslation(["onboarding", "common"]);
   const navigate = useNavigate();
 
   const { createdCat: storeCat, surveyAnswers, setSurveyAnswers, setSurveySkipped, setStep } = useOnboardingStore();
-  // Store chỉ sống trong phiên trang — tải lại giữa chừng thì lấy hồ sơ chính (`isPrimary`,
-  // chính là mèo vừa tạo ở bước 1) từ `GET /cats`, thay vì khoá nút "Tiếp tục" vĩnh viễn.
   const primaryCat = usePrimaryCat(!storeCat);
   const createdCat = storeCat ?? primaryCat.data ?? null;
   const submitSurvey = useSubmitSurvey(createdCat?.id ?? "");
   const { data: phBands } = usePhBands();
-  // F6 — bộ câu hỏi THẬT. Thứ tự, kiểu (SINGLE/MULTI) và danh sách lựa chọn đều của server.
   const definitionQuery = useHealthSurveyDefinition();
   const [skipOpen, setSkipOpen] = useState(false);
 
@@ -274,10 +229,6 @@ export function OnboardingHealthSurveyPage() {
 
   const isSaving = isSubmitting || submitSurvey.isPending;
 
-  /**
-   * Câu MULTI: `NONE` loại trừ mọi lựa chọn khác (và ngược lại) — quy tắc nghiệp vụ của
-   * `cat_health_survey.answers`, không phải của một câu hỏi cụ thể nào.
-   */
   const toggleMultiValue = (name: MultiFieldName, current: string[], value: string, checked: boolean) => {
     let next: string[];
     if (value === "NONE") {
@@ -288,14 +239,8 @@ export function OnboardingHealthSurveyPage() {
     setValue(name, next, { shouldValidate: true });
   };
 
-  /** Lựa chọn nào có mô tả/chú thích riêng trong i18n thì dùng, không có thì bỏ qua. */
   const optionalText = (key: string): string | undefined => t(key, { defaultValue: "" }) || undefined;
 
-  /**
-   * Chỉ render câu hỏi mà schema client biết: backend thêm câu mới (version sau) thì trường
-   * đó chưa có chỗ trong `SurveyFormValues`, hiển thị nó ra sẽ tạo ô nhập không bao giờ gửi
-   * đi được. Bỏ qua lặng lẽ an toàn hơn là dựng ô giả.
-   */
   const questions: SurveyQuestionDefinition[] = [...(definitionQuery.data?.questions ?? [])]
     .filter((q) => isSurveyField(q.key))
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -390,7 +335,7 @@ export function OnboardingHealthSurveyPage() {
       setStep(3);
       void navigate("/onboarding/disclaimer");
     } catch {
-      // lỗi mạng — giữ nguyên màn, user thử lại
+      // Lỗi chưa được hiển thị: người dùng ở lại bước này và có thể gửi lại.
     }
   };
 
@@ -401,13 +346,12 @@ export function OnboardingHealthSurveyPage() {
     try {
       await submitSurvey.mutateAsync({ answers: surveyAnswers, skipped: true });
     } catch {
-      // vẫn cho tiếp tục dù API lỗi — skipped là tùy chọn
+      // Khảo sát là tuỳ chọn: bỏ qua thất bại vẫn cho đi tiếp.
     }
     setStep(3);
     void navigate("/onboarding/disclaimer");
   };
 
-  // Chưa có hồ sơ (vào thẳng URL) thì câu "…phù hợp cho {catName}." bị cụt thành "cho ."
   const catName = createdCat?.name ?? t("survey.yourCat");
 
   return (
@@ -458,7 +402,6 @@ export function OnboardingHealthSurveyPage() {
       }
     >
       <div className="flex flex-col gap-6">
-        {/* M1 01c-4: chip vàng nhạt + icon chân mèo, không phải chip xanh. */}
         <p className="inline-flex w-fit items-center gap-2 rounded-full bg-secondary-light px-3 py-1 text-caption font-semibold text-secondary-text-on">
           <PawPrint className="size-4" aria-hidden="true" />
           {t("survey.forCat", { catName })}

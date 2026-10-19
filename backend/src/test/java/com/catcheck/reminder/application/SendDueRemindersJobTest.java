@@ -16,9 +16,11 @@ import com.catcheck.shared.job.JobRunPort;
 import com.catcheck.shared.job.JobRunStatus;
 import com.catcheck.shared.job.JobTriggerType;
 import com.catcheck.shared.job.application.JobRunRecorder;
+import com.catcheck.shared.i18n.MessageResolver;
 import com.catcheck.shared.job.application.JobRunner;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -29,6 +31,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,22 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * {@code SendDueRemindersJob} — p12 §12.6.3 nhóm B.
- *
- * <p>Ba điều bài test này canh, theo đúng thứ tự quan trọng:</p>
- * <ol>
- *   <li><b>Tới hạn thì gửi đúng MỘT lần.</b> Trước W2-B tính năng nhắc nhở có đủ 6 endpoint
- *       I1–I6 nhưng không job nào gửi, nên "gửi được" là yêu cầu số một.</li>
- *   <li><b>{@code next_run_at} nhảy đúng chu kỳ theo múi giờ của lịch</b> (p12 §12.5.2,
- *       §12.5.4) — tính bằng UTC sẽ lệch 7 giờ và người dùng nhận nhắc lúc 1 giờ sáng.</li>
- *   <li><b>Chạy lại không gửi trùng</b> (p12 §12.5.5): đây là thứ duy nhất trong ba thứ mà
- *       một lần test tay không bắt được, vì nó chỉ sai khi job chạy vòng thứ hai.</li>
- * </ol>
- */
 class SendDueRemindersJobTest {
 
-    /** 08:00 giờ Việt Nam — chọn mốc tròn để con số kỳ vọng đọc được bằng mắt. */
     private static final Instant NOW = Instant.parse("2026-10-03T01:00:00Z");
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
     private static final ZoneId ICT = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -65,7 +54,7 @@ class SendDueRemindersJobTest {
     private final SendDueRemindersJob job = new SendDueRemindersJob(
             new JobRunner(new JobRunRecorder(jobRuns, new UuidV7(CLOCK), CLOCK),
                     properties(), new SimpleMeterRegistry(), CLOCK),
-            new DueReminderDispatcher(reminders, cats, gateway),
+            new DueReminderDispatcher(reminders, cats, gateway, messages()),
             properties());
 
     @Test
@@ -83,12 +72,30 @@ class SendDueRemindersJobTest {
         assertEquals(due.id(), request.refId());
         assertEquals("/scan?catId=" + due.catId(), request.payload().get("deepLink"));
 
-        // 03/10 giờ ICT + 3 ngày, tại 08:00 ICT = 06/10 01:00 UTC. Nếu ai đó tính bằng UTC thì
-        // kết quả sẽ là 06/10 08:00Z — lệch 7 tiếng, và test này đỏ.
         assertEquals(
                 java.time.LocalDate.of(2026, 10, 6).atTime(LocalTime.of(8, 0)).atZone(ICT).toInstant(),
                 reminders.byId(due.id()).nextRunAt());
         assertEquals(NOW, reminders.byId(due.id()).lastRunAt());
+    }
+
+    @Test
+    void titleAndBodyFollowTheRecipientLocale() {
+        gateway.locale = Locale.forLanguageTag("en");
+        reminders.add(scanRoutine(NOW.minusSeconds(60), NOW.minusSeconds(60)));
+        Instant lateDue = NOW.minus(Duration.ofHours(30));
+        reminders.add(scanRoutine(lateDue, lateDue.minus(Duration.ofDays(1))));
+
+        job.run();
+
+        NotificationRequest scanDue = gateway.requests.get(1);
+        assertEquals("REMINDER_SCAN_DUE", scanDue.templateCode());
+        assertEquals("Time for your routine scan", scanDue.title());
+        assertEquals("Mochi is due for a scan today.", scanDue.body());
+        NotificationRequest overdue = gateway.requests.get(0);
+        assertEquals("REMINDER_OVERDUE", overdue.templateCode());
+        assertEquals("Monitoring overdue", overdue.title());
+        assertEquals("Mochi has not been scanned on schedule. Scan now to avoid missing any changes.",
+                overdue.body());
     }
 
     @Test
@@ -120,7 +127,6 @@ class SendDueRemindersJobTest {
 
     @Test
     void lateByMoreThanADayWithoutAScanUsesTheOverdueTemplate() {
-        // Tới hạn 30 giờ trước và lần quét thoả lịch gần nhất còn cũ hơn thế ⇒ quá hạn.
         Instant due = NOW.minus(Duration.ofHours(30));
         reminders.add(scanRoutine(due, due.minus(Duration.ofDays(1))));
 
@@ -132,8 +138,6 @@ class SendDueRemindersJobTest {
 
     @Test
     void lateButAlreadyScannedStaysOnTheNormalTemplate() {
-        // p12 §12.5.1: "quá hạn" đo bằng last_satisfied_at, KHÔNG bằng last_run_at. Người dùng
-        // đã quét sau mốc tới hạn thì không phải người quên lịch.
         Instant due = NOW.minus(Duration.ofHours(30));
         reminders.add(scanRoutine(due, due.plus(Duration.ofHours(1))));
 
@@ -144,9 +148,6 @@ class SendDueRemindersJobTest {
 
     @Test
     void creditExpiryAndSurveyRemindersAreLeftToOtherJobs() {
-        // p12 §12.5.1: CREDIT_EXPIRY do CreditExpiringReminderJob lo (mốc tính từ
-        // credit_batch.expires_at). SURVEY_FOLLOWUP chưa có mã template nào trong registry
-        // p12 §12.2 — xem handoff H15.89.
         reminders.add(withType(ReminderType.CREDIT_EXPIRY, NOW.minusSeconds(60)));
         reminders.add(withType(ReminderType.SURVEY_FOLLOWUP, NOW.minusSeconds(60)));
 
@@ -165,7 +166,6 @@ class SendDueRemindersJobTest {
         job.run();
 
         assertTrue(gateway.requests.isEmpty(), "khong nhac quet cho con meo khong con ton tai");
-        // Đẩy lịch đi, nếu không job quay lại đúng dòng này mỗi 5 phút mãi mãi.
         assertTrue(reminders.byId(orphan.id()).nextRunAt().isAfter(NOW));
         assertNull(reminders.byId(orphan.id()).lastRunAt(), "chua gui thi khong dat last_run_at");
     }
@@ -196,7 +196,28 @@ class SendDueRemindersJobTest {
         assertTrue(gateway.requests.isEmpty());
     }
 
-    /* ------------------------------------------------------------------------ dựng dữ liệu */
+
+    @Test
+    void legacyRruleRemindersWithoutNextRunAreBackfilledAndUnsupportedOnesSkipped() {
+        Reminder legacy = reminders.add(rrule("FREQ=WEEKLY;BYDAY=WE,SU"));
+        Reminder unsupported = reminders.add(rrule("FREQ=MONTHLY;BYMONTHDAY=1"));
+
+        job.run();
+
+        // NOW = thu Bay 03/10 08:00 gio VN => Chu Nhat 04/10 08:00 gio VN.
+        assertEquals(java.time.LocalDate.of(2026, 10, 4).atTime(LocalTime.of(8, 0)).atZone(ICT).toInstant(),
+                reminders.byId(legacy.id()).nextRunAt());
+        assertEquals(null, reminders.byId(unsupported.id()).nextRunAt());
+        assertTrue(gateway.requests.isEmpty(), "backfill chi lap lich, khong gui ngay");
+    }
+
+    private Reminder rrule(String rule) {
+        return new Reminder(
+                null, UUID.randomUUID(), UUID.randomUUID(), ReminderType.SCAN_ROUTINE,
+                ScheduleKind.RRULE, null, rule, LocalTime.of(8, 0), null,
+                ICT.getId(), null, null, null, List.of("PUSH"),
+                ReminderSource.USER, true, NOW, NOW);
+    }
 
     private Reminder scanRoutine(Instant nextRunAt, Instant lastSatisfiedAt) {
         return new Reminder(
@@ -215,6 +236,15 @@ class SendDueRemindersJobTest {
                 base.createdAt(), base.updatedAt());
     }
 
+    /** {@code MessageResolver} thật đọc {@code messages/notification_*.properties} THẬT. */
+    private static MessageResolver messages() {
+        ReloadableResourceBundleMessageSource source = new ReloadableResourceBundleMessageSource();
+        source.setBasenames("classpath:messages/notification");
+        source.setDefaultEncoding("UTF-8");
+        source.setUseCodeAsDefaultMessage(true);
+        return new MessageResolver(source);
+    }
+
     private static JobProperties properties() {
         JobProperties.JobSetting onlyThisJob =
                 new JobProperties.JobSetting(true, "0 */5 * * * *", Duration.ofSeconds(270), 200, 1_000, false);
@@ -222,13 +252,7 @@ class SendDueRemindersJobTest {
                 onlyThisJob, onlyThisJob, onlyThisJob, onlyThisJob, onlyThisJob);
     }
 
-    /* ------------------------------------------------------------------------------- fake */
 
-    /**
-     * Bảng {@code reminder} trong bộ nhớ. Hai điều cố ý mô phỏng đúng SQL thật, vì chúng là
-     * hợp đồng chứ không phải chi tiết: {@code findDueIds} lọc {@code type = 'SCAN_ROUTINE'}
-     * và {@code lockDue} từ chối dòng có {@code next_run_at} đã ở tương lai.
-     */
     private static final class FakeReminders implements ReminderRepository {
 
         private final Map<UUID, Reminder> rows = new LinkedHashMap<>();
@@ -308,9 +332,33 @@ class SendDueRemindersJobTest {
         public Optional<UUID> findActiveIdByCatAndType(UUID userId, UUID catId, String type) {
             return Optional.empty();
         }
+
+        @Override
+        public List<Reminder> findUnscheduledRrule(UUID afterId, int limit) {
+            return rows.values().stream()
+                    .filter(Reminder::active)
+                    .filter(row -> row.scheduleKind() == ScheduleKind.RRULE && row.nextRunAt() == null)
+                    .filter(row -> afterId == null || row.id().compareTo(afterId) > 0)
+                    .sorted((a, b) -> a.id().compareTo(b.id()))
+                    .limit(limit)
+                    .toList();
+        }
+
+        @Override
+        public boolean scheduleIfUnscheduled(UUID id, Instant nextRunAt) {
+            Reminder row = rows.get(id);
+            if (row == null || row.nextRunAt() != null) {
+                return false;
+            }
+            rows.put(id, new Reminder(row.id(), row.userId(), row.catId(), row.type(),
+                    row.scheduleKind(), row.intervalDays(), row.rrule(), row.preferredTimeStart(),
+                    row.preferredTimeEnd(), row.timezone(), nextRunAt, row.lastRunAt(),
+                    row.lastSatisfiedAt(), row.channels(), row.source(), row.active(),
+                    row.createdAt(), row.updatedAt()));
+            return true;
+        }
     }
 
-    /** Mọi mèo đều tên "Mochi" và đều còn sống, trừ khi test xoá {@link #names}. */
     private static final class FakeCats implements CatOwnershipPort {
 
         final Map<String, String> names = new LinkedHashMap<>(Map.of("any", "Mochi"));
@@ -326,18 +374,23 @@ class SendDueRemindersJobTest {
         }
     }
 
-    /** Cổng thông báo ghi lại mọi yêu cầu; {@link #failFor} ép một lịch ném lỗi. */
     private static final class RecordingGateway implements NotificationGateway {
 
         final List<NotificationRequest> requests = new ArrayList<>();
         UUID failFor;
+        Locale locale = Locale.forLanguageTag("vi");
 
         @Override
-        public void enqueue(NotificationRequest request) {
+        public Locale recipientLocale(UUID userId) {
+            return locale;
+        }
+
+        @Override
+        public boolean enqueue(NotificationRequest request) {
             if (failFor != null && failFor.equals(request.refId())) {
                 throw new IllegalStateException("gia lap loi mot thong bao");
             }
-            requests.add(request);
+            return requests.add(request);
         }
 
         @Override
@@ -351,7 +404,6 @@ class SendDueRemindersJobTest {
         }
     }
 
-    /** {@code job_run} trong bộ nhớ — đủ để kiểm "đúng một dòng mỗi lần chạy". */
     private static final class FakeJobRuns implements JobRunPort {
 
         record Row(UUID runId, String jobName, JobTriggerType triggerType, Instant startedAt,

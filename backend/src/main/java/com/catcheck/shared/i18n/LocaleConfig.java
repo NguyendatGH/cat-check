@@ -8,17 +8,6 @@ import org.springframework.context.support.ReloadableResourceBundleMessageSource
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
-/**
- * Cấu hình nguồn message (messages/errors, vi + en) và cách xác định locale của request
- * (mặc định qua header {@code Accept-Language}, rơi về {@code catcheck.i18n.default-locale}
- * khi client không gửi header).
- *
- * <p>{@code @EnableConfigurationProperties(I18nProperties.class)} — không có annotation này thì
- * {@code I18nProperties} (record {@code @ConfigurationProperties}) không được đăng ký làm bean, và
- * constructor dưới đây ném {@code NoSuchBeanDefinitionException} lúc khởi động context. Không có
- * {@code @ConfigurationPropertiesScan} nào ở {@code CatCheckApplication} bao trùm gói này, nên phải
- * tự bật ở đây (phát hiện qua smoke test khởi động context thật — trước đó không ai kiểm).</p>
- */
 @Configuration
 @EnableConfigurationProperties(I18nProperties.class)
 public class LocaleConfig {
@@ -29,11 +18,6 @@ public class LocaleConfig {
         this.i18nProperties = i18nProperties;
     }
 
-    /**
-     * Thứ tự basenames quan trọng: {@link ReloadableResourceBundleMessageSource} chỉ dùng basename
-     * ĐẦU TIÊN chứa khoá, nên {@code ErrorCode#code()} trùng tên giữa các module (vd
-     * {@code VALIDATION_FAILED}, {@code REASON_REQUIRED}) nhận câu dịch của module đứng trước.
-     */
     @Bean
     public MessageSource messageSource() {
         ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();

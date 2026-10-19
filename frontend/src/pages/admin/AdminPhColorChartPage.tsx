@@ -1,93 +1,90 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Circle, Copy, Loader2, Plus, ScanLine, Trash2, X } from "lucide-react";
 import { Button, Input, Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui";
-import { formatPh } from "@/shared/lib/format/formatPh";
 import { cn } from "@/shared/lib/cn";
-import { phTokenStyle, type PhBand } from "@/entities/ph-bands";
 import {
   AdminPageHeader,
   AdminSection,
   AdminSelect,
   ApiErrorNote,
   CHART_STATUSES,
+  DetailGrid,
   PRODUCT_LINES,
   Pager,
-  DenseTableFrame,
-  ReasonField,
+  ReasonConfirmDialog,
   SavedNote,
-  denseTableClass,
-  denseTdClass,
-  denseThClass,
   isHexColor,
-  isReasonValid,
   useAdminColorChart,
   useAdminColorCharts,
-  useAdminPhBands,
+  useCloneColorChart,
   useCreateColorChart,
   usePublishColorChart,
   useReplaceChartPoints,
   useUpdateColorChart,
-  useUpdatePhBand,
   type ChartStatus,
+  type ColorChartDetail,
   type ColorChartPoint,
-  type ColorChartPointInput,
+  type ColorChartSummary,
   type ProductLine,
 } from "@/features/admin";
 import { useGroup2Can } from "./group2Access";
+import { BandsSection } from "./phBandsSection";
+import {
+  DRAFT_NUMBER_FIELDS,
+  draftToInput,
+  emptyDraft,
+  findActiveConflict,
+  isDraftComplete,
+  isTechComplete,
+  isUsedByScans,
+  patchDraft,
+  publishChecks,
+  toDraft,
+  type DraftTextField,
+  type PointDraft,
+} from "./phChartModel";
+import {
+  ChartBadges,
+  ChartExplainer,
+  ChartMetaLine,
+  PlaceholderBadge,
+  RowSwatchStrip,
+  SwatchGrid,
+  SwatchStrip,
+  useChartLabels,
+} from "./phChartView";
 
-/**
- * `/admin/ph-color-chart` — quản trị bảng màu pH và dải phân loại.
- *
- * NỐI API THẬT, toàn bộ `colorchart/api/AdminColorChartController`:
- * L27 `GET /admin/color-charts` · L28 `POST /admin/color-charts` ·
- * L29 `GET /admin/color-charts/{chartId}` · L30 `PATCH …` ·
- * L31 `PUT …/points` · L32 `POST …/publish` ·
- * L36 `GET /admin/ph-classification-bands` · L37 `PATCH …/{code}`.
- *
- * Hai điều phải giữ đúng ở màn này:
- *
- * 1. **`If-Match`** — L30/L31/L37 bắt buộc; giá trị lấy nguyên văn từ header `ETag` của
- *    lần GET gần nhất (`useAdminColorChart`/`useAdminPhBands` trả cả body lẫn ETag).
- *    Sửa khi ETag cũ ⇒ server trả 412, đúng ý đồ chống ghi đè.
- * 2. **KHÔNG hard-code giá trị pH** — mọi `phValue`, `phMin`, `phMax` hiển thị đều lấy
- *    từ response. Màu swatch cũng vậy: `displayHex` là dữ liệu, không phải literal trong
- *    mã (ESLint chặn literal hex trong `.tsx`).
- *
- * Ngưỡng `minPh`/`maxPh` của dải phân loại CHỈ ĐỌC ở đây: p8 L37 ghi "đổi ngưỡng ⇒
- * step-up", mà lớp step-up (`S1:TOTP`) chưa được nối — javadoc controller nói rõ. Mở ô
- * nhập ngưỡng lúc này là mở đúng thứ spec bắt phải khoá.
- */
-
-const CHART_STATUS_CLASS: Record<ChartStatus, string> = {
-  DRAFT: "bg-background-alt text-text-secondary",
-  ACTIVE: "bg-success-bg text-success-text",
-  ARCHIVED: "bg-chip-bg text-text-tertiary",
-};
-
-/** Ô màu lấy thẳng từ dữ liệu server — không có literal màu nào trong file này. */
-function Swatch({ hex }: { hex: string }) {
+function ProductLineSelect({
+  value,
+  onChange,
+}: {
+  value: ProductLine;
+  onChange: (value: ProductLine) => void;
+}) {
   const { t } = useTranslation("admin");
-  if (!isHexColor(hex)) {
-    return (
-      <span
-        className="inline-block size-6 rounded-md border border-dashed border-border align-middle"
-        title={t("chart.invalidHex")}
-      />
-    );
-  }
+  const labels = useChartLabels();
   return (
-    <span
-      className="inline-block size-6 rounded-md border border-border align-middle"
-      style={{ backgroundColor: hex }}
-      title={hex}
-    />
+    <div className="flex flex-col gap-1">
+      <AdminSelect
+        label={t("chart.fieldProductLine")}
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value as ProductLine);
+        }}
+      >
+        {PRODUCT_LINES.map((line) => (
+          <option key={line} value={line}>
+            {labels.productLine(line)}
+          </option>
+        ))}
+      </AdminSelect>
+      <p className="text-small text-text-tertiary">{t("chart.fieldProductLineHelp")}</p>
+    </div>
   );
 }
 
-// ------------------------------------------------------------- tạo bản DRAFT
-
-function CreateChartForm({ onDone }: { onDone: () => void }) {
+function CreateChartForm({ onDone }: { onDone: (createdId: string | null) => void }) {
   const { t } = useTranslation("admin");
   const create = useCreateColorChart();
   const [code, setCode] = useState("");
@@ -110,11 +107,11 @@ function CreateChartForm({ onDone }: { onDone: () => void }) {
             ...(productionBatch.trim().length > 0 ? { productionBatch: productionBatch.trim() } : {}),
           },
           {
-            onSuccess: () => {
+            onSuccess: (created) => {
               setCode("");
               setName("");
               setProductionBatch("");
-              onDone();
+              onDone(created.id);
             },
           },
         );
@@ -122,35 +119,25 @@ function CreateChartForm({ onDone }: { onDone: () => void }) {
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Input
-          label={t("chart.fieldCode")}
-          helperText={t("chart.fieldCodeHelp")}
-          value={code}
-          onChange={(event) => {
-            setCode(event.target.value);
-          }}
-        />
-        <Input
           label={t("chart.fieldName")}
+          helperText={t("chart.fieldNameHelp")}
           value={name}
           onChange={(event) => {
             setName(event.target.value);
           }}
         />
-        <AdminSelect
-          label={t("chart.fieldProductLine")}
-          value={productLine}
+        <Input
+          label={t("chart.fieldCode")}
+          helperText={t("chart.fieldCodeHelpVersion")}
+          value={code}
           onChange={(event) => {
-            setProductLine(event.target.value as ProductLine);
+            setCode(event.target.value);
           }}
-        >
-          {PRODUCT_LINES.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </AdminSelect>
+        />
+        <ProductLineSelect value={productLine} onChange={setProductLine} />
         <Input
           label={t("chart.fieldBatch")}
+          helperText={t("chart.fieldBatchHelp")}
           value={productionBatch}
           onChange={(event) => {
             setProductionBatch(event.target.value);
@@ -160,11 +147,18 @@ function CreateChartForm({ onDone }: { onDone: () => void }) {
 
       <ApiErrorNote error={create.error} />
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" size="md" disabled={!canSubmit} loading={create.isPending}>
           {t("chart.createSubmit")}
         </Button>
-        <Button type="button" variant="tertiary" size="md" onClick={onDone}>
+        <Button
+          type="button"
+          variant="tertiary"
+          size="md"
+          onClick={() => {
+            onDone(null);
+          }}
+        >
           {t("actions.cancel")}
         </Button>
       </div>
@@ -172,193 +166,187 @@ function CreateChartForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ------------------------------------------------------------- soạn các điểm
-
-interface PointDraft {
-  key: string;
-  phValue: string;
-  labL: string;
-  labA: string;
-  labB: string;
-  toleranceDeltaE: string;
-  hexSrgb: string;
-  displayHex: string;
-  displayNameVi: string;
-  displayNameEn: string;
-}
-
-function toDraft(point: ColorChartPoint): PointDraft {
-  return {
-    key: point.id,
-    phValue: String(point.phValue),
-    labL: String(point.labL),
-    labA: String(point.labA),
-    labB: String(point.labB),
-    toleranceDeltaE: String(point.toleranceDeltaE),
-    hexSrgb: point.hexSrgb ?? "",
-    displayHex: point.displayHex,
-    displayNameVi: point.displayNameVi,
-    displayNameEn: point.displayNameEn ?? "",
-  };
-}
-
-function emptyDraft(): PointDraft {
-  return {
-    key: `new-${String(Date.now())}-${String(Math.random()).slice(2, 8)}`,
-    phValue: "",
-    labL: "",
-    labA: "",
-    labB: "",
-    toleranceDeltaE: "",
-    hexSrgb: "",
-    displayHex: "",
-    displayNameVi: "",
-    displayNameEn: "",
-  };
-}
-
-function draftToInput(draft: PointDraft): ColorChartPointInput {
-  return {
-    phValue: Number(draft.phValue),
-    labL: Number(draft.labL),
-    labA: Number(draft.labA),
-    labB: Number(draft.labB),
-    toleranceDeltaE: Number(draft.toleranceDeltaE),
-    hexSrgb: draft.hexSrgb.trim().length > 0 ? draft.hexSrgb.trim() : null,
-    displayHex: draft.displayHex.trim(),
-    displayNameVi: draft.displayNameVi.trim(),
-    displayNameEn: draft.displayNameEn.trim().length > 0 ? draft.displayNameEn.trim() : null,
-  };
-}
-
-function isDraftComplete(draft: PointDraft): boolean {
-  const numbers = [draft.phValue, draft.labL, draft.labA, draft.labB, draft.toleranceDeltaE];
+function SmallField({
+  label,
+  value,
+  onChange,
+  numeric = false,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  numeric?: boolean;
+  mono?: boolean;
+}) {
   return (
-    numbers.every((value) => value.trim().length > 0 && !Number.isNaN(Number(value))) &&
-    isHexColor(draft.displayHex.trim()) &&
-    draft.displayNameVi.trim().length > 0 &&
-    (draft.hexSrgb.trim().length === 0 || isHexColor(draft.hexSrgb.trim()))
+    <label className="flex min-w-0 flex-col gap-1 text-small text-text-secondary">
+      {label}
+      <input
+        type={numeric ? "number" : "text"}
+        step={numeric ? "any" : undefined}
+        inputMode={numeric ? "decimal" : undefined}
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        className={cn(
+          "h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-2.5 text-caption text-text-primary",
+          mono && "font-mono",
+        )}
+      />
+    </label>
   );
 }
 
-const DRAFT_NUMBER_FIELDS = ["phValue", "labL", "labA", "labB", "toleranceDeltaE"] as const;
-const DRAFT_TEXT_FIELDS = ["hexSrgb", "displayHex", "displayNameVi", "displayNameEn"] as const;
-
-/** Khoá i18n cho nhãn cột — dùng lại làm `aria-label` của ô nhập trong cùng cột. */
-const DRAFT_FIELD_LABEL_KEY: Record<(typeof DRAFT_NUMBER_FIELDS)[number] | (typeof DRAFT_TEXT_FIELDS)[number], string> =
-  {
-    phValue: "chart.colPh",
-    labL: "chart.colLabL",
-    labA: "chart.colLabA",
-    labB: "chart.colLabB",
-    toleranceDeltaE: "chart.colTolerance",
-    hexSrgb: "chart.colHexSrgb",
-    displayHex: "chart.colDisplayHex",
-    displayNameVi: "chart.colNameVi",
-    displayNameEn: "chart.colNameEn",
-  };
-
-function PointsEditor({
-  chartId,
-  etag,
-  points,
-  editable,
+function PointCard({
+  draft,
+  onPatch,
+  onRemove,
 }: {
-  chartId: string;
-  etag: string | null;
-  points: ColorChartPoint[];
-  editable: boolean;
+  draft: PointDraft;
+  onPatch: (field: DraftTextField, value: string) => void;
+  onRemove: () => void;
 }) {
   const { t } = useTranslation("admin");
+  const complete = isDraftComplete(draft);
+  const hex = draft.displayHex.trim();
+  const valid = isHexColor(hex);
+  return (
+    <li
+      className={cn(
+        "flex flex-col gap-3 rounded-xl border bg-surface p-3",
+        complete ? "border-border" : "border-warning-text/40 bg-warning-bg/30",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            "size-12 shrink-0 rounded-lg border",
+            valid ? "border-black/10" : "border-dashed border-border",
+          )}
+          style={valid ? { backgroundColor: hex } : undefined}
+          title={valid ? hex : t("chart.invalidHex")}
+          aria-hidden="true"
+        />
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+          <SmallField
+            label={t("chart.colPh")}
+            value={draft.phValue}
+            numeric
+            onChange={(value) => {
+              onPatch("phValue", value);
+            }}
+          />
+          <SmallField
+            label={t("chart.colDisplayHex")}
+            value={draft.displayHex}
+            mono
+            onChange={(value) => {
+              onPatch("displayHex", value);
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          aria-label={t("chart.colRemove")}
+          title={t("chart.colRemove")}
+          onClick={onRemove}
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-danger hover:bg-danger-bg"
+        >
+          <Trash2 size={16} aria-hidden="true" />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <SmallField
+          label={t("chart.colNameVi")}
+          value={draft.displayNameVi}
+          onChange={(value) => {
+            onPatch("displayNameVi", value);
+          }}
+        />
+        <SmallField
+          label={t("chart.colNameEn")}
+          value={draft.displayNameEn}
+          onChange={(value) => {
+            onPatch("displayNameEn", value);
+          }}
+        />
+      </div>
+      <details open={!isTechComplete(draft)} className="rounded-lg bg-background-alt/60 p-2.5">
+        <summary className="cursor-pointer text-small font-semibold text-text-secondary">
+          {t("chart.techTitle")}
+        </summary>
+        <p className="pt-1 text-small text-text-tertiary">{t("chart.techHelp")}</p>
+        <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-5">
+          {DRAFT_NUMBER_FIELDS.filter((field) => field !== "phValue").map((field) => (
+            <SmallField
+              key={field}
+              label={t(`chart.field.${field}`)}
+              value={draft[field]}
+              numeric
+              onChange={(value) => {
+                onPatch(field, value);
+              }}
+            />
+          ))}
+          <SmallField
+            label={t("chart.colHexSrgb")}
+            value={draft.hexSrgb}
+            mono
+            onChange={(value) => {
+              onPatch("hexSrgb", value);
+            }}
+          />
+        </div>
+      </details>
+    </li>
+  );
+}
+
+function PointsEditor({ chart, etag }: { chart: ColorChartDetail; etag: string | null }) {
+  const { t } = useTranslation("admin");
   const replace = useReplaceChartPoints();
-  const [drafts, setDrafts] = useState<PointDraft[]>(() => points.map(toDraft));
-  const [reason, setReason] = useState("");
-  const [touched, setTouched] = useState(false);
+  const [drafts, setDrafts] = useState<PointDraft[]>(() => chart.points.map(toDraft));
+  const [confirming, setConfirming] = useState(false);
 
   const allComplete = drafts.length > 0 && drafts.every(isDraftComplete);
+  const previewStops = drafts
+    .filter((draft) => draft.phValue.trim() !== "" && !Number.isNaN(Number(draft.phValue)))
+    .map((draft) => ({ key: draft.key, phValue: Number(draft.phValue), hex: draft.displayHex.trim() }))
+    .sort((a, b) => a.phValue - b.phValue);
 
-  const patch = (key: string, field: keyof PointDraft, value: string) => {
-    setDrafts((current) => current.map((draft) => (draft.key === key ? { ...draft, [field]: value } : draft)));
+  const patch = (key: string, field: DraftTextField, value: string) => {
+    setDrafts((current) => current.map((draft) => (draft.key === key ? patchDraft(draft, field, value) : draft)));
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <DenseTableFrame label={t("chart.pointsTitle")}>
-        <table className={cn(denseTableClass, "min-w-[980px]")}>
-          <thead>
-            <tr>
-              <th className={denseThClass}>{t("chart.colPh")}</th>
-              <th className={denseThClass}>{t("chart.colLabL")}</th>
-              <th className={denseThClass}>{t("chart.colLabA")}</th>
-              <th className={denseThClass}>{t("chart.colLabB")}</th>
-              <th className={denseThClass}>{t("chart.colTolerance")}</th>
-              <th className={denseThClass}>{t("chart.colHexSrgb")}</th>
-              <th className={denseThClass}>{t("chart.colDisplayHex")}</th>
-              <th className={denseThClass}>{t("chart.colNameVi")}</th>
-              <th className={denseThClass}>{t("chart.colNameEn")}</th>
-              <th className={denseThClass}>{t("chart.colRemove")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {drafts.map((draft) => (
-              <tr key={draft.key} className={isDraftComplete(draft) ? undefined : "bg-warning-bg/40"}>
-                {DRAFT_NUMBER_FIELDS.map((field) => (
-                  <td key={field} className={denseTdClass}>
-                    <input
-                      type="number"
-                      step="any"
-                      disabled={!editable}
-                      aria-label={t(DRAFT_FIELD_LABEL_KEY[field])}
-                      value={draft[field]}
-                      onChange={(event) => {
-                        patch(draft.key, field, event.target.value);
-                      }}
-                      className="h-9 w-24 rounded-lg bg-background-alt/70 px-2 text-caption text-text-primary disabled:opacity-50"
-                    />
-                  </td>
-                ))}
-                {DRAFT_TEXT_FIELDS.map((field) => (
-                  <td key={field} className={denseTdClass}>
-                    <span className="flex items-center gap-1.5">
-                      {field === "displayHex" ? <Swatch hex={draft.displayHex} /> : null}
-                      <input
-                        type="text"
-                        disabled={!editable}
-                        aria-label={t(DRAFT_FIELD_LABEL_KEY[field])}
-                        value={draft[field]}
-                        onChange={(event) => {
-                          patch(draft.key, field, event.target.value);
-                        }}
-                        className="h-9 w-32 rounded-lg bg-background-alt/70 px-2 font-mono text-caption text-text-primary disabled:opacity-50"
-                      />
-                    </span>
-                  </td>
-                ))}
-                <td className={denseTdClass}>
-                  <button
-                    type="button"
-                    disabled={!editable}
-                    aria-label={t("chart.colRemove")}
-                    onClick={() => {
-                      setDrafts((current) => current.filter((item) => item.key !== draft.key));
-                    }}
-                    className="text-danger disabled:opacity-40"
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </DenseTableFrame>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-small font-semibold text-text-secondary">{t("chart.previewTitle")}</p>
+        <SwatchStrip stops={previewStops} />
+      </div>
+
+      <ul className="grid gap-3 lg:grid-cols-2">
+        {drafts.map((draft) => (
+          <PointCard
+            key={draft.key}
+            draft={draft}
+            onPatch={(field, value) => {
+              patch(draft.key, field, value);
+            }}
+            onRemove={() => {
+              setDrafts((current) => current.filter((item) => item.key !== draft.key));
+            }}
+          />
+        ))}
+      </ul>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           variant="tertiary"
           size="sm"
-          disabled={!editable}
           leftIcon={<Plus size={15} />}
           onClick={() => {
             setDrafts((current) => [...current, emptyDraft()]);
@@ -370,9 +358,8 @@ function PointsEditor({
           type="button"
           variant="tertiary"
           size="sm"
-          disabled={!editable}
           onClick={() => {
-            setDrafts(points.map(toDraft));
+            setDrafts(chart.points.map(toDraft));
           }}
         >
           {t("chart.resetPoints")}
@@ -383,431 +370,469 @@ function PointsEditor({
       {!allComplete && drafts.length > 0 ? (
         <p className="text-caption text-warning-text">{t("chart.pointsIncomplete")}</p>
       ) : null}
-
-      <ReasonField value={reason} onChange={setReason} showError={touched} disabled={!editable} />
-      <ApiErrorNote error={replace.error} />
       <SavedNote visible={replace.isSuccess} />
 
       <Button
         type="button"
         size="md"
         className="self-start"
-        disabled={!editable || !allComplete}
-        loading={replace.isPending}
+        disabled={!allComplete}
         onClick={() => {
-          setTouched(true);
-          if (!isReasonValid(reason)) {
-            return;
-          }
-          replace.mutate(
-            { chartId, etag, points: drafts.map(draftToInput), reason: reason.trim() },
-            {
-              onSuccess: () => {
-                setReason("");
-                setTouched(false);
-              },
-            },
-          );
+          replace.reset();
+          setConfirming(true);
         }}
       >
         {t("chart.savePoints")}
       </Button>
+
+      <ReasonConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t("chart.savePointsConfirmTitle")}
+        target={`${chart.name} · ${t("chart.versionLabel", { version: chart.version })}`}
+        consequence={t("chart.savePointsConsequence", { count: drafts.length })}
+        confirmLabel={t("chart.savePoints")}
+        pending={replace.isPending}
+        error={replace.error}
+        onConfirm={(reason) => {
+          replace.mutate(
+            { chartId: chart.id, etag, points: drafts.map(draftToInput), reason },
+            {
+              onSuccess: () => {
+                setConfirming(false);
+              },
+            },
+          );
+        }}
+      />
     </div>
   );
 }
 
-// ------------------------------------------------------------- chi tiết bảng
+function MetaEditor({ chart, etag }: { chart: ColorChartDetail; etag: string | null }) {
+  const { t } = useTranslation("admin");
+  const update = useUpdateColorChart();
+  const [name, setName] = useState(chart.name);
+  const [productLine, setProductLine] = useState<ProductLine>(chart.productLine ?? "STANDARD");
+  const [productionBatch, setProductionBatch] = useState(chart.productionBatch ?? "");
+  const [confirming, setConfirming] = useState(false);
 
-function ChartDetailPanel({ chartId, onClose }: { chartId: string; onClose: () => void }) {
+  const dirty =
+    name.trim() !== chart.name ||
+    productLine !== (chart.productLine ?? "STANDARD") ||
+    productionBatch.trim() !== (chart.productionBatch ?? "");
+
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        update.reset();
+        setConfirming(true);
+      }}
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        <Input
+          label={t("chart.fieldName")}
+          helperText={t("chart.fieldNameHelp")}
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+          }}
+        />
+        <ProductLineSelect value={productLine} onChange={setProductLine} />
+        <Input
+          label={t("chart.fieldBatch")}
+          helperText={t("chart.fieldBatchHelp")}
+          value={productionBatch}
+          onChange={(event) => {
+            setProductionBatch(event.target.value);
+          }}
+        />
+      </div>
+      <SavedNote visible={update.isSuccess} />
+      <Button type="submit" size="md" className="self-start" disabled={!dirty || name.trim().length === 0}>
+        {t("chart.saveMeta")}
+      </Button>
+
+      <ReasonConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t("chart.saveMetaConfirmTitle")}
+        target={`${chart.name} · ${t("chart.versionLabel", { version: chart.version })}`}
+        consequence={t("chart.saveMetaConsequence")}
+        confirmLabel={t("chart.saveMeta")}
+        pending={update.isPending}
+        error={update.error}
+        onConfirm={(reason) => {
+          update.mutate(
+            {
+              chartId: chart.id,
+              etag,
+              payload: { name: name.trim(), productLine, productionBatch: productionBatch.trim() },
+              reason,
+            },
+            {
+              onSuccess: () => {
+                setConfirming(false);
+              },
+            },
+          );
+        }}
+      />
+    </form>
+  );
+}
+
+function PublishPanel({ chart, activeCharts }: { chart: ColorChartDetail; activeCharts: readonly ColorChartSummary[] }) {
+  const { t } = useTranslation("admin");
+  const publish = usePublishColorChart();
+  const labels = useChartLabels();
+  const [confirming, setConfirming] = useState(false);
+  const checks = publishChecks(chart.points);
+  const ready = checks.every((check) => check.ok);
+  const conflict = findActiveConflict(chart, activeCharts);
+  const willBeUsedByScans = isUsedByScans({ ...chart, status: "ACTIVE" });
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
+      <p className="text-body font-semibold text-text-primary">{t("chart.publishSection")}</p>
+      <p className="text-caption text-text-secondary">
+        {willBeUsedByScans ? t("chart.publishBodyScan") : t("chart.publishBodyOther")}
+      </p>
+      <ul className="flex flex-col gap-1" aria-label={t("chart.checksLabel")}>
+        {checks.map((check) => (
+          <li
+            key={check.key}
+            className={cn("flex items-center gap-2 text-caption", check.ok ? "text-success-text" : "text-text-secondary")}
+          >
+            {check.ok ? <CheckCircle2 size={15} aria-hidden="true" /> : <Circle size={15} aria-hidden="true" />}
+            {t(`chart.check.${check.key}`)}
+          </li>
+        ))}
+      </ul>
+      <p className="text-small text-text-tertiary">{t("chart.checksNote")}</p>
+      {conflict !== undefined ? (
+        <p className="flex items-start gap-2 rounded-lg bg-warning-bg p-2.5 text-caption text-warning-text">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+          {t("chart.publishConflict", {
+            name: conflict.name,
+            version: conflict.version,
+            line: labels.productLine(conflict.productLine),
+            batch: labels.batch(conflict),
+          })}
+        </p>
+      ) : null}
+      <Button
+        type="button"
+        size="md"
+        className="self-start"
+        disabled={!ready}
+        onClick={() => {
+          publish.reset();
+          setConfirming(true);
+        }}
+      >
+        {t("chart.publishAction")}
+      </Button>
+
+      <ReasonConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t("chart.publishConfirmTitle")}
+        target={`${chart.name} · ${t("chart.versionLabel", { version: chart.version })}`}
+        consequence={
+          conflict !== undefined
+            ? t("chart.publishConsequenceReplace", { name: conflict.name, version: conflict.version })
+            : willBeUsedByScans
+              ? t("chart.publishConsequenceScan")
+              : t("chart.publishConsequence")
+        }
+        confirmLabel={t("chart.publishAction")}
+        pending={publish.isPending}
+        error={publish.error}
+        onConfirm={(reason) => {
+          publish.mutate(
+            { chartId: chart.id, reason },
+            {
+              onSuccess: () => {
+                setConfirming(false);
+              },
+            },
+          );
+        }}
+      />
+    </div>
+  );
+}
+
+function CloneAction({ chart, onCreated }: { chart: ColorChartDetail; onCreated: (id: string) => void }) {
+  const { t } = useTranslation("admin");
+  const clone = useCloneColorChart();
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <>
+      <Button
+        type="button"
+        size="md"
+        className="self-start"
+        leftIcon={<Copy size={15} />}
+        onClick={() => {
+          clone.reset();
+          setConfirming(true);
+        }}
+      >
+        {t("chart.cloneCta")}
+      </Button>
+      <ReasonConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t("chart.cloneConfirmTitle")}
+        target={`${chart.name} · ${t("chart.versionLabel", { version: chart.version })}`}
+        consequence={t("chart.cloneConsequence", { count: chart.points.length })}
+        confirmLabel={t("chart.cloneCta")}
+        pending={clone.isPending}
+        error={clone.error}
+        onConfirm={(reason) => {
+          clone.mutate(
+            { source: chart, reason },
+            {
+              onSuccess: (created) => {
+                setConfirming(false);
+                onCreated(created.id);
+              },
+            },
+          );
+        }}
+      />
+    </>
+  );
+}
+
+function ChartDetailPanel({
+  chartId,
+  activeCharts,
+  onClose,
+  onSelect,
+}: {
+  chartId: string;
+  activeCharts: readonly ColorChartSummary[];
+  onClose: () => void;
+  onSelect: (id: string) => void;
+}) {
   const { t } = useTranslation("admin");
   const detail = useAdminColorChart(chartId);
-  const update = useUpdateColorChart();
-  const publish = usePublishColorChart();
   const canEdit = useGroup2Can()("colorChart");
+  const labels = useChartLabels();
+  const ref = useRef<HTMLDivElement>(null);
 
-  const [name, setName] = useState<string | null>(null);
-  const [productLine, setProductLine] = useState<ProductLine | null>(null);
-  const [productionBatch, setProductionBatch] = useState<string | null>(null);
-  const [metaReason, setMetaReason] = useState("");
-  const [metaTouched, setMetaTouched] = useState(false);
-  const [publishReason, setPublishReason] = useState("");
-  const [publishTouched, setPublishTouched] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (el !== null && "scrollIntoView" in el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [chartId]);
 
-  if (detail.isPending) {
+  const closeButton = (
+    <Button type="button" variant="tertiary" size="sm" leftIcon={<X size={15} />} onClick={onClose}>
+      {t("actions.close")}
+    </Button>
+  );
+
+  if (detail.isPending || detail.isError) {
     return (
-      <AdminSection title={t("chart.detailTitle")}>
-        <p className="flex items-center gap-2 text-caption text-text-secondary">
-          <Loader2 size={15} className="animate-spin" aria-hidden="true" />
-          {t("feedback.loading")}
-        </p>
-      </AdminSection>
-    );
-  }
-
-  if (detail.isError) {
-    return (
-      <AdminSection title={t("chart.detailTitle")}>
-        <ApiErrorNote error={detail.error} />
-      </AdminSection>
+      <div ref={ref}>
+        <AdminSection title={t("chart.detailTitle")} actions={closeButton}>
+          {detail.isPending ? (
+            <p className="flex items-center gap-2 text-caption text-text-secondary">
+              <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+              {t("feedback.loading")}
+            </p>
+          ) : (
+            <ApiErrorNote error={detail.error} />
+          )}
+        </AdminSection>
+      </div>
     );
   }
 
   const chart = detail.data.data;
   const etag = detail.data.etag;
-  /** L30 — sửa bản ACTIVE ⇒ 409 COLOR_CHART_IN_USE, nên chỉ DRAFT mới mở ô nhập. */
-  const editable = chart.status === "DRAFT" && canEdit;
+  const isDraft = chart.status === "DRAFT";
+  const editable = isDraft && canEdit;
+  const pointsKey = chart.points.map((point: ColorChartPoint) => point.id).join(",");
 
   return (
-    <AdminSection
-      title={t("chart.detailOf", { code: chart.code, version: chart.version })}
-      description={t("chart.detailSubtitle", { status: t(`chart.status.${chart.status}`), source: chart.source })}
-      actions={
-        <Button type="button" variant="tertiary" size="sm" leftIcon={<X size={15} />} onClick={onClose}>
-          {t("actions.close")}
-        </Button>
-      }
-    >
-      {!editable ? <p className="text-caption text-warning-text">{t("chart.readOnlyNote")}</p> : null}
-
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setMetaTouched(true);
-          if (!isReasonValid(metaReason)) {
-            return;
-          }
-          update.mutate(
-            {
-              chartId,
-              etag,
-              payload: {
-                name: (name ?? chart.name).trim(),
-                productLine: productLine ?? chart.productLine ?? undefined,
-                productionBatch: (productionBatch ?? chart.productionBatch ?? "").trim(),
-              },
-              reason: metaReason.trim(),
-            },
-            {
-              onSuccess: () => {
-                setMetaReason("");
-                setMetaTouched(false);
-              },
-            },
-          );
-        }}
+    <div ref={ref} className="scroll-mt-4">
+      <AdminSection
+        title={chart.name}
+        description={t("chart.detailOf", { code: chart.code, version: chart.version })}
+        actions={closeButton}
       >
-        <div className="grid gap-4 md:grid-cols-3">
-          <Input
-            label={t("chart.fieldName")}
-            value={name ?? chart.name}
-            disabled={!editable}
-            onChange={(event) => {
-              setName(event.target.value);
-            }}
-          />
-          <AdminSelect
-            label={t("chart.fieldProductLine")}
-            value={productLine ?? chart.productLine ?? "STANDARD"}
-            disabled={!editable}
-            onChange={(event) => {
-              setProductLine(event.target.value as ProductLine);
-            }}
-          >
-            {PRODUCT_LINES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </AdminSelect>
-          <Input
-            label={t("chart.fieldBatch")}
-            value={productionBatch ?? chart.productionBatch ?? ""}
-            disabled={!editable}
-            onChange={(event) => {
-              setProductionBatch(event.target.value);
-            }}
-          />
-        </div>
+        <ChartBadges chart={chart} />
+        {chart.placeholder ? (
+          <p className="flex items-start gap-2 rounded-lg bg-warning-bg p-3 text-caption text-warning-text">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+            {t("chart.placeholderHelp")}
+          </p>
+        ) : null}
 
-        <ReasonField value={metaReason} onChange={setMetaReason} showError={metaTouched} disabled={!editable} />
-        <ApiErrorNote error={update.error} />
-        <SavedNote visible={update.isSuccess} />
-
-        <Button type="submit" size="md" className="self-start" disabled={!editable} loading={update.isPending}>
-          {t("chart.saveMeta")}
-        </Button>
-      </form>
-
-      <div className="border-t border-border pt-4">
-        <h3 className="pb-3 text-body font-bold text-text-primary">{t("chart.pointsTitle")}</h3>
-        <PointsEditor
-          key={chart.points.map((point) => point.id).join(",")}
-          chartId={chartId}
-          etag={etag}
-          points={chart.points}
-          editable={editable}
+        <DetailGrid
+          items={[
+            [t("chart.metaProductLine"), labels.productLine(chart.productLine)],
+            [
+              t("chart.metaBatch"),
+              <span key="batch">
+                {labels.batch(chart)}
+                <span className="block text-small text-text-tertiary">
+                  {chart.productionBatch ? t("chart.batchSpecificHelp") : t("chart.batchDefaultHelp")}
+                </span>
+              </span>,
+            ],
+            [
+              t("chart.metaSource"),
+              <span key="source">
+                {labels.source(chart.source)}
+                <span className="block text-small text-text-tertiary">
+                  {t(`chart.sourceHelp.${chart.source}`, "")}
+                </span>
+              </span>,
+            ],
+            [
+              t("chart.metaScan"),
+              isUsedByScans(chart) ? t("chart.metaScanYes") : t("chart.metaScanNo"),
+            ],
+          ]}
         />
-      </div>
 
-      {editable ? (
-        <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
-          <p className="text-body font-semibold text-text-primary">{t("chart.publishTitle")}</p>
-          <p className="text-caption text-text-secondary">{t("chart.publishBody")}</p>
-          <ReasonField value={publishReason} onChange={setPublishReason} showError={publishTouched} />
-          <ApiErrorNote error={publish.error} />
-          <Button
-            type="button"
-            size="md"
-            className="self-start"
-            loading={publish.isPending}
-            onClick={() => {
-              setPublishTouched(true);
-              if (!isReasonValid(publishReason)) {
-                return;
-              }
-              publish.mutate(
-                { chartId, reason: publishReason.trim() },
-                {
-                  onSuccess: () => {
-                    setPublishReason("");
-                    setPublishTouched(false);
-                  },
-                },
-              );
-            }}
-          >
-            {t("chart.publishCta")}
-          </Button>
-        </div>
-      ) : null}
-    </AdminSection>
-  );
-}
-
-// ------------------------------------------------------------- dải phân loại
-
-function BandEditor({ band, etag, onClose }: { band: PhBand; etag: string | null; onClose: () => void }) {
-  const { t, i18n } = useTranslation("admin");
-  const update = useUpdatePhBand();
-  /**
-   * L36 trả `label`/`description` ĐÃ resolve theo `Accept-Language`, không trả riêng
-   * cặp vi/en. Nên chỉ ghi lại đúng cặp của ngôn ngữ đang dùng — ghi nhãn tiếng Anh vào
-   * cột tiếng Việt là làm hỏng dữ liệu của locale kia.
-   */
-  const isEnglish = i18n.language.startsWith("en");
-
-  const [label, setLabel] = useState(band.label);
-  const [description, setDescription] = useState(band.description);
-  const [iconName, setIconName] = useState(band.iconName);
-  const [triggersAlert, setTriggersAlert] = useState(band.triggersAlert);
-  const [reason, setReason] = useState("");
-  const [touched, setTouched] = useState(false);
-
-  return (
-    <div className="flex flex-col gap-4 rounded-xl bg-background-alt/70 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-body font-semibold text-text-primary">{t("band.editorTitle", { code: band.code })}</p>
-        <Button type="button" variant="tertiary" size="sm" leftIcon={<X size={15} />} onClick={onClose}>
-          {t("actions.close")}
-        </Button>
-      </div>
-
-      <p className="text-caption text-text-secondary">
-        {t("band.localeNote", { locale: isEnglish ? t("content.localeEn") : t("content.localeVi") })}
-      </p>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Input
-          label={t("band.fieldLabel")}
-          value={label}
-          onChange={(event) => {
-            setLabel(event.target.value);
-          }}
-        />
-        <Input
-          label={t("band.fieldIcon")}
-          helperText={t("band.fieldIconHelp")}
-          value={iconName}
-          onChange={(event) => {
-            setIconName(event.target.value);
-          }}
-        />
-      </div>
-
-      <Input
-        label={t("band.fieldDescription")}
-        value={description}
-        onChange={(event) => {
-          setDescription(event.target.value);
-        }}
-      />
-
-      <label className="flex items-center gap-2 text-caption text-text-secondary">
-        <input
-          type="checkbox"
-          checked={triggersAlert}
-          onChange={(event) => {
-            setTriggersAlert(event.target.checked);
-          }}
-          className="size-4"
-        />
-        {t("band.fieldTriggersAlert")}
-      </label>
-
-      <p className="text-small text-text-tertiary">{t("band.thresholdLocked")}</p>
-
-      <ReasonField value={reason} onChange={setReason} showError={touched} />
-      <ApiErrorNote error={update.error} />
-      <SavedNote visible={update.isSuccess} />
-
-      <Button
-        type="button"
-        size="md"
-        className="self-start"
-        loading={update.isPending}
-        onClick={() => {
-          setTouched(true);
-          if (!isReasonValid(reason)) {
-            return;
-          }
-          update.mutate(
-            {
-              code: band.code,
-              etag,
-              payload: {
-                ...(isEnglish
-                  ? { labelEn: label.trim(), descriptionEn: description.trim() }
-                  : { labelVi: label.trim(), descriptionVi: description.trim() }),
-                iconName: iconName.trim(),
-                triggersAlert,
-              },
-              reason: reason.trim(),
-            },
-            {
-              onSuccess: () => {
-                setReason("");
-                setTouched(false);
-              },
-            },
-          );
-        }}
-      >
-        {t("band.saveCta")}
-      </Button>
+        {editable ? (
+          <>
+            <section className="flex flex-col gap-3 border-t border-border pt-4">
+              <div>
+                <h3 className="text-body font-bold text-text-primary">{t("chart.metaTitle")}</h3>
+                <p className="text-small text-text-tertiary">{t("chart.metaHelp")}</p>
+              </div>
+              <MetaEditor key={`${chart.name}|${chart.productLine ?? ""}|${chart.productionBatch ?? ""}`} chart={chart} etag={etag} />
+            </section>
+            <section className="flex flex-col gap-3 border-t border-border pt-4">
+              <div>
+                <h3 className="text-body font-bold text-text-primary">{t("chart.pointsTitle")}</h3>
+                <p className="text-small text-text-tertiary">{t("chart.pointsHelp")}</p>
+              </div>
+              <PointsEditor key={pointsKey} chart={chart} etag={etag} />
+            </section>
+            <PublishPanel chart={chart} activeCharts={activeCharts} />
+          </>
+        ) : (
+          <section className="flex flex-col gap-3 border-t border-border pt-4">
+            <h3 className="text-body font-bold text-text-primary">{t("chart.pointsTitle")}</h3>
+            <SwatchGrid points={chart.points} />
+            <p className="text-caption text-text-secondary">
+              {isDraft ? t("chart.readOnlyNoPermission") : t("chart.readOnlyPublished")}
+            </p>
+            {canEdit && !isDraft ? <CloneAction chart={chart} onCreated={onSelect} /> : null}
+          </section>
+        )}
+      </AdminSection>
     </div>
   );
 }
 
-function BandsSection() {
+function ScanChartSummary({
+  activeCharts,
+  loading,
+  onOpen,
+}: {
+  activeCharts: readonly ColorChartSummary[];
+  loading: boolean;
+  onOpen: (id: string) => void;
+}) {
   const { t } = useTranslation("admin");
-  const bands = useAdminPhBands();
-  const canEdit = useGroup2Can()("colorChart");
-  const [selectedCode, setSelectedCode] = useState<string | null>(null);
-
-  const items = bands.data?.data ?? [];
-  const etag = bands.data?.etag ?? null;
-  const selected = items.find((band) => band.code === selectedCode) ?? null;
-
+  const current = activeCharts.find(isUsedByScans);
+  if (loading) {
+    return null;
+  }
+  if (current === undefined) {
+    return (
+      <p className="flex items-start gap-2 rounded-2xl bg-danger-bg p-4 text-caption text-danger-text">
+        <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+        {t("chart.scanNone")}
+      </p>
+    );
+  }
   return (
-    <AdminSection title={t("band.title")} description={t("band.description")}>
-      {bands.isPending ? (
-        <p className="flex items-center gap-2 text-caption text-text-secondary">
-          <Loader2 size={15} className="animate-spin" aria-hidden="true" />
-          {t("feedback.loading")}
-        </p>
-      ) : bands.isError ? (
-        <ApiErrorNote error={bands.error} />
-      ) : items.length === 0 ? (
-        <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
-      ) : (
-        <DenseTableFrame label={t("band.title")}>
-          <table className={denseTableClass}>
-            <thead>
-              <tr>
-                <th className={denseThClass}>{t("band.colCode")}</th>
-                <th className={denseThClass}>{t("band.colRange")}</th>
-                <th className={denseThClass}>{t("band.colSeverity")}</th>
-                <th className={denseThClass}>{t("band.colLabel")}</th>
-                <th className={denseThClass}>{t("band.colToken")}</th>
-                <th className={denseThClass}>{t("band.colIcon")}</th>
-                <th className={denseThClass}>{t("band.colAlert")}</th>
-                <th className={denseThClass}>{t("content.colActions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((band) => {
-                const tokenStyle = phTokenStyle(band.colorToken);
-                return (
-                  <tr key={band.code}>
-                    <td className={denseTdClass}>
-                      <span className="font-mono text-small font-bold">{band.code}</span>
-                    </td>
-                    <td className={denseTdClass}>
-                      <span className="whitespace-nowrap font-mono text-small">
-                        {t("band.rangeValue", {
-                          min: band.phMin == null ? "−∞" : formatPh(band.phMin),
-                          max: band.phMax == null ? "+∞" : formatPh(band.phMax),
-                        })}
-                      </span>
-                    </td>
-                    <td className={denseTdClass}>
-                      <span className="font-mono text-small">{band.severity}</span>
-                    </td>
-                    <td className={denseTdClass}>
-                      <span className="font-semibold">{band.label}</span>
-                      <span className="block max-w-[40ch] pt-0.5 text-small text-text-tertiary">
-                        {band.description}
-                      </span>
-                    </td>
-                    <td className={denseTdClass}>
-                      <span className="flex items-center gap-2">
-                        <span className={`inline-block size-4 rounded-full ${tokenStyle.solid}`} aria-hidden="true" />
-                        <span className="font-mono text-small">{band.colorToken}</span>
-                      </span>
-                    </td>
-                    <td className={denseTdClass}>
-                      <span className="font-mono text-small">{band.iconName}</span>
-                    </td>
-                    <td className={denseTdClass}>
-                      {band.triggersAlert ? t("retention.flagYes") : t("retention.flagNo")}
-                    </td>
-                    <td className={denseTdClass}>
-                      {canEdit ? (
-                        <button
-                          type="button"
-                          className="font-semibold text-primary-dark hover:underline"
-                          onClick={() => {
-                            setSelectedCode(band.code);
-                          }}
-                        >
-                          {t("actions.edit")}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </DenseTableFrame>
-      )}
-
-      {selected !== null ? (
-        <BandEditor
-          key={selected.code}
-          band={selected}
-          etag={etag}
-          onClose={() => {
-            setSelectedCode(null);
+    <div className="flex flex-col gap-3 rounded-2xl border border-info-text/20 bg-info/40 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-small font-semibold text-info-text">
+            <ScanLine size={14} aria-hidden="true" />
+            {t("chart.scanCurrentLabel")}
+          </p>
+          <p className="text-body font-bold text-text-primary">
+            {current.name}{" "}
+            <span className="text-caption font-normal text-text-secondary">
+              {t("chart.versionLabel", { version: current.version })}
+            </span>
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="tertiary"
+          size="sm"
+          onClick={() => {
+            onOpen(current.id);
           }}
-        />
+        >
+          {t("chart.viewCta")}
+        </Button>
+      </div>
+      {current.placeholder ? (
+        <span className="self-start">
+          <PlaceholderBadge />
+        </span>
       ) : null}
-    </AdminSection>
+      <RowSwatchStrip chartId={current.id} />
+    </div>
   );
 }
 
-// -------------------------------------------------------------------- trang
+function ChartRow({
+  chart,
+  selected,
+  onOpen,
+}: {
+  chart: ColorChartSummary;
+  selected: boolean;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation("admin");
+  return (
+    <li
+      className={cn(
+        "flex flex-col gap-2 border-b border-border/60 px-1 py-3 last:border-b-0 md:flex-row md:items-center md:gap-4",
+        selected && "rounded-lg bg-info/40",
+        isUsedByScans(chart) && !selected && "rounded-lg bg-success-bg/40",
+      )}
+    >
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-body font-bold text-text-primary">{chart.name}</span>
+          <span className="text-small text-text-tertiary">
+            {chart.code} · {t("chart.versionLabel", { version: chart.version })}
+          </span>
+        </div>
+        <ChartBadges chart={chart} />
+        <ChartMetaLine chart={chart} />
+      </div>
+      <div className="md:w-[300px] md:shrink-0">
+        <RowSwatchStrip chartId={chart.id} />
+      </div>
+      <Button type="button" variant="tertiary" size="sm" className="self-start md:self-center" onClick={onOpen}>
+        {chart.status === "DRAFT" ? t("chart.editCta") : t("chart.viewCta")}
+      </Button>
+    </li>
+  );
+}
 
 export function AdminPhColorChartPage() {
   const { t } = useTranslation("admin");
@@ -818,15 +843,13 @@ export function AdminPhColorChartPage() {
   const canEdit = useGroup2Can()("colorChart");
 
   const list = useAdminColorCharts(status, page);
+  const activeQuery = useAdminColorCharts("ACTIVE", 0, 100);
+  const activeCharts = activeQuery.data?.items ?? [];
   const items = list.data?.items ?? [];
 
   return (
     <div className="flex flex-col gap-5">
-      <AdminPageHeader
-        title={t("pages.phColorChart.title")}
-        description={t("pages.phColorChart.description")}
-        specRef="/api/v1/admin/color-charts · /api/v1/admin/ph-classification-bands — L27–L32, L36, L37"
-      />
+      <AdminPageHeader title={t("pages.phColorChart.title")} description={t("pages.phColorChart.description")} />
 
       <Tabs defaultValue="charts">
         <TabsList>
@@ -836,11 +859,22 @@ export function AdminPhColorChartPage() {
 
         <TabsContent value="charts">
           <div className="flex flex-col gap-5">
+            <ChartExplainer />
+
+            <ScanChartSummary
+              activeCharts={activeCharts}
+              loading={activeQuery.isPending || activeQuery.isError}
+              onOpen={setSelectedChartId}
+            />
+
             {creating && canEdit ? (
               <AdminSection title={t("chart.createTitle")} description={t("chart.createDescription")}>
                 <CreateChartForm
-                  onDone={() => {
+                  onDone={(createdId) => {
                     setCreating(false);
+                    if (createdId !== null) {
+                      setSelectedChartId(createdId);
+                    }
                   }}
                 />
               </AdminSection>
@@ -893,66 +927,18 @@ export function AdminPhColorChartPage() {
                 <p className="text-caption text-text-secondary">{t("feedback.empty")}</p>
               ) : (
                 <>
-                  <DenseTableFrame label={t("chart.listTitle")}>
-                    <table className={denseTableClass}>
-                      <thead>
-                        <tr>
-                          <th className={denseThClass}>{t("chart.colCode")}</th>
-                          <th className={denseThClass}>{t("chart.colName")}</th>
-                          <th className={denseThClass}>{t("chart.colProductLine")}</th>
-                          <th className={denseThClass}>{t("chart.colBatch")}</th>
-                          <th className={denseThClass}>{t("chart.colStatus")}</th>
-                          <th className={denseThClass}>{t("chart.colSource")}</th>
-                          <th className={denseThClass}>{t("content.colActions")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((chart) => (
-                          <tr key={chart.id}>
-                            <td className={denseTdClass}>
-                              <span className="font-mono text-small font-bold">{chart.code}</span>
-                              <span className="block text-small text-text-tertiary">
-                                {t("chart.versionLabel", { version: chart.version })}
-                              </span>
-                            </td>
-                            <td className={denseTdClass}>
-                              <span className="font-semibold">{chart.name}</span>
-                              {chart.placeholder ? (
-                                <span className="block text-small text-warning-text">{t("chart.placeholder")}</span>
-                              ) : null}
-                            </td>
-                            <td className={denseTdClass}>
-                              <span className="font-mono text-small">{chart.productLine ?? "—"}</span>
-                            </td>
-                            <td className={denseTdClass}>
-                              <span className="font-mono text-small">{chart.productionBatch ?? "—"}</span>
-                            </td>
-                            <td className={denseTdClass}>
-                              <span
-                                className={`inline-block rounded-md px-2 py-0.5 text-small font-semibold ${CHART_STATUS_CLASS[chart.status]}`}
-                              >
-                                {t(`chart.status.${chart.status}`)}
-                              </span>
-                            </td>
-                            <td className={denseTdClass}>
-                              <span className="font-mono text-small">{chart.source}</span>
-                            </td>
-                            <td className={denseTdClass}>
-                              <button
-                                type="button"
-                                className="font-semibold text-primary-dark hover:underline"
-                                onClick={() => {
-                                  setSelectedChartId(chart.id);
-                                }}
-                              >
-                                {t("actions.open")}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </DenseTableFrame>
+                  <ul aria-label={t("chart.listTitle")}>
+                    {items.map((chart) => (
+                      <ChartRow
+                        key={chart.id}
+                        chart={chart}
+                        selected={chart.id === selectedChartId}
+                        onOpen={() => {
+                          setSelectedChartId(chart.id);
+                        }}
+                      />
+                    ))}
+                  </ul>
                   <Pager
                     page={list.data.number}
                     totalPages={list.data.totalPages}
@@ -967,6 +953,8 @@ export function AdminPhColorChartPage() {
               <ChartDetailPanel
                 key={selectedChartId}
                 chartId={selectedChartId}
+                activeCharts={activeCharts}
+                onSelect={setSelectedChartId}
                 onClose={() => {
                   setSelectedChartId(null);
                 }}

@@ -11,16 +11,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@link JobRunPort} trong bộ nhớ, dùng chung cho test của module nghiệp vụ.
- *
- * <p>{@code shared.job.application.FakeJobRunPort} đã có nhưng là package-private, nên module
- * khác không gọi được. Bản này giữ cả trạng thái dòng (mở rồi đóng) để test kiểm chứng được
- * "đúng một dòng {@code job_run} mỗi lần chạy" (p12 §12.6.1 quy tắc 4).</p>
- */
 public final class RecordingJobRunPort implements JobRunPort {
 
-    /** Một dòng {@code job_run} trong bộ nhớ. */
     public record Row(UUID runId, String jobName, JobRunStatus status,
                       Integer itemsProcessed, Integer itemsFailed, Instant finishedAt) {
     }

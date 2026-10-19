@@ -28,7 +28,6 @@ function render(cat: Cat): string {
 
 describe("CatProfileHero", () => {
   it("bé chưa nhập cân nặng (server bỏ hẳn key `weightKg`) không in cân nặng 'undefined'", () => {
-    // JSON thật của `GET /cats/{id}` khi hồ sơ chưa có cân nặng/giống/ảnh: các key đó không tồn tại.
     const fromServer = {
       id: "c1",
       publicCode: "CC-1",

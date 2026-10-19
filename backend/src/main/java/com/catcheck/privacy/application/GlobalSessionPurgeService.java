@@ -15,26 +15,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * L62 — {@code POST /admin/security/sessions/purge-all}: bước <b>R1</b> của sổ tay sự cố
- * (p11 §11.13.4), <i>"bắt buộc trong mọi sự cố rò DB"</i>, mục tiêu hoàn tất ≤ 5 phút.
- *
- * <p><b>{@code incidentId} là tham số bắt buộc, không phải metadata trang trí</b> (p8 §8.4.12
- * ô L62: {@code Rsn} kèm {@code incidentId}). Hành động này đăng xuất <b>mọi</b> người dùng
- * và buộc mọi admin nhập lại TOTP; nó chỉ hợp lệ bên trong một sự cố đã được mở hồ sơ, và
- * §11.13.4 đòi audit {@code SECURITY.SESSIONS_PURGED_ALL} kèm {@code revokedCount},
- * {@code reason}, {@code incidentId}. Vì vậy service kiểm hồ sơ sự cố <b>tồn tại thật</b>
- * trước khi xoá gì — không có đường "purge trước, điền số hồ sơ sau".</p>
- *
- * <p>Thứ tự có chủ đích: hết hạn link tải gói DSAR <b>trước</b>, rồi mới xoá phiên. Hai
- * việc nằm trong cùng transaction nên thứ tự không đổi kết quả cuối, nhưng nếu transaction
- * vỡ ở giữa thì trạng thái còn lại là "link đã chết, phiên còn sống" — nhẹ hơn chiều ngược
- * lại ("phiên đã chết nhưng gói dữ liệu cá nhân vẫn tải được bằng link cũ").</p>
- */
 @Service
 public class GlobalSessionPurgeService {
 
-    /** Mục tiêu vận hành của p8 L62 / p11 §11.13.4 — ghi vào audit để hậu kiểm đo được. */
     public static final Duration TARGET_DURATION = Duration.ofMinutes(5);
 
     private final GlobalSessionPurgePort sessionPurgePort;
@@ -56,12 +39,6 @@ public class GlobalSessionPurgeService {
         this.clock = clock;
     }
 
-    /**
-     * @param actorId    {@code ADMIN_SUPER} đang bấm (p8 L62 {@code R:ADMIN_SUPER})
-     * @param actorRole  vai trò dùng cho {@code audit_log.actor_role}
-     * @param incidentId hồ sơ {@code security_incident} đang mở; không tồn tại ⇒ 404
-     * @param reason     lý do bắt buộc, đã validate ở controller
-     */
     @Transactional
     public Result purgeAll(UUID actorId, String actorRole, UUID incidentId, String reason,
                            RequestEvidence evidence) {
@@ -74,7 +51,6 @@ public class GlobalSessionPurgeService {
         Instant finishedAt = clock.instant();
         auditLogService.record(AuditEvent.builder()
                 .actor(AuditActor.admin(actorId, actorRole))
-                // Chủ thể là toàn hệ thống: hành động không nhắm vào một user nào.
                 .subject(AuditSubjectType.SYSTEM, null)
                 .action("SECURITY.SESSIONS_PURGED_ALL")
                 .requestId(evidence.requestId())
@@ -95,14 +71,6 @@ public class GlobalSessionPurgeService {
                 Duration.between(startedAt, finishedAt).toMillis());
     }
 
-    /**
-     * @param incidentRef           mã hồ sơ sự cố đã ghi vào audit
-     * @param revokedCount          số phiên HTTP thật đã xoá — con số §11.13.4 đòi ghi audit
-     * @param deviceSessionsRevoked số dòng bản sao hiển thị đã đánh dấu thu hồi
-     * @param otpInvalidated        số OTP/ticket đang mở đã vô hiệu
-     * @param dsarDownloadLinksRevoked số gói dữ liệu cá nhân đã hết hạn link tải
-     * @param elapsedMillis         thời gian thực thi — đối chiếu mục tiêu ≤ 5 phút
-     */
     public record Result(String incidentRef, int revokedCount, int deviceSessionsRevoked,
                          int otpInvalidated, int dsarDownloadLinksRevoked, long elapsedMillis) {
     }

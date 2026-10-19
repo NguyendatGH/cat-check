@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp, ArrowUpDown, Package, Plus, Search } from "lucide-react";
 import { isApiError } from "@/shared/api";
+import { intlLocale } from "@/shared/lib/format/locale";
 import {
   Badge,
   Button,
@@ -57,7 +58,7 @@ const tdClass = "h-10 px-3 py-1.5 text-caption text-text-primary";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(intlLocale(), { dateStyle: "short", timeStyle: "short" });
 }
 
 export function SellerProductsPage() {
@@ -74,9 +75,7 @@ export function SellerProductsPage() {
   const [bulkMsg, setBulkMsg] = useState<{ kind: "progress" | "done" | "error"; text: string } | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
 
-  // null = đóng; "new" = tạo; còn lại = id đang sửa.
   const [editing, setEditing] = useState<string | null>(null);
-  // If-Match chốt lúc MỞ form (bản người dùng đang xem), không lấy từ lần refetch sau.
   const [editingEtag, setEditingEtag] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormValues>(emptyProductForm);
   const [showErrors, setShowErrors] = useState(false);
@@ -299,7 +298,7 @@ export function SellerProductsPage() {
       ) : null}
 
       {products.isPending ? (
-        <div className="flex flex-col gap-2" role="status" aria-label="Đang tải">
+        <div className="flex flex-col gap-2" role="status" aria-label={t("loading")}>
           {[0, 1, 2, 3, 4].map((i) => (
             <SkeletonLoader key={i} className="h-10" />
           ))}

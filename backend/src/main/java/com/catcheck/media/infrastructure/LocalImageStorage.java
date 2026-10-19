@@ -38,21 +38,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-/**
- * Triển khai {@link ImageStorage} trên tệp cục bộ — mặc định của môi trường VPS một tiến trình
- * (p18: chưa cần Cloudinary cho Phase 1).
- *
- * <p>Đảm bảo bốn điều mà p4/p6 yêu cầu:</p>
- * <ul>
- *   <li><b>Không lộ đường dẫn tuyệt đối.</b> {@link #presignedUrl} trả URL qua endpoint nội bộ
- *       có HMAC + mốc hạn, không phải {@code file://} hay đường dẫn đĩa (p8 §8.1.3, p6 §6.11.2).</li>
- *   <li><b>Ghi nguyên tử.</b> Mọi lần ghi đi qua tệp tạm rồi {@code ATOMIC_MOVE}, nên tiến trình
- *       chết giữa chừng không để lại tệp nửa vời.</li>
- *   <li><b>Chặn trèo thư mục.</b> {@link StorageKey} đã chặn {@code ..}; ở đây kiểm tra lần hai
- *       bằng {@code normalize().startsWith(root)} để không phụ thuộc hoàn toàn vào tầng trên.</li>
- *   <li><b>Bám mốc thời gian từ {@link Clock}.</b> Không gọi {@code Instant.now()} trực tiếp (R13).</li>
- * </ul>
- */
 @Component
 public class LocalImageStorage implements ImageStorage {
 
@@ -130,13 +115,11 @@ public class LocalImageStorage implements ImageStorage {
         }
     }
 
-    /**
-     * Mở một tệp được tham chiếu bởi URL HMAC do {@link #presignedUrl} phát ra.
-     * Endpoint media dùng phương thức này thay vì mở tệp trực tiếp để chữ ký và hạn URL
-     * luôn được kiểm tra ở cùng một nơi với lúc ký.
-     */
     public Optional<StoredMedia> openSigned(StorageKey key, long expiresEpochSecond, String signature) {
-        if (signature == null || signature.isBlank()
+        // Fail closed: khoá rỗng ⇒ ai cũng tự tính được HMAC, mà endpoint media không xác thực.
+        // presignedUrl cũng từ chối phát URL trong trường hợp này.
+        if (properties.urlSigningKey() == null || properties.urlSigningKey().isBlank()
+                || signature == null || signature.isBlank()
                 || expiresEpochSecond < clock.instant().getEpochSecond()) {
             return Optional.empty();
         }
@@ -152,15 +135,11 @@ public class LocalImageStorage implements ImageStorage {
     @Override
     public URI presignedUrl(StorageKey key, java.time.Duration ttl) {
         if (properties.urlSigningKey() == null || properties.urlSigningKey().isBlank()) {
-            // KHÔNG phát URL không ký: URL không chữ ký chính là đường dẫn đoán được, tức đường dẫn
-            // tuyệt đối đã bị lộ qua bước dò. Bắt buộc cấu hình khoá ở môi trường thật.
             throw new BusinessRuleException(MediaErrorCode.STORAGE_IO_ERROR,
                     "catcheck.storage.local.url-signing-key chưa được cấu hình");
         }
         long expiresEpochSecond = clock.instant().plus(ttl).getEpochSecond();
         String signature = sign(key.value(), expiresEpochSecond);
-        // Mã hoá TỪNG đoạn, giữ nguyên dấu `/`: `%2F` bị Tomcat chặn (400) và route `/{*key}` cần `/`
-        // thật. Trước đây mã hoá cả chuỗi ⇒ mọi ảnh do backend ký URL đều không tải được.
         String encodedPath = java.util.Arrays.stream(key.value().split("/", -1))
                 .map(segment -> URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"))
                 .collect(java.util.stream.Collectors.joining("/"));
@@ -200,8 +179,6 @@ public class LocalImageStorage implements ImageStorage {
 
     @Override
     public void deleteOlderThan(Instant cutoff) {
-        // CHỈ quét vùng staging. Tệp vĩnh viễn không bị đụng tới: vòng đời xoá thuộc module sở hữu
-        // dữ liệu (p15 retention), vì ảnh quét, avatar mèo và tệp export có hạn khác nhau (p7 §7.2.3).
         deleteStagedOlderThan(cutoff);
     }
 
@@ -229,7 +206,6 @@ public class LocalImageStorage implements ImageStorage {
         return keys.stream();
     }
 
-    // ---------------------------------------------------------------- internals
 
     private int deleteStagedOlderThan(Instant cutoff) {
         Path stagingRoot = resolve(new StorageKey(STAGING_NAMESPACE));
@@ -254,21 +230,25 @@ public class LocalImageStorage implements ImageStorage {
         InputStream content = verifiedContent(upload);
         Path target = resolve(key);
         Path temporary = null;
+        boolean moved = false;
         try {
             Files.createDirectories(target.getParent());
             temporary = Files.createTempFile(target.getParent(), ".upload-", ".part");
             long written = copyBounded(content, temporary);
             move(temporary, target);
+            moved = true;
             return new StoredImage(key, PROVIDER, written, upload.contentType());
         } catch (IOException ex) {
-            if (temporary != null) {
+            throw new UncheckedIOException("Không ghi được ảnh vào storage: " + key.value(), ex);
+        } finally {
+            // Mọi lỗi (kể cả BusinessRuleException quá cỡ/rỗng từ copyBounded) đều phải dọn .part,
+            // không chỉ IOException — nếu không tệp tạm nằm lại vĩnh viễn trong thư mục đích.
+            if (temporary != null && !moved) {
                 deleteQuietly(temporary);
             }
-            throw new UncheckedIOException("Không ghi được ảnh vào storage: " + key.value(), ex);
         }
     }
 
-    /** Đọc thử đầu tệp để kiểm magic bytes rồi trả lại luồng nguyên vẹn (mark/reset). */
     private static InputStream verifiedContent(ImageUpload upload) {
         BufferedInputStream in = new BufferedInputStream(upload.content());
         try {
@@ -282,10 +262,6 @@ public class LocalImageStorage implements ImageStorage {
         }
     }
 
-    /**
-     * Chép có kiểm tra trần kích thước trên SỐ BYTE THỰC TẾ, không tin {@code sizeBytes} do client
-     * khai: client nói 1 KB rồi gửi 50 MB vẫn phải bị chặn.
-     */
     private long copyBounded(InputStream source, Path target) throws IOException {
         long maxBytes = properties.maxImageBytes();
         long total = 0;
@@ -339,7 +315,6 @@ public class LocalImageStorage implements ImageStorage {
         Path root = properties.root().toAbsolutePath().normalize();
         Path resolved = root.resolve(key.value()).normalize();
         if (!resolved.startsWith(root)) {
-            // Lớp phòng thủ thứ hai, không phụ thuộc vào việc mọi lời gọi đều đi qua StorageKey.
             throw new BusinessRuleException(MediaErrorCode.STORAGE_KEY_NOT_FOUND, key.value());
         }
         return resolved;
@@ -399,8 +374,6 @@ public class LocalImageStorage implements ImageStorage {
     }
 
     private String stagingNamespaceOf(StorageKey stagedKey) {
-        // staging/<namespace>/<uuid>.<ext> — namespace là đoạn [1] (như CloudinaryImageStorage.commit);
-        // đoạn [2] là tên tệp, lấy nhầm nó làm khoá chốt thành "<uuid>.jpg/yyyy/MM/dd/<uuid>.jpg".
         String[] segments = stagedKey.value().split("/");
         return segments.length >= 3 ? segments[1] : STAGING_NAMESPACE;
     }
@@ -428,7 +401,6 @@ public class LocalImageStorage implements ImageStorage {
         }
     }
 
-    /** Nội dung và MIME type của một tệp local đã xác thực URL. */
     public record StoredMedia(InputStream content, String contentType) {
     }
 }

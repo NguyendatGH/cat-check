@@ -1,15 +1,11 @@
 import { z } from "zod";
 import { CLINICAL_SIGNS } from "@/entities/cat";
 
-/**
- * Zod schemas cho `features/cat`. Message = KEY i18n namespace `cat` (dịch lúc render qua
- * `t(message)`) — cùng quy ước với `features/onboarding/schemas.ts`.
- */
 
-export const CAT_NAME_MAX = 60; // p4 cat.name VARCHAR(60)
+export const CAT_NAME_MAX = 60;
 export const WEIGHT_MIN_KG = 0.01;
-export const WEIGHT_MAX_KG = 29.99; // p4 CHECK 0 < weight_kg < 30
-export const NOTE_BODY_MAX = 2000; // p4 cat_note.body
+export const WEIGHT_MAX_KG = 29.99;
+export const NOTE_BODY_MAX = 2000;
 
 function isValidDateString(value: string): boolean {
   return !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
@@ -17,10 +13,6 @@ function isValidDateString(value: string): boolean {
 
 const notFuture = (value: string) => !value || new Date(`${value}T00:00:00`).getTime() <= Date.now();
 
-/**
- * Hồ sơ mèo (tạo + sửa dùng chung). `ageMode` quyết định trường tuổi nào bắt buộc —
- * domain (`Cat.applyAgeSource`) ném lỗi nếu có CẢ HAI hoặc KHÔNG trường nào (`CAT_AGE_CONFLICT`).
- */
 export const catFormSchema = z
   .object({
     name: z.string().trim().min(1, "form.name.required").max(CAT_NAME_MAX, "form.name.tooLong"),
@@ -81,7 +73,6 @@ export const surveyFormSchema = z.object({
 
 export type SurveyFormSchemaValues = z.infer<typeof surveyFormSchema>;
 
-/** D20 — ít nhất 1 dấu hiệu, chỉ nhận giá trị trong tập cố định p4 C5. */
 export const clinicalSignFormSchema = z.object({
   signs: z.array(z.enum(CLINICAL_SIGNS as [string, ...string[]])).min(1, "clinicalSigns.form.signs.required"),
   note: z.string().max(NOTE_BODY_MAX, "clinicalSigns.form.note.tooLong"),

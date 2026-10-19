@@ -6,7 +6,6 @@ import { Card, ErrorState, SkeletonLoader } from "@/shared/ui";
 import { formatProductVnd, useAdminProducts } from "@/features/admin";
 import { LOW_STOCK_THRESHOLD, countProducts, lowStockProducts } from "@/features/seller";
 
-/** Trùng ROUTE_PATTERNS.sellerProducts (pages không được import từ app/). */
 const SELLER_PRODUCTS_PATH = "/seller/products";
 
 function Kpi({ icon: Icon, label, value, hint }: { icon: LucideIcon; label: string; value: number; hint?: string }) {
@@ -34,7 +33,7 @@ export function SellerDashboardPage() {
       </header>
 
       {products.isPending ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-label="Đang tải">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="status" aria-label={t("loading")}>
           {[0, 1, 2, 3].map((i) => (
             <SkeletonLoader key={i} className="h-24" />
           ))}

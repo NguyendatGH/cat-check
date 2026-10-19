@@ -1,6 +1,5 @@
 import { useMediaQuery } from "./useMediaQuery";
 
-/** Breakpoint token — khớp --breakpoint-* trong app/styles/index.css (@theme). */
 const BREAKPOINTS = {
   sm: 375,
   md: 768,

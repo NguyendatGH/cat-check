@@ -5,20 +5,9 @@ import { AlertTriangle, ChevronDown, ShieldCheck } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import type { DisclaimerVariant } from "./model";
 
-/**
- * `DisclaimerBanner` — component nền dùng lại KHẮP app (p10 §5.2), sống ở
- * `entities/disclaimer` vì đây là entity dùng chung, không riêng của legal hay auth.
- * Nội dung lấy từ i18n namespace `legal` (p15 §15.7.3) theo đúng `variant` — component
- * KHÔNG chứa câu chữ y tế, chỉ vẽ khung + hành vi (thu gọn/bung EMERGENCY).
- *
- * Bản nháp câu chữ (p15 §15.7.3) chưa qua luật sư duyệt — `legal.json` giữ nguyên văn
- * bản nháp, KHÔNG được chỉnh sửa nội dung y tế ở đây khi dùng lại.
- */
 export interface DisclaimerBannerProps {
   variant: DisclaimerVariant;
-  /** EMERGENCY mặc định thu gọn (p10 §5.2); bỏ qua với 4 biến thể còn lại. */
   defaultCollapsed?: boolean;
-  /** EMERGENCY tự bung khi `warning_flags` khác rỗng (p15 §15.7.2 P3) — module scan truyền vào. */
   hasWarningFlags?: boolean;
   className?: string;
 }
@@ -110,7 +99,6 @@ export function DisclaimerBanner({
     );
   }
 
-  // variant === "long"
   const longBullets = t("disclaimer.long.bullets", { returnObjects: true }) as string[];
   return (
     <div className={cn("flex flex-col gap-4 rounded-xl border border-border bg-surface p-5", className)}>
@@ -129,26 +117,18 @@ export function DisclaimerBanner({
   );
 }
 
-/* ---------------- DisclaimerScroll ---------------- */
 
 const BOTTOM_THRESHOLD_PX = 8;
 
 export interface DisclaimerScrollProps {
   children: ReactNode;
   onReachBottom: () => void;
-  /** Nhãn a11y cho vùng cuộn — truyền theo ngữ cảnh dùng (ví dụ tiêu đề D-LONG). */
   label: string;
   hintText: string;
   doneText: string;
   className?: string;
 }
 
-/**
- * Khung "cuộn-đến-cuối mới cho tương tác tiếp" dùng lại cho mọi màn cần ép đọc hết D-LONG
- * trước khi tick "Tôi đã đọc và hiểu" (p15 §15.3.3 P1). Bản tổng quát hoá của
- * `features/onboarding/components.tsx` `DisclaimerScroll` (A7 viết cục bộ trước khi entity
- * này có nội dung thật) — nơi khác nên dùng bản này thay vì tự viết lại.
- */
 export function DisclaimerScroll({
   children,
   onReachBottom,

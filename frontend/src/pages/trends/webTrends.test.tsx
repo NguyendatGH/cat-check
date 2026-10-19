@@ -5,11 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { CatTrendsResponse } from "@/features/trends";
 import { WebTrendsScreen } from "./webTrends";
 
-/**
- * D13 bỏ hẳn key `confidence` ở lần quét không có độ tin cậy (và `phValue` ở lần không kết luận).
- * Bộ lọc `c !== null` cho `undefined` lọt vào phép trung bình ⇒ "NaN%"; hàng nhật ký nhân
- * `undefined * 100` ⇒ thanh rộng "NaN%".
- */
 vi.mock("@/features/trends/mocks", () => ({ handlers: [], worker: {} }));
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -18,7 +13,6 @@ vi.mock("react-i18next", async (importOriginal) => ({
     i18n: { language: "vi" },
   }),
 }));
-// Recharts cần kích thước thật của container; test này không kiểm biểu đồ.
 vi.mock("@/features/trends", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/trends")>()),
   PhTrendChart: () => null,

@@ -12,202 +12,45 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Cổng ghi vào sổ cái {@code credit_ledger} + cập nhật số dư lô.
- *
- * <p>Tách riêng khỏi cổng đọc vì {@link #lockLiveBatchesForFefo} là thao tác ghi: nó khoá dòng
- * thật trong DB ({@code SELECT ... FOR UPDATE}). Ranh giới transaction thuộc tầng
- * {@code application} (p7 §7.3.2), nên mọi phương thức ở đây đều chạy trong transaction của
- * use case gọi nó — không phương thức nào tự mở hay tự commit.</p>
- */
 public interface CreditLedgerPort {
 
-    /**
-     * <b>Đường FEFO — hàm quan trọng nhất của module credit.</b>
-     *
-     * <p>Khoá và trả về các lô còn hiệu lực của user, <b>sắp xếp theo {@code expires_at} tăng
-     * dần</b> (rồi tới {@code id} để thứ tự tuyệt đối xác định). Thứ tự sắp xếp này vừa quyết
-     * định lô nào bị trừ trước (FEFO — p5 R2), vừa là thứ tự khoá cố định giữa các transaction
-     * nên hai request trùng lô không kẹt nhau (p5 §5.6).</p>
-     *
-     * <p>Bộ lọc {@code status='ACTIVE' AND expires_at > now AND remaining_amount > 0} là
-     * bất biến I3: lô {@code EXPIRED}, hoặc lô đã quá hạn mà job chưa chạy tới, KHÔNG bao giờ
-     * nằm trong tập ứng viên.</p>
-     *
-     * <p>Chỉ trả về lô còn credit — lô {@code remaining_amount = 0} không cần khoá vì không
-     * thể trừ thêm; {@code CHECK (remaining_amount >= 0)} chặn kết quả âm ở tầng DB.</p>
-     */
     List<CreditBatchSnapshot> lockLiveBatchesForFefo(UUID userId, Instant now);
 
-    /**
-     * Khoá <b>đúng một lô</b> theo khoá chính, bất kể trạng thái — dành riêng cho hoàn credit
-     * (p5 R7).
-     *
-     * <p>Không dùng lại {@link #lockLiveBatchesForFefo} cho việc này: hàm đó lọc
-     * {@code remaining_amount > 0}, mà lý do phổ biến nhất để hoàn là chính lô đó đã cạn hoặc đã
-     * quá hạn. Lọc như vậy khiến hoàn thất bại đúng lúc cần nhất. Ở đây cũng chỉ khoá một dòng
-     * thay vì khoá cả danh sách, nên hoàn không tranh chấp với một lần trừ đang chạy.</p>
-     *
-     * <p>Hoàn vào lô đã quá hạn vẫn được phép và là đúng: số được trả về đúng chỗ đã lấy ra nên
-     * bất biến I1 ({@code initial + SUM(ledger) = remaining}) vẫn đúng; số đó chỉ đơn giản là không
-     * dùng được nữa vì lô đã hết hạn. Từ chối hoàn sẽ để lại một dòng {@code CONSUME} không
-     * khớp, khó truy vết hơn là hoàn rồi không dùng được.</p>
-     */
     Optional<CreditBatchSnapshot> lockBatchForRefund(UUID batchId);
 
-    /**
-     * Ghi số dư còn lại mới của một lô. Implement <b>phải</b> chỉ cập nhật dòng vừa được
-     * {@link #lockLiveBatchesForFefo} khoá.
-     */
     void updateRemaining(UUID batchId, int remainingAmount);
 
-    /** Đóng lô khi {@code remainingAmount} chạm 0 (p5 R3 — không xoá dòng). */
     void markExhausted(UUID batchId);
 
-    /**
-     * Mở lại lô vừa được hoàn credit vào. Đối xứng với {@link #markExhausted}: nếu lô đã cạn
-     * rồi được cộng trở lại thì nó phải trở lại tập ứng viên của FEFO, nếu không số vừa hoàn sẽ
-     * nằm im trong DB mà không bao giờ dùng được.
-     *
-     * <p>Chỉ gỡ cờ {@code status = 'EXHAUSTED'}. {@code credit_batch} không có cột cờ "đã nhắc
-     * hết credit" (p4 §4.5.1 chốt đúng 12 cột, không có) — chống gửi lặp thuộc về
-     * {@code notification.dedupe_key} UNIQUE, không phải credit.</p>
-     */
     void markActive(UUID batchId);
 
-    /**
-     * Đóng lô do hết hạn: {@code remaining_amount = 0} + {@code status = 'EXPIRED'} (p5 R3).
-     *
-     * <p>KHÔNG ghi kèm dòng ledger {@code EXPIRE} ở đây: việc ghi dòng thuộc use case gọi
-     * ({@code ExpireCreditBatchesJob}, p12 §12.6) để mỗi phương thức chỉ làm đúng một việc, và để
-     * adapter không giấu một INSERT bên trong một UPDATE.</p>
-     */
     void markExpired(UUID batchId);
 
-    /**
-     * Đánh dấu đã gửi nhắc T-48h. Chỉ là bộ lọc nhanh để job quét mỗi giờ không gửi lại; chống
-     * gửi trùng thật sự là {@code notification.dedupe_key} UNIQUE ở module notification, không
-     * phải cột này (p12 §12.6).
-     */
     void markT48hNotified(UUID batchId);
 
-    /** Đánh dấu đã gửi nhắc T-6h — xem {@link #markT48hNotified}. */
     void markT6hNotified(UUID batchId);
 
-    /**
-     * Khoá <b>một</b> lô đã quá hạn để đóng nó, bằng {@code SELECT ... FOR UPDATE SKIP LOCKED}
-     * kèm lại đúng bộ lọc {@code status = 'ACTIVE' AND expires_at <= now AND remaining_amount
-     * > 0}.
-     *
-     * <p>Đây là lớp bảo vệ thứ hai mà p12 §12.6.1 quy tắc 3 bắt buộc, <b>độc lập với
-     * ShedLock</b>: nếu một lần chạy vượt {@code lockAtMostFor} thì ShedLock nhả khoá và
-     * instance khác chạy song song — {@code SKIP LOCKED} khiến hai instance không bao giờ cùng
-     * đóng một lô, và việc lặp lại bộ lọc khiến lô đã đóng rồi không khớp nữa (idempotency của
-     * p12 §12.6.2: "điều kiện {@code remaining_amount > 0} làm lần chạy sau không ghi ledger
-     * trùng").</p>
-     *
-     * <p>{@code SKIP LOCKED} thay vì chờ khoá là cố ý: một lô đang bị transaction khác giữ thì
-     * hoặc nó đang được trừ credit (và job sẽ gặp lại nó ở lần chạy sau), hoặc nó đang được
-     * instance khác đóng. Cả hai trường hợp, chờ đều chỉ làm job dài ra vô ích.</p>
-     *
-     * @return lô đã khoá, hoặc rỗng nếu lô không còn đủ điều kiện / đang bị khoá
-     */
     Optional<ExpiringCreditBatch> lockBatchForExpiry(UUID batchId, Instant now);
 
-    /**
-     * Khoá một lô tới mốc nhắc {@code milestone} ({@code FOR UPDATE SKIP LOCKED}), lặp lại bộ
-     * lọc "còn hiệu lực, còn credit, cột cờ của mốc này còn NULL".
-     *
-     * <p>Khoá dòng tuy chỉ để gửi thông báo nhưng vẫn cần: không có nó, hai instance chạy song
-     * song (ShedLock đã thủng) sẽ cùng đọc {@code t48h_notified_at IS NULL} rồi cùng đẩy một
-     * thông báo vào outbox.</p>
-     *
-     * @return lô đã khoá, hoặc rỗng nếu đã gửi / không còn đủ điều kiện / đang bị khoá
-     */
     Optional<ExpiringCreditBatch> lockBatchForExpiryReminder(
             UUID batchId, ExpiryReminderMilestone milestone, Instant now);
 
-    /**
-     * Ghi một dòng sổ cái. Bảng là append-only: cổng này <b>không có</b> phương thức update hay
-     * delete (p4 §4.6.2 chặn bằng quyền DB, không phải bằng kỷ luật).
-     */
     void append(LedgerEntry entry);
 
-    /**
-     * Số dư khả dụng toàn user = {@code SUM(remaining_amount)} của các lô
-     * {@code status='ACTIVE' AND expires_at > now} (p5 R4). Chạy trong cùng transaction với
-     * lần ghi ledger để {@code balance_after} luôn phản ánh trạng thái SAU giao dịch.
-     */
     int availableBalance(UUID userId, Instant now);
 
-    /**
-     * Tổng {@code amount} của mọi dòng ledger thuộc một lô. Dùng để kiểm bất biến I1
-     * ({@code initial_amount + SUM(ledger.amount) = remaining_amount}).
-     */
     int sumLedgerAmountForBatch(UUID batchId);
 
-    /** Đọc một dòng ledger theo id — cần cho {@code refund} (p5 R7: hoàn về đúng batch đã trừ). */
     Optional<LedgerEntryRef> findById(UUID ledgerEntryId);
 
-    /**
-     * Tra dòng ledger đã ghi với {@code idempotency_key} này, phục vụ replay (p5 R8, bất biến
-     * I4: một {@code idempotency_key} chỉ sinh MỘT dòng ledger).
-     *
-     * <p>Đây là cách xử lý double-submit <b>không dựa vào ngoại lệ DB</b>: kiểm tra trước rồi mới
-     * ghi, thay vì để {@code UNIQUE} nổ lên thành 500.</p>
-     *
-     * @return dòng đã ghi trước đó, hoặc rỗng nếu đây là lần gọi đầu
-     */
     Optional<LedgerEntry> findByIdempotencyKey(String idempotencyKey);
 
-    /**
-     * Mọi dòng {@code CONSUME} sinh ra từ MỘT lần trừ, xác định bằng
-     * {@code (ref_type, ref_id)} — tức là đúng một lần scan.
-     *
-     * <p>Cần cho <b>replay</b>: khoá idempotency là UNIQUE một cột (p4 §4.6.1 dòng 2313) nên
-     * chỉ dòng ĐẦU mang khoá, các dòng sau của lần trừ vắt qua nhiều lô phải để NULL. Đọc bằng
-     * {@link #findByIdempotencyKey} thì chỉ dựng lại được phần đầu, và {@code charged} sẽ báo
-     * đúng bằng số của lô đầu thay vì tổng đã trừ — sai số liệu cho người dùng.</p>
-     *
-     * <p>Một lần trừ chỉ gắn đúng một {@code ref_id} (id scan), nên không lẫn với lần trừ khác.</p>
-     */
     List<LedgerEntry> findConsumeRowsByRef(CreditLedgerRefType refType, UUID refId);
 
-    /**
-     * Tổng <b>giá trị tuyệt đối</b> credit mà một admin đã điều chỉnh từ mốc {@code since} —
-     * nguồn số liệu cho trần {@code credit.admin_adjust_max_per_day} của L10 (p14 §14.4.4 bước 5,
-     * p8 {@code CREDIT_ADJUST_LIMIT_EXCEEDED}).
-     *
-     * <p>Lọc theo {@code (ref_type = 'ADMIN' AND ref_id = adminId)} — đó là lý do
-     * {@code ref_id} của dòng điều chỉnh mang id của <b>admin thao tác</b>: không có cột nào khác
-     * trong {@code credit_ledger} ghi "ai đã làm", nên nếu {@code ref_id} mang thứ khác thì trần
-     * theo-ngày-theo-admin không thể tính được mà không join {@code audit_log}. p14 §14.4.4 bước 8
-     * lại ghi {@code ref_id = <audit_log.id>} — xem handoff H15.154.</p>
-     *
-     * <p><b>Tuyệt đối</b> ({@code abs}) chứ không phải tổng đại số: trần là hạn mức <i>biên độ
-     * thao tác</i>. Nếu cộng đại số thì một admin cấp 1 000 rồi thu hồi 1 000 sẽ về 0 và được cấp
-     * tiếp 1 000 — tức là trần không còn chặn gì.</p>
-     */
     int sumAdminAdjustedAbsSince(UUID adminId, Instant since);
 
-    /**
-     * Dòng {@code CONSUME} này đã được hoàn chưa.
-     *
-     * <p>{@code UNIQUE (idempotency_key)} chỉ chặn hoàn <i>trùng khoá</i>, không chặn hoàn hai
-     * lần bằng hai khoá khác nhau. Mà p5 R7 chỉ có đúng một khoản hoàn cho mỗi lần trừ: hoàn lần
-     * nữa là tiền phát sinh từ hư không.</p>
-     */
     boolean existsRefundReferencing(UUID consumedLedgerEntryId);
 
-    /**
-     * Một dòng ledger rút gọn kèm các trường cần cho refund.
-     *
-     * @param id      id dòng ledger
-     * @param type    loại dòng — refund chỉ chấp nhận {@code CONSUME} hoặc {@code EXPIRE}
-     * @param batchId lô đã bị trừ, bắt buộc có
-     * @param amount  số đã trừ (âm)
-     * @param userId  chủ credit
-     */
     record LedgerEntryRef(UUID id, CreditLedgerType type, UUID batchId, UUID userId, int amount) {
 
         public LedgerEntryRef {
@@ -222,11 +65,6 @@ public interface CreditLedgerPort {
             }
         }
 
-        /**
-         * Dòng này có thể hoàn được không. {@code GRANT} không hoàn được (mất mã kích hoạt thì
-         * mất gói, không phải mất tiền do tiêu sai), {@code REFUND} không hoàn được (sẽ thành
-         * vòng lặp cộng/trừ vô hạn nếu hoàn hai lần).
-         */
         public boolean isRefundable() {
             return type == CreditLedgerType.CONSUME || type == CreditLedgerType.EXPIRE;
         }

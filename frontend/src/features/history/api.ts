@@ -5,7 +5,6 @@ import type { Cat } from "@/entities/cat";
 import type { ScanListPage, ScanSummary } from "@/entities/scan-result";
 import { ABNORMAL_CLASSIFICATIONS, type HistoryFilterParams } from "./types";
 
-/** Fetch wrapper cục bộ — cùng quy ước `features/onboarding/api.ts` (base `/api/v1`). */
 const BASE_URL = "/api/v1";
 
 interface ProblemDetail {
@@ -15,7 +14,6 @@ interface ProblemDetail {
   detail: string;
   instance: string;
   code?: string;
-  /** Backend set đúng field này (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
   errorCode?: string;
 }
 
@@ -45,7 +43,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // bỏ qua
+      // Body không phải JSON: dùng thông báo lỗi mặc định theo status.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,
@@ -71,12 +69,10 @@ function buildQuery(params: HistoryFilterParams & { limit: number }): string {
   return qs.toString();
 }
 
-/** E2 — lịch sử quét, phân trang con trỏ. */
 export function fetchScanHistory(params: HistoryFilterParams & { limit: number }): Promise<ScanListPage> {
   return apiFetch<ScanListPage>(`/scans?${buildQuery(params)}`);
 }
 
-/** E3 — thống kê quét trong khoảng thời gian (dùng cho phổ pH tháng hiện tại). */
 export function fetchScanSummary(params: { catId?: string; from?: string; to?: string }): Promise<ScanSummary> {
   const qs = new URLSearchParams();
   if (params.catId) qs.set("catId", params.catId);
@@ -86,8 +82,6 @@ export function fetchScanSummary(params: { catId?: string; from?: string; to?: s
   return apiFetch<ScanSummary>(`/scans/summary${suffix ? `?${suffix}` : ""}`);
 }
 
-/** D3 — `GET /cats/{catId}` rút gọn, chỉ để hiển thị tên mèo ở header lịch sử. KHÔNG import
- * `features/cat` (boundaries cấm feature → feature) nên tự gọi lại D3. */
 export function fetchCat(catId: string): Promise<Cat> {
   return apiFetch<Cat>(`/cats/${catId}`);
 }

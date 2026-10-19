@@ -15,14 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Kết quả phân tích của một lần quét — ánh xạ {@code scan_analysis} (p4 D3).
- *
- * <p>Bảng mang giá trị kỹ thuật lớn nhất của module: cho phép debug không cần ảnh, tính lại khi
- * đổi bảng màu (backfill, M7 - ngoài phạm vi), và đo chất lượng pipeline theo thời gian. Mỗi lần
- * quét có thể có nhiều dòng (một dòng gốc + các lần tính lại) nhưng chỉ một dòng
- * {@code is_current = true} tại một thời điểm (partial unique index).</p>
- */
 @Entity
 @Table(name = "scan_analysis")
 public class ScanAnalysis {

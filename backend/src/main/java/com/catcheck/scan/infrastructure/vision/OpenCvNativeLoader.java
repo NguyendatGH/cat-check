@@ -9,17 +9,6 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 
-/**
- * Nạp native OpenCV — bắt buộc {@code Loader.load(opencv_java.class)} trong {@code @PostConstruct},
- * fail-fast, healthcheck {@code /actuator/health/vision} (p6 §6.5.5).
- *
- * <p>Nếu nạp thất bại (thiếu glibc, sai classifier) thì {@link #isAvailable()} trả {@code false}
- * và pipeline rơi về nhánh S4b (không có thẻ) thay vì crash. Đây là đường suy giảm có chủ đích:
- * mất độ chính xác nhưng hệ thống vẫn chạy.
- *
- * <p>OpenCV cần glibc — Alpine/musl gây SIGSEGV cứng trong {@code libquadmath}
- * (research-integrations §10). Base image là {@code eclipse-temurin:25-jre-noble}.
- */
 @Component
 public class OpenCvNativeLoader {
 

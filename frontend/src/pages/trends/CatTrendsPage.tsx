@@ -22,13 +22,6 @@ import {
 import { WebTrendsScreen } from "./webTrends";
 import { isApiError } from "@/shared/api";
 
-/**
- * `/cats/:catId/trends` — xu hướng pH từ D13 `GET /cats/{catId}/trends` (mockup `08`, bỏ
- * "AI Pattern Insights" ngoài phạm vi MVP — xem `features/trends/README.md`).
- *
- * Mobile và desktop dùng CHUNG một query: trước W1-E mobile tự tổng hợp từ `GET /scans` còn
- * desktop gọi D13, nên hai bố cục của cùng một màn hiện số khác nhau.
- */
 export function CatTrendsPage() {
   const { t } = useTranslation(["trends", "common"]);
   const { catId } = useParams<{ catId: string }>();
@@ -38,7 +31,6 @@ export function CatTrendsPage() {
   const { data: cat } = useCat(catId);
   const { data: bands } = usePhBands();
   const setExportCat = useExportWizardStore((s) => s.setCat);
-  /** Xuất hồ sơ PDF với bé đang xem đã được chọn sẵn ở bước 1. */
   const openExport = () => {
     if (cat) setExportCat({ id: cat.id, name: cat.name });
     void navigate("/export");
@@ -47,34 +39,23 @@ export function CatTrendsPage() {
   const { isPending, isError, refetch } = webTrends;
   const summary = webTrends.data?.stats;
   const buckets = useDistributionBuckets(webTrends.data?.points);
-  // 403 duy nhất mà D13 trả là FEATURE_NOT_IN_PLAN (GET nên không dính CSRF; chưa đăng nhập
-  // thì rơi vào guard trước khi tới đây). Nhận diện theo `errorCode`, nhưng vẫn coi mọi 403
-  // là "khoá gói" để không rơi vào màn lỗi trắng nếu body đổi hình dạng.
   const webLocked =
     isApiError(webTrends.error) &&
     webTrends.error.status === 403 &&
     (webTrends.error.code === FEATURE_NOT_IN_PLAN || webTrends.error.code === undefined);
 
   const allBands = bands ?? [];
-  /** Dải tham chiếu = dải `severity === "NORMAL"` do API trả — KHÔNG hard-code mã/ngưỡng. */
   const referenceBand = allBands.find((b) => b.severity === "NORMAL");
   const referenceStyle = phTokenStyle(referenceBand?.colorToken ?? "color-ph-unknown");
 
   const points = toTrendPoints(webTrends.data?.points);
   const latest = points.length ? points[points.length - 1] : null;
-  /**
-   * Ưu tiên `classification` BACKEND đã gán cho chính lần quét đó; chỉ suy lại từ con số pH khi
-   * mã lạ. `findBandForPh` so `band.phMin === null` nhưng API BỎ HẲN key ở dải mở (`LOW`/`HIGH`)
-   * nên `undefined !== null` ⇒ hai dải đó không bao giờ khớp và badge rơi về mã thô (VD pH 7.20
-   * hiện ra chữ `SLIGHTLY_HIGH`). Tra theo `code` không dính bẫy này.
-   */
   const bandByCode = (code: string | undefined): PhBand | undefined =>
     code === undefined ? undefined : allBands.find((b) => b.code === code);
   const latestBand = bandByCode(latest?.classification) ?? findBandForPh(allBands, latest?.phValue);
   const average = points.length ? points.reduce((sum, p) => sum + p.phValue, 0) / points.length : null;
   const dash = t("web.valueUnavailable");
 
-  /** Biên hữu hạn của một dải (API BỎ key `phMin`/`phMax` ở dải mở, không trả `null`). */
   const finiteBound = (value: number | null | undefined): number | null =>
     typeof value === "number" && Number.isFinite(value) ? value : null;
 
@@ -110,7 +91,6 @@ export function CatTrendsPage() {
       </div>
     );
   } else if (webLocked) {
-    // Gói hiện tại không có entitlement `trend` — nói thẳng thay vì màn lỗi trắng.
     mobileContent = (
       <div className="flex flex-col gap-3 p-4">
         <ErrorState title={t("upsell.title", { ns: "common" })} description={t("web.lockedNote")} />
@@ -132,15 +112,11 @@ export function CatTrendsPage() {
   } else {
     mobileContent = (
       <div className="flex flex-col gap-4 p-4">
-        {/* Mockup `08`: tiêu đề 2 dòng bên trái, pill trạng thái bên phải. Tên bé mèo tách
-            xuống dòng phụ — nhồi vào `h1` thì tiêu đề bị ép còn ~45% bề ngang và vỡ 4 dòng. */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h1 className="text-h2 font-bold text-text-primary">{t("pages.catTrends.title")}</h1>
             {cat?.name ? <p className="pt-0.5 text-caption text-text-secondary">{cat.name}</p> : null}
           </div>
-          {/* Pill bị kẹp ở ~45% bề ngang (nhãn dải do API trả có thể rất dài) và tự xuống dòng
-              BÊN TRONG pill, đúng như mockup — không đẩy tiêu đề vỡ dòng. */}
           {latestBand ? <PhBadge band={latestBand} className="mt-1 max-w-[45%] shrink-0 text-left" /> : null}
         </div>
 
@@ -150,8 +126,6 @@ export function CatTrendsPage() {
           labels={{ "7D": t("range.7D"), "30D": t("range.30D"), "90D": t("range.90D") }}
         />
 
-        {/* Thẻ biểu đồ — đầy đủ tiêu đề, giá trị trung bình, dòng "lần đo gần nhất",
-            trục X/Y, vùng tham chiếu và chú giải (mockup `08`). */}
         <Card padding="md" className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -212,7 +186,6 @@ export function CatTrendsPage() {
           ) : null}
         </Card>
 
-        {/* Phân bố phân loại — nhãn/mô tả/ngưỡng đều lấy từ `GET /reference/ph-bands`. */}
         <Card padding="md" className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -257,7 +230,6 @@ export function CatTrendsPage() {
 
   return (
     <>
-      {/* Desktop (>= lg): bố cục Figma 17:10514, số liệu lấy từ D13 thật. */}
       <div className="hidden lg:block">
         <WebTrendsScreen
           catId={catId ?? ""}
@@ -275,7 +247,6 @@ export function CatTrendsPage() {
           }}
         />
       </div>
-      {/* Mobile (< lg): giữ nguyên luồng cũ, kể cả trạng thái loading/lỗi. */}
       <div className="lg:hidden">{mobileContent}</div>
     </>
   );

@@ -9,10 +9,6 @@ const ONBOARDING_STEP_PATH: Record<string, string> = {
   activate: ROUTE_PATTERNS.onboardingActivate,
 };
 
-/**
- * Guard bước 3 (p9 mục 6): đã đăng nhập nhưng CHƯA xong onboarding → redirect đúng bước
- * còn dở (KHÔNG luôn về bước 1). Đặt SAU RequireAuth trong cây route.
- */
 export function RequireOnboarding() {
   const user = useSessionStore((state) => state.user);
 

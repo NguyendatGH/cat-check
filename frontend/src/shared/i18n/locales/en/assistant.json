@@ -1,0 +1,34 @@
+{
+  "title": "CatCheck Assistant",
+  "description": "Ask about cat care based on reviewed content.",
+  "empty": "You can ask about litter tray hygiene, tracking pH color, or everyday care. The assistant cites sources so you can double-check.",
+  "placeholder": "e.g. What should I do if the pH color changes unusually?",
+  "inputLabel": "Question for the assistant",
+  "send": "Send question",
+  "thinking": "Searching sources and writing an answer…",
+  "sources": "Sources",
+  "disclaimer": "Information is for reference only and does not replace a veterinarian's diagnosis.",
+  "error": "Couldn't send your question. Please try again.",
+  "selectCat": {
+    "label": "Which cat are you asking about?",
+    "generalOption": "General question"
+  },
+  "askingAbout": "Asking about: {{name}}",
+  "welcome": "Hi there! How can I help?",
+  "welcomeNamed": "How is {{name}} doing today?",
+  "suggestionsTitle": "Suggested questions",
+  "suggestions": [
+    "How often should I change the litter?",
+    "How do I read the pH indicator granule color correctly?",
+    "What should I do if the pH color changes unusually?",
+    "Any tips to help my cat drink more water?"
+  ],
+  "copy": "Copy",
+  "copied": "Copied",
+  "retry": "Resend",
+  "failedToSend": "Not sent yet.",
+  "jumpToLatest": "Latest message",
+  "charCount": "{{count}}/{{max}}",
+  "switchedTo": "Now asking about {{name}}",
+  "switchedGeneral": "Now asking a general question"
+}

@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminAccessProvider, computeCapabilities, type AdminCapabilities } from "@/features/admin";
-// Test đối chiếu với nguồn vai trò thật (giống cách AdminLayout tính); chỉ test được chạm `app`.
 import { ROLES, hasAnyRole } from "@/shared/auth/roles";
 import { GROUP1_CAPABILITIES } from "./group1Access";
 import { AdminActivationCodesPage } from "./AdminActivationCodesPage";
@@ -14,11 +13,6 @@ import { AdminPrivacyRetentionPage } from "./AdminPrivacyRetentionPage";
 import { AdminUserDetailPage } from "./AdminUserDetailPage";
 import { AdminUsersPage } from "./AdminUsersPage";
 
-/**
- * Nhóm trang người dùng, gói, mã kích hoạt, quyền riêng tư: nút ghi ẩn/hiện đúng theo vai
- * trò. Bảng khả năng dựng y như AdminLayout (`computeCapabilities(ROLES, …)`), nên test này
- * cũng bắt lỗi nếu khoá trong `group1Access` lệch khỏi `ROLES`.
- */
 
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -31,7 +25,6 @@ vi.mock("@/shared/api/acceptLanguage", () => ({ currentAcceptLanguage: () => "vi
 
 type Role = "ADMIN_SUPER" | "ADMIN_SUPPORT" | "ADMIN_CATALOG" | "DPO";
 
-/** Bảng khả năng của một người chỉ có một vai trò — cùng công thức với AdminLayout. */
 function capsFor(role: Role): AdminCapabilities {
   return computeCapabilities(ROLES, (allowed) => hasAnyRole([role], allowed));
 }
@@ -130,6 +123,21 @@ beforeEach(() => {
         issuedAt: "2026-09-01T00:00:00Z",
         validUntil: "2027-09-01T00:00:00Z",
         status: "ISSUED",
+        effectiveStatus: "ISSUED",
+        expired: false,
+        redeemedBy: null,
+        redeemedAt: null,
+      },
+      {
+        id: "c2",
+        codePrefix: "PLUS-",
+        packageCode: "PLUS",
+        productionBatch: "DEMO-EXPIRED",
+        issuedAt: "2025-09-01T00:00:00Z",
+        validUntil: "2025-10-01T00:00:00Z",
+        status: "ISSUED",
+        effectiveStatus: "EXPIRED",
+        expired: true,
         redeemedBy: null,
         redeemedAt: null,
       },
@@ -166,7 +174,11 @@ beforeEach(() => {
         },
       ],
     },
-    "/api/v1/admin/privacy/requests": offsetPage([DSAR]),
+    // Backend DSAR trả `page` (không phải `number`) — giữ đúng hình dạng thật để bắt lỗi "Trang NaN".
+    "/api/v1/admin/privacy/requests": {
+      status: 200,
+      body: { items: [DSAR], page: 0, size: 20, totalElements: 1, totalPages: 1, hasMore: false },
+    },
     "/api/v1/admin/privacy/requests/d1": { status: 200, body: DSAR },
     "/api/v1/admin/privacy/retention-policies": {
       status: 200,
@@ -299,6 +311,8 @@ describe("AdminActivationCodesPage", () => {
   it("ADMIN_SUPPORT chỉ tra cứu: không sinh lô, không vô hiệu, không tải CSV", async () => {
     const view = text(await renderPage(<AdminActivationCodesPage />, "ADMIN_SUPPORT"));
     expect(view).toContain("CC7Q");
+    expect(view).toContain("activation.status.EXPIRED");
+    expect(view).toContain("activation.colRedeemedAt");
     expect(view).toContain("activation.readOnlyNote");
     for (const key of ["activation.issueButton", "activation.void", "activation.voidBatch", "activation.downloadCsv"]) {
       expect(view).not.toContain(key);
@@ -344,6 +358,19 @@ describe("AdminPrivacyRequestsPage", () => {
   it("DPO thấy khối tạo DSAR", async () => {
     const view = text(await renderPage(<AdminPrivacyRequestsPage />, "DPO"));
     expect(view).toContain("pages.privacyRequests.createTitle");
+    expect(view).toContain("pages.privacyRequests.userLookup.emailLabel");
+  });
+
+  it("phân trang đọc trường page của backend, không ra NaN", async () => {
+    const view = text(await renderPage(<AdminPrivacyRequestsPage />, "ADMIN_SUPPORT"));
+    expect(view).toContain('pager.summary{"page":1,"totalPages":1,"totalElements":1}');
+    expect(view).not.toContain("NaN");
+  });
+
+  it("hiển thị phần giải thích và nhãn trạng thái thay vì mã thô", async () => {
+    const view = text(await renderPage(<AdminPrivacyRequestsPage />, "ADMIN_SUPPORT"));
+    expect(view).toContain("pages.privacyRequests.explainer.summary");
+    expect(view).toContain("pages.privacyRequests.statuses.RECEIVED");
   });
 });
 

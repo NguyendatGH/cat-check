@@ -8,13 +8,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Nhật ký đổi mèo của một lần quét — ánh xạ {@code scan_reassignment} (p4 D13).
- *
- * <p>Bảng append-only (p4 §4.1.2): KHÔNG có {@code updated_at}, không trigger — cùng nhóm với
- * {@code credit_ledger}/{@code audit_log}. {@code scan.reassign_count} chỉ là bản đếm nhanh; số
- * dòng ở đây là nguồn sự thật (bất biến I12).</p>
- */
 @Entity
 @Table(name = "scan_reassignment")
 public class ScanReassignment {

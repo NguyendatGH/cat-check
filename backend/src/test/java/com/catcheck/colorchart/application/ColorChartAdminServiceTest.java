@@ -26,23 +26,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * L32 (publish) — placeholder state must remain conservative until a calibration workflow
- * proves that the chart has real samples; a concurrent unique-index violation must be returned
- * as a business conflict.
- * <ol>
- *   <li>Publishing cannot clear {@code is_placeholder}: validation checks point structure, not
- *       provenance. Clearing it would let a synthetic seeded chart pass
- *       {@code ActiveChartPlaceholderGuard} in production.</li>
- *   <li>A race condition between two publishes for the same
- *       {@code (product_line, production_batch)} rơi vào {@code DataIntegrityViolationException}
- *       của {@code uq_color_chart_active_per_batch} (V9) và trả {@code 500} thay vì
- *       {@code 409 COLOR_CHART_IN_USE}.</li>
- * </ol>
- */
 class ColorChartAdminServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-09T10:00:00Z");
@@ -70,14 +57,26 @@ class ColorChartAdminServiceTest {
     void publishMapsConcurrentUniqueViolationToConflictInsteadOfFiveHundred() {
         UUID chartId = charts.add(ChartStatus.DRAFT, ProductLine.STANDARD, "LOT-2026A", true);
         points.seedValidPoints(chartId);
-        // Mo phong admin thu hai da publish xong batch nay dung luc nay: INSERT/UPDATE cua
-        // chung ta vi pham uq_color_chart_active_per_batch (V9) khi flush.
         charts.throwOnNextActiveSave();
 
         ConflictException ex = assertThrows(ConflictException.class, () -> service.publish(chartId));
 
         assertEquals(ColorChartErrorCode.COLOR_CHART_IN_USE, ex.errorCode());
         assertEquals(409, ex.errorCode().status().value());
+    }
+
+    @Test
+    void publishReplacesTheActiveChartOfTheSameLineAndArchivesIt() {
+        UUID oldId = charts.add(ChartStatus.ACTIVE, ProductLine.STANDARD, "LOT-2026A", true);
+        UUID draftId = charts.add(ChartStatus.DRAFT, ProductLine.STANDARD, "LOT-2026A", true);
+        points.seedValidPoints(draftId);
+
+        ColorChart published = service.publish(draftId);
+
+        assertEquals(ChartStatus.ACTIVE, published.getStatus());
+        ColorChart old = charts.findById(oldId).orElseThrow();
+        assertEquals(ChartStatus.ARCHIVED, old.getStatus());
+        assertEquals(NOW, old.getEffectiveTo());
     }
 
     @Test
@@ -91,15 +90,38 @@ class ColorChartAdminServiceTest {
         assertEquals(3, draft.getVersion());
     }
 
-    // ------------------------------------------------------------------ fixtures
+    @Test
+    void createDraftNormalisesBlankProductionBatchToNull() {
+        ColorChart draft = service.createDraft("CHART-BLANK", "Ban 1", ProductLine.STANDARD,
+                "   ", null, UUID.randomUUID());
+
+        assertNull(draft.getProductionBatch());
+    }
+
+    @Test
+    void createDraftMapsUniqueViolationToConflictInsteadOfFiveHundred() {
+        charts.throwOnNextDraftSave();
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> service.createDraft(
+                "CHART-RACE", "Ban 1", ProductLine.STANDARD, null, null, UUID.randomUUID()));
+
+        assertEquals(ColorChartErrorCode.COLOR_CHART_CODE_TAKEN, ex.errorCode());
+        assertEquals(409, ex.errorCode().status().value());
+    }
+
 
     private static final class FakeChartRepository implements ColorChartRepository {
 
         private final Map<UUID, ColorChart> store = new LinkedHashMap<>();
         private boolean throwOnNextActiveSave;
+        private boolean throwOnNextDraftSave;
 
         void throwOnNextActiveSave() {
             this.throwOnNextActiveSave = true;
+        }
+
+        void throwOnNextDraftSave() {
+            this.throwOnNextDraftSave = true;
         }
 
         UUID add(ChartStatus status, ProductLine productLine, String productionBatch, boolean placeholder) {
@@ -124,6 +146,9 @@ class ColorChartAdminServiceTest {
         public ColorChart save(ColorChart chart) {
             if (throwOnNextActiveSave && chart.getStatus() == ChartStatus.ACTIVE) {
                 throw new DataIntegrityViolationException("uq_color_chart_active_per_batch");
+            }
+            if (throwOnNextDraftSave && chart.getStatus() == ChartStatus.DRAFT) {
+                throw new DataIntegrityViolationException("uq_color_chart_code_version");
             }
             store.put(chart.getId(), chart);
             return chart;
@@ -169,7 +194,6 @@ class ColorChartAdminServiceTest {
 
         private final Map<UUID, List<ColorChartPoint>> store = new LinkedHashMap<>();
 
-        /** 4 muc pH phu 6.3/6.6, cach nhau du xa de ΔE00 >= 3 (p6 §6.6.2). */
         void seedValidPoints(UUID chartId) {
             List<ColorChartPoint> list = new ArrayList<>();
             double[] ph = {6.0, 6.3, 6.6, 6.9};

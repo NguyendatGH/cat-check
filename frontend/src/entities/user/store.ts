@@ -1,12 +1,7 @@
 import { create } from "zustand";
+import { ROLES } from "@/shared/auth/roles";
 import type { SessionStatus, SessionUser } from "./model";
 
-/**
- * Store phiên đăng nhập tối thiểu cho M0.
- * TODO: nối với shared/api thật (bootstrap qua cookie session + CSRF) ở milestone kế.
- * Guard SessionProvider (app/providers/SessionProvider.tsx) chặn render router tới khi
- * status khác "idle"/"loading".
- */
 interface SessionStore {
   status: SessionStatus;
   user: SessionUser | null;
@@ -15,7 +10,7 @@ interface SessionStore {
 }
 
 export const useSessionStore = create<SessionStore>((set) => ({
-  status: "idle",
+  status: "loading",
   user: null,
   setSession: (user) => {
     set({ user, status: user ? "authenticated" : "anonymous" });
@@ -28,4 +23,10 @@ export const useSessionStore = create<SessionStore>((set) => ({
 export function hasRole(user: SessionUser | null, roles: readonly string[]): boolean {
   if (!user) return false;
   return user.roles.some((role) => roles.includes(role));
+}
+
+export function hasNonAdminRole(user: SessionUser | null): boolean {
+  if (!user) return false;
+  const adminRoles: readonly string[] = ROLES.adminPortal;
+  return !user.roles.some((role) => adminRoles.includes(role));
 }

@@ -24,10 +24,6 @@ import {
   type BroadcastForm,
 } from "./group3Ops";
 
-/**
- * `/admin/system/broadcast` — chế độ bảo trì (app_setting) và phát thông báo hệ thống (L72).
- * Phát thật cần `confirmed: true` qua hộp xác nhận; chế độ thử chỉ đếm người nhận.
- */
 export function AdminBroadcastPage() {
   const { t } = useTranslation("admin");
   const can = useGroup3Can();
@@ -37,11 +33,7 @@ export function AdminBroadcastPage() {
   }
   return (
     <div className="flex max-w-4xl flex-col gap-4">
-      <AdminPageHeader
-        title={t("pages.broadcast.title")}
-        description={t("pages.broadcast.description")}
-        specRef="L71–L72 · /api/v1/admin"
-      />
+      <AdminPageHeader title={t("pages.broadcast.title")} description={t("pages.broadcast.description")} />
       {can("broadcast") ? <MaintenancePanel /> : null}
       <BroadcastPanel templates={templates} />
     </div>

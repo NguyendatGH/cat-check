@@ -1,0 +1,297 @@
+{
+  "pages": {
+    "reassignCat": {
+      "title": "Reassign cat for this scan"
+    },
+    "result": {
+      "title": "Analysis result"
+    },
+    "scan": {
+      "title": "Scan litter"
+    },
+    "scanDetail": {
+      "title": "Scan details"
+    },
+    "selectCat": {
+      "title": "Choose a cat to scan"
+    }
+  },
+  "phBands": {
+    "disclaimer": {
+      "short": "This is an at-home observation, not a medical diagnosis. If you're worried about your cat, ask a veterinarian."
+    }
+  },
+  "selectCat": {
+    "heading": "Which cat is this scan for?",
+    "description": "Attaching the right profile helps CatCheck track each cat's own pH over time.",
+    "privacyNoteTitle": "Accurate & privacy-respecting",
+    "privacyNoteBody": "CatCheck doesn't guess which cat it is. Please confirm the cat for this litter sample.",
+    "primaryLabel": "Main cat",
+    "secondaryLabel": "Other cat",
+    "sharedOptionTitle": "Not sure / Shared tray",
+    "sharedOptionDescription": "Save to the shared log without attaching it to any cat's own readings.",
+    "confirmCtaNamed": "Confirm & continue with {{name}}",
+    "confirmCtaShared": "Confirm & continue (shared tray)",
+    "confirmCtaGeneric": "Confirm",
+    "cancel": "Cancel",
+    "emptyTitle": "No cat profiles yet",
+    "emptyDescription": "Add a cat profile before you start scanning.",
+    "goAddCat": "Add a cat profile",
+    "loadError": "Couldn't load your cats. Please try again.",
+    "addAnotherCat": "Add another cat",
+    "multiCatTipTitle": "Several cats sharing a litter tray?",
+    "multiCatTipBody": "A common rule is N+1 trays for N cats — one tray per cat helps attach scan results to the right profile.",
+    "sexFemale": "Female",
+    "sexMale": "Male",
+    "sexUnknown": "Sex unknown",
+    "ageYears": "{{count}} yrs",
+    "ageMonthsShort": "{{count}} mo",
+    "weight": "{{value}} kg",
+    "lastScanAt": "{{date}}",
+    "noScanYet": "No scans yet",
+    "lastResult": "{{label}} · pH {{value}}",
+    "changeCta": "Change cat",
+    "lastScanToday": "Today {{time}}",
+    "lastScanYesterday": "Yesterday {{time}}",
+    "lastPh": "pH {{value}}",
+    "loading": "Loading…"
+  },
+  "capture": {
+    "guide": "Take a close-up of the color-changed litter area, with good light and sharp focus.",
+    "retake": "Retake",
+    "camera": "Take photo",
+    "gallery": "Choose from library",
+    "submit": "Analyze this photo",
+    "submitting": "Analyzing…",
+    "creditNote": "Each analysis uses 1 scan from your package.",
+    "missingCatTitle": "No cat selected",
+    "missingCatDescription": "Please go back and choose a cat before taking the photo.",
+    "goSelectCat": "Choose a cat",
+    "uploadError": "Couldn't send the photo. Please try again.",
+    "busyError": "The system is busy. Please try again in a few minutes.",
+    "frameHint": "Line up the color-changed granules inside the scan frame",
+    "albumCta": "Photo album",
+    "tipsCta": "Scan tips",
+    "tipsClose": "Close scan tips",
+    "emptyFrame": "The scan frame is empty",
+    "cameraDenied": "CatCheck doesn't have camera permission. Allow the camera in your browser settings, or tap the capture button to open your device's camera.",
+    "cameraUnavailable": "Couldn't open the live camera. Tap the capture button to open your device's camera or choose a photo from your album.",
+    "cameraRetry": "Allow camera",
+    "errors": {
+      "imageTooSmall": "The photo is too small — move closer or choose a higher-resolution photo.",
+      "imageTooLarge": "The photo is larger than the allowed size. Please choose another one.",
+      "imageUnsupported": "This image format isn't supported — please use a JPG, PNG or WebP photo.",
+      "imageDecodeFailed": "Couldn't read the image file — it may be corrupted. Please take the photo again.",
+      "engineUnavailable": "The image analyzer isn't available right now. Please try again in a few minutes.",
+      "catUnavailable": "The selected cat profile can't be used. Please choose the cat again."
+    }
+  },
+  "analyzing": {
+    "text": "Analyzing colors and estimating pH…",
+    "note": "Each analysis uses 1 scan from your package."
+  },
+  "result": {
+    "matchLabel": "Match",
+    "saveCta": "Save to history",
+    "viewAnalysisCta": "View detailed analysis",
+    "reassignCta": "Reassign to another cat",
+    "disputeCta": "This result isn't accurate",
+    "backHome": "Back to home",
+    "imageAlt": "Photo of the scanned litter area",
+    "vetNoteTitle": "Recorded granule color",
+    "inconclusive": {
+      "title": "Not enough data to estimate pH",
+      "description": "The photo didn't meet the quality requirements, so the system couldn't estimate pH this time. The scan was recorded but was NOT deducted from your package.",
+      "retryCta": "Retake",
+      "hint": "Try retaking it following the guide: hold the phone parallel to the litter surface, use good light and focus clearly on the color-changed granules.",
+      "balanceKept": "Balance unchanged: {{count}} credits."
+    },
+    "phHeading": "pH {{value}}",
+    "grainColorName": "Color code {{hex}}",
+    "scale": {
+      "acidSide": "Acidic (<{{value}})",
+      "alkalineSide": "Alkaline (>{{value}})",
+      "marker": "pH {{value}}",
+      "rangeBetween": "pH {{min}} – {{max}}",
+      "rangeBelow": "pH < {{max}}",
+      "rangeAbove": "pH > {{min}}",
+      "unavailable": "No reference scale available yet.",
+      "statusColorNote": "Colors on the scale show pH zones; the marker uses the granule color the system measured.",
+      "currentPh": "pH",
+      "zone": {
+        "acidic": "Acidic",
+        "normal": "Normal",
+        "alkaline": "Alkaline"
+      },
+      "neutral": "Neutral"
+    },
+    "advice": {
+      "title": "What should you do?",
+      "routineTitle": "Track regularly",
+      "routineBody": "Scan again in a few days so CatCheck can compare with your cat's own usual readings.",
+      "waterTitle": "Water reminder",
+      "waterBody": "Keep fresh, clean water available and change it often so your cat drinks enough every day.",
+      "watchTitle": "Things to watch",
+      "qualityTitle": "Photo quality this time"
+    }
+  },
+  "retry": {
+    "blurry": "The photo is blurry — hold the phone steady and retake it in good light.",
+    "generic": "Couldn't read the indicator granule color — take a closer shot of the color-changed litter area.",
+    "out_of_chart": "Color-changed granules were detected, but the color is outside the current reference chart. Include the color card in the photo for a more accurate comparison.",
+    "low_confidence": "Color-changed granules were detected, but confidence isn't high enough to estimate pH. Try again in even lighting or include the color card in the photo."
+  },
+  "quality": {
+    "BLURRY": "The photo is blurry — hold the phone steady when shooting.",
+    "TOO_DARK": "The photo is too dark — shoot somewhere with enough light.",
+    "TOO_BRIGHT": "The photo is too bright — avoid backlighting or direct flash.",
+    "OVEREXPOSED": "The indicator granule area is overexposed.",
+    "UNDEREXPOSED_PATCH": "Part of the photo is underexposed.",
+    "UNEVEN_LIGHTING": "Lighting is uneven across the photo.",
+    "CARD_NOT_FOUND": "No reference color card found in the frame — accuracy will be lower.",
+    "CALIBRATION_UNAVAILABLE": "Not enough background litter to calibrate color.",
+    "LOW_GRANULE_COVERAGE": "There's only a small area of indicator granules in the frame.",
+    "NO_INDICATOR_GRAINS": "No color-changed indicator granules were detected in the photo.",
+    "FEW_BLOBS": "Only a few indicator granules were detected.",
+    "MIXED_COLORS": "Indicator granule colors are inconsistent in the photo.",
+    "OUT_OF_CHART_RANGE": "The measured color is outside the reference color chart."
+  },
+  "rule": {
+    "REPEATED_OUT_OF_RANGE": {
+      "message": "pH has been outside the reference range several times recently."
+    },
+    "BASELINE_DEVIATION": {
+      "message": "pH differs noticeably from your cat's usual baseline."
+    },
+    "MONOTONIC_TREND": {
+      "message": "pH is steadily shifting in one direction."
+    },
+    "LOW_QUALITY_STREAK": {
+      "message": "Several recent scans had low confidence — consider retaking photos following the guide."
+    },
+    "URGENT_CLINICAL_SIGN": {
+      "message": "You reported an urgent clinical sign."
+    }
+  },
+  "reassignCat": {
+    "heading": "Which cat should this result be reassigned to?",
+    "description": "You can reassign within 24 hours, up to 3 times per scan.",
+    "confirmCtaNamed": "Reassign to {{name}}",
+    "confirmCtaShared": "Move to shared tray",
+    "cancel": "Cancel",
+    "success": "Scan reassigned.",
+    "limitReached": "No reassignments left for this scan (up to 3 times per 24 hours).",
+    "windowClosed": "The reassignment window for this scan has passed (within 24 hours of capture).",
+    "currentCat": "Assigned to {{name}}",
+    "currentShared": "Saved to the shared tray",
+    "backToResult": "Back to result",
+    "noOtherCat": "There are no other cats to reassign to."
+  },
+  "dispute": {
+    "title": "Is this result inaccurate?",
+    "notePlaceholder": "Briefly describe what seems wrong (optional)",
+    "submit": "Send feedback",
+    "cancel": "Cancel",
+    "success": "Feedback received — this scan won't be counted in the trend chart.",
+    "clear": "Remove dispute flag",
+    "note": {
+      "tooLong": "Notes can be at most 500 characters."
+    }
+  },
+  "scanDetail": {
+    "analysisTitle": "Detailed analysis",
+    "qualityTitle": "Quality flags",
+    "disputedBadge": "Marked as disputed",
+    "deleteCta": "Delete this scan",
+    "deleteConfirm": "Delete this scan? The original photo will be permanently deleted.",
+    "labLabel": "Color coordinates (Lab)",
+    "deltaEMinLabel": "Minimum ΔE",
+    "chartLabel": "Reference color chart",
+    "chartValue": "{{code}} (version {{version}})",
+    "engineLabel": "Algorithm version",
+    "infoTitle": "Scan information",
+    "actionsTitle": "Actions",
+    "actionError": "That didn't work. Please try again."
+  },
+  "web": {
+    "pageTitle": "Scan litter color",
+    "pageSubtitle": "Take or upload a photo of the color-changed litter area so CatCheck can estimate your cat's pH.",
+    "resultTitle": "Litter color scan result",
+    "lastScanLabel": "Last scan",
+    "lastScanValue": "{{date}} · pH {{value}}",
+    "balanceLabel": "Available credits",
+    "balanceValue": "{{count}} credits",
+    "capturedAtLabel": "Captured at",
+    "catSectionLabel": "CAT BEING SCANNED",
+    "sharedTrayTitle": "Shared tray",
+    "sharedTrayHint": "The result is saved to the shared tray log and isn't attached to any cat.",
+    "viewportTitle": "Litter area photo",
+    "takePhoto": "Take photo",
+    "uploadNew": "Upload photo",
+    "frameEmpty": "No photo yet. Take or upload a photo of the color-changed litter area.",
+    "analyzeCta": "Analyze this photo",
+    "tipsTitle": "Litter color photo tips",
+    "tip1": "Shoot in natural white light and avoid shadows.",
+    "tip2": "Take the photo within 5-15 minutes after your cat uses the tray so the color doesn't change.",
+    "overallLabel": "OVERALL ASSESSMENT",
+    "spectrumTitle": "Reference pH scale",
+    "spectrumSubtitle": "CatCheck's pH classification bands. The black dot marks this scan.",
+    "spectrumSubtitleAwaiting": "CatCheck's pH classification bands — your result will be marked on this scale.",
+    "exportPdf": "Export PDF",
+    "phReading": "{{value}} pH",
+    "referenceRange": "Reference range ({{range}})",
+    "estimateRange": "Estimated range: pH {{low}} – {{high}}",
+    "nearBoundary": "The value is close to the boundary between two bands — consider scanning again to compare.",
+    "awaitingTitle": "No analysis result yet",
+    "awaitingBody": "Take or upload a photo of the color-changed litter area, then tap analyze to see the result here.",
+    "resultUnknown": "Couldn't classify",
+    "valueUnavailable": "—",
+    "imageTitle": "Scan photo",
+    "imageAlt": "Litter area photo from this scan",
+    "imageNotStored": "The photo for this scan wasn't stored.",
+    "recentTitle": "{{name}}'s recent scans",
+    "recentEmpty": "No other scans for {{name}} yet.",
+    "recentViewAll": "View history",
+    "newScanCta": "New scan"
+  },
+  "outOfCredit": {
+    "title": "You've used all the scans in your package",
+    "body": "A new scan needs 1 credit. Activate the code on your litter bag to keep scanning.",
+    "balanceLabel": "Available credits",
+    "balanceValue": "{{count}} credits",
+    "trialBadge": "{{count}} trial scans left",
+    "noPackage": "You haven't activated a package yet — you're using trial scans.",
+    "lockedCta": "Analyze this photo",
+    "activateCta": "Enter activation code",
+    "plansCta": "View packages",
+    "activateHint": "Activate the code printed on your litter bag to get credits for your next scan.",
+    "note": "Running out of credits only locks new scans. Your history, cat profiles and saved charts are still available as usual."
+  },
+  "imageReason": {
+    "TRIAL": "Trial scans don't store the original photo.",
+    "PLAN_OFF": "The package at the time of the scan didn't include original photo storage.",
+    "CONSENT_OFF": "You turned off consent to store scan photos.",
+    "INCONCLUSIVE": "The photo didn't meet quality requirements, so it wasn't stored."
+  },
+  "meta": {
+    "capturedAt": "Captured at",
+    "cat": "Cat",
+    "source": "Photo source",
+    "sourceCAMERA": "Taken with camera",
+    "sourceGALLERY": "Chosen from library",
+    "confidence": "Estimate confidence",
+    "confidenceValue": "{{value}}%",
+    "calibration": "Color calibration",
+    "calibrationCARD_CCM": "Using the reference color card",
+    "calibrationSUBSTRATE_WB": "Using the background litter color",
+    "calibrationNONE": "No calibration",
+    "chart": "Reference color chart",
+    "chartValue": "Version {{version}}",
+    "chartPlaceholder": "Version {{version}} (provisional chart)",
+    "credit": "Scan",
+    "creditCharged": "1 credit used",
+    "creditTrial": "Trial scan",
+    "creditFree": "No credit deducted",
+    "engine": "Algorithm version"
+  }
+}

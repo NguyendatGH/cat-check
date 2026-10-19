@@ -2,9 +2,6 @@ package com.catcheck.colorchart.api.dto;
 
 import com.catcheck.colorchart.domain.ColorChartPoint;
 
-/**
- * Một mức pH trong bảng màu (L29, L31 response).
- */
 public record ColorChartPointResponse(
         String id,
         double phValue,

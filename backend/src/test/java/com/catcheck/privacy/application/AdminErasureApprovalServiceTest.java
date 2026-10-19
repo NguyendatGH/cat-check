@@ -30,14 +30,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * L53 — quy tắc hai người của p15 REQ-RBAC-03 / p14 ô Q9.
- *
- * <p>Mỗi bài dưới đây là một nhánh mà nếu thiếu thì "hai người" chỉ còn là chữ trong tài
- * liệu: vai trò sai, tự duyệt, không biết ai đề xuất, chưa xác minh danh tính. Bài quan
- * trọng nhất là {@link #theProposerCannotApproveTheirOwnErasureRequest()}: đó là trường hợp
- * duy nhất mà bộ gác vai trò <i>không</i> tự chặn, vì Q8 cho chính {@code DPO} đề xuất.</p>
- */
 class AdminErasureApprovalServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T03:00:00Z");
@@ -119,7 +111,6 @@ class AdminErasureApprovalServiceTest {
     @Test
     void selfServiceErasureNeedsNoSecondProposerBecauseTheSubjectIsTheProposer() {
         givenRole(APPROVER, "DPO");
-        // handledBy = chính người duyệt: ở luồng tự phục vụ đó chỉ là "ai đang xử lý hồ sơ".
         givenRequest(eraseRequest(DsarChannel.SELF_SERVICE, APPROVER, NOW, DsarStatus.IN_PROGRESS));
 
         service.approve(APPROVER, REQUEST_ID, "Chu the tu yeu cau trong app", RequestEvidence.system());

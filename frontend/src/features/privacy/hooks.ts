@@ -21,10 +21,6 @@ import type {
   StepUpMethod,
 } from "./types";
 
-/**
- * Hooks react-query của Trung tâm quyền riêng tư — gọi thẳng `PrivacyController`
- * (C1–C15, p8 §8.4.3) và `AuthController` A4/A5/A12 cho bước step-up re-auth.
- */
 
 export const PRIVACY_KEYS = {
   purposes: ["privacy", "purposes"] as const,
@@ -36,10 +32,8 @@ export const PRIVACY_KEYS = {
   accessLog: ["privacy", "access-log"] as const,
 };
 
-/** Ân hạn xoá tài khoản: 7 ngày (TD-05, p15 §15.4.6, `DsarService.DELETION_GRACE_DAYS`). */
 export const DELETION_GRACE_DAYS = 7;
 
-/** C1 — danh mục mục đích xử lý. Cấu hình, đổi hiếm ⇒ cache dài. */
 export function useConsentPurposes(): UseQueryResult<PurposeView[]> {
   return useQuery({
     queryKey: PRIVACY_KEYS.purposes,
@@ -48,10 +42,6 @@ export function useConsentPurposes(): UseQueryResult<PurposeView[]> {
   });
 }
 
-/**
- * C2 — trạng thái hiện hành từng purpose, đọc từ view `consent_current` của server.
- * KHÔNG suy ra từ lịch sử ở client: lệch ở đây là lệch bằng chứng pháp lý (p4 B2).
- */
 export function useCurrentConsents(): UseQueryResult<ConsentStateView[]> {
   return useQuery({
     queryKey: PRIVACY_KEYS.consents,
@@ -59,11 +49,6 @@ export function useCurrentConsents(): UseQueryResult<ConsentStateView[]> {
   });
 }
 
-/**
- * C3 — cấp/rút consent. Mỗi lần gọi là **INSERT** một dòng `consent_record` mới
- * (append-only, bất biến I16) — không bao giờ sửa dòng cũ. Vì vậy sau khi ghi phải làm mới
- * cả trạng thái hiện hành lẫn sổ lịch sử.
- */
 export function useRecordConsents(): UseMutationResult<
   ConsentStateView[],
   Error,
@@ -85,7 +70,6 @@ export function useRecordConsents(): UseMutationResult<
   });
 }
 
-/** C4 — sổ bằng chứng consent của tôi, mới nhất trước. */
 export function useConsentHistory(limit = 50): UseQueryResult<ConsentHistoryView[]> {
   return useQuery({
     queryKey: [...PRIVACY_KEYS.consentHistory, limit],
@@ -94,7 +78,6 @@ export function useConsentHistory(limit = 50): UseQueryResult<ConsentHistoryView
   });
 }
 
-/** C5 — "Dữ liệu CatCheck đang giữ về bạn", render động từ `data_inventory_item`. */
 export function useDataInventory(): UseQueryResult<DataInventoryView[]> {
   return useQuery({
     queryKey: PRIVACY_KEYS.dataInventory,
@@ -103,7 +86,6 @@ export function useDataInventory(): UseQueryResult<DataInventoryView[]> {
   });
 }
 
-/** C14 — danh sách yêu cầu DSAR của tôi (mới nhất trước). */
 export function useDsarRequests(limit = 50): UseQueryResult<DsarRequestView[]> {
   return useQuery({
     queryKey: [...PRIVACY_KEYS.requests, limit],
@@ -111,7 +93,6 @@ export function useDsarRequests(limit = 50): UseQueryResult<DsarRequestView[]> {
   });
 }
 
-/** C7 — trạng thái một gói xuất (thêm `resultExpiresAt` mà C14 không trả). */
 export function useExportStatus(publicRef: string | null): UseQueryResult<ExportStatusView> {
   return useQuery({
     queryKey: PRIVACY_KEYS.exportStatus(publicRef ?? ""),
@@ -121,7 +102,6 @@ export function useExportStatus(publicRef: string | null): UseQueryResult<Export
   });
 }
 
-/** C6 — yêu cầu xuất dữ liệu. Cần step-up; tối đa 1 lần/24 giờ. */
 export function useCreateExportRequest(): UseMutationResult<ExportStatusView, Error, void> {
   const queryClient = useQueryClient();
   return useMutation({
@@ -135,9 +115,6 @@ export function useCreateExportRequest(): UseMutationResult<ExportStatusView, Er
   });
 }
 
-/**
- * C8 — tải gói ZIP bất đồng bộ (link một lần, 72 giờ).
- */
 export interface DsarExportDownloadInput { publicRef: string; downloadToken: string }
 
 export function useDownloadExport(): UseMutationResult<Blob, Error, DsarExportDownloadInput> {
@@ -160,7 +137,6 @@ export function useDownloadExport(): UseMutationResult<Blob, Error, DsarExportDo
   });
 }
 
-/** C9 — yêu cầu xoá tài khoản. Cần step-up; đặt `deletion_scheduled_at = now() + 7 ngày`. */
 export function useRequestAccountDeletion(): UseMutationResult<ExportStatusView, Error, void> {
   const queryClient = useQueryClient();
   return useMutation({
@@ -171,7 +147,6 @@ export function useRequestAccountDeletion(): UseMutationResult<ExportStatusView,
   });
 }
 
-/** C10 — huỷ yêu cầu xoá trong 7 ngày ân hạn. */
 export function useCancelAccountDeletion(): UseMutationResult<undefined, Error, void> {
   const queryClient = useQueryClient();
   return useMutation({
@@ -182,7 +157,6 @@ export function useCancelAccountDeletion(): UseMutationResult<undefined, Error, 
   });
 }
 
-/** C11/C12 — bật/tắt hạn chế xử lý (`app_user.processing_restricted_at`). */
 export function useSetRestriction(): UseMutationResult<undefined, Error, boolean> {
   const queryClient = useQueryClient();
   return useMutation({
@@ -194,7 +168,6 @@ export function useSetRestriction(): UseMutationResult<undefined, Error, boolean
   });
 }
 
-/** C13 — mở yêu cầu DSAR không tự phục vụ được. Cần step-up. */
 export function useCreateDsarRequest(): UseMutationResult<DsarRequestView, Error, ManualDsarType> {
   const queryClient = useQueryClient();
   return useMutation({
@@ -209,13 +182,6 @@ export function useCreateDsarRequest(): UseMutationResult<DsarRequestView, Error
   });
 }
 
-/**
- * B13 — "Ai đã truy cập dữ liệu của tôi" (`GET /account/privacy/access-log`, p15 §15.4).
- *
- * Endpoint ĐÃ TỒN TẠI nhưng hiện trả mảng rỗng cố định (xem {@link AccessLogEntryView}).
- * Vẫn nối thật: khi W3 cắm `AuditLogService.queryBySubject` vào thì màn hình có dữ liệu ngay,
- * không phải sửa UI; và trong lúc chờ, trạng thái rỗng hiển thị là rỗng THẬT.
- */
 export function useAccessLog(): UseQueryResult<AccessLogEntryView[]> {
   return useQuery({
     queryKey: PRIVACY_KEYS.accessLog,
@@ -224,23 +190,9 @@ export function useAccessLog(): UseQueryResult<AccessLogEntryView[]> {
   });
 }
 
-/* ------------------------------------------------------------------ *
- * Step-up re-authentication (p15 REQ-DSAR-04)
- *
- * Xuất/xoá dữ liệu BẮT BUỘC xác minh lại danh tính; `StepUpVerificationPort` fail-closed
- * nên nếu bỏ bước này mọi lời gọi C6/C9/C13 đều trả 403
- * `DSAR_IDENTITY_VERIFICATION_REQUIRED`.
- *
- * Luồng OTP email (phương thức p15 nêu đích danh): A4 `POST /auth/otp/request`
- * purpose `LOGIN_STEPUP` → A5 `POST /auth/otp/verify` lấy `otpTicket` → A12
- * `POST /auth/reauth` method `EMAIL_OTP`, credential = vé đó.
- * Hooks gọi `/auth/*` đặt ở đây chứ không ở `features/auth` vì eslint `boundaries`
- * cấm feature import feature; đây là cùng convention với wrapper `apiFetch` cục bộ.
- * ------------------------------------------------------------------ */
 
 const STEP_UP_OTP_PURPOSE = "LOGIN_STEPUP";
 
-/** A4 — gửi mã OTP tới email của chính tài khoản đang đăng nhập. */
 export function useRequestStepUpOtp(): UseMutationResult<OtpRequestResult, Error, string> {
   return useMutation({
     mutationFn: (email: string) =>
@@ -251,7 +203,6 @@ export function useRequestStepUpOtp(): UseMutationResult<OtpRequestResult, Error
   });
 }
 
-/** A5 — đổi mã OTP lấy vé dùng một lần. */
 export function useVerifyStepUpOtp(): UseMutationResult<OtpVerifyResult, Error, { email: string; code: string }> {
   return useMutation({
     mutationFn: ({ email, code }) =>
@@ -262,7 +213,6 @@ export function useVerifyStepUpOtp(): UseMutationResult<OtpVerifyResult, Error, 
   });
 }
 
-/** A12 — đánh dấu phiên đã step-up (cửa sổ 300 giây theo p11 §11.12.4). */
 export function useReauth(): UseMutationResult<
   unknown,
   Error,

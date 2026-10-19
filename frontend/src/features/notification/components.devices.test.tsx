@@ -4,12 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PushDevicesCard } from "./components";
 
-/**
- * Danh sách thiết bị nhận push. Backend `default-property-inclusion: non_null` nên một đăng ký
- * chưa có `lastSeenAt` KHÔNG có key đó trong JSON — hàng thiết bị từng in "Invalid Date".
- * `pushAvailability` giả "bị từ chối quyền" để `productConfigured` bật (cần gọi GET danh sách)
- * mà không dựng công tắc.
- */
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
@@ -52,7 +46,6 @@ async function renderCard(items: unknown[]): Promise<{ text: () => string; unmou
     );
     await Promise.resolve();
   });
-  // Chờ danh sách tải xong (mỗi vòng bọc trong `act` để React xả cập nhật).
   for (let attempt = 0; attempt < 50 && container.textContent.includes("push.devices.loading"); attempt += 1) {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 5));

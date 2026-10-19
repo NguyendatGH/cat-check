@@ -1,6 +1,3 @@
-// shared/ui — 12 component nền bắt buộc (p10). Mọi import từ feature/page/entity PHẢI
-// qua barrel này (boundaries/entry-point áp dụng cho feature/entity; shared tự do nhưng
-// giữ quy ước 1 cửa cho gọn).
 export { Button, buttonVariants } from "./Button";
 export type { ButtonProps, ButtonVariantProps } from "./Button";
 
@@ -14,7 +11,7 @@ export { Badge, badgeVariants } from "./Badge";
 export type { BadgeProps, BadgeVariantProps } from "./Badge";
 
 export { Toast, toast } from "./Toast";
-export type { ToastProps } from "./Toast";
+export type { ToastOptions, ToastProps } from "./Toast";
 
 export {
   Dialog,
@@ -30,6 +27,12 @@ export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetTitle, SheetDescrip
 
 export { SkeletonLoader } from "./SkeletonLoader";
 export type { SkeletonLoaderProps } from "./SkeletonLoader";
+
+export { DelayedFallback } from "./DelayedFallback";
+export type { DelayedFallbackProps } from "./DelayedFallback";
+
+export { PageSkeleton } from "./PageSkeleton";
+export type { PageSkeletonProps } from "./PageSkeleton";
 
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
@@ -50,3 +53,14 @@ export type { SwitchProps } from "./Switch";
 
 export { Stepper } from "./Stepper";
 export type { StepperProps } from "./Stepper";
+
+export { Pagination } from "./Pagination";
+export type { PaginationProps } from "./Pagination";
+
+export { ShineLogo } from "./ShineLogo";
+export type { ShineLogoProps } from "./ShineLogo";
+
+export { CelebrationHost, Fireworks } from "./Celebration";
+export type { FireworksProps } from "./Celebration";
+export { celebrate, useCelebrationBusy, useCelebrationStore } from "@/shared/lib/motion/celebration";
+export type { CelebrationRequest } from "@/shared/lib/motion/celebration";

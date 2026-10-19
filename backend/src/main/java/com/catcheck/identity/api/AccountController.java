@@ -40,15 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Nhom B — Tai khoan & bao mat ca nhan (p8 §8.4.2, 18 endpoint).
- *
- * <p>B11/B12 (notification-preferences) ve lau dai thuoc module notification, nhung bay cho
- * hien dang o {@code app_user.notification_prefs} (JSONB) — bang
- * {@code user_notification_preference} chi duoc tao o {@code V13__notification.sql}, chua
- * chay. Hai endpoint o day chay that tren cot JSONB do; khi W3 tiep quan thi doi cho luu,
- * KHONG doi hop dong API. Xem {@link ProfileService#notificationPreferences}.</p>
- */
 @RestController
 @RequestMapping("/api/v1")
 public class AccountController {
@@ -71,9 +62,7 @@ public class AccountController {
         this.sessionService = sessionService;
     }
 
-    /* --- B1/B2: users/me --- */
 
-    /** B1 — ho so day du cua chinh minh. */
     @Operation(operationId = "getUsersMe", summary = "Ho so cua chinh minh")
     @GetMapping("/users/me")
     public ProfileResponse myProfile(@AuthenticationPrincipal AuthPrincipal principal) {
@@ -84,7 +73,6 @@ public class AccountController {
                 view.identities(), view.createdAt());
     }
 
-    /** B2 — merge-patch fullName, phone, locale, timezone. */
     @Operation(operationId = "patchUsersMe", summary = "Sua ho so (merge-patch)")
     @PatchMapping("/users/me")
     public ProfileResponse updateMyProfile(
@@ -99,9 +87,7 @@ public class AccountController {
                 view.identities(), view.createdAt());
     }
 
-    /* --- B3/B4/B5: avatar --- */
 
-    /** B3 — anh dai dien (stream). */
     @Operation(operationId = "getUsersMeAvatar", summary = "Anh dai dien")
     @GetMapping("/users/me/avatar")
     public ResponseEntity<byte[]> myAvatar(@AuthenticationPrincipal AuthPrincipal principal) {
@@ -111,7 +97,6 @@ public class AccountController {
                 .body(avatar.content());
     }
 
-    /** B4 — tai anh dai dien (multipart). */
     @Operation(operationId = "putUsersMeAvatar", summary = "Tai anh dai dien")
     @PutMapping("/users/me/avatar")
     public Map<String, Object> uploadMyAvatar(@RequestParam("file") MultipartFile file,
@@ -126,7 +111,6 @@ public class AccountController {
         }
     }
 
-    /** B5 — go anh dai dien. */
     @Operation(operationId = "deleteUsersMeAvatar", summary = "Go anh dai dien")
     @DeleteMapping("/users/me/avatar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -134,13 +118,7 @@ public class AccountController {
         profileService.deleteAvatar(principal.userId());
     }
 
-    /* --- B6: account/password --- */
 
-    /**
-     * B6 — đổi mật khẩu ({@code currentPassword} = step-up {@code PASSWORD}), thu hồi mọi
-     * phiên khác (p8 §8.4.4 nhóm B). Logic đầy đủ đã có sẵn ở
-     * {@link SessionService#changePassword}, kể cả {@code @Transactional} (R12) và audit.
-     */
     @Operation(operationId = "postAccountPassword", summary = "Doi mat khau")
     @PostMapping("/account/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -151,9 +129,7 @@ public class AccountController {
                 request.newPassword(), context(httpRequest));
     }
 
-    /* --- B7/B8: email change --- */
 
-    /** B7 — gui OTP EMAIL_CHANGE toi dia chi moi. */
     @Operation(operationId = "postAccountEmailChangeRequest", summary = "Yeu cau doi email")
     @PostMapping("/account/email-change/request")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -166,7 +142,6 @@ public class AccountController {
         return Map.of("otpExpiresAt", "", "maskedNewEmail", maskEmail(request.newEmail()));
     }
 
-    /** B8 — xac nhan doi email bang otp_ticket. */
     @Operation(operationId = "postAccountEmailChangeConfirm", summary = "Xac nhan doi email")
     @PostMapping("/account/email-change/confirm")
     public Map<String, Object> confirmEmailChange(
@@ -178,9 +153,7 @@ public class AccountController {
         return Map.of("emailChanged", true);
     }
 
-    /* --- B9/B10: identities --- */
 
-    /** B9 — cac phuong thuc dang nhap da lien ket. */
     @Operation(operationId = "getAccountIdentities", summary = "Phuong thuc dang nhap da lien ket")
     @GetMapping("/account/identities")
     public Map<String, Object> myIdentities(@AuthenticationPrincipal AuthPrincipal principal) {
@@ -192,7 +165,6 @@ public class AccountController {
         return Map.of("items", items);
     }
 
-    /** B10 — go lien ket Google. */
     @Operation(operationId = "deleteAccountIdentity", summary = "Go lien ket Google")
     @DeleteMapping("/account/identities/{provider}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -201,12 +173,7 @@ public class AccountController {
         profileService.unlinkIdentity(principal.userId(), provider);
     }
 
-    /* --- B11/B12: notification-preferences --- */
 
-    /**
-     * B11 — bảy cờ bật/tắt theo kênh và theo loại. Luôn 200: chưa có dữ liệu thì trả mặc định
-     * của p4 (mọi thứ bật, trừ {@code marketing}).
-     */
     @Operation(operationId = "getAccountNotificationPreferences", summary = "Tuy chon thong bao")
     @GetMapping("/account/notification-preferences")
     public NotificationPreferencesResponse getNotificationPreferences(
@@ -215,29 +182,17 @@ public class AccountController {
                 profileService.notificationPreferences(principal.userId()));
     }
 
-    /**
-     * B12 — ghi đè toàn bộ bảy cờ, trả về đúng biểu diễn vừa ghi.
-     *
-     * <p>{@code 400 VALIDATION_FAILED} khi thiếu field (PUT không nhận partial) hoặc khi tắt
-     * kênh bắt buộc — lý do nằm ở
-     * {@link ProfileService#updateNotificationPreferences}.</p>
-     */
     @Operation(operationId = "putAccountNotificationPreferences", summary = "Doi tuy chon thong bao")
     @PutMapping("/account/notification-preferences")
     public NotificationPreferencesResponse putNotificationPreferences(
             @RequestBody UpdateNotificationPreferencesRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
-        // Map DTO -> record mien nam trong chinh DTO, KHONG phai mot helper private o day:
-        // R4 quet MOI method cua @RestController (ke ca private) nen mot helper
-        // `toPreferences(...)` tra ve kieu ..domain.. se lam ArchUnit fail build.
         return NotificationPreferencesResponse.of(profileService.updateNotificationPreferences(
                 principal.userId(),
                 UpdateNotificationPreferencesRequest.toPreferences(request)));
     }
 
-    /* --- B13: privacy access-log --- */
 
-    /** B13 — "Ai da truy cap du lieu cua toi" — audit_log loc theo subject_user_id. */
     @Operation(operationId = "getAccountPrivacyAccessLog", summary = "Nhat ky truy cap du lieu")
     @GetMapping("/account/privacy/access-log")
     public Map<String, Object> accessLog(@AuthenticationPrincipal AuthPrincipal principal) {
@@ -255,16 +210,11 @@ public class AccountController {
         return Map.of("items", items);
     }
 
-    /* --- B14-B18: MFA TOTP --- */
 
-    /** B14 — trang thai TOTP + so ma khoi phuc con lai. */
     @Operation(operationId = "getAccountMfaTotp", summary = "Trang thai TOTP")
     @GetMapping("/account/mfa/totp")
     public Map<String, Object> totpStatus(@AuthenticationPrincipal AuthPrincipal principal) {
         MfaService.TotpStatusView status = mfaService.status(principal.userId());
-        // Bug that da sua: Map.of NEM NullPointerException khi gap value null, ma ca ba truong
-        // duoi day deu null khi user chua enroll TOTP (truong hop MAC DINH cua moi tai khoan
-        // moi) ⇒ GET /account/mfa/totp luon 500. HashMap cho phep null.
         Map<String, Object> body = new HashMap<>();
         body.put("status", status.status() == null ? "NONE" : status.status().name());
         body.put("activatedAt", status.activatedAt());
@@ -273,7 +223,6 @@ public class AccountController {
         return body;
     }
 
-    /** B15 — sinh secret PENDING + otpauthUri. */
     @Operation(operationId = "postAccountMfaTotpInit", summary = "Bat dau enroll TOTP")
     @PostMapping("/account/mfa/totp/init")
     public Map<String, Object> totpInit(@AuthenticationPrincipal AuthPrincipal principal,
@@ -289,7 +238,6 @@ public class AccountController {
                 "algorithm", enrollment.algorithm());
     }
 
-    /** B16 — xac nhan ma => ACTIVE + 10 ma khoi phuc (tra dung mot lan). */
     @Operation(operationId = "postAccountMfaTotpConfirm", summary = "Xac nhan enroll TOTP")
     @PostMapping("/account/mfa/totp/confirm")
     public Map<String, Object> totpConfirm(@Valid @RequestBody TotpVerifyRequest request,
@@ -303,7 +251,6 @@ public class AccountController {
                 "mfaLevel", "TOTP");
     }
 
-    /** B17 — sinh lai 10 ma khoi phuc, huyn tron lo cu. */
     @Operation(operationId = "postAccountMfaTotpRecoveryCodesRegenerate", summary = "Sinh lai ma khoi phuc")
     @PostMapping("/account/mfa/totp/recovery-codes/regenerate")
     public Map<String, Object> regenerateRecoveryCodes(
@@ -316,7 +263,6 @@ public class AccountController {
                 "activatedAt", confirmation.activatedAt().toString());
     }
 
-    /** B18 — tu go TOTP (chi khi khong con role admin). */
     @Operation(operationId = "deleteAccountMfaTotp", summary = "Tu go TOTP")
     @DeleteMapping("/account/mfa/totp")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -325,7 +271,6 @@ public class AccountController {
         mfaService.delete(principal.userId(), principal.mfaLevel(), context(httpRequest));
     }
 
-    /* ---------- Helpers ---------- */
 
     private AuthRequestContext context(HttpServletRequest request) {
         return AuthRequestContext.of(

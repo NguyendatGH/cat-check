@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { format, isToday, isYesterday } from "date-fns";
 import {
   AlertTriangle,
@@ -8,9 +9,12 @@ import {
   ChevronRight,
   FileText,
   Flag,
+  HelpCircle,
   ListFilter,
   FileDown,
   ShieldCheck,
+  Search,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -21,17 +25,7 @@ import { phTokenStyle } from "@/entities/ph-bands";
 import type { ScanListItem } from "@/entities/scan-result";
 import type { HistoryFilterKey } from "./types";
 
-/**
- * UI cho `features/history` — ghép `entities/ph-bands` (màu/nhãn) + `entities/scan-result`
- * (dữ liệu quét). Không đặt ở entity vì 1 entity không được import entity khác.
- *
- * Bố cục bám mockup `07. Lịch sử Sức khỏe (Health History)`: thanh chuyển bé ở đầu màn,
- * phổ pH kèm chú giải dải, chip lọc có icon, thẻ timeline có badge dải + chip phụ.
- * Mọi ngưỡng/nhãn dải đến từ `bands` (`GET /reference/ph-bands`) — không hard-code.
- */
 
-/** Nhãn ngày kiểu "Hôm nay, 08:42" / "Hôm qua, 19:15" / "20/09/2026, 08:42" — số hoá, không phụ
- * thuộc locale month-name của date-fns (tránh lệch mock "Th09" không chuẩn). */
 export function formatScanTimestamp(iso: string, todayLabel: string, yesterdayLabel: string): string {
   const date = new Date(iso);
   const time = format(date, "HH:mm");
@@ -44,8 +38,6 @@ export function monthGroupKey(iso: string): string {
   return format(new Date(iso), "yyyy-MM");
 }
 
-/** `{month, year}` số (không zero-pad) để truyền thẳng vào `t("monthGroup.label", {month, year})`
- * (i18next tự nội suy `{{month}}`/`{{year}}` — không tự ráp chuỗi ở tầng component). */
 export function parseMonthGroupKey(key: string): { month: number; year: number } {
   const [year, month] = key.split("-");
   return { month: Number(month), year: Number(year) };
@@ -53,7 +45,6 @@ export function parseMonthGroupKey(key: string): { month: number; year: number }
 
 const isBound = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
-/** Dải nào có ít nhất một đầu mút — bỏ dải "không kết luận" (không nằm trên thang). */
 function scaleBands(bands: PhBand[]): PhBand[] {
   return bands
     .filter((b) => isBound(b.phMin) || isBound(b.phMax))
@@ -61,14 +52,11 @@ function scaleBands(bands: PhBand[]): PhBand[] {
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-/* ---------------- CatSwitcherBar ---------------- */
 
 export interface CatSwitcherBarProps {
   name: string;
   avatar: ReactNode;
-  /** VD "18 tháng tuổi • Cái" — đã dựng sẵn ở trang cha. */
   meta?: string | null;
-  /** Dòng trạng thái pH, lấy từ dải của lần quét/trung vị gần nhất. */
   status: string;
   statusTone: "normal" | "muted";
   changeLabel: string;
@@ -77,10 +65,6 @@ export interface CatSwitcherBarProps {
   className?: string;
 }
 
-/**
- * Thanh "đang xem bé nào + đổi bé" ở đầu màn lịch sử (mockup `07`). Không tự gọi API —
- * trang cha truyền tên/ảnh/trạng thái xuống.
- */
 export function CatSwitcherBar({
   name,
   avatar,
@@ -130,17 +114,12 @@ export function CatSwitcherBar({
   );
 }
 
-/* ---------------- PhBandLegendRow ---------------- */
 
 export interface PhBandLegendRowProps {
   bands: PhBand[];
   className?: string;
 }
 
-/**
- * Ba mốc chú giải dưới thanh phổ pH ("toan • tối ưu • kiềm" của mockup) — dựng từ chính
- * `bands` của API: dải đầu thang, dải `NORMAL`, dải cuối thang. Không hard-code ngưỡng.
- */
 export function PhBandLegendRow({ bands, className }: PhBandLegendRowProps) {
   const { t } = useTranslation("history");
   const scale = scaleBands(bands);
@@ -177,7 +156,6 @@ export function PhBandLegendRow({ bands, className }: PhBandLegendRowProps) {
   );
 }
 
-/* ---------------- FilterChips ---------------- */
 
 const FILTER_ICON: Record<HistoryFilterKey, LucideIcon> = {
   ALL: ListFilter,
@@ -193,7 +171,6 @@ export interface FilterChipsProps {
 }
 
 export function FilterChips({ value, onChange, labels, className }: FilterChipsProps) {
-  // Tranh chấp là trạng thái xử lý nội bộ, không phải một khái niệm lọc hữu ích cho người dùng.
   const options: HistoryFilterKey[] = ["ALL", "ABNORMAL"];
   return (
     <div className={cn("flex gap-2 overflow-x-auto pb-1", className)} role="tablist">
@@ -224,7 +201,6 @@ export function FilterChips({ value, onChange, labels, className }: FilterChipsP
   );
 }
 
-/* ---------------- MonthGroupHeader ---------------- */
 
 export function MonthGroupHeader({ label, count }: { label: string; count: string }) {
   return (
@@ -238,7 +214,6 @@ export function MonthGroupHeader({ label, count }: { label: string; count: strin
   );
 }
 
-/* ---------------- ScanTimelineItem ---------------- */
 
 export interface ScanTimelineItemProps {
   scan: ScanListItem;
@@ -250,13 +225,6 @@ export interface ScanTimelineItemProps {
   className?: string;
 }
 
-/**
- * Thẻ một lần quét trong timeline (mockup `07`): icon trạng thái · ngày giờ · pill
- * "{dải} • pH {giá trị}" · hàng chip phụ (tên bé, độ tin cậy, gần ngưỡng, tranh chấp).
- *
- * KHÔNG có đoạn mô tả văn xuôi như mockup — `GET /scans` không trả trường mô tả nào và
- * không bịa nội dung quan sát.
- */
 export function ScanTimelineItem({
   scan,
   bands,
@@ -269,7 +237,8 @@ export function ScanTimelineItem({
   const { t } = useTranslation("history");
   const band = bands.find((b) => b.code === scan.bandCode);
   const style = phTokenStyle(band?.colorToken ?? "color-ph-unknown");
-  const isAbnormal = scan.classification !== "IN_RANGE";
+  const StatusIcon =
+    scan.classification === "IN_RANGE" ? CheckCircle : scan.classification === "INCONCLUSIVE" ? HelpCircle : AlertTriangle;
   const phLabel =
     scan.phValue != null
       ? t("item.phSummary", { label: band?.label ?? scan.classification, value: scan.phValue.toFixed(1) })
@@ -297,11 +266,7 @@ export function ScanTimelineItem({
         className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full", style.bg)}
         aria-hidden="true"
       >
-        {isAbnormal ? (
-          <AlertTriangle className={cn("size-4", style.text)} />
-        ) : (
-          <CheckCircle className={cn("size-4", style.text)} />
-        )}
+        <StatusIcon className={cn("size-4", style.text)} />
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -327,7 +292,6 @@ export function ScanTimelineItem({
   );
 }
 
-/* ---------------- HistoryTipCard ---------------- */
 
 export interface HistoryTipCardProps {
   title: string;
@@ -336,7 +300,6 @@ export interface HistoryTipCardProps {
   className?: string;
 }
 
-/** Thẻ mẹo tần suất quét — nội dung tĩnh theo mockup `07`, không có endpoint. */
 export function HistoryTipCard({ title, body, imageSrc, className }: HistoryTipCardProps) {
   return (
     <div className={cn("flex gap-3 rounded-xl bg-background-alt p-3", className)}>
@@ -349,7 +312,6 @@ export function HistoryTipCard({ title, body, imageSrc, className }: HistoryTipC
   );
 }
 
-/* ---------------- ExportCtaCard ---------------- */
 
 export interface ExportCtaCardProps {
   title: string;
@@ -383,5 +345,116 @@ export function ExportCtaCard({ title, description, ctaLabel, onExport, classNam
         {ctaLabel}
       </button>
     </Card>
+  );
+}
+
+
+export interface SearchFilterBarProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  statusFilter: HistoryFilterKey;
+  onStatusFilterChange: (value: HistoryFilterKey) => void;
+  onReset?: () => void;
+  resultCount?: number;
+  className?: string;
+}
+
+export function SearchFilterBar({
+  searchValue,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  onReset,
+  resultCount,
+  className,
+}: SearchFilterBarProps) {
+  const { t } = useTranslation("history");
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
+      {/* Search box */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-tertiary" aria-hidden="true" />
+        <input
+          type="text"
+          placeholder={t("search.placeholder")}
+          value={searchValue}
+          onChange={(e) => {
+            onSearchChange(e.target.value);
+          }}
+          className="w-full rounded-xl border border-border bg-surface px-3 py-2 pl-9 text-small outline-none placeholder:text-text-tertiary focus:border-primary focus:ring-1 focus:ring-primary/30"
+        />
+        {searchValue && (
+          <button
+            type="button"
+            onClick={() => {
+              onSearchChange("");
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+            aria-label={t("search.clear")}
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Filter controls */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(!isOpen);
+            }}
+            className="flex min-h-[var(--touch-target-min)] shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-caption font-semibold text-text-secondary hover:border-border-strong"
+          >
+            <ListFilter className="size-4" aria-hidden="true" />
+            {t(`filters.${statusFilter}`)}
+            <ChevronDown className="size-3" aria-hidden="true" />
+          </button>
+
+          {isOpen && (
+            <div className="absolute top-full z-10 mt-1 flex flex-col gap-1 rounded-lg border border-border bg-surface p-1 shadow-sm">
+              {["ALL", "ABNORMAL"].map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => {
+                    onStatusFilterChange(filter as HistoryFilterKey);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-caption text-left font-medium transition-colors",
+                    statusFilter === filter
+                      ? "bg-primary text-white"
+                      : "text-text-secondary hover:bg-background-alt",
+                  )}
+                >
+                  {t(`filters.${filter}`)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {(searchValue || statusFilter !== "ALL") && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-2 text-caption font-semibold text-text-secondary hover:border-border-strong"
+          >
+            <X className="size-4" aria-hidden="true" />
+            {t("search.reset")}
+          </button>
+        )}
+
+        {resultCount !== undefined && (
+          <span className="ml-auto text-caption text-text-tertiary">
+            {t("search.resultCount", { count: resultCount })}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

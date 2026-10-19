@@ -1,13 +1,3 @@
-/**
- * MSW handlers + worker — fixture DEV, không có file ứng dụng nào import (chỉ dùng khi bật
- * worker thủ công). Giữ nguyên hai handler `GET /scans` / `GET /scans/summary` vì đó là
- * endpoint THẬT mà `features/history` vẫn gọi; `features/trends` thì không gọi chúng nữa —
- * từ W1-E module này chỉ dùng D13 `GET /cats/{catId}/trends`.
- *
- * Endpoint mock (khớp p8 §8.5.4, có lọc `from`/`to` mà `features/history/mocks.ts` không cần):
- *  - GET /api/v1/scans          (E2)
- *  - GET /api/v1/scans/summary  (E3)
- */
 
 import { http, HttpResponse, delay } from "msw";
 import { setupWorker } from "msw/browser";
@@ -27,7 +17,6 @@ function classify(value: number): ScanClassification {
 function buildDemoScans(): ScanListItem[] {
   const items: ScanListItem[] = [];
   const now = Date.now();
-  // 45 điểm trải trong 90 ngày (mỗi ~2 ngày), 1 đỉnh kiềm nhẹ mô phỏng mockup `08` (12 Th09).
   for (let index = 0; index < 45; index += 1) {
     const spike = index === 20 ? 0.6 : 0;
     const value = Number((6.5 + Math.sin(index / 3) * 0.15 + spike).toFixed(2));

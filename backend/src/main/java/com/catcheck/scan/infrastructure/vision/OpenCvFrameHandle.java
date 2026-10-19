@@ -3,12 +3,6 @@ package com.catcheck.scan.infrastructure.vision;
 import com.catcheck.scan.domain.color.port.VisionEngine;
 import org.bytedeco.opencv.opencv_core.Mat;
 
-/**
- * Handle ảnh BGR 8-bit bất biến — bọc {@link Mat} của OpenCV.
- *
- * <p>Domain <b>không</b> đọc nội dung — nó chỉ chuyền handle qua lại giữa cổng và hạ tầng
- * (xem {@code VisionEngine.FrameHandle}). {@link Mat} được giải phóng trong {@link #close()}.
- */
 public final class OpenCvFrameHandle implements VisionEngine.FrameHandle, AutoCloseable {
 
     private final Mat mat;

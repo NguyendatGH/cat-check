@@ -40,11 +40,9 @@ function toDraft(policy: AdminRetentionPolicy) {
   };
 }
 
-/** `/admin/privacy/retention` — kiểm kê dữ liệu và chỉnh retention thật cho DPO. */
 export function AdminPrivacyRetentionPage() {
   const { t } = useTranslation("admin");
   const can = useGroup1Can();
-  // Sửa chính sách (L57): chỉ DPO (ROLES.retentionWrite). Dry-run chỉ đọc (L58): ROLES.retention.
   const canEdit = can("retentionWrite");
   const canDryRun = can("retention");
   const inventory = useAdminDataInventory();
@@ -103,7 +101,6 @@ export function AdminPrivacyRetentionPage() {
       <AdminPageHeader
         title={t("pages.privacyRetention.title")}
         description={t("pages.privacyRetention.description")}
-        specRef="GET/PATCH /api/v1/admin/privacy/retention-policies"
       />
 
       <DensePanel title={t("retention.inventoryTitle")} description={t("retention.inventoryDescription")}>

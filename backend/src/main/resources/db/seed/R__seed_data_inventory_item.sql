@@ -6,7 +6,7 @@
 -- đúng D1…D21, và các bảng Phase 2/3 chưa có migration ở Phase 1.
 --
 -- NGOẠI LỆ D30 — "Hội thoại trợ lý AI" (`ai_conversation`/`ai_message`, V21): module `ai` thêm
--- sau spec, `docs/cat-rag-credit-pipeline.md` A4-(5) bắt buộc kiểm kê trước khi bật ở prod. Lấy
+-- sau spec, `docs/AI_HYBRID_RAG_PLAN.md` mục 6 bắt buộc kiểm kê trước khi bật ở prod. Lấy
 -- D30 (không phải D22) vì D22…D29 đã được p15 §15.2.2 dành cho mục khác. Thời hạn lưu: CHƯA có
 -- tài liệu nào chốt — xem dòng `AI_CONVERSATION_LIFECYCLE` ở `R__seed_retention_policy.sql`.
 --

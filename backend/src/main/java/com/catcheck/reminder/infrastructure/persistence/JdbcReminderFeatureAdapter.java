@@ -7,13 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * {@link ReminderFeaturePort} đọc cột JSONB {@code user_entitlement.features} (V10).
- *
- * <p>Cùng khuôn {@code cat/infrastructure/persistence/JdbcFeatureEntitlementAdapter}: giá trị có
- * thể là boolean HOẶC chuỗi, nên đọc ra text rồi quy ước bật khi khác
- * {@code false}/{@code null}/{@code 'NONE'}.</p>
- */
 @Repository
 class JdbcReminderFeatureAdapter implements ReminderFeaturePort {
 

@@ -21,14 +21,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Nen cua L65 {@code POST /admin/jobs/{jobName}/run}.
- *
- * <p>Dieu quan trong nhat duoc kiem o day: mot lan chay do admin bam de lai <b>dung mot</b> dong
- * {@code job_run} voi {@code trigger_type = MANUAL} (p4 §K3, p12 §12.6.1 quy tac 4). Day la ly do
- * duy nhat {@code V26__job_run_columns.sql} ton tai — khong co cot {@code trigger_type} that thi
- * L65 khong lam dung duoc viec p8 giao cho no.</p>
- */
 class ManualJobLauncherTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T12:00:00Z");
@@ -76,7 +68,6 @@ class ManualJobLauncherTest {
     void dryRunStillLeavesARow() {
         ManualJobTrigger trigger = trigger(JobProperties.CLEANUP_DEAD_PUSH_TOKENS,
                 context -> {
-                    // Than job phai nhan duoc co dry-run, neu khong no se xoa that.
                     assertThat(context.dryRun()).isTrue();
                     return JobOutcome.of(42, 0, 0, "dry-run: 42 dong du dieu kien");
                 });
@@ -109,15 +100,12 @@ class ManualJobLauncherTest {
         ManualJobLauncher launcher = launcher(true,
                 trigger(JobProperties.SEND_EMAIL_OUTBOX, context -> JobOutcome.success(0)));
 
-        // (1) khong co trong danh muc p12 §12.6 cua ban build nay
         assertThat(launcher.isKnownJob("KhongCoJobNaoTenVay")).isFalse();
         assertThat(launcher.findRunnable("KhongCoJobNaoTenVay")).isEmpty();
 
-        // (2) co trong danh muc nhung chua co ManualJobTrigger — van la job THAT
         assertThat(launcher.isKnownJob(JobProperties.EXPIRE_CREDIT_BATCHES)).isTrue();
         assertThat(launcher.findRunnable(JobProperties.EXPIRE_CREDIT_BATCHES)).isEmpty();
 
-        // (3) co ca hai
         assertThat(launcher.findRunnable(JobProperties.SEND_EMAIL_OUTBOX)).isPresent();
         assertThat(launcher.runnableJobNames()).containsExactly(JobProperties.SEND_EMAIL_OUTBOX);
     }

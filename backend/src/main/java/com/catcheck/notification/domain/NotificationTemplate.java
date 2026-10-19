@@ -2,34 +2,14 @@ package com.catcheck.notification.domain;
 
 import java.util.Optional;
 
-/**
- * Registry template của p12 §12.2.2 + §12.2.5 + §12.2.6.
- *
- * <p><b>Vì sao là enum trong code chứ không phải bảng:</b> p4 §4.4.7 chốt
- * {@code notification.template_code} là {@code VARCHAR(48)} <b>không CHECK</b> và ghi rõ
- * "validate ở service theo registry template". Đây chính là registry đó. Giá trị
- * {@code name()} = giá trị ghi xuống cột, không được đổi.</p>
- *
- * <p>Ba cột quyết định hành vi, lấy nguyên từ bảng p12 §12.2.6:</p>
- * <ul>
- *   <li>{@code quietHoursApply} — có hoãn push/email qua giờ im lặng không.</li>
- *   <li>{@code mandatory} — "bắt buộc gửi kể cả khi user tắt thông báo": bỏ qua
- *       {@link PreferenceGate}, KHÔNG bỏ qua consent (consent là căn cứ pháp lý, không phải
- *       tuỳ chọn trải nghiệm — p12 §12.9.2).</li>
- *   <li>{@code marketing} — marketing là NGOẠI LỆ DUY NHẤT của quy tắc "luôn ghi in-app"
- *       (p12 §12.1).</li>
- * </ul>
- */
 public enum NotificationTemplate {
 
-    /* --- Giao dịch/bảo mật: gửi trước khi user tồn tại nên KHÔNG có dòng in-app --- */
 
     AUTH_OTP_REGISTER(false, false, true, false, true, false,
             PreferenceGate.NONE, null, "email.auth.otp_register"),
     AUTH_OTP_RESET_PASSWORD(false, false, true, false, true, false,
             PreferenceGate.NONE, null, "email.auth.otp_reset"),
 
-    /* --- Sản phẩm/dịch vụ (p12 §12.2.2) --- */
 
     WELCOME_ONBOARDING(true, false, true, true, false, false,
             PreferenceGate.NONE, null, "email.onboarding.welcome"),
@@ -37,52 +17,28 @@ public enum NotificationTemplate {
             PreferenceGate.NONE, ConsentPurposes.HEALTH_REMINDER_EMAIL, "notif.reminder.scan_due"),
     REMINDER_OVERDUE(true, true, false, true, false, false,
             PreferenceGate.NONE, null, "notif.reminder.overdue"),
-    /** Quiet hours KHÔNG áp dụng — "an toàn ưu tiên hơn giấc ngủ" (p12 §12.2.6). */
     SCAN_RESULT_ATTENTION(true, true, false, false, true, false,
             PreferenceGate.ATTENTION_CHANNEL, null, "notif.scan.attention"),
     SCAN_RESULT_NORMAL(true, false, false, true, false, false,
             PreferenceGate.NORMAL_RESULT, null, "notif.scan.normal"),
     CREDIT_EXPIRING_T48H(true, true, false, true, false, false,
             PreferenceGate.CREDIT_ALERTS, null, "notif.credit.expiring_48h"),
-    /** Quiet hours KHÔNG áp dụng — còn 6 giờ, dời sang 07:00 là mất credit (p12 §12.2.6). */
     CREDIT_EXPIRING_T6H(true, true, false, false, false, false,
             PreferenceGate.CREDIT_ALERTS, null, "notif.credit.expiring_6h"),
     CREDIT_EXPIRED(true, false, true, true, false, false,
             PreferenceGate.CREDIT_ALERTS, null, "notif.credit.expired"),
-    /** Giao dịch: in-app bắt buộc, email tắt được (p12 §12.2.6). */
     ACTIVATION_SUCCESS(true, false, true, false, true, false,
             PreferenceGate.NONE, null, "notif.credit.activation_success"),
     REPORT_PDF_READY(true, true, true, true, false, false,
             PreferenceGate.REPORT_READY, null, "notif.report.pdf_ready"),
-    /** DSAR export is a legal notice: bypass preference/consent and quiet hours; address is pinned to dsar_request. */
     PRIVACY_EXPORT_READY(false, false, false, false, true, false,
             PreferenceGate.NONE, null, "email.privacy.export_ready"),
-    /** Chỉ in-app, không đẩy ⇒ quiet hours không phát sinh (p12 §12.2.3). */
     IMAGE_RETENTION_WARNING(true, false, false, false, false, false,
             PreferenceGate.IMAGE_RETENTION_WARNING, null, "notif.scan.image_expiring"),
     SYSTEM_MAINTENANCE(true, true, true, false, true, false,
             PreferenceGate.NONE, null, "notif.system.maintenance"),
-    /**
-     * p12 §12.2.5 — nghia vu luat dinh, <b>khong</b> phai tien ich san pham.
-     *
-     * <p>Can cu xu ly la {@code NV} (tuan thu nghia vu phap luat) chu khong phai consent, nen
-     * {@code mandatory = true} va {@code emailConsentPurpose = null}: gui ke ca khi user da tat
-     * moi thong bao va da rut moi consent tuy chon. {@code quietHoursApply = false} vi Dieu
-     * 29.1.a ND356 cho dung <b>72 gio</b> ke tu khi phat hien su co — hoan mot thong bao den
-     * 07:00 co the lam vo chinh han do (p12 §12.2.5: "khong ap dung quiet hours", "khong duoc
-     * tri hoan de gop vao email tong hop").
-     *
-     * <p>{@code pushChannel = false} la co y: p12 §12.2.5 ghi kenh la "Email + In-app + banner
-     * cong khai". Noi dung phai du 6 muc cua Dieu 29.2 — khong nhet duoc vao mot banner push,
-     * va mot push rut gon se la mot thong bao su co <b>khong du theo luat</b>, te hon la khong
-     * co push.
-     *
-     * <p>Bat dau tu p8 L72 {@code POST /admin/system/broadcast} (H9.10: "co han luat dinh 72
-     * gio nen bat buoc phai co nut bam, khong the chi co template").
-     */
     PRIVACY_INCIDENT_NOTICE(true, false, true, false, true, false,
             PreferenceGate.NONE, null, "email.privacy.incident_notice"),
-    /** Phase sau. Marketing KHÔNG ghi in-app và dùng cặp consent riêng (p12 §12.9.2). */
     MARKETING_PROMOTION(false, true, true, true, false, true,
             PreferenceGate.NONE, ConsentPurposes.MARKETING_EMAIL, "notif.marketing.promotion");
 
@@ -110,7 +66,6 @@ public enum NotificationTemplate {
         this.i18nKey = i18nKey;
     }
 
-    /** Mã template như ghi xuống {@code notification.template_code} / {@code email_outbox.template_code}. */
     public String code() {
         return name();
     }
@@ -147,11 +102,6 @@ public enum NotificationTemplate {
         return i18nKey;
     }
 
-    /**
-     * Purpose cần có để được đẩy push. p12 §12.1: {@code HEALTH_REMINDER_PUSH} cho nhắc theo
-     * dõi / credit / kết quả scan, {@code MARKETING_PUSH} cho khuyến mãi — hai purpose TÁCH
-     * RIÊNG, không gộp một checkbox (p15 §15.3.2).
-     */
     public Optional<String> pushConsentPurpose() {
         if (!pushChannel) {
             return Optional.empty();
@@ -159,15 +109,10 @@ public enum NotificationTemplate {
         return Optional.of(marketing ? ConsentPurposes.MARKETING_PUSH : ConsentPurposes.HEALTH_REMINDER_PUSH);
     }
 
-    /**
-     * Purpose cần có để được gửi email. Rỗng = không cần consent riêng (căn cứ {@code TT} —
-     * thực hiện thoả thuận, p12 §12.4.1).
-     */
     public Optional<String> emailConsentPurpose() {
         return Optional.ofNullable(emailConsentPurpose);
     }
 
-    /** Tra theo giá trị cột; rỗng nếu mã không có trong registry (p4 §4.4.7: validate ở service). */
     public static Optional<NotificationTemplate> fromCode(String code) {
         if (code == null || code.isBlank()) {
             return Optional.empty();
@@ -180,7 +125,6 @@ public enum NotificationTemplate {
         return Optional.empty();
     }
 
-    /** Mã purpose trong {@code consent_purpose} (p15 §15.3.2) — hằng để không gõ sai chuỗi. */
     public static final class ConsentPurposes {
 
         public static final String HEALTH_REMINDER_PUSH = "HEALTH_REMINDER_PUSH";

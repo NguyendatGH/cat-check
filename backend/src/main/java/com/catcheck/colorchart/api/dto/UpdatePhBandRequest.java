@@ -5,12 +5,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-/**
- * Body của L37 — sửa một dải phân loại.
- *
- * <p>Merge-patch: vắng field = không đổi. Không có trường {@code code} — đổi code phá vỡ lịch sử
- * phân loại đã lưu trong {@code scan_analysis}.
- */
 public record UpdatePhBandRequest(
         BigDecimal minPh,
         BigDecimal maxPh,

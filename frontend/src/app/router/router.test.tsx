@@ -2,22 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RouteObject } from "react-router";
 import { isValidElement } from "react";
 
-// `routes` kéo theo layout → feature → `features/*/mocks.ts`, nơi gọi `setupWorker` của MSW.
-// `setupWorker` ném ngay khi không chạy trong trình duyệt (jsdom không tính là browser), nên
-// phải thay bằng stub trước khi import cây router.
 vi.mock("msw/browser", () => ({ setupWorker: () => ({ start: () => undefined, stop: () => undefined }) }));
 
-/**
- * p9 §9.4.3 mục E + p10 §6.7c: route Phase 2/3 vẫn ĐƯỢC ĐĂNG KÝ, nhưng khi cờ tính năng tắt
- * thì element phải là `ComingSoonPage` — không được dẫn vào trang thật với catalogue giả bấm
- * được. Trước W1-E `featureFlags` khai `{community:false, map:false, shop:false}` mà
- * `router.tsx` không hề import nó (handoff H15.13).
- *
- * Test đọc thẳng cây `routes` thay vì render: nó khẳng định đúng điều cần khẳng định (route
- * nào trỏ vào đâu) mà không phải dựng session/guard/i18n giả.
- */
 
-/** 10 route nằm sau cờ, kèm cờ chi phối. */
 const GATED_ROUTES: [path: string, flag: "community" | "map" | "shop"][] = [
   ["/community", "community"],
   ["/community/posts/:postId", "community"],
@@ -31,7 +18,6 @@ const GATED_ROUTES: [path: string, flag: "community" | "map" | "shop"][] = [
   ["/orders/:orderId", "shop"],
 ];
 
-/** Route Phase 1 — phải KHÔNG bị cờ chạm tới dù cờ bật hay tắt. */
 const ALWAYS_REAL = ["/dashboard", "/credits", "/cats", "/export", "/account/privacy"];
 
 function findRoute(routes: RouteObject[], path: string): RouteObject | undefined {
@@ -54,8 +40,6 @@ afterEach(() => {
   vi.doUnmock("@/shared/config/featureFlags");
 });
 
-// Mỗi test nạp lại toàn bộ cây route (import động mọi trang): ~3 giây khi chạy một mình, vượt mốc
-// 5 giây mặc định khi cả bộ test chạy song song. Nâng trần thời gian, không đổi nội dung kiểm.
 describe("router — cổng featureFlags cho route Phase 2/3", { timeout: 30_000 }, () => {
   it("mọi route sau cờ đều render ComingSoonPage khi cờ TẮT", async () => {
     vi.resetModules();

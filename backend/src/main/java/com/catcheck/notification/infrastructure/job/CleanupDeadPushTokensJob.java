@@ -13,27 +13,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * <b>Nhóm B, p12 §12.6.3 — Chủ Nhật 04:00 ({@code 0 0 4 * * SUN}), {@code lockAtMostFor}
- * 30m.</b>
- *
- * <p>Xoá {@code push_subscription} có {@code revoked_at < now() - 30 ngày} <b>hoặc</b>
- * {@code last_seen_at < now() - 180 ngày} (p12 §12.3.9, retention D16 ở p15 §15.5.1).</p>
- *
- * <p><b>Job này là cơ chế retention, KHÔNG phải cơ chế tuân thủ.</b> Việc thu hồi khi người
- * dùng rút consent hoặc gỡ thiết bị xảy ra ngay trong luồng đó
- * ({@code NotificationGateway.revokePushOnConsentWithdrawal}, G11); ở đây chỉ dọn xác. Nhầm
- * hai vai trò sẽ dẫn tới kết luận sai rằng "rút consent thì tối đa 7 ngày sau mới hết push".</p>
- *
- * <p>Có {@code dry_run} và ngưỡng an toàn 20% vì đây là job <b>xoá cứng</b> — p12 §12.6.1
- * quy tắc 6 / p15 REQ-RET-02. Chạm ngưỡng ⇒ {@code SKIPPED_THRESHOLD}, không xoá gì.</p>
- */
 @Component
 @ConditionalOnProperty(prefix = "catcheck.jobs.cleanup-dead-push-tokens", name = "enabled",
         havingValue = "true", matchIfMissing = true)
 public class CleanupDeadPushTokensJob implements ManualJobTrigger {
 
-    /** Đúng tên ở p12 §12.6.3 — {@code job_run.job_name} không viết tắt. */
     public static final String JOB_NAME = JobProperties.CLEANUP_DEAD_PUSH_TOKENS;
 
     private static final Logger log = LoggerFactory.getLogger(CleanupDeadPushTokensJob.class);
@@ -59,7 +43,6 @@ public class CleanupDeadPushTokensJob implements ManualJobTrigger {
         jobRunner.runScheduled(JOB_NAME, setting.dryRun(), this::purge);
     }
 
-    /** Thân job — tách khỏi {@link #run()} để test gọi thẳng, không cần scheduler. */
     JobOutcome purge(JobContext context) {
         DeadPushTokenCleanupService.Survey survey = cleanup.survey(context.startedAt());
         int eligible = (int) Math.min(survey.eligible(), Integer.MAX_VALUE);
@@ -91,20 +74,12 @@ public class CleanupDeadPushTokensJob implements ManualJobTrigger {
                 com.catcheck.shared.job.JobRunStatus.SUCCESS, eligible, deleted, 0, null);
     }
 
-    /* ------------------------------------------------ ManualJobTrigger (p8 L65) */
 
     @Override
     public String jobName() {
         return JOB_NAME;
     }
 
-    /**
-     * L65 {@code POST /admin/jobs/{jobName}/run} goi than job, KHONG goi {@link #run()}:
-     * {@code run()} tu mo mot dong {@code job_run} qua {@code JobRunner}, nen goi no o day
-     * se de lai HAI dong cho mot lan admin bam — p12 §12.6.1 quy tac 4 chot "dung mot dong moi
-     * lan chay". {@code ManualJobLauncher} la noi boc {@code JobRunner} voi
-     * {@code trigger_type = MANUAL}.
-     */
     @Override
     public JobOutcome runOnce(JobContext context) {
         return purge(context);

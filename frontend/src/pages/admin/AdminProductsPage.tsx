@@ -42,10 +42,7 @@ export function AdminProductsPage() {
   const update = useUpdateAdminProduct();
   const setStatus = useSetAdminProductStatus();
   const canEdit = useGroup2Can()("products");
-  // null = đóng; "new" = tạo; còn lại = id đang sửa.
   const [editing, setEditing] = useState<string | null>(null);
-  // `If-Match` chốt lúc MỞ form (bản người dùng đang nhìn), không lấy từ danh sách vừa refetch —
-  // nếu không, lần sửa của admin khác chen vào giữa sẽ bị ghi đè mà không báo 412.
   const [editingEtag, setEditingEtag] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormValues>(emptyProductForm);
   const [showErrors, setShowErrors] = useState(false);
@@ -111,11 +108,7 @@ export function AdminProductsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <AdminPageHeader
-        title={t("pages.products.title")}
-        description={t("pages.products.description")}
-        specRef="GET/POST/PUT/PATCH /api/v1/admin/shop/products"
-      />
+      <AdminPageHeader title={t("pages.products.title")} description={t("pages.products.description")} />
 
       <AdminSection title={t("productAdmin.listTitle")} description={t("productAdmin.listDescription")}>
         <div className="flex items-center gap-3">

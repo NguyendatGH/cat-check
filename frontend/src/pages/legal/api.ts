@@ -1,15 +1,7 @@
+import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { ApiError } from "@/shared/api/errors";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IDEMPOTENCY_HEADER_NAME } from "@/shared/config/constants";
 
-/**
- * Fetch wrapper tối thiểu cho các trang pháp lý — cùng quy ước với
- * `features/onboarding/api.ts` / `features/auth/api.ts` (base `/api/v1`, CSRF,
- * Idempotency-Key, ProblemDetail -> `ApiError`).
- *
- * Đặt ở `pages/legal/` (không phải `features/legal/`) vì phạm vi công việc A2-FE chỉ giao
- * `pages/legal/`, `entities/disclaimer/`, i18n `legal.json` — không có quyền tạo thư mục
- * `features/legal/` mới (xem ORCHESTRATOR + brief A2-FE).
- */
 
 const BASE_URL = "/api/v1";
 
@@ -21,7 +13,6 @@ interface ProblemDetail {
   instance: string;
   code?: string;
   params?: Record<string, unknown>;
-  /** Backend đặt mã lỗi ở `errorCode` (`setProperty("errorCode", …)`), KHÔNG phải `code`. */
   errorCode?: string;
 }
 
@@ -33,6 +24,7 @@ function readCsrfToken(): string | null {
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
+  headers.set("Accept-Language", currentAcceptLanguage());
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json; charset=utf-8");
   }
@@ -55,7 +47,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       problem = (await response.json()) as ProblemDetail;
     } catch {
-      // body không phải JSON — bỏ qua, dùng message mặc định
+      // Non-JSON error body: fall back to the HTTP status below.
     }
     throw new ApiError(
       problem?.detail ?? `Request failed with status ${String(response.status)}`,

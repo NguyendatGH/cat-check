@@ -25,10 +25,6 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * A1 ({@code docs/cat-rag-credit-pipeline.md} mục A4-(1)) — {@code CatContextPort}: điểm
- * kiểm sở hữu, ráp dữ liệu từ 5 named interface, và bất biến "không PII chủ nuôi".
- */
 class CatContextAdapterTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -36,7 +32,6 @@ class CatContextAdapterTest {
     private static final UUID CAT_ID = UUID.fromString("00000000-0000-7000-8000-000000000002");
     private static final Instant NOW = Instant.parse("2026-10-09T09:00:00Z");
 
-    /** Cùng cặp regex PII mà {@code AiPromptRedactor} dùng để che email/SĐT trước khi ra khỏi hệ thống. */
     private static final Pattern EMAIL = Pattern.compile(
             "(?i)(?<![A-Z0-9._%+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}(?![A-Z0-9.-])");
     private static final Pattern VIETNAMESE_PHONE = Pattern.compile(
@@ -65,7 +60,7 @@ class CatContextAdapterTest {
     @Test
     @DisplayName("Mèo không thuộc userId ⇒ Optional.empty() và KHÔNG gọi bất kỳ cổng nào khác")
     void ownershipDeniedShortCircuitsBeforeAnyOtherPort() {
-        catContextQuery.snapshot = null; // mô phỏng cat::api đã từ chối (sai chủ hoặc không tồn tại)
+        catContextQuery.snapshot = null;
 
         Optional<CatContextPort.CatContext> result = adapter.loadContext(OTHER_USER_ID, CAT_ID);
 

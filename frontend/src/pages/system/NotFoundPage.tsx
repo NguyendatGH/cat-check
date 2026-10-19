@@ -2,23 +2,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Camera, Cat, ChevronRight, Compass, LineChart } from "lucide-react";
 import { Button } from "@/shared/ui";
+import { useHomePath } from "@/entities/user";
 
-/**
- * `/*` — 404.
- *
- * Layout: `FullscreenLayout` (xem `app/router/router.tsx`), KHÔNG phải `PublicLayout` hay
- * `AppLayout`. `FullscreenLayout` chỉ là `min-h-dvh bg-background-alt` — không header, không
- * padding, không hộp nội dung — nên trang tự khai báo hộp của mình, cùng cách
- * `pages/legal/shell.tsx` xử lý cho `PublicLayout`.
- *
- * Route `*` nằm NGOÀI `RequireAuth`: trang này hiện được cả khi chưa đăng nhập. Vì vậy CTA
- * chính là `/dashboard` (xem được ở chế độ khách); các lối tắt còn lại cần phiên nên sẽ bị
- * `RequireAuth` đưa về đăng nhập — đó là hành vi đúng, không phải ngõ cụt.
- *
- * Hiện lại đường dẫn vừa mở để người dùng tự thấy chỗ gõ sai: 404 ở đây hay đến từ liên kết
- * cũ đã đổi tên (p9 §9.4.3 R-F03/R-F04 đổi `/scan/:scanId/result` → `/scan/result/:scanId`,
- * `/history/:scanId` → `/scans/:scanId`, `/scan/:scanId/assign-cat` → `.../reassign-cat`).
- */
 
 interface Shortcut {
   to: string;
@@ -36,6 +21,7 @@ export function NotFoundPage() {
   const { t } = useTranslation(["errors", "common"]);
   const location = useLocation();
   const navigate = useNavigate();
+  const homePath = useHomePath();
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-10">
@@ -62,7 +48,7 @@ export function NotFoundPage() {
           type="button"
           size="lg"
           onClick={() => {
-            void navigate("/dashboard");
+            void navigate(homePath);
           }}
         >
           {t("errors:notFound.homeCta")}

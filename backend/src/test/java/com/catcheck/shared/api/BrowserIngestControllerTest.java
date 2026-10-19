@@ -24,19 +24,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * K1 {@code POST /csp-report} va L73 {@code POST /client-errors}.
- *
- * <p><b>Test quan trong nhat o day khong phai ma HTTP ma la NOI DUNG DONG LOG.</b> Hai endpoint
- * nay cong khai va chung ghi thang vao file log JSON cua backend; p16 §16.6.7 canh bao neu khong
- * loc thi "telemetry tro thanh kenh ro du lieu lon nhat cua san pham", va CLAUDE.md dat "khong log
- * PII" vao muc hard rule. Vi vay test gan mot {@code ListAppender} vao dung hai logger ma controller
- * dung, roi <b>doc lai chuoi da format</b> va khang dinh gia tri goc khong con o do. Kiem bang
- * mat tren log that khong the lap lai duoc o CI; kiem bang appender thi duoc.</p>
- */
 class BrowserIngestControllerTest {
 
-    /** Han muc that cua p8 — khong phai so ngau nhien cho test. */
     private static final int CSP_LIMIT_PER_MINUTE = 60;
     private static final int CLIENT_ERROR_LIMIT_PER_MINUTE = 10;
 
@@ -66,7 +55,6 @@ class BrowserIngestControllerTest {
         return appender;
     }
 
-    /** Toan bo noi dung da format cua moi dong log — dung chinh thu se nam trong file log. */
     private static String rendered(ListAppender<ILoggingEvent> appender) {
         return appender.list.stream().map(ILoggingEvent::getFormattedMessage)
                 .reduce("", (a, b) -> a + '\n' + b);
@@ -85,11 +73,6 @@ class BrowserIngestControllerTest {
                 JSON);
     }
 
-    /**
-     * {@code setContent} chu khong {@code addHeader("Content-Length", ...)}:
-     * {@code MockHttpServletRequest.getContentLengthLong()} doc do dai cua MANG BYTE da dat, chu
-     * khong doc header — dat header se cho mot test xanh ma thuc te khong kiem gi.
-     */
     private static MockHttpServletRequest request(String ip, int contentLength) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRemoteAddr(ip);
@@ -100,7 +83,6 @@ class BrowserIngestControllerTest {
         return request;
     }
 
-    // ----------------------------------------------------------------- L73
 
     @Test
     @DisplayName("L73 tra 202 KHONG body (p8 §8.4.12)")
@@ -121,7 +103,6 @@ class BrowserIngestControllerTest {
                         "at loadChunk (/assets/app.js:1:1)",
                         "1.4.0",
                         "trace-xyz",
-                        // Client gui ca query string — duong nay PHAI bi cat.
                         "/auth/reset-password?token=SUPERSECRETTOKENVALUE&email=victim@gmail.com"),
                 request("10.0.0.2", 300));
 
@@ -138,7 +119,6 @@ class BrowserIngestControllerTest {
     @DisplayName("L73 KHONG ghi gia tri input / noi dung form vao log")
     void clientErrorNeverLogsFormValuesOrInputs() {
         controller().receiveClientError(new ClientErrorRequest(
-                        // Mot message do frontend tu ghep, co ca gia tri nguoi dung vua go.
                         "Validation failed: email=nguyen.van.a@gmail.com password=Hunter2! otp=483912 "
                                 + "phone=0912345678",
                         "at submitForm (RegisterPage.tsx:42) value=0912345678",
@@ -151,14 +131,12 @@ class BrowserIngestControllerTest {
                 .doesNotContain("Hunter2!")
                 .doesNotContain("483912")
                 .doesNotContain("0912345678");
-        // Phan chan doan phai con, neu khong thi endpoint vo dung.
         assertThat(log).contains("RegisterPage.tsx:42").contains("trace-abc").contains("1.4.0");
     }
 
     @Test
     @DisplayName("L73 KHONG the nhan truong ngoai 5 truong p8 — Jackson bo o tang parse")
     void clientErrorRecordIgnoresUnknownJsonFields() throws Exception {
-        // Khong goi controller: chung minh chinh DTO khong co cho de du lieu la di vao.
         var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
         ClientErrorRequest parsed = mapper.readValue("""
                 {"message":"Boom","stack":"at a()","appVersion":"1.0.0","traceId":"t","route":"/x",
@@ -167,8 +145,6 @@ class BrowserIngestControllerTest {
                 """, ClientErrorRequest.class);
 
         assertThat(parsed.message()).isEqualTo("Boom");
-        // Ba truong la khong ton tai tren record — day la bang chung manh nhat cho cau "tuyet doi
-        // khong nhan gia tri input/query string/noi dung form": khong co truong thi khong the log.
         assertThat(ClientErrorRequest.class.getRecordComponents()).hasSize(5);
         assertThat(List.of(ClientErrorRequest.class.getRecordComponents())
                 .stream().map(c -> c.getName()).toList())
@@ -189,10 +165,6 @@ class BrowserIngestControllerTest {
     @Test
     @DisplayName("L73 truong dai hon khai bao bi CAT, khong lam ca bao cao bi tu choi")
     void clientErrorTruncatesOverlongFieldsInsteadOfRejecting() {
-        // Bug that da sua: tham so truoc day mang @Valid, nen mot `message` dai hon @Size(max)
-        // tra 400 VALIDATION_FAILED — bean validation chay khi PHAN GIAI THAM SO, truoc dong dau
-        // tien cua method, nen buoc kiem 8 KB khong bao gio duoc toi. p8 L73 chot 413 cho "than
-        // qua lon" va 202 cho moi truong hop con lai.
         ResponseEntity<Void> response = controller().receiveClientError(
                 new ClientErrorRequest("Boom ".repeat(1_000), null, "1.0.0", "t-1", "/a"),
                 request("10.0.0.5", 6_000));
@@ -225,20 +197,16 @@ class BrowserIngestControllerTest {
         assertThat(Long.parseLong(blocked.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)))
                 .isGreaterThanOrEqualTo(1);
 
-        // Han muc theo IP: mot IP khac KHONG bi chan lay.
         assertThat(controller.receiveClientError(body, request("203.0.113.8", 100)).getStatusCode())
                 .isEqualTo(HttpStatus.ACCEPTED);
     }
 
-    // ------------------------------------------------------------------ K1
 
     @Test
     @DisplayName("K1 LUON tra 204 — ke ca than rong, than hong, hay vuot han muc (p8 K1)")
     void cspReportAlwaysReturns204() {
         BrowserIngestController controller = realLimitController();
 
-        // Than null / rong / JSON hong / thieu object boc ngoai: tat ca phai la 204, khong 400.
-        // p8 K1 noi "luon 204"; trinh duyet khong doc ma loi cua endpoint nay va khong thu lai.
         for (String badBody : new String[] {null, "", "   ", "{khong-phai-json", "{}", "[]"}) {
             assertThat(controller.receiveCspReport(badBody, request("198.51.100.1", 10))
                     .getStatusCode())
@@ -252,10 +220,6 @@ class BrowserIngestControllerTest {
                     .as("bao cao thu " + i + " — p8 K1: 'luon 204, ke ca khi vuot han muc'")
                     .isEqualTo(HttpStatus.NO_CONTENT);
         }
-        // Han muc VAN duoc ap dung: so dong `csp_violation` phai bang han muc, khong phai bang
-        // so request. Loc theo noi dung chu khong dem ca list: nhanh "than hong" o tren cung ghi
-        // mot dong DEBUG, va dem ca chung se lam phep khang dinh nay do vi mot ly do khong lien
-        // quan den rate limit.
         assertThat(cspAppender.list.stream()
                 .filter(event -> event.getFormattedMessage().startsWith("csp_violation"))
                 .count())
@@ -272,8 +236,6 @@ class BrowserIngestControllerTest {
         assertThat(controller().receiveCspReport(
                 cspJson("https://catcheck.vn/", null, "inline", null), httpRequest).getStatusCode())
                 .isEqualTo(HttpStatus.NO_CONTENT);
-        // Bug that: voi @RequestBody CspReportRequest + consumes, media type nay tra 500
-        // (HttpMediaTypeNotSupportedException) vi converter Jackson chi nhan json / *+json.
         assertThat(rendered(cspAppender)).as("bao cao PHAI duoc ghi, khong bi 500 truoc do")
                 .contains("csp_violation");
     }
@@ -300,14 +262,11 @@ class BrowserIngestControllerTest {
         assertThat(log)
                 .doesNotContain("SECRETTOKEN123456789")
                 .doesNotContain("a@b.com")
-                // referrer KHONG duoc log (URL day du cua trang truoc do)
                 .doesNotContain("previous")
                 .doesNotContain("0912345678")
-                // blocked-uri rut ve origin: duong dan + query cua resource bi chan khong duoc log
                 .doesNotContain("/steal")
                 .doesNotContain("abcdef")
                 .doesNotContain("483912")
-                // `sample` = doan ma nguon quanh cho vi pham, tuc la NOI DUNG TRANG.
                 .doesNotContain("Hunter2!");
         assertThat(log).as("origin bi chan phai con, do la thong tin van hanh can thiet")
                 .contains("https://evil.example.com");
@@ -319,8 +278,6 @@ class BrowserIngestControllerTest {
         var components = List.of(CspReportRequest.Report.class.getRecordComponents())
                 .stream().map(c -> c.getName()).toList();
 
-        // Reporting API moi gui ca `sample` = NOI DUNG TRANG. Khong co truong do tren record
-        // nghia la no bi bo ngay o tang parse.
         assertThat(components).doesNotContain("sample");
     }
 
@@ -335,7 +292,6 @@ class BrowserIngestControllerTest {
         assertThat(rendered(cspAppender)).doesNotContain("csp_violation");
     }
 
-    /** Than bao cao CSP dang JSON — dung cai trinh duyet gui, khong phai mot object Java. */
     private static String cspJson(String documentUri, String referrer, String blockedUri, String sample) {
         return """
                 {"csp-report":{"document-uri":%s,"referrer":%s,"violated-directive":"script-src 'self'",
@@ -348,7 +304,6 @@ class BrowserIngestControllerTest {
         return value == null ? "null" : '"' + value.replace("\"", "\\\"") + '"';
     }
 
-    /** Cho nhung test khong kiem rate limit — de gioi han khong lam nhieu phep khang dinh khac. */
     private static final class AllowAllRateLimiter implements PublicIngressRateLimiter {
 
         @Override

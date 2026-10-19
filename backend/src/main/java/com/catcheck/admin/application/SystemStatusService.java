@@ -6,11 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 
-/**
- * Ví dụ minh hoạ tầng "application": điều phối domain + port, không tự gọi
- * {@code Instant.now()} (dùng {@link Clock} inject qua constructor — ArchUnit R13), không field
- * injection (constructor injection — ArchUnit R11).
- */
 @Service
 public class SystemStatusService {
 

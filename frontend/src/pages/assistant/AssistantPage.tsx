@@ -1,25 +1,46 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Bot, ExternalLink, Send } from "lucide-react";
-import { Button } from "@/shared/ui";
+import { ArrowDown, Bot, Send, Users } from "lucide-react";
+import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api/errors";
-import { chatWithAssistant, type AiChatResponse } from "@/features/assistant";
+import {
+  AssistantBubble,
+  AssistantEmptyState,
+  ContextDivider,
+  TypingIndicator,
+  UserBubble,
+  chatWithAssistant,
+  type AiChatResponse,
+} from "@/features/assistant";
+import { CatAvatar } from "@/entities/cat";
 import { useCatList } from "@/features/cat";
+
+const MAX_LENGTH = 4000;
+const COUNTER_FROM = 3500;
+const COMPOSER_MAX_HEIGHT = 140;
+const BOTTOM_THRESHOLD = 80;
+
+type Turn =
+  | { id: string; kind: "user"; text: string; sentAt: string; requestKey: string; error?: string }
+  | { id: string; kind: "assistant"; response: AiChatResponse }
+  | { id: string; kind: "divider"; label: string };
+
+let turnSeq = 0;
+const nextId = () => {
+  turnSeq += 1;
+  return `turn-${String(turnSeq)}`;
+};
+
+function prefersReducedMotion() {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export function AssistantPage() {
   const { t } = useTranslation("assistant");
-  const catSelectId = useId();
-  // `GET /cats` (ACTIVE) — tái dùng hook có sẵn của features/cat (cùng hook CatSwitcherCard
-  // dùng ở sidebar) thay vì viết lại bộ gọi API riêng cho assistant.
   const { data: catListData } = useCatList("ACTIVE");
-  // `catListData?.items` giữ nguyên tham chiếu giữa các lần render khi react-query chưa refetch;
-  // `cats` (dùng để render) mới tạo mảng rỗng mới mỗi lần — tách riêng để effect dưới không chạy
-  // lại vô ích mỗi render (react-hooks/exhaustive-deps).
   const catItems = catListData?.items;
-  const cats = catItems ?? [];
+  const cats = useMemo(() => catItems ?? [], [catItems]);
   const [selectedCatId, setSelectedCatId] = useState("");
-  // Chỉ tự chọn mèo chính MỘT LẦN khi danh sách tải xong xuôi — người dùng đổi về "hỏi chung"
-  // sau đó không bị ép chọn lại mỗi khi danh sách refetch (vd sau khi đổi mèo chính ở nơi khác).
   const [autoSelected, setAutoSelected] = useState(false);
   useEffect(() => {
     if (autoSelected || !catItems || catItems.length === 0) return;
@@ -31,159 +52,287 @@ export function AssistantPage() {
 
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<string>();
-  const [turns, setTurns] = useState<Array<{ role: "user" | "assistant"; text: string; response?: AiChatResponse }>>(
-    [],
-  );
-  const [error, setError] = useState<string>();
+  const [turns, setTurns] = useState<Turn[]>([]);
   const [pending, setPending] = useState(false);
 
-  async function submit() {
-    const value = message.trim();
-    if (!value || pending) return;
-    setMessage("");
-    setError(undefined);
-    setTurns((current) => [...current, { role: "user", text: value }]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const atBottomRef = useRef(true);
+  const [showJump, setShowJump] = useState(false);
+
+  const coarsePointer = useMemo(
+    () => typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches,
+    [],
+  );
+
+  const rawSuggestions: unknown = t("suggestions", { returnObjects: true });
+  const suggestions = Array.isArray(rawSuggestions)
+    ? rawSuggestions.filter((item): item is string => typeof item === "string")
+    : [];
+
+  const scrollToBottom = (smooth: boolean) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (typeof el.scrollTo === "function") {
+      el.scrollTo({ top: el.scrollHeight, behavior: smooth && !prefersReducedMotion() ? "smooth" : "auto" });
+    } else {
+      el.scrollTop = el.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    if (atBottomRef.current) scrollToBottom(true);
+  }, [turns, pending]);
+
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${String(Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT))}px`;
+  }, [message]);
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_THRESHOLD;
+    atBottomRef.current = atBottom;
+    setShowJump(!atBottom);
+  };
+
+  async function send(text: string, retryTurnId?: string) {
+    if (pending) return;
+    let userTurnId = retryTurnId;
+    // A retry reuses the question's key so an answer the server already produced is replayed, not re-asked.
+    const retried = turns.find((turn) => turn.id === retryTurnId && turn.kind === "user");
+    const requestKey = retried?.kind === "user" ? retried.requestKey : crypto.randomUUID();
+    if (retryTurnId) {
+      setTurns((current) =>
+        current.map((turn) => (turn.id === retryTurnId && turn.kind === "user" ? { ...turn, error: undefined } : turn)),
+      );
+    } else {
+      userTurnId = nextId();
+      const turn: Turn = { id: userTurnId, kind: "user", text, sentAt: new Date().toISOString(), requestKey };
+      setTurns((current) => [...current, turn]);
+    }
+    atBottomRef.current = true;
     setPending(true);
     try {
-      const response = await chatWithAssistant(value, conversationId, selectedCatId || undefined);
+      const response = await chatWithAssistant(text, conversationId, selectedCatId || undefined, requestKey);
       setConversationId(response.conversationId);
-      setTurns((current) => [...current, { role: "assistant", text: response.answer, response }]);
+      setTurns((current) => [...current, { id: nextId(), kind: "assistant", response }]);
     } catch (cause) {
-      // Không hiện thẳng `cause.message`: khi server không trả ProblemDetail, message là chuỗi
-      // kỹ thuật tiếng Anh ("Request failed with status 502"). Chỉ dùng `detail` của server cho
-      // lỗi 4xx (câu đã được bản địa hoá theo `Accept-Language`); 5xx/lỗi mạng → câu chung.
-      setError(isApiError(cause) && cause.status < 500 && cause.code ? cause.message : t("error"));
-      setTurns((current) => current.slice(0, -1));
-      setMessage(value);
+      const detail = isApiError(cause) && cause.status < 500 && cause.code ? cause.message : t("error");
+      setTurns((current) =>
+        current.map((turn) => (turn.id === userTurnId && turn.kind === "user" ? { ...turn, error: detail } : turn)),
+      );
     } finally {
       setPending(false);
     }
   }
 
+  const submit = () => {
+    const value = message.trim();
+    if (!value || pending) return;
+    setMessage("");
+    void send(value);
+  };
+
+  const selectCat = (catId: string) => {
+    if (catId === selectedCatId || pending) return;
+    setSelectedCatId(catId);
+    setConversationId(undefined);
+    if (turns.length > 0) {
+      const name = cats.find((cat) => cat.id === catId)?.name;
+      setTurns((current) => [
+        ...current,
+        { id: nextId(), kind: "divider", label: name ? t("switchedTo", { name }) : t("switchedGeneral") },
+      ]);
+    }
+  };
+
+  const chipClass = (active: boolean) =>
+    cn(
+      "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-small font-semibold transition-colors disabled:opacity-60",
+      active
+        ? "border-primary bg-primary text-white"
+        : "border-border bg-surface text-text-secondary hover:border-primary/50 hover:text-text-primary",
+    );
+
+  const canSend = !pending && message.trim().length > 0;
+
   return (
-    // `AppLayout` không cấp padding ở mobile ⇒ trang tự chừa lề `px-4` + khoảng đầu trang; trước
-    // đây icon tiêu đề dính sát mép trái màn 390px và thẻ chat tràn hết bề ngang.
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-6 pt-5 lg:p-0">
-      <header>
-        <div className="flex items-start gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
-            <Bot size={23} aria-hidden="true" />
+    <div className="mx-auto flex h-[calc(100dvh-136px-env(safe-area-inset-bottom))] min-h-[420px] w-full max-w-3xl flex-col overflow-hidden lg:h-[calc(100dvh-120px)] lg:rounded-3xl lg:border lg:border-border/60 lg:bg-surface lg:shadow-brand-md">
+      <header className="shrink-0 border-b border-border/60 bg-surface/95 px-4 pb-2.5 pt-3 lg:px-6 lg:pt-4">
+        <div className="flex items-center gap-3">
+          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-xs">
+            <Bot size={20} aria-hidden="true" />
+            <span
+              className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-surface bg-success"
+              aria-hidden="true"
+            />
           </span>
-          <div className="min-w-0">
-            <h1 className="text-h2 font-bold text-text-primary">{t("title")}</h1>
-            <p className="text-body text-text-secondary">{t("description")}</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-h3 font-bold text-text-primary">{t("title")}</h1>
+            <p className="truncate text-small text-text-secondary">{t("description")}</p>
           </div>
         </div>
-      </header>
-      {cats.length > 0 ? (
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={catSelectId} className="text-caption font-semibold text-text-secondary">
-            {t("selectCat.label")}
-          </label>
-          <select
-            id={catSelectId}
-            className="h-11 w-full max-w-xs rounded-xl border border-border bg-surface px-3 text-body text-text-primary"
-            value={selectedCatId}
-            // Đang chờ trả lời thì khoá: phản hồi muộn của bé cũ sẽ ghi đè `conversationId` sau khi
-            // đã đổi bé.
-            disabled={pending}
-            onChange={(event) => {
-              setSelectedCatId(event.target.value);
-              // Mỗi bé một hội thoại: backend nạp lịch sử của `conversationId` vào prompt, nên giữ
-              // hội thoại cũ thì câu hỏi về bé B được trả lời kèm lịch sử/ngữ cảnh của bé A.
-              setConversationId(undefined);
-            }}
+
+        {cats.length > 0 ? (
+          <div
+            role="radiogroup"
+            aria-label={t("selectCat.label")}
+            className="-mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] lg:-mx-6 lg:px-6"
           >
-            <option value="">{t("selectCat.generalOption")}</option>
-            {cats.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          {selectedCat ? (
-            <p className="text-small text-text-secondary">{t("askingAbout", { name: selectedCat.name })}</p>
-          ) : null}
-        </div>
-      ) : null}
-      <section
-        className="flex min-h-[55vh] flex-col gap-4 rounded-3xl bg-surface p-4 shadow-brand-md sm:p-6"
-        aria-busy={pending}
-        aria-live="polite"
-      >
-        {turns.length === 0 ? (
-          <p className="rounded-2xl bg-background-alt p-4 text-body text-text-secondary">{t("empty")}</p>
-        ) : null}
-        <div className="flex flex-col gap-4">
-          {turns.map((turn, index) => (
-            <div
-              key={`${turn.role}-${String(index)}`}
-              className={
-                turn.role === "user"
-                  ? "ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-white"
-                  : "max-w-[92%] rounded-2xl rounded-bl-sm bg-background-alt px-4 py-3 text-text-primary"
-              }
+            {cats.map((cat) => {
+              const active = cat.id === selectedCatId;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  disabled={pending}
+                  onClick={() => {
+                    selectCat(cat.id);
+                  }}
+                  className={chipClass(active)}
+                >
+                  <CatAvatar src={cat.avatarUrl} name={cat.name} size="sm" className="!size-7" />
+                  <span className="max-w-[9rem] truncate">{cat.name}</span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={selectedCatId === ""}
+              disabled={pending}
+              onClick={() => {
+                selectCat("");
+              }}
+              className={chipClass(selectedCatId === "")}
             >
-              <p className="whitespace-pre-wrap text-body">{turn.text}</p>
-              {turn.response && turn.response.citations.length > 0 ? (
-                <div className="mt-3 border-t border-border/60 pt-2">
-                  <p className="text-overline text-text-tertiary">{t("sources")}</p>
-                  <ul className="mt-1 flex flex-col gap-1">
-                    {turn.response.citations.map((citation) => (
-                      <li key={`${turn.response?.messageId ?? ""}-${String(citation.rank)}`}>
-                        <a
-                          className="inline-flex items-center gap-1 text-small text-primary-dark hover:underline"
-                          href={`/api/v1${citation.sourceUrl}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {citation.rank}. {citation.title}
-                          <ExternalLink size={12} aria-hidden="true" />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-        {pending ? <p className="text-small text-text-secondary">{t("thinking")}</p> : null}
-        {error ? (
-          <p role="alert" className="rounded-xl bg-danger-bg px-3 py-2 text-small text-danger-text">
-            {error}
-          </p>
+              <span
+                className="flex size-7 items-center justify-center rounded-full bg-chip-bg text-primary"
+                aria-hidden="true"
+              >
+                <Users size={14} />
+              </span>
+              {t("selectCat.generalOption")}
+            </button>
+          </div>
         ) : null}
-        <div className="mt-auto flex items-end gap-2 border-t border-border/60 pt-4">
+      </header>
+
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="assistant-scroll flex h-full flex-col gap-4 overflow-y-auto px-4 py-4 lg:px-6"
+          aria-live="polite"
+          aria-busy={pending}
+        >
+          {turns.length === 0 ? (
+            <AssistantEmptyState
+              catName={selectedCat?.name}
+              suggestions={suggestions}
+              onPick={(question) => {
+                void send(question);
+              }}
+            />
+          ) : null}
+          {turns.map((turn) => {
+            if (turn.kind === "divider") return <ContextDivider key={turn.id} label={turn.label} />;
+            if (turn.kind === "assistant") {
+              return (
+                <AssistantBubble
+                  key={turn.id}
+                  text={turn.response.answer}
+                  createdAt={turn.response.createdAt}
+                  citations={turn.response.citations}
+                  messageId={turn.response.messageId}
+                />
+              );
+            }
+            return (
+              <UserBubble
+                key={turn.id}
+                text={turn.text}
+                sentAt={turn.sentAt}
+                error={turn.error}
+                retrying={pending}
+                onRetry={() => {
+                  void send(turn.text, turn.id);
+                }}
+              />
+            );
+          })}
+          {pending ? <TypingIndicator /> : null}
+        </div>
+
+        {showJump ? (
+          <button
+            type="button"
+            onClick={() => {
+              atBottomRef.current = true;
+              setShowJump(false);
+              scrollToBottom(true);
+            }}
+            className="assistant-msg-in absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-small font-semibold text-primary-dark shadow-brand-md"
+          >
+            <ArrowDown size={14} aria-hidden="true" />
+            {t("jumpToLatest")}
+          </button>
+        ) : null}
+      </div>
+
+      <div className="shrink-0 border-t border-border/60 bg-surface/95 px-3 pb-2 pt-2.5 lg:px-6 lg:pb-4">
+        <div className="flex items-end gap-2 rounded-3xl border border-border bg-background-alt p-1.5 pl-4 transition-colors focus-within:border-primary focus-within:bg-surface">
           <textarea
-            className="min-h-12 flex-1 resize-y rounded-2xl bg-background-alt px-4 py-3 text-body text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            ref={textareaRef}
+            rows={1}
+            className="max-h-[140px] min-h-10 flex-1 resize-none bg-transparent py-2 text-body leading-6 text-text-primary outline-none placeholder:text-text-tertiary"
             value={message}
-            maxLength={4000}
+            maxLength={MAX_LENGTH}
             onChange={(event) => {
               setMessage(event.target.value);
             }}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && !coarsePointer) {
                 event.preventDefault();
-                void submit();
+                submit();
               }
             }}
             placeholder={t("placeholder")}
             aria-label={t("inputLabel")}
           />
-          <Button
-            variant="primary"
-            disabled={pending || message.trim().length === 0}
-            onClick={() => {
-              void submit();
-            }}
+          <button
+            type="button"
+            disabled={!canSend}
+            onClick={submit}
             aria-label={t("send")}
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-full transition-[background-color,color,opacity] duration-200",
+              canSend ? "bg-primary text-white shadow-xs hover:bg-primary-dark" : "bg-border/70 text-text-tertiary",
+            )}
           >
             <Send size={17} aria-hidden="true" />
-          </Button>
+          </button>
         </div>
-        <p className="text-small text-text-tertiary">{t("disclaimer")}</p>
-      </section>
+        <div className="flex items-start justify-between gap-3 px-2 pt-1.5">
+          <p className="text-[11px] leading-4 text-text-tertiary">{t("disclaimer")}</p>
+          {message.length >= COUNTER_FROM ? (
+            <span
+              className={cn(
+                "shrink-0 text-[11px] tabular-nums",
+                message.length >= MAX_LENGTH ? "text-danger-text" : "text-text-tertiary",
+              )}
+            >
+              {t("charCount", { count: message.length, max: MAX_LENGTH })}
+            </span>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
