@@ -82,7 +82,11 @@ export interface PointDraft {
   displayHex: string;
   displayNameVi: string;
   displayNameEn: string;
+  /** Lab đang là giá trị tự tính từ hex (chưa ai nhập tay), nên được tính lại khi hex đổi. */
+  labAuto: boolean;
 }
+
+export type DraftTextField = Exclude<keyof PointDraft, "key" | "labAuto">;
 
 export const DRAFT_NUMBER_FIELDS = ["phValue", "labL", "labA", "labB", "toleranceDeltaE"] as const;
 export const TECH_NUMBER_FIELDS = ["labL", "labA", "labB", "toleranceDeltaE"] as const;
@@ -99,6 +103,7 @@ export function toDraft(point: ColorChartPoint): PointDraft {
     displayHex: point.displayHex,
     displayNameVi: point.displayNameVi,
     displayNameEn: point.displayNameEn ?? "",
+    labAuto: false,
   };
 }
 
@@ -114,6 +119,7 @@ export function emptyDraft(): PointDraft {
     displayHex: "",
     displayNameVi: "",
     displayNameEn: "",
+    labAuto: true,
   };
 }
 
@@ -174,4 +180,52 @@ export function scaleBands<T extends Pick<PhBand, "phMin" | "phMax" | "sortOrder
   return bands
     .filter((band) => band.phMin != null || band.phMax != null)
     .sort((a, b) => (a.phMin ?? -Infinity) - (b.phMin ?? -Infinity) || a.sortOrder - b.sortOrder);
+}
+
+// Cùng công thức với backend ColorSpace.hexToLab (sRGB → XYZ D65 → CIELAB, điểm trắng = tổng hàng
+// ma trận) để Lab tự tính khớp seed V9.
+const SRGB_TO_XYZ = [
+  [0.4123907992659595, 0.35758433938387796, 0.1804807884018343],
+  [0.21263900587151036, 0.7151686787677559, 0.07219231536073371],
+  [0.01933081871559185, 0.11919477979462599, 0.9505321522496606],
+] as const;
+const LAB_DELTA = 6 / 29;
+
+function srgbToLinear(channel: number): number {
+  return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+}
+
+function labF(t: number): number {
+  return t > LAB_DELTA ** 3 ? Math.cbrt(t) : t / (3 * LAB_DELTA * LAB_DELTA) + 4 / 29;
+}
+
+/** `#RRGGBB` → CIELAB (D65, 2°). Gọi với hex đã qua isHexColor. */
+export function hexToLab(hex: string): { l: number; a: number; b: number } {
+  const rgb = [1, 3, 5].map((start) => srgbToLinear(parseInt(hex.slice(start, start + 2), 16) / 255));
+  const [fx, fy, fz] = SRGB_TO_XYZ.map((row) => {
+    const value = row.reduce((sum, weight, index) => sum + weight * (rgb[index] ?? 0), 0);
+    return labF(value / (row[0] + row[1] + row[2]));
+  }) as [number, number, number];
+  return { l: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
+}
+
+function round3(value: number): string {
+  return String(Math.round(value * 1000) / 1000);
+}
+
+/**
+ * Đổi một ô của điểm màu. Khi hex đổi, Lab tự tính lại từ Hex sRGB (nếu hợp lệ) hoặc Hex hiển thị,
+ * nhưng chỉ khi Lab đang trống hoặc vẫn là giá trị tự tính: không ghi đè Lab đã nhập/đo tay.
+ */
+export function patchDraft(draft: PointDraft, field: DraftTextField, value: string): PointDraft {
+  const next: PointDraft = { ...draft, [field]: value };
+  if (field === "labL" || field === "labA" || field === "labB") return { ...next, labAuto: false };
+  if (field !== "displayHex" && field !== "hexSrgb") return next;
+  const labEmpty = [draft.labL, draft.labA, draft.labB].every((part) => part.trim().length === 0);
+  if (!draft.labAuto && !labEmpty) return next;
+  const srgb = next.hexSrgb.trim();
+  const hex = isHexColor(srgb) ? srgb : next.displayHex.trim();
+  if (!isHexColor(hex)) return next;
+  const lab = hexToLab(hex);
+  return { ...next, labL: round3(lab.l), labA: round3(lab.a), labB: round3(lab.b), labAuto: true };
 }

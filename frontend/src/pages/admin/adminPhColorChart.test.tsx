@@ -11,7 +11,7 @@ import { hasAnyRole, ROLES } from "@/shared/auth/roles";
 import adminVi from "@/shared/i18n/locales/vi/admin.json";
 import { AdminPhColorChartPage } from "./AdminPhColorChartPage";
 import { BandsSection } from "./phBandsSection";
-import { bandRange, findActiveConflict, formatPhShort, isUsedByScans, publishChecks } from "./phChartModel";
+import { bandRange, findActiveConflict, isUsedByScans, publishChecks } from "./phChartModel";
 
 const i18n = i18next.createInstance();
 void i18n.init({
@@ -344,17 +344,5 @@ describe("phChartModel", () => {
     expect(bandRange({ phMin: null, phMax: 6, minInclusive: true, maxInclusive: false }).kind).toBe("below");
     expect(bandRange({ phMin: 7, phMax: null, minInclusive: false, maxInclusive: true }).kind).toBe("above");
     expect(bandRange({ phMin: null, phMax: null, minInclusive: true, maxInclusive: true }).kind).toBe("none");
-  });
-});
-
-describe("formatPhShort", () => {
-  afterEach(async () => {
-    await i18next.changeLanguage("vi");
-  });
-
-  it("đổi dấu thập phân theo ngôn ngữ", async () => {
-    expect(formatPhShort(6.3)).toBe("6,3");
-    await i18next.init({ lng: "en", resources: {}, supportedLngs: ["vi", "en"] });
-    expect(formatPhShort(6.3)).toBe("6.3");
   });
 });

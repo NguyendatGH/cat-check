@@ -1030,7 +1030,7 @@
     "stripLabel": "Color swatches and their pH values",
     "tabBands": "Classification bands",
     "tabCharts": "Color charts",
-    "techHelp": "Lab values measured on the real swatch. ΔE tolerance is the maximum color difference still considered a match for this swatch. sRGB hex may be left blank.",
+    "techHelp": "Lab is calculated from the sRGB hex (or the display hex) until you enter it; replace it with values measured on the real swatch when you have them. ΔE tolerance is the maximum color difference still considered a match for this swatch. sRGB hex may be left blank.",
     "techTitle": "Color measurements (Lab, tolerance)",
     "usedByScans": "Used by scanner",
     "usedByScansHelp": "All scans currently read pH using this chart (the Active chart for the Standard line, no batch).",

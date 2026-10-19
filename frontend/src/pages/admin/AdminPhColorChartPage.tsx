@@ -38,8 +38,10 @@ import {
   isDraftComplete,
   isTechComplete,
   isUsedByScans,
+  patchDraft,
   publishChecks,
   toDraft,
+  type DraftTextField,
   type PointDraft,
 } from "./phChartModel";
 import {
@@ -203,7 +205,7 @@ function PointCard({
   onRemove,
 }: {
   draft: PointDraft;
-  onPatch: (field: keyof PointDraft, value: string) => void;
+  onPatch: (field: DraftTextField, value: string) => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation("admin");
@@ -314,8 +316,8 @@ function PointsEditor({ chart, etag }: { chart: ColorChartDetail; etag: string |
     .map((draft) => ({ key: draft.key, phValue: Number(draft.phValue), hex: draft.displayHex.trim() }))
     .sort((a, b) => a.phValue - b.phValue);
 
-  const patch = (key: string, field: keyof PointDraft, value: string) => {
-    setDrafts((current) => current.map((draft) => (draft.key === key ? { ...draft, [field]: value } : draft)));
+  const patch = (key: string, field: DraftTextField, value: string) => {
+    setDrafts((current) => current.map((draft) => (draft.key === key ? patchDraft(draft, field, value) : draft)));
   };
 
   return (
