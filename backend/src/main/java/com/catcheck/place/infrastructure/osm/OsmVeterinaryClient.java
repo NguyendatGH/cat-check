@@ -3,6 +3,7 @@ package com.catcheck.place.infrastructure.osm;
 import com.catcheck.place.domain.ExternalPlace;
 import com.catcheck.place.domain.port.NearbyPlaceSource;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -16,9 +17,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+// Order 1: khi trùng với nguồn khác, giữ bản OSM (có số điện thoại, giờ mở cửa).
 @Component
+@Order(1)
 public class OsmVeterinaryClient implements NearbyPlaceSource {
     public static final String ID_PREFIX = "osm:";
+    public static final String SOURCE = "OSM";
     private static final List<String> ENDPOINTS = List.of(
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter");
@@ -122,7 +126,7 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
             boolean allDay = "24/7".equals(text(tags.get("opening_hours")));
             out.add(new ExternalPlace(ID_PREFIX + el.get("type") + "/" + el.get("id"), name, "CLINIC",
                     address, area == null ? "" : area, plat, plon, phone,
-                    allDay ? List.of("24/7") : List.of()));
+                    allDay ? List.of("24/7") : List.of(), SOURCE));
         }
         return out;
     }

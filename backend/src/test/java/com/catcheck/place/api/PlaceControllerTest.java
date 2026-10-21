@@ -198,7 +198,7 @@ class PlaceControllerTest {
     @Test
     void osmPlaceWithoutANameGetsTheUnnamedLabelInTheRequestLanguage() throws Exception {
         MockMvc realService = mvcWithUpstream((lat, lon, radius) -> java.util.List.of(
-                new ExternalPlace("osm:node/1", null, "CLINIC", "", "", 10.77, 106.7, null, java.util.List.of())));
+                new ExternalPlace("osm:node/1", null, "CLINIC", "", "", 10.77, 106.7, null, java.util.List.of(), "OSM")));
 
         nearby(realService, "10.77", "106.7", null)
                 .andExpect(status().isOk())
