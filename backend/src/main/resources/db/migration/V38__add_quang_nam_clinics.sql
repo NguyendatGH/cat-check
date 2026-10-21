@@ -105,18 +105,22 @@ BEGIN
         VALUES (p_duyxuyen, u_admin, 5, 'Bác sĩ tận tình, khám kỹ cho bé mèo, thiết bị hiện đại.', 'PUBLISHED')
         ON CONFLICT (place_id, user_id) DO NOTHING;
 
-        INSERT INTO place_review (p_namphuoc, u_admin, 5, 'Cấp cứu ban đêm rất nhanh chóng và chu đáo.', 'PUBLISHED')
+        INSERT INTO place_review (place_id, user_id, rating, body, status)
+        VALUES (p_namphuoc, u_admin, 5, 'Cấp cứu ban đêm rất nhanh chóng và chu đáo.', 'PUBLISHED')
         ON CONFLICT (place_id, user_id) DO NOTHING;
 
-        INSERT INTO place_review (p_hoian, u_admin, 5, 'Phòng khám sạch sẽ, bác sĩ giàu kinh nghiệm điều trị tiết niệu cho mèo.', 'PUBLISHED')
+        INSERT INTO place_review (place_id, user_id, rating, body, status)
+        VALUES (p_hoian, u_admin, 5, 'Phòng khám sạch sẽ, bác sĩ giàu kinh nghiệm điều trị tiết niệu cho mèo.', 'PUBLISHED')
         ON CONFLICT (place_id, user_id) DO NOTHING;
     END IF;
 
     IF u_seller IS NOT NULL THEN
-        INSERT INTO place_review (p_duyxuyen, u_seller, 5, 'Cơ sở thú y uy tín nhất ở khu vực Duy Xuyên - Nam Phước.', 'PUBLISHED')
+        INSERT INTO place_review (place_id, user_id, rating, body, status)
+        VALUES (p_duyxuyen, u_seller, 5, 'Cơ sở thú y uy tín nhất ở khu vực Duy Xuyên - Nam Phước.', 'PUBLISHED')
         ON CONFLICT (place_id, user_id) DO NOTHING;
 
-        INSERT INTO place_review (p_dienban, u_seller, 5, 'Phòng khám nhiệt tình, có sẵn cát CatCheck để kiểm tra nước tiểu.', 'PUBLISHED')
+        INSERT INTO place_review (place_id, user_id, rating, body, status)
+        VALUES (p_dienban, u_seller, 5, 'Phòng khám nhiệt tình, có sẵn cát CatCheck để kiểm tra nước tiểu.', 'PUBLISHED')
         ON CONFLICT (place_id, user_id) DO NOTHING;
     END IF;
 END $$;
