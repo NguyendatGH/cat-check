@@ -1,11 +1,24 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { AlertTriangle, ArrowLeft, Banknote, Loader2, Lock, MapPin, QrCode, ShoppingCart } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Banknote,
+  Loader2,
+  Lock,
+  MapPin,
+  Navigation,
+  QrCode,
+  ShoppingCart,
+  Tag,
+  Ticket,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
-import { EmptyState, ErrorState, Input, SkeletonLoader } from "@/shared/ui";
+import { EmptyState, ErrorState, Input, SkeletonLoader, toast } from "@/shared/ui";
 import { useSessionStore } from "@/entities/user";
 import { useCreateOrder, useShopCart } from "@/features/shop";
 import {
@@ -19,6 +32,24 @@ import { usePaymentMethodStore } from "./paymentMethodStore";
 import { exceedsStock, formatVnd, nextStepAfterOrder, type ShopPaymentMethodId } from "./shopFormat";
 import { ProductGlyph, ShippingFee } from "./shopUi";
 
+export interface PromoCodeDef {
+  code: string;
+  label: string;
+  type: "PERCENT" | "FIXED" | "SHIPPING";
+  amount: number;
+}
+
+export const PROMO_LIST: PromoCodeDef[] = [
+  { code: "CATCHECK10", label: "Giảm 10%", type: "PERCENT", amount: 10 },
+  { code: "FREESHIP", label: "Giảm 30.000đ ship", type: "SHIPPING", amount: 30000 },
+  { code: "CATFRIEND", label: "Giảm 20.000đ", type: "FIXED", amount: 20000 },
+];
+
+export const PROMO_CODES: Record<string, PromoCodeDef> = Object.fromEntries(
+  PROMO_LIST.map((p) => [p.code, p]),
+);
+
+const SAVED_CHECKOUT_KEY = "catcheck_saved_shipping_info";
 
 const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon> = {
   COD: Banknote,
@@ -53,8 +84,39 @@ export function CheckoutPage() {
   });
   const [touched, setTouched] = useState<Partial<Record<CheckoutField, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<PromoCodeDef | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [saveInfo, setSaveInfo] = useState(() => {
+    try {
+      return localStorage.getItem(SAVED_CHECKOUT_KEY) !== null;
+    } catch {
+      return false;
+    }
+  });
+
   const formRef = useRef<HTMLFormElement>(null);
   const addressId = useId();
+
+  // Load saved shipping information on mount if present
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SAVED_CHECKOUT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<CheckoutFormValues>;
+        if (parsed.receiverName || parsed.receiverPhone || parsed.shippingAddress) {
+          setValues((prev) => ({
+            receiverName: parsed.receiverName || prev.receiverName,
+            receiverPhone: parsed.receiverPhone || prev.receiverPhone,
+            shippingAddress: parsed.shippingAddress || prev.shippingAddress,
+          }));
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
 
   const cart = cartQuery.data;
   const lines = cart?.lines ?? [];
@@ -70,6 +132,75 @@ export function CheckoutPage() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
+  const handleApplyPromo = () => {
+    const clean = promoInput.trim().toUpperCase();
+    if (!clean) return;
+    const found = PROMO_LIST.find((p) => p.code === clean);
+    if (found) {
+      setAppliedPromo(found);
+      setPromoError(null);
+      toast.success(t("checkout.promoApplied", { code: found.code }));
+    } else {
+      setPromoError(t("checkout.promoInvalid"));
+    }
+  };
+
+  const handleGetCurrentLocation = () => {
+    const geolocation = "geolocation" in navigator ? navigator.geolocation : undefined;
+    if (!geolocation) {
+      toast.error(t("checkout.locationError"));
+      return;
+    }
+    setIsLocating(true);
+    geolocation.getCurrentPosition(
+      (pos) => {
+        void (async () => {
+          const { latitude, longitude } = pos.coords;
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${String(latitude)}&lon=${String(longitude)}&zoom=18&addressdetails=1`,
+              { headers: { "Accept-Language": "vi,en" } },
+            );
+            if (res.ok) {
+              const data = (await res.json()) as { display_name?: string };
+              if (data.display_name) {
+                update("shippingAddress")(data.display_name);
+                setTouched((prev) => ({ ...prev, shippingAddress: true }));
+                setIsLocating(false);
+                return;
+              }
+            }
+          } catch {
+            // If network or geocoding fails, fallback to coordinates
+          }
+          const coordsText = `${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E (Vị trí hiện tại)`;
+          update("shippingAddress")(coordsText);
+          setTouched((prev) => ({ ...prev, shippingAddress: true }));
+          setIsLocating(false);
+        })();
+      },
+      () => {
+        setIsLocating(false);
+        toast.error(t("checkout.locationError"));
+      },
+      { timeout: 10000, enableHighAccuracy: true },
+    );
+  };
+
+  const subtotal = cart?.subtotalVnd ?? 0;
+  const shippingFee = cart?.shippingFeeVnd ?? 0;
+  let promoDiscountVnd = 0;
+  if (appliedPromo) {
+    if (appliedPromo.type === "PERCENT") {
+      promoDiscountVnd = Math.round((subtotal * appliedPromo.amount) / 100);
+    } else if (appliedPromo.type === "SHIPPING") {
+      promoDiscountVnd = Math.min(shippingFee, appliedPromo.amount);
+    } else {
+      promoDiscountVnd = Math.min(subtotal + shippingFee, appliedPromo.amount);
+    }
+  }
+  const finalTotalVnd = Math.max(0, subtotal + shippingFee - promoDiscountVnd);
+
   const submit = () => {
     setSubmitted(true);
     const firstInvalid = FIELD_ORDER.find((field) => errors[field]);
@@ -77,6 +208,29 @@ export function CheckoutPage() {
       formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
       return;
     }
+
+    // Persist or clear shipping information according to saveInfo checkbox
+    if (saveInfo) {
+      try {
+        localStorage.setItem(
+          SAVED_CHECKOUT_KEY,
+          JSON.stringify({
+            receiverName: values.receiverName.trim(),
+            receiverPhone: values.receiverPhone.trim(),
+            shippingAddress: values.shippingAddress.trim(),
+          }),
+        );
+      } catch {
+        // Ignore storage errors
+      }
+    } else {
+      try {
+        localStorage.removeItem(SAVED_CHECKOUT_KEY);
+      } catch {
+        // Ignore storage errors
+      }
+    }
+
     createOrder.mutate(
       {
         paymentMethod: paymentMethodId,
@@ -208,9 +362,20 @@ export function CheckoutPage() {
                 required
               />
               <div className="flex flex-col gap-1.5 md:col-span-2">
-                <label htmlFor={addressId} className="text-caption font-semibold text-text-secondary">
-                  {t("checkout.shippingAddress")}
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor={addressId} className="text-caption font-semibold text-text-secondary">
+                    {t("checkout.shippingAddress")}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    disabled={isLocating}
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary transition-colors hover:text-primary-dark disabled:opacity-60"
+                  >
+                    <Navigation size={13} className={cn("shrink-0", isLocating && "animate-spin")} aria-hidden="true" />
+                    <span>{isLocating ? t("checkout.locatingAddress") : t("checkout.useCurrentLocation")}</span>
+                  </button>
+                </div>
                 <textarea
                   id={addressId}
                   name="shippingAddress"
@@ -241,6 +406,18 @@ export function CheckoutPage() {
                     {values.shippingAddress.length}/{CHECKOUT_LIMITS.shippingAddress}
                   </span>
                 </p>
+
+                <label className="mt-2 flex items-center gap-2 text-[13px] text-text-primary cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={saveInfo}
+                    onChange={(e) => {
+                      setSaveInfo(e.target.checked);
+                    }}
+                    className="size-4 rounded border-border-strong text-primary accent-primary focus:ring-primary/20"
+                  />
+                  <span>{t("checkout.saveInfoLabel")}</span>
+                </label>
               </div>
             </div>
           </section>
@@ -308,6 +485,89 @@ export function CheckoutPage() {
             ))}
           </ul>
 
+          {/* Promo code input & live discount */}
+          <div className="mt-4 border-t border-border pt-4">
+            <label htmlFor="promo-code-input" className="block text-[13px] font-semibold text-text-primary mb-1.5">
+              {t("checkout.promoLabel")}
+            </label>
+            {appliedPromo ? (
+              <div className="flex items-center justify-between rounded-xl border border-success/30 bg-success-bg px-3 py-2 text-success-text animate-pop-spring">
+                <div className="flex items-center gap-2">
+                  <Tag size={15} aria-hidden="true" />
+                  <span className="font-mono font-bold text-[13px]">{appliedPromo.code}</span>
+                  <span className="text-[12px] text-text-secondary">({appliedPromo.label})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedPromo(null);
+                    setPromoError(null);
+                  }}
+                  aria-label="Xóa mã giảm giá"
+                  className="flex size-6 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-black/10 hover:text-text-primary active:scale-90"
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    <Ticket
+                      size={15}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="promo-code-input"
+                      type="text"
+                      value={promoInput}
+                      onChange={(e) => {
+                        setPromoInput(e.target.value.toUpperCase());
+                        setPromoError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleApplyPromo();
+                        }
+                      }}
+                      placeholder={t("checkout.promoPlaceholder")}
+                      className="w-full rounded-xl border border-border-strong bg-background-alt py-2 pl-9 pr-3 text-[13px] font-mono font-bold uppercase text-text-primary placeholder:font-sans placeholder:font-normal placeholder:text-text-tertiary focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleApplyPromo}
+                    disabled={!promoInput.trim()}
+                    className="rounded-xl bg-chip-bg px-3.5 py-2 text-[12px] font-bold text-primary-dark transition-all hover:bg-info active:scale-95 disabled:opacity-50"
+                  >
+                    {t("checkout.applyPromo")}
+                  </button>
+                </div>
+                {promoError ? <p className="text-[11px] font-semibold text-danger-text">{promoError}</p> : null}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[11px] text-text-tertiary">{t("checkout.promoHint")}</span>
+                  {PROMO_LIST.map((p) => (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => {
+                        setPromoInput(p.code);
+                        setAppliedPromo(p);
+                        setPromoError(null);
+                        toast.success(t("checkout.promoApplied", { code: p.code }));
+                      }}
+                      className="rounded-md border border-border/70 bg-surface px-2 py-0.5 text-[10px] font-mono font-bold text-primary transition-all hover:border-primary/50 hover:bg-primary/5 active:scale-95"
+                    >
+                      {p.code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <dl className="mt-4 flex flex-col gap-2 border-t border-border pt-3 text-[13px]">
             <div className="flex justify-between gap-4">
               <dt className="text-text-secondary">{t("cartPanel.subtotalLabel")}</dt>
@@ -319,12 +579,18 @@ export function CheckoutPage() {
                 <ShippingFee value={cart?.shippingFeeVnd ?? 0} />
               </dd>
             </div>
+            {appliedPromo && promoDiscountVnd > 0 ? (
+              <div className="flex justify-between gap-4 text-success-text animate-pop-spring">
+                <dt className="text-success-text font-medium">{t("checkout.promoDiscount", { code: appliedPromo.code })}</dt>
+                <dd className="font-bold text-success-text">-{formatVnd(promoDiscountVnd)}</dd>
+              </div>
+            ) : null}
           </dl>
 
           <div className="mt-3 flex items-end justify-between gap-4 border-t border-border pt-3">
             <span className="text-[15px] font-bold text-text-primary">{t("checkout.totalLabel")}</span>
             <span className="text-[24px] font-bold leading-none text-primary-dark">
-              {formatVnd(cart?.totalVnd ?? 0)}
+              {formatVnd(finalTotalVnd)}
             </span>
           </div>
 

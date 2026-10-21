@@ -81,6 +81,7 @@ export const ROUTE_PATTERNS = {
   adminPrivacyConsents: "/admin/privacy/consents",
   sellerDashboard: LANDING_PATHS.seller,
   sellerProducts: "/seller/products",
+  sellerPackages: "/seller/packages",
   sellerOrders: "/seller/orders",
   sellerColorChart: "/seller/color-chart",
   sellerContent: "/seller/content",

@@ -29,7 +29,10 @@ import { SHOP_ORDER_STAGES, formatVnd, isShopOrderPaymentMethod, type ShopOrderP
 import { ProductGlyph, ShippingFee } from "./shopUi";
 
 
-const STAGE_ICONS: Record<(typeof SHOP_ORDER_STAGES)[number], LucideIcon> = {
+const COD_ORDER_STAGES = ["CONFIRMED", "PACKING", "SHIPPING", "DELIVERED"] as const;
+
+const STAGE_ICONS: Record<string, LucideIcon | undefined> = {
+  CONFIRMED: CircleCheckBig,
   PENDING_PAYMENT: ClipboardList,
   PAID: Wallet,
   PACKING: Package,
@@ -137,13 +140,31 @@ export function OrderTrackingPage() {
 
   const order = orderQuery.data;
   const cancelled = order.status === "CANCELLED";
-  const stageIndex = (SHOP_ORDER_STAGES as readonly string[]).indexOf(order.status);
-  const statusKey = cancelled || stageIndex >= 0 ? order.status : "UNKNOWN";
+  const isCod = order.paymentMethod === "COD";
+  const stages = isCod ? COD_ORDER_STAGES : SHOP_ORDER_STAGES;
+  const stageIndex = isCod
+    ? order.status === "PENDING_PAYMENT"
+      ? 0
+      : order.status === "PAID" || order.status === "PACKING"
+        ? 1
+        : order.status === "SHIPPING"
+          ? 2
+          : order.status === "DELIVERED"
+            ? 3
+            : -1
+    : (SHOP_ORDER_STAGES as readonly string[]).indexOf(order.status);
+  const statusKey = cancelled
+    ? "CANCELLED"
+    : isCod && order.status === "PENDING_PAYMENT"
+      ? "CONFIRMED"
+      : stageIndex >= 0
+        ? order.status
+        : "UNKNOWN";
   const paymentKey = isShopOrderPaymentMethod(order.paymentMethod) ? order.paymentMethod : null;
   const remainingSeconds = waitingForPayos && order.paymentExpiresAt ? Math.ceil((Date.parse(order.paymentExpiresAt) - now) / 1000) : 0;
   const expiredUnpaid = cancelled && order.cancelReason === "PAYMENT_EXPIRED";
   const PaymentIcon = paymentKey ? PAYMENT_ICONS[paymentKey] : Wallet;
-  const lastIndex = SHOP_ORDER_STAGES.length - 1;
+  const lastIndex = stages.length - 1;
 
   const copyCode = () => {
     void navigator.clipboard
@@ -250,15 +271,27 @@ export function OrderTrackingPage() {
 
       {order.status === "PENDING_PAYMENT" ? (
         <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-brand-md sm:flex-row sm:items-center sm:justify-between md:p-6">
-          <p className="text-[14px] font-bold text-primary-dark">
-            {remainingSeconds > 0
-              ? t("order.expiresIn", {
-                  time: `${String(Math.floor(remainingSeconds / 60))}:${String(remainingSeconds % 60).padStart(2, "0")}`,
-                })
-              : null}
-          </p>
-          <div className="flex gap-2">
-            {remainingSeconds > 0 && order.checkoutUrl ? (
+          {isCod ? (
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success-bg text-success-text">
+                <CircleCheckBig size={20} aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-text-primary">{t("order.codConfirmedTitle")}</p>
+                <p className="pt-0.5 text-[12px] leading-relaxed text-text-secondary">{t("order.codConfirmedBody")}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[14px] font-bold text-primary-dark">
+              {remainingSeconds > 0
+                ? t("order.expiresIn", {
+                    time: `${String(Math.floor(remainingSeconds / 60))}:${String(remainingSeconds % 60).padStart(2, "0")}`,
+                  })
+                : null}
+            </p>
+          )}
+          <div className="flex shrink-0 gap-2">
+            {!isCod && remainingSeconds > 0 && order.checkoutUrl ? (
               <button
                 type="button"
                 onClick={() => {
@@ -305,8 +338,8 @@ export function OrderTrackingPage() {
           </p>
         ) : (
           <ol className="mt-6 flex flex-col md:flex-row">
-            {SHOP_ORDER_STAGES.map((stage, index) => {
-              const Icon = STAGE_ICONS[stage];
+            {stages.map((stage, index) => {
+              const Icon = STAGE_ICONS[stage] ?? Package;
               const done = index < stageIndex || (index === lastIndex && stageIndex === lastIndex);
               const current = index === stageIndex && !done;
               const isLast = index === lastIndex;

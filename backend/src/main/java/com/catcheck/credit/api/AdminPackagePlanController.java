@@ -33,7 +33,7 @@ public class AdminPackagePlanController {
 
     static final Set<String> READ_ROLES = Set.of("ADMIN_SUPER", "ADMIN_CATALOG", "ADMIN_SUPPORT");
 
-    static final Set<String> WRITE_ROLES = Set.of("ADMIN_SUPER");
+    static final Set<String> WRITE_ROLES = Set.of("ADMIN_SUPER", "ADMIN_CATALOG");
 
     private final PackagePlanAdminService adminService;
 

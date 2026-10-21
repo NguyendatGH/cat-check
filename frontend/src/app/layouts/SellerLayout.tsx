@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Outlet, NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, FlaskConical, LayoutDashboard, Lightbulb, Package, type LucideIcon } from "lucide-react";
+import { ClipboardList, FlaskConical, LayoutDashboard, Lightbulb, Package, Ticket, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { useSessionStore } from "@/entities/user";
 import { AdminAccessProvider, computeCapabilities, type RoleCheck } from "@/features/admin";
@@ -12,6 +12,7 @@ import { StaffLogoutButton } from "./shell/StaffLogoutButton";
 const SELLER_NAV_ITEMS: readonly { to: string; labelKey: string; icon: LucideIcon; end: boolean }[] = [
   { to: ROUTE_PATTERNS.sellerDashboard, labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
   { to: ROUTE_PATTERNS.sellerProducts, labelKey: "nav.products", icon: Package, end: false },
+  { to: ROUTE_PATTERNS.sellerPackages, labelKey: "nav.packages", icon: Ticket, end: false },
   { to: ROUTE_PATTERNS.sellerOrders, labelKey: "nav.orders", icon: ClipboardList, end: false },
   { to: ROUTE_PATTERNS.sellerColorChart, labelKey: "nav.colorChart", icon: FlaskConical, end: false },
   { to: ROUTE_PATTERNS.sellerContent, labelKey: "nav.content", icon: Lightbulb, end: false },

@@ -3,20 +3,24 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import {
   ArrowRight,
+  Camera,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   ClipboardPaste,
   HelpCircle,
+  Info,
   MessageCircle,
   PartyPopper,
+  QrCode,
   ScanLine,
   ShieldAlert,
   ShoppingBag,
   Sparkles,
   Ticket,
   X,
+  Zap,
 } from "lucide-react";
 import { Badge, Button, Card, SkeletonLoader, celebrate } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -24,6 +28,8 @@ import { intlLocale } from "@/shared/lib/format/locale";
 import { isApiError } from "@/shared/api";
 import {
   ActivationCodeField,
+  QrCodeScannerModal,
+  SAMPLE_QR_CODES,
   isValidActivationCode,
   formatActivationCode,
   useActivateCode,
@@ -49,6 +55,7 @@ export function CreditsActivatePage() {
   const [success, setSuccess] = useState<ActivationResult | null>(null);
   const [showGuide, setShowGuide] = useState(true);
   const [copiedFeedback, setCopiedFeedback] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const isChecking = activateCode.isPending;
   const isCodeValid = isValidActivationCode(code);
@@ -238,6 +245,34 @@ export function CreditsActivatePage() {
         ) : null}
       </div>
 
+      {/* Required activation notice from feedback row 10 */}
+      <div
+        data-reveal
+        className="relative overflow-hidden rounded-2xl border border-secondary/40 bg-secondary/10 p-4 shadow-xs"
+      >
+        <div className="flex items-start gap-3.5">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/25 text-secondary-text-on shadow-xs">
+            <Info className="size-5" aria-hidden="true" />
+          </span>
+          <div className="flex flex-col gap-1.5 text-caption">
+            <p className="font-bold text-text-primary text-[14px]">{t("activate.qrNoticeTitle")}</p>
+            <ul className="space-y-1 text-text-secondary">
+              <li className="flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-secondary-text-on" />
+                <span>{t("activate.qrNotice1kg")}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-secondary-text-on" />
+                <span>{t("activate.qrNotice25kg")}</span>
+              </li>
+            </ul>
+            <p className="text-[12px] leading-relaxed text-text-secondary pt-0.5">
+              {t("activate.qrNoticeDesc")}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Card
         data-reveal
         padding="md"
@@ -247,14 +282,26 @@ export function CreditsActivatePage() {
           <label htmlFor="activation-code-field" className="text-caption font-bold text-text-primary">
             {t("activate.inputLabel")}
           </label>
-          {isCodeValid ? (
-            <span className="animate-pop-spring">
-              <Badge tone="success" className="gap-1 font-semibold">
-                <CheckCircle2 className="size-3.5" aria-hidden="true" />
-                {t("activate.formatValid")}
-              </Badge>
-            </span>
-          ) : null}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsScannerOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-caption font-bold text-primary transition-all hover:bg-primary/20 active:scale-95"
+            >
+              <Camera className="size-3.5" aria-hidden="true" />
+              <span>{t("activate.qrScanCta")}</span>
+            </button>
+            {isCodeValid ? (
+              <span className="animate-pop-spring">
+                <Badge tone="success" className="gap-1 font-semibold">
+                  <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                  {t("activate.formatValid")}
+                </Badge>
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <div>
@@ -300,6 +347,39 @@ export function CreditsActivatePage() {
               )
             }
           />
+
+          {/* Sample test QR codes */}
+          <div className="mt-3 rounded-xl border border-dashed border-border-strong bg-background-alt p-3">
+            <div className="flex items-center justify-between pb-1.5">
+              <span className="flex items-center gap-1 text-[11px] font-bold text-text-secondary">
+                <Zap className="size-3 text-secondary" aria-hidden="true" />
+                {t("activate.qrSamplesTitle")}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {SAMPLE_QR_CODES.map((item) => (
+                <button
+                  key={item.code}
+                  type="button"
+                  onClick={() => {
+                    setCode(item.code);
+                    setFormatError(null);
+                    setApiError(null);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all active:scale-95",
+                    code === item.code
+                      ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                      : "border-border/60 bg-surface text-text-secondary hover:border-primary/40 hover:text-text-primary",
+                  )}
+                >
+                  <QrCode className="size-3 opacity-60" aria-hidden="true" />
+                  <span>{item.label}</span>
+                  <span className="text-[10px] text-text-tertiary">({item.desc})</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-caption text-text-tertiary">
             <span>{t("activate.formatHint")}</span>
@@ -435,6 +515,18 @@ export function CreditsActivatePage() {
         </h2>
         <PackagePerks />
       </section>
+
+      <QrCodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => {
+          setIsScannerOpen(false);
+        }}
+        onScan={(scannedCode) => {
+          setCode(scannedCode);
+          setFormatError(null);
+          setApiError(null);
+        }}
+      />
     </div>
   );
 }

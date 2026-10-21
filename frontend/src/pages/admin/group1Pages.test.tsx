@@ -328,16 +328,18 @@ describe("AdminActivationCodesPage", () => {
 });
 
 describe("AdminPackagesPage", () => {
-  it("ADMIN_CATALOG chỉ xem gói, không có nút Sửa", async () => {
-    const view = text(await renderPage(<AdminPackagesPage />, "ADMIN_CATALOG"));
+  it("ADMIN_SUPPORT chỉ xem gói, không có nút Sửa", async () => {
+    const view = text(await renderPage(<AdminPackagesPage />, "ADMIN_SUPPORT"));
     expect(view).toContain("Tiêu chuẩn");
     expect(view).toContain("packageAdmin.readOnlyNote");
     expect(view).not.toContain("actions.edit");
   });
 
-  it("ADMIN_SUPER có nút Sửa", async () => {
-    const view = text(await renderPage(<AdminPackagesPage />, "ADMIN_SUPER"));
-    expect(view).toContain("actions.edit");
+  it("ADMIN_CATALOG và ADMIN_SUPER có nút Sửa", async () => {
+    const catalogView = text(await renderPage(<AdminPackagesPage />, "ADMIN_CATALOG"));
+    expect(catalogView).toContain("actions.edit");
+    const superView = text(await renderPage(<AdminPackagesPage />, "ADMIN_SUPER"));
+    expect(superView).toContain("actions.edit");
   });
 });
 

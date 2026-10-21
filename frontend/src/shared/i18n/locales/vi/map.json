@@ -32,7 +32,10 @@
   },
   "filters": {
     "label": "Lọc theo loại cơ sở",
-    "all": "Tất cả"
+    "all": "Tất cả",
+    "topRated": "⭐ 4.5★+ ({{count}})",
+    "duyXuyen": "Duy Xuyên / Q.Nam",
+    "daNang": "Đà Nẵng"
   },
   "kind": {
     "clinic": "Phòng khám",

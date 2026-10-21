@@ -69,8 +69,13 @@ describe("CreditsActivatePage", () => {
     expect(container.textContent).toContain("activate.guideTitle");
     expect(container.textContent).toContain("activate.perksTitle");
     expect(container.textContent).toContain("CATCHECK Plus");
-    expect(container.textContent).toContain("activate.perks.scans");
-    expect(container.textContent).toContain("activate.perks.aiTitle");
+    expect(container.textContent).toContain("activate.qrNoticeTitle");
+    expect(container.textContent).toContain("activate.qrNotice1kg");
+    expect(container.textContent).toContain("activate.qrNotice25kg");
+    expect(container.textContent).toContain("activate.qrScanCta");
+    expect(container.textContent).toContain("activate.qrSamplesTitle");
+    expect(container.textContent).toContain("Túi 1 kg");
+    expect(container.textContent).toContain("Túi 2,5 kg");
 
     act(() => {
       root.unmount();
