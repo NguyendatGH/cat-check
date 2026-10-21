@@ -55,6 +55,7 @@ export function AssistantPage() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [pending, setPending] = useState(false);
 
+  const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const atBottomRef = useRef(true);
@@ -83,6 +84,36 @@ export function AssistantPage() {
   useEffect(() => {
     if (atBottomRef.current) scrollToBottom(true);
   }, [turns, pending]);
+
+  // Mobile: the app header (with its collapsible shortcut row) has no fixed height, so fill the space
+  // between this page's top and the room <main> keeps for the bottom nav instead of a hard-coded offset.
+  // Desktop keeps the CSS height.
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof window.matchMedia !== "function") return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const main = el.closest("main");
+    const fit = () => {
+      if (desktop.matches) {
+        el.style.height = "";
+        return;
+      }
+      const reserved = main ? Number.parseFloat(getComputedStyle(main).paddingBottom) || 0 : 0;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      el.style.height = `${String(Math.max(0, window.innerHeight - top - reserved))}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    desktop.addEventListener("change", fit);
+    const header = main?.parentElement?.querySelector("header");
+    const observer = typeof ResizeObserver === "function" && header ? new ResizeObserver(fit) : undefined;
+    if (header) observer?.observe(header);
+    return () => {
+      window.removeEventListener("resize", fit);
+      desktop.removeEventListener("change", fit);
+      observer?.disconnect();
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const el = textareaRef.current;
@@ -161,7 +192,10 @@ export function AssistantPage() {
   const canSend = !pending && message.trim().length > 0;
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-136px-env(safe-area-inset-bottom))] min-h-[420px] w-full max-w-3xl flex-col overflow-hidden lg:h-[calc(100dvh-120px)] lg:rounded-3xl lg:border lg:border-border/60 lg:bg-surface lg:shadow-brand-md">
+    <div
+      ref={rootRef}
+      className="mx-auto flex h-[calc(100dvh-136px-env(safe-area-inset-bottom))] w-full max-w-3xl lg:min-h-[420px] flex-col overflow-hidden lg:h-[calc(100dvh-120px)] lg:rounded-3xl lg:border lg:border-border/60 lg:bg-surface lg:shadow-brand-md"
+    >
       <header className="shrink-0 border-b border-border/60 bg-surface/95 px-4 pb-2.5 pt-3 lg:px-6 lg:pt-4">
         <div className="flex items-center gap-3">
           <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-xs">

@@ -9,7 +9,13 @@ declare const self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
+// Server-handled navigations (Caddy proxies these to the backend) must reach the network: OAuth2 login
+// start and callback are full-page redirects, and serving the SPA shell for them shows the 404 page.
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL("/index.html"), {
+    denylist: [/^\/api\//, /^\/oauth2\//, /^\/login\//],
+  }),
+);
 
 self.addEventListener("install", () => {
   void self.skipWaiting();
@@ -59,4 +65,3 @@ self.addEventListener("notificationclick", (event) => {
     }),
   );
 });
-
