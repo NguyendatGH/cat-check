@@ -170,7 +170,7 @@ public class AuthController {
                 request.email(), request.password(),
                 request.rememberMe() == null || request.rememberMe(), context);
 
-        if (mfaService.totpEnabled(result.userId())) {
+        if (mfaService.loginRequiresTotp(result.userId(), result.roles())) {
             // Chua mo phien truoc khi qua TOTP — phien that mo o A10/A11.
             sessionGateway.beginPendingMfa(result.userId(), result.email().value(), result.roles(),
                     request.rememberMe() == null || request.rememberMe());

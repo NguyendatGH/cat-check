@@ -23,6 +23,9 @@ logging:
     com.catcheck: DEBUG
 
 catcheck:
+  auth:
+    # Prod/local đang tạm tắt TOTP cho admin; test vẫn kiểm luồng TOTP để bật lại là chạy đúng.
+    admin-mfa-enabled: true
   ai:
     # Index nền lúc khởi động có thể còn giữ kết nối khi test đã tắt Postgres → JVM treo lúc thoát.
     index-on-startup: false

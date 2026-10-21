@@ -74,7 +74,7 @@ class AuthControllerTest {
     void passwordLoginWithActiveTotpDoesNotEstablishASession() {
         when(loginService.login(any(), any(), anyBoolean(), any())).thenReturn(new LoginService.LoginResult(
                 USER, EmailAddress.of("person@example.com"), "Person", Set.of("USER")));
-        when(mfaService.totpEnabled(USER)).thenReturn(true);
+        when(mfaService.loginRequiresTotp(eq(USER), any())).thenReturn(true);
 
         Map<String, Object> body = controller.login(new LoginRequest("person@example.com", "pw", true),
                 new MockHttpServletRequest(), new MockHttpServletResponse());

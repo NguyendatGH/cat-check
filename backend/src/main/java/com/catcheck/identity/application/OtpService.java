@@ -12,10 +12,12 @@ import com.catcheck.identity.domain.OtpPurpose;
 import com.catcheck.identity.domain.OtpTicket;
 import com.catcheck.identity.domain.RateLimitRule;
 import com.catcheck.identity.domain.UserAccount;
+import com.catcheck.identity.domain.UserRole;
 import com.catcheck.identity.domain.port.EmailOtpRepository;
 import com.catcheck.identity.domain.port.OtpCodeHasher;
 import com.catcheck.identity.domain.port.RateLimiter;
 import com.catcheck.identity.domain.port.UserAccountRepository;
+import com.catcheck.identity.domain.port.UserRoleRepository;
 import com.catcheck.notification.api.NotificationGateway;
 import com.catcheck.notification.api.TransactionalEmailRequest;
 import com.catcheck.shared.error.BusinessRuleException;
@@ -41,6 +43,7 @@ public class OtpService {
 
     private final EmailOtpRepository otpRepository;
     private final UserAccountRepository accountRepository;
+    private final UserRoleRepository roleRepository;
     private final OtpCodeHasher codeHasher;
     private final OtpCodeGenerator codeGenerator;
     private final AuthPolicy policy;
@@ -49,9 +52,11 @@ public class OtpService {
     private final AuditLogService auditLogService;
     private final Clock clock;
     private final boolean devConsoleEnabled;
+    private final String adminOtpEmail;
 
     public OtpService(EmailOtpRepository otpRepository,
                       UserAccountRepository accountRepository,
+                      UserRoleRepository roleRepository,
                       OtpCodeHasher codeHasher,
                       OtpCodeGenerator codeGenerator,
                       AuthPolicy policy,
@@ -59,9 +64,11 @@ public class OtpService {
                       NotificationGateway notificationGateway,
                       AuditLogService auditLogService,
                       Clock clock,
-                      @Value("${catcheck.dev.log-otp:false}") boolean devConsoleEnabled) {
+                      @Value("${catcheck.dev.log-otp:false}") boolean devConsoleEnabled,
+                      @Value("${catcheck.auth.admin-otp-email:}") String adminOtpEmail) {
         this.otpRepository = otpRepository;
         this.accountRepository = accountRepository;
+        this.roleRepository = roleRepository;
         this.codeHasher = codeHasher;
         this.codeGenerator = codeGenerator;
         this.policy = policy;
@@ -70,6 +77,15 @@ public class OtpService {
         this.auditLogService = auditLogService;
         this.clock = clock;
         this.devConsoleEnabled = devConsoleEnabled;
+        if (adminOtpEmail == null || adminOtpEmail.isBlank()) {
+            this.adminOtpEmail = "";
+        } else {
+            EmailAddress parsed = EmailAddress.parseOrNull(adminOtpEmail);
+            if (parsed == null) {
+                throw new IllegalStateException("catcheck.auth.admin-otp-email (CATCHECK_ADMIN_OTP_EMAIL) không hợp lệ");
+            }
+            this.adminOtpEmail = parsed.value();
+        }
     }
 
     @Transactional
@@ -188,10 +204,12 @@ public class OtpService {
         if (devConsoleEnabled) {
             log.warn("[DEV-OTP] purpose={} email={} code={}", purpose, maskEmail(email), code);
         }
+        Optional<UserAccount> account = accountOf(email, userId);
         notificationGateway.enqueueTransactionalEmail(new TransactionalEmailRequest(
-                email,
+                recipientFor(email, purpose, account),
                 templateCodeFor(purpose),
-                localeOf(email, userId, requestedLocale),
+                account.map(UserAccount::locale)
+                        .orElseGet(() -> AppLocale.fromCodeOrDefault(requestedLocale)).code(),
                 Map.of(
                         "code", code,
                         "purpose", purpose.name(),
@@ -199,14 +217,22 @@ public class OtpService {
                 "AUTH_OTP:" + challengeId));
     }
 
-    // app_user.locale của người nhận; gửi lại OTP không có userId thì tra theo email. Chưa có tài
-    // khoản (OTP trước khi đăng ký) dùng ngôn ngữ client gửi, sai hoặc thiếu thì về vi.
-    private String localeOf(String email, UUID userId, String requestedLocale) {
-        Optional<UserAccount> account = userId != null
+    // Tài khoản nhận OTP (lấy app_user.locale + role); gửi lại OTP không có userId thì tra theo email. Chưa
+    // có tài khoản (OTP trước khi đăng ký) thì locale dùng ngôn ngữ client gửi, sai hoặc thiếu thì về vi.
+    private Optional<UserAccount> accountOf(String email, UUID userId) {
+        return userId != null
                 ? accountRepository.findById(userId)
                 : Optional.ofNullable(EmailAddress.parseOrNull(email)).flatMap(accountRepository::findByEmail);
-        return account.map(UserAccount::locale)
-                .orElseGet(() -> AppLocale.fromCodeOrDefault(requestedLocale)).code();
+    }
+
+    // Tài khoản admin dùng email không có thật: OTP gửi về hộp thư do vận hành đặt qua env, mã vẫn gắn
+    // với email tài khoản. EMAIL_CHANGE giữ nguyên vì OTP đó chứng minh quyền sở hữu email mới.
+    private String recipientFor(String email, OtpPurpose purpose, Optional<UserAccount> account) {
+        if (adminOtpEmail.isEmpty() || purpose == OtpPurpose.EMAIL_CHANGE || account.isEmpty()) {
+            return email;
+        }
+        boolean admin = roleRepository.findByUserId(account.get().id()).stream().anyMatch(UserRole::isAdmin);
+        return admin ? adminOtpEmail : email;
     }
 
     private static String maskEmail(String email) {

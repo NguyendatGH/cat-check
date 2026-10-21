@@ -1,6 +1,7 @@
 package com.catcheck.privacy.api;
 
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -61,8 +62,6 @@ public enum PrivacyErrorCode implements ErrorCode {
 
     PAGINATION_CURSOR_INVALID("pagination-cursor-invalid", HttpStatus.BAD_REQUEST);
 
-    private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
-
     private final String slug;
     private final HttpStatus status;
 
@@ -83,6 +82,6 @@ public enum PrivacyErrorCode implements ErrorCode {
 
     @Override
     public URI typeUri() {
-        return URI.create(PROBLEM_BASE + slug);
+        return ProblemTypes.of(slug);
     }
 }

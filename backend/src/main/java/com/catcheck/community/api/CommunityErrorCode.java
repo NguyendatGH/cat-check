@@ -1,6 +1,7 @@
 package com.catcheck.community.api;
 
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -38,5 +39,5 @@ public enum CommunityErrorCode implements ErrorCode {
     public HttpStatus status() { return status; }
 
     @Override
-    public URI typeUri() { return URI.create("https://catcheck.vn/problems/" + slug); }
+    public URI typeUri() { return ProblemTypes.of(slug); }
 }
