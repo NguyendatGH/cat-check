@@ -1,0 +1,31 @@
+import { chromium } from "playwright";
+const [url, outDir] = process.argv.slice(2);
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 1280, height: 820 } });
+const p = await ctx.newPage();
+await p.addInitScript(() => {
+  window.__perf = { longtasks: [], shifts: [], lcp: 0 };
+  new PerformanceObserver(l => l.getEntries().forEach(e => window.__perf.longtasks.push([Math.round(e.startTime), Math.round(e.duration)]))).observe({ type: "longtask", buffered: true });
+  new PerformanceObserver(l => l.getEntries().forEach(e => { if (!e.hadRecentInput) window.__perf.shifts.push([Math.round(e.startTime), +e.value.toFixed(4), e.sources?.map(s => s.node?.nodeName + "." + (s.node?.className?.toString?.().slice(0, 60) ?? "")).join(" | ")]); })).observe({ type: "layout-shift", buffered: true });
+  new PerformanceObserver(l => l.getEntries().forEach(e => { window.__perf.lcp = Math.round(e.startTime); window.__perf.lcpEl = e.element?.tagName + " " + (e.url || "").split("/").pop(); })).observe({ type: "largest-contentful-paint", buffered: true });
+});
+const reqs = [];
+p.on("requestfinished", async r => { const s = await r.sizes().catch(() => null); reqs.push([r.resourceType(), r.url().replace(/^https?:\/\/[^/]+/, ""), s ? s.responseBodySize : 0, Math.round(r.timing().responseEnd)]); });
+const cdp = await ctx.newCDPSession(p);
+let n = 0; const t0 = Date.now();
+cdp.on("Page.screencastFrame", async f => { const fs = await import("fs"); fs.writeFileSync(`${outDir}/f${String(n++).padStart(3, "0")}_${Date.now() - t0}ms.jpg`, Buffer.from(f.data, "base64")); await cdp.send("Page.screencastFrameAck", { sessionId: f.sessionId }); });
+await cdp.send("Page.startScreencast", { format: "jpeg", quality: 50, everyNthFrame: 1 });
+const start = Date.now();
+await p.goto(url, { waitUntil: "load" });
+const loadMs = Date.now() - start;
+await p.waitForTimeout(3000);
+await cdp.send("Page.stopScreencast");
+const perf = await p.evaluate(() => ({ ...window.__perf, nav: performance.getEntriesByType("navigation")[0]?.toJSON(), fcp: performance.getEntriesByName("first-contentful-paint")[0]?.startTime }));
+console.log("loadEvent(ms wall):", loadMs, " DOMContentLoaded:", Math.round(perf.nav.domContentLoadedEventEnd), " FCP:", Math.round(perf.fcp), " LCP:", perf.lcp, perf.lcpEl);
+console.log("longtasks [start,dur]:", JSON.stringify(perf.longtasks));
+console.log("layout shifts [t,value,src]:", JSON.stringify(perf.shifts));
+const byType = {}; for (const [t, , s] of reqs) { byType[t] ??= [0, 0]; byType[t][0]++; byType[t][1] += s; }
+console.log("requests:", reqs.length, JSON.stringify(byType));
+console.log("biggest:", JSON.stringify(reqs.sort((a, b) => b[2] - a[2]).slice(0, 8).map(r => [r[1].slice(0, 70), Math.round(r[2] / 1024) + "KB"])));
+console.log("frames:", n);
+await b.close();

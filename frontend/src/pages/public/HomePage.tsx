@@ -39,7 +39,7 @@ export function HomePage() {
       <div className="relative mx-auto flex w-full max-w-[390px] flex-col pt-2 lg:grid lg:max-w-[1200px] lg:grid-cols-[0.85fr_1.15fr] lg:gap-x-12 lg:gap-y-5 lg:rounded-[32px] lg:bg-surface lg:p-12 lg:pt-12 lg:shadow-[0px_25px_60px_-24px_rgba(47,79,178,0.35)]">
         <div
           data-scene="copy"
-          className="flex w-fit items-center gap-1.5 rounded-full bg-chip-bg px-3.5 py-1 shadow-xs lg:col-start-1 lg:row-start-1 lg:self-end"
+          className="flex w-fit items-center gap-1.5 rounded-full bg-chip-bg px-3.5 py-1 shadow-xs self-center lg:col-start-1 lg:row-start-1 lg:self-end lg:justify-self-start"
         >
           <img src={iconShield} alt="" className="h-[11.667px] w-[9.333px] shrink-0" />
           <p className="text-center text-[11px] font-semibold leading-[14px] tracking-[0.4px] text-primary-dark">
@@ -49,15 +49,16 @@ export function HomePage() {
 
         <div
           data-scene="copy"
-          className="flex flex-col items-center pt-3 lg:col-start-1 lg:row-start-2 lg:items-start lg:pt-0"
+          className="flex flex-col items-center pt-3 lg:col-start-1 lg:row-start-2 lg:pt-0"
         >
           {/* The lockup already carries the slogan, so it is sized to keep that line legible. */}
           <img
             src={welcomeLogo}
             alt={`${t("app.name")}: ${t("welcome.slogan")}`}
-            className="h-auto w-[260px] lg:w-[300px]"
+            className="h-auto w-[200px] lg:w-[240px]"
           />
-          <p className="pt-2 text-[11px] font-semibold italic leading-[14px] text-text-secondary">
+          {/* Ảnh lockup có khoảng trống trong suốt ~24% chiều cao ở đáy; margin âm kéo slogan sát chữ logo. */}
+          <p className="-mt-6 text-[11px] font-semibold italic leading-[14px] text-text-secondary lg:-mt-7">
             {t("welcome.sloganVi")}
           </p>
         </div>
@@ -147,12 +148,6 @@ export function HomePage() {
           >
             {t("welcome.ctaSecondary")}
           </button>
-          <Link
-            to="/shop"
-            className="flex h-[44px] w-full items-center justify-center rounded-2xl border border-primary/20 bg-chip-bg text-[15px] font-bold leading-6 text-primary-dark transition-colors hover:bg-info"
-          >
-            {t("welcome.ctaShop")}
-          </Link>
         </div>
 
         <div className="flex flex-col items-center gap-2 pt-4 lg:col-start-1 lg:row-start-6 lg:items-start lg:pt-0">

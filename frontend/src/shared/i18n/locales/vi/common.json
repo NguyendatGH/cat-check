@@ -30,7 +30,7 @@
       "body": "Đăng nhập để theo dõi hồ sơ sức khoẻ thật của bé mèo và lưu lại lịch sử quét.",
       "login": "Đăng nhập",
       "register": "Tạo tài khoản",
-      "shop": "Mua cát cho bé"
+      "shop": "Mua cát vệ sinh"
     },
     "guestName": "bạn",
     "heroBadge": "Chỉ thị màu pH",
@@ -129,7 +129,7 @@
     },
     "ctaPrimary": "Bắt đầu ngay",
     "ctaSecondary": "Đăng nhập",
-    "ctaShop": "Mua cát cho bé",
+    "ctaShop": "Mua cát vệ sinh",
     "legalPrefix": "Bằng việc tiếp tục, bạn đồng ý với",
     "legalTerms": "Điều khoản",
     "legalAnd": "&",
