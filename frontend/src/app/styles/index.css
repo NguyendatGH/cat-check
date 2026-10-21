@@ -715,15 +715,23 @@ body {
   --ph-hue-11: #7a3fa8;
 }
 
-/* Mobile header shortcut row: collapses on scroll down (MobileAppHeader). */
-.header-shortcuts {
-  display: grid;
-  grid-template-rows: 1fr;
-  transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+/* Mobile header shortcut row: hides on scroll down (MobileAppHeader). The header is clipped, never
+   resized: a height change makes scroll anchoring move scrollY by the row height, which the scroll
+   handler reads as a scroll the other way, so the row toggled nonstop. */
+.mobile-header {
+  clip-path: inset(0 0 -1rem 0); /* negative bottom keeps the header shadow */
+  transition: clip-path 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.header-shortcuts[data-collapsed="true"] {
-  grid-template-rows: 0fr;
+.mobile-header[data-collapsed="true"] {
+  clip-path: inset(0 0 calc(100% - 4rem) 0); /* only the h-16 top bar stays */
+}
+
+.header-shortcuts {
+  transition: opacity 180ms ease;
+}
+
+.mobile-header[data-collapsed="true"] .header-shortcuts {
   opacity: 0;
   pointer-events: none;
 }
@@ -810,6 +818,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mobile-header,
   .header-shortcuts,
   .btm-tab-indicator,
   .btm-scan-btn {
