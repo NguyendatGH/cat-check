@@ -32,7 +32,9 @@ services:
       context: ./backend
     profiles: ["full"]
     ports: ["8080:8080", "9090:9090"]
-    volumes: ["catcheck_storage_dev:/var/lib/catcheck/storage"]
+    volumes:
+      - catcheck_storage_dev:/var/lib/catcheck/storage
+      - ./backend/data/models/multilingual-e5-small:/app/models/multilingual-e5-small:ro
     env_file:
       - path: .env
         required: false
@@ -43,6 +45,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: catcheck_local_only
       SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: 1025
+      CATCHECK_AI_EMBEDDING_MODEL_DIR: /app/models/multilingual-e5-small
+      CATCHECK_AI_MIN_VECTOR_SIMILARITY: "0.78"
       ACTIVATION_PEPPER: ${ACTIVATION_PEPPER:-local-only-activation-pepper-32-bytes-minimum}
       RECOVERY_CODE_PEPPER: ${RECOVERY_CODE_PEPPER:-local-only-recovery-pepper-32-bytes-minimum}
       OTP_PEPPER: ${OTP_PEPPER:-local-only-otp-pepper-value-32-bytes-minimum}

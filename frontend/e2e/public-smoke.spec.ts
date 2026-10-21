@@ -6,7 +6,7 @@ test("visitor can open the app and reach login", async ({ page }) => {
   );
 
   await page.goto("/");
-  await expect(page).toHaveTitle(/CatCheck/);
+  await expect(page).toHaveTitle(/CATCHECK/);
 
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page).toHaveURL(/\/auth\/login$/);

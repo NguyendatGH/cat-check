@@ -9,7 +9,7 @@
     "loading": "Loading…"
   },
   "app": {
-    "name": "CatCheck",
+    "name": "CATCHECK",
     "wordmark": "CATCHECK"
   },
   "comingSoon": {
@@ -118,7 +118,7 @@
   },
   "welcome": {
     "disclaimer": "Supports health monitoring • Does not replace a veterinary diagnosis",
-    "slogan": "check with care, always there",
+    "slogan": "CHECK WITH CARE, ALWAYS THERE",
     "sloganVi": "Check to understand, care to love",
     "slideTitle": "Smart care starts with daily observation",
     "slideBody": "Track changes in litter granule color and keep a record of your cat's urinary health over time.",

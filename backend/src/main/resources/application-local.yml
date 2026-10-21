@@ -30,6 +30,9 @@ catcheck:
       url-signing-key: catcheck_local_dev_url_signing_key_only
   notification:
     email-sink: smtp
+  ai:
+    embedding-model-dir: ${CATCHECK_AI_EMBEDDING_MODEL_DIR:data/models/multilingual-e5-small}
+    min-vector-similarity: ${CATCHECK_AI_MIN_VECTOR_SIMILARITY:0.78}
 
 logging:
   level:

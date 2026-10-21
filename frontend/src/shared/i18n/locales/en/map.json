@@ -32,7 +32,10 @@
   },
   "filters": {
     "label": "Filter by place type",
-    "all": "All"
+    "all": "All",
+    "topRated": "⭐ 4.5★+ ({{count}})",
+    "duyXuyen": "Duy Xuyen / Q.Nam",
+    "daNang": "Da Nang"
   },
   "kind": {
     "clinic": "Clinic",

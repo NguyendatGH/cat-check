@@ -181,6 +181,17 @@
     "totalLabel": "Total",
     "emptyTitle": "Nothing to check out",
     "emptyBody": "Your cart is empty. Add products from the shop, then come back to this step.",
+    "promoLabel": "Promo Code / Voucher",
+    "promoPlaceholder": "Enter voucher code (e.g. CATCHECK10)",
+    "applyPromo": "Apply",
+    "promoApplied": "Applied code {{code}}",
+    "promoDiscount": "Voucher discount ({{code}})",
+    "promoInvalid": "Invalid or expired promo code.",
+    "promoHint": "Suggested codes:",
+    "useCurrentLocation": "Use current location",
+    "locatingAddress": "Getting location…",
+    "locationError": "Could not get current location. Please grant permission or type manually.",
+    "saveInfoLabel": "Save shipping info for future purchases",
     "errors": {
       "nameRequired": "Enter the recipient's name.",
       "nameTooLong": "Recipient name can be at most 120 characters.",
@@ -213,6 +224,7 @@
     "methodLabel": "Method",
     "statusLabel": "Status",
     "status": {
+      "CONFIRMED": "Order Confirmed",
       "PENDING_PAYMENT": "Awaiting payment",
       "PAID": "Paid",
       "PACKING": "Preparing order",
@@ -221,6 +233,8 @@
       "CANCELLED": "Cancelled",
       "UNKNOWN": "Unknown status"
     },
+    "codConfirmedTitle": "COD order confirmed",
+    "codConfirmedBody": "You will pay in cash upon delivery. CatCheck is preparing your package.",
     "paymentUnknown": "Other method",
     "paymentNote": {
       "COD": "Pay the courier when you receive the package.",

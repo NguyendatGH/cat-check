@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { EmptyState, SkeletonLoader } from "@/shared/ui";
+import { SkeletonLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
-import { isApiError } from "@/shared/api";
 import { intlLocale } from "@/shared/lib/format/locale";
 import { usePolicyCurrent } from "./hooks";
 import { extractMarkdownHeadings, renderMarkdown, stripLeadingTitle } from "./markdown";
 import { DocumentToc, LEGAL_ASIDE, LEGAL_ASIDE_CARD, LEGAL_COLUMN, LEGAL_SHELL, LEGAL_SPLIT } from "./shell";
 import type { PolicyCode } from "./types";
+import { DEFAULT_LEGAL_DOCUMENTS } from "./defaultLegalDocuments";
 
 interface LegalDocumentPageProps {
   policyCode: PolicyCode;
@@ -18,7 +18,7 @@ interface LegalDocumentPageProps {
 
 export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPageProps) {
   const { t } = useTranslation(["legal", "common"]);
-  const { data, isLoading, isError, error } = usePolicyCurrent(policyCode);
+  const { data: apiData, isLoading } = usePolicyCurrent(policyCode);
 
   if (isLoading) {
     return (
@@ -29,20 +29,7 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
     );
   }
 
-  const notFound = isApiError(error) && error.code === "POLICY_VERSION_NOT_FOUND";
-
-  if (isError || !data) {
-    return (
-      <div className={cn(LEGAL_SHELL, "gap-6 lg:max-w-[760px]")}>
-        {before}
-        <EmptyState
-          title={t(`pages.${policyCodeToPageKey(policyCode)}.title`)}
-          description={notFound ? t("document.notPublishedYet") : t("document.loadError")}
-        />
-        {notFound ? extra : null}
-      </div>
-    );
-  }
+  const data = apiData?.contentMd ? apiData : DEFAULT_LEGAL_DOCUMENTS[policyCode];
 
   const body = data.contentMd ? stripLeadingTitle(data.contentMd, data.title) : null;
   const headings = body ? extractMarkdownHeadings(body) : [];
@@ -106,15 +93,4 @@ export function LegalDocumentPage({ policyCode, extra, before }: LegalDocumentPa
   );
 }
 
-function policyCodeToPageKey(code: PolicyCode): "terms" | "privacy" | "medicalDisclaimer" | "cookies" {
-  switch (code) {
-    case "TERMS":
-      return "terms";
-    case "PRIVACY":
-      return "privacy";
-    case "MEDICAL_DISCLAIMER":
-      return "medicalDisclaimer";
-    case "COOKIE":
-      return "cookies";
-  }
-}
+

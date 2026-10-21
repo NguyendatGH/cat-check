@@ -30,12 +30,13 @@ const MOBILE_NAV_ITEMS = [
 const ICON_BTN =
   "relative flex size-11 shrink-0 items-center justify-center rounded-full text-text-primary transition-colors duration-200 hover:bg-background-alt active:bg-primary/10";
 
-// Room the page must keep scrolling after the row collapses, so collapsing never makes it fit the viewport.
+// Pages that scroll less than this keep the row; hiding it would gain almost nothing.
 const COLLAPSE_MIN_SCROLL = 160;
 
 // Collapse the shortcut row once the user scrolls down; bring it back on scroll up.
-// Collapsing shortens the page; near the bottom the browser then clamps scrollY upward. That
-// clamp is not a user scroll-up, so it is ignored — otherwise the header flickers open/closed.
+// The header is clipped, not resized (see .mobile-header), so toggling never moves scrollY itself.
+// Upward moves while pinned at the bottom (overscroll bounce, content shrinking) are not a user
+// scroll-up, so they are ignored — otherwise the header flickers open/closed.
 export function useHeaderCollapsed() {
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
@@ -83,7 +84,10 @@ export function MobileAppHeader() {
   ];
 
   return (
-    <header className="header-glass sticky top-0 z-[var(--z-sticky-header)] w-full lg:hidden">
+    <header
+      className="header-glass mobile-header sticky top-0 z-[var(--z-sticky-header)] w-full lg:hidden"
+      data-collapsed={collapsed}
+    >
       <div className="flex h-16 items-center justify-between gap-2 pl-4 pr-2">
         <Link to={homePath} className="inline-flex min-w-0 items-center" aria-label={t("app.name")}>
           <ShineLogo src={appLogo} alt={t("app.name")} align="left" className="h-11 w-[120px] object-contain object-left" />
@@ -119,32 +123,30 @@ export function MobileAppHeader() {
           </button>
         </div>
       </div>
-      <div className="header-shortcuts" data-collapsed={collapsed}>
-        <nav aria-label={t("nav.quickLabel")} className="min-h-0 overflow-hidden">
-          <ul className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2.5">
-            {shortcuts.map((item) => (
-              <li key={item.key} className="shrink-0">
-                <NavLink
-                  to={item.to}
-                  data-tour={`shortcut-${item.key}`}
-                  tabIndex={collapsed ? -1 : undefined}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors duration-200",
-                      isActive
-                        ? "border-primary-dark bg-primary-dark text-white"
-                        : "border-border bg-surface text-text-primary hover:border-primary/40 active:bg-primary/10",
-                    )
-                  }
-                >
-                  <item.icon size={17} aria-hidden="true" />
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
+      <nav aria-label={t("nav.quickLabel")} className="header-shortcuts">
+        <ul className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2.5">
+          {shortcuts.map((item) => (
+            <li key={item.key} className="shrink-0">
+              <NavLink
+                to={item.to}
+                data-tour={`shortcut-${item.key}`}
+                tabIndex={collapsed ? -1 : undefined}
+                className={({ isActive }) =>
+                  cn(
+                    "flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors duration-200",
+                    isActive
+                      ? "border-primary-dark bg-primary-dark text-white"
+                      : "border-border bg-surface text-text-primary hover:border-primary/40 active:bg-primary/10",
+                  )
+                }
+              >
+                <item.icon size={17} aria-hidden="true" />
+                {item.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </header>
   );
 }

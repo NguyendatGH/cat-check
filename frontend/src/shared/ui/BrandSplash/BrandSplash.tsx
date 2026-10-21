@@ -18,7 +18,7 @@ import letterKSrc from "@/shared/assets/images/splash/l-k.png";
 
 gsap.registerPlugin(useGSAP);
 
-// Layers cut from the brand logo (web-auth/logo.png); boxes are px inside its 459x300 trimmed frame.
+// Layers cut from the earlier brand logo (612x408 web-auth/logo.png); boxes are px inside its 459x300 trimmed frame.
 const FRAME = { w: 459, h: 300 };
 
 interface Layer {
