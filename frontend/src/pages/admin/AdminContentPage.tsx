@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
 import { Button, Input } from "@/shared/ui";
@@ -183,6 +183,15 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
 
   const sessionUserId = useSessionStore((state) => state.user?.id);
 
+  // Editor nằm dưới danh sách: cuộn tới khi mở, không thì bấm "Mở" trông như không có gì xảy ra.
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el !== null && "scrollIntoView" in el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [tip.id]);
+
   const editable = (tip.status === "DRAFT" || tip.status === "IN_REVIEW") && canWrite;
   const sourceMissing = claimType !== "NONE" && sourceReference.trim().length === 0;
   // Backend chặn tự duyệt bài của chính mình (CONTENT_SELF_APPROVAL_FORBIDDEN).
@@ -212,175 +221,177 @@ function CareTipEditor({ tip, onClose }: { tip: CareTipDetail; onClose: () => vo
   };
 
   return (
-    <AdminSection
-      title={t("content.editorTitle", { title: tip.title })}
-      description={t("content.editorSubtitle", { slug: tip.slug, locale: tip.locale })}
-      actions={
-        <Button type="button" variant="tertiary" size="sm" leftIcon={<X size={15} />} onClick={onClose}>
-          {t("actions.close")}
-        </Button>
-      }
-    >
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          // Nội dung có claim phải kèm nguồn; không gửi bản nháp thiếu nguồn.
-          if (sourceMissing) return;
-          update.mutate(savePayload());
-        }}
+    <div ref={ref} className="scroll-mt-4">
+      <AdminSection
+        title={t("content.editorTitle", { title: tip.title })}
+        description={t("content.editorSubtitle", { slug: tip.slug, locale: tip.locale })}
+        actions={
+          <Button type="button" variant="tertiary" size="sm" leftIcon={<X size={15} />} onClick={onClose}>
+            {t("actions.close")}
+          </Button>
+        }
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            // Nội dung có claim phải kèm nguồn; không gửi bản nháp thiếu nguồn.
+            if (sourceMissing) return;
+            update.mutate(savePayload());
+          }}
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              label={t("content.fieldTitle")}
+              value={title}
+              disabled={!editable}
+              onChange={(event) => {
+                setTitle(event.target.value);
+              }}
+            />
+            <AdminSelect
+              label={t("content.fieldClaimType")}
+              value={claimType}
+              disabled={!editable}
+              onChange={(event) => {
+                setClaimType(event.target.value as ClaimType);
+              }}
+            >
+              {CLAIM_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {t(`content.claim.${value}`)}
+                </option>
+              ))}
+            </AdminSelect>
+          </div>
+
           <Input
-            label={t("content.fieldTitle")}
-            value={title}
+            label={t("content.fieldSummary")}
+            value={summary}
             disabled={!editable}
             onChange={(event) => {
-              setTitle(event.target.value);
+              setSummary(event.target.value);
             }}
           />
-          <AdminSelect
-            label={t("content.fieldClaimType")}
-            value={claimType}
+
+          <Input
+            label={t("content.fieldSource")}
+            helperText={t("content.fieldSourceHelp")}
+            error={sourceMissing ? t("content.sourceRequired") : undefined}
+            value={sourceReference}
             disabled={!editable}
             onChange={(event) => {
-              setClaimType(event.target.value as ClaimType);
+              setSourceReference(event.target.value);
             }}
-          >
-            {CLAIM_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {t(`content.claim.${value}`)}
-              </option>
-            ))}
-          </AdminSelect>
-        </div>
+          />
 
-        <Input
-          label={t("content.fieldSummary")}
-          value={summary}
-          disabled={!editable}
-          onChange={(event) => {
-            setSummary(event.target.value);
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor={`body-${tip.id}`} className="text-caption font-semibold text-text-secondary">
+              {t("content.fieldBody")}
+            </label>
+            <textarea
+              id={`body-${tip.id}`}
+              rows={8}
+              value={bodyMd}
+              disabled={!editable}
+              onChange={(event) => {
+                setBodyMd(event.target.value);
+              }}
+              className="w-full resize-y rounded-xl bg-surface px-4 py-3 font-mono text-caption text-text-primary shadow-xs focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
+          <ApiErrorNote error={update.error} />
+          <SavedNote visible={update.isSuccess} />
+
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" size="md" disabled={!editable || sourceMissing} loading={update.isPending}>
+              {t("content.saveDraft")}
+            </Button>
+            {canWrite && tip.status === "DRAFT" ? (
+              <Button
+                type="button"
+                variant="tertiary"
+                size="md"
+                loading={submitReview.isPending}
+                disabled={update.isPending}
+                onClick={() => {
+                  void handleSubmitReview();
+                }}
+              >
+                {t("content.submitReview")}
+              </Button>
+            ) : null}
+            {canPublish && tip.status === "PUBLISHED" ? (
+              <Button
+                type="button"
+                variant="tertiary"
+                size="md"
+                loading={archive.isPending}
+                onClick={() => {
+                  archive.reset();
+                  setConfirmArchive(true);
+                }}
+              >
+                {t("content.archive")}
+              </Button>
+            ) : null}
+          </div>
+          <ApiErrorNote error={submitReview.error ?? (confirmArchive ? null : archive.error)} />
+        </form>
+        <ReasonConfirmDialog
+          open={confirmArchive}
+          onOpenChange={setConfirmArchive}
+          title={t("content.archive")}
+          target={tip.title}
+          consequence={t("content.archiveConsequence")}
+          confirmLabel={t("content.archive")}
+          requireReason={false}
+          destructive
+          pending={archive.isPending}
+          error={archive.error}
+          onConfirm={() => {
+            archive.mutate(tip.id, {
+              onSuccess: () => {
+                setConfirmArchive(false);
+              },
+            });
           }}
         />
 
-        <Input
-          label={t("content.fieldSource")}
-          helperText={t("content.fieldSourceHelp")}
-          error={sourceMissing ? t("content.sourceRequired") : undefined}
-          value={sourceReference}
-          disabled={!editable}
-          onChange={(event) => {
-            setSourceReference(event.target.value);
-          }}
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`body-${tip.id}`} className="text-caption font-semibold text-text-secondary">
-            {t("content.fieldBody")}
-          </label>
-          <textarea
-            id={`body-${tip.id}`}
-            rows={8}
-            value={bodyMd}
-            disabled={!editable}
-            onChange={(event) => {
-              setBodyMd(event.target.value);
-            }}
-            className="w-full resize-y rounded-xl bg-surface px-4 py-3 font-mono text-caption text-text-primary shadow-xs focus-visible:outline focus-visible:outline-[var(--focus-ring-width)] focus-visible:outline-offset-[var(--focus-ring-offset)] focus-visible:outline-[var(--focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-50"
-          />
-        </div>
-
-        <ApiErrorNote error={update.error} />
-        <SavedNote visible={update.isSuccess} />
-
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="md" disabled={!editable || sourceMissing} loading={update.isPending}>
-            {t("content.saveDraft")}
-          </Button>
-          {canWrite && tip.status === "DRAFT" ? (
+        {canPublish && tip.status === "IN_REVIEW" && !isOwnTip ? (
+          <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
+            <p className="text-body font-semibold text-text-primary">{t("content.publishTitle")}</p>
+            <p className="text-caption text-text-secondary">{t("content.publishBody")}</p>
+            <ReasonField value={reason} onChange={setReason} showError={reasonTouched} />
+            <ApiErrorNote error={publish.error} />
             <Button
               type="button"
-              variant="tertiary"
               size="md"
-              loading={submitReview.isPending}
-              disabled={update.isPending}
+              className="self-start"
+              loading={publish.isPending}
               onClick={() => {
-                void handleSubmitReview();
-              }}
-            >
-              {t("content.submitReview")}
-            </Button>
-          ) : null}
-          {canPublish && tip.status === "PUBLISHED" ? (
-            <Button
-              type="button"
-              variant="tertiary"
-              size="md"
-              loading={archive.isPending}
-              onClick={() => {
-                archive.reset();
-                setConfirmArchive(true);
-              }}
-            >
-              {t("content.archive")}
-            </Button>
-          ) : null}
-        </div>
-        <ApiErrorNote error={submitReview.error ?? (confirmArchive ? null : archive.error)} />
-      </form>
-      <ReasonConfirmDialog
-        open={confirmArchive}
-        onOpenChange={setConfirmArchive}
-        title={t("content.archive")}
-        target={tip.title}
-        consequence={t("content.archiveConsequence")}
-        confirmLabel={t("content.archive")}
-        requireReason={false}
-        destructive
-        pending={archive.isPending}
-        error={archive.error}
-        onConfirm={() => {
-          archive.mutate(tip.id, {
-            onSuccess: () => {
-              setConfirmArchive(false);
-            },
-          });
-        }}
-      />
-
-      {canPublish && tip.status === "IN_REVIEW" && !isOwnTip ? (
-        <div className="flex flex-col gap-3 rounded-xl bg-background-alt/70 p-4">
-          <p className="text-body font-semibold text-text-primary">{t("content.publishTitle")}</p>
-          <p className="text-caption text-text-secondary">{t("content.publishBody")}</p>
-          <ReasonField value={reason} onChange={setReason} showError={reasonTouched} />
-          <ApiErrorNote error={publish.error} />
-          <Button
-            type="button"
-            size="md"
-            className="self-start"
-            loading={publish.isPending}
-            onClick={() => {
-              setReasonTouched(true);
-              if (!isReasonValid(reason)) {
-                return;
-              }
-              publish.mutate(
-                { tipId: tip.id, reason: reason.trim() },
-                {
-                  onSuccess: () => {
-                    setReason("");
-                    setReasonTouched(false);
+                setReasonTouched(true);
+                if (!isReasonValid(reason)) {
+                  return;
+                }
+                publish.mutate(
+                  { tipId: tip.id, reason: reason.trim() },
+                  {
+                    onSuccess: () => {
+                      setReason("");
+                      setReasonTouched(false);
+                    },
                   },
-                },
-              );
-            }}
-          >
-            {t("content.publishCta")}
-          </Button>
-        </div>
-      ) : null}
-    </AdminSection>
+                );
+              }}
+            >
+              {t("content.publishCta")}
+            </Button>
+          </div>
+        ) : null}
+      </AdminSection>
+    </div>
   );
 }
 

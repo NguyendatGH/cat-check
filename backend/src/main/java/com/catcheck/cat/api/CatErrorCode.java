@@ -1,6 +1,7 @@
 package com.catcheck.cat.api;
 
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -55,8 +56,6 @@ public enum CatErrorCode implements ErrorCode {
 
     FEATURE_NOT_IN_PLAN("common/feature-not-in-plan", HttpStatus.FORBIDDEN);
 
-    private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
-
     private final String slug;
     private final HttpStatus status;
 
@@ -77,6 +76,6 @@ public enum CatErrorCode implements ErrorCode {
 
     @Override
     public URI typeUri() {
-        return URI.create(PROBLEM_BASE + slug);
+        return ProblemTypes.of(slug);
     }
 }

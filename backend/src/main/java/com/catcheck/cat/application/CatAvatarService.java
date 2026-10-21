@@ -13,6 +13,8 @@ import com.catcheck.media.api.StorageKey;
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.NotFoundException;
 import com.catcheck.shared.error.PermissionDeniedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ import java.util.UUID;
 
 @Service
 public class CatAvatarService {
+
+    private static final Logger log = LoggerFactory.getLogger(CatAvatarService.class);
 
     public static final long MAX_AVATAR_BYTES = 5L * 1024 * 1024;
 
@@ -118,7 +122,15 @@ public class CatAvatarService {
 
     @Transactional(readOnly = true)
     public Optional<java.net.URI> currentAvatarUrl(Cat cat) {
-        return cat.avatarKeyValue().map(key -> imageStorage.presignedUrl(new StorageKey(key), AVATAR_URL_TTL));
+        return cat.avatarKeyValue().flatMap(key -> {
+            try {
+                return Optional.of(imageStorage.presignedUrl(new StorageKey(key), AVATAR_URL_TTL));
+            } catch (Exception ex) {
+                log.warn("Không thể tạo URL avatar cho mèo {} (key={}): {}",
+                        cat.getId(), key, ex.getMessage());
+                return Optional.empty();
+            }
+        });
     }
 
     private Cat requireOwnedCat(UUID ownerId, UUID catId) {

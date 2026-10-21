@@ -50,7 +50,8 @@ class AdminMfaGateFilterTest {
                 new MessageResolver(messages),
                 new FixedLocaleResolver(Locale.ENGLISH),
                 JsonMapper.builder().build(),
-                Clock.fixed(Instant.parse("2026-10-03T08:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-10-03T08:00:00Z"), ZoneOffset.UTC),
+                true);
     }
 
     @AfterEach
@@ -115,6 +116,20 @@ class AdminMfaGateFilterTest {
 
         RecordingChain chain = new RecordingChain();
         filter.doFilter(request("/api/v1/credits/balance"), new MockHttpServletResponse(), chain);
+
+        assertThat(chain.called).isTrue();
+    }
+
+    @Test
+    @DisplayName("Tạm tắt TOTP cho admin (admin-mfa-enabled=false) ⇒ phiên NONE vẫn đi tiếp")
+    void passesAdminPathsWhenAdminMfaIsDisabled() throws Exception {
+        AdminMfaGateFilter disabled = new AdminMfaGateFilter(totpRepository, new MessageResolver(new StaticMessageSource()),
+                new FixedLocaleResolver(Locale.ENGLISH), JsonMapper.builder().build(),
+                Clock.fixed(Instant.parse("2026-10-03T08:00:00Z"), ZoneOffset.UTC), false);
+        authenticate(MfaLevel.NONE);
+
+        RecordingChain chain = new RecordingChain();
+        disabled.doFilter(request("/api/v1/admin/users"), new MockHttpServletResponse(), chain);
 
         assertThat(chain.called).isTrue();
     }

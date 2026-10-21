@@ -12,6 +12,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.core.Authentication;
@@ -35,23 +36,27 @@ public class AdminMfaGateFilter extends OncePerRequestFilter implements AdminAcc
     private final LocaleResolver localeResolver;
     private final JsonMapper jsonMapper;
     private final Clock clock;
+    private final boolean adminMfaEnabled;
 
     public AdminMfaGateFilter(MfaTotpRepository totpRepository,
                               MessageResolver messageResolver,
                               LocaleResolver localeResolver,
                               JsonMapper jsonMapper,
-                              Clock clock) {
+                              Clock clock,
+                              @Value("${catcheck.auth.admin-mfa-enabled:true}") boolean adminMfaEnabled) {
         this.totpRepository = totpRepository;
         this.messageResolver = messageResolver;
         this.localeResolver = localeResolver;
         this.jsonMapper = jsonMapper;
         this.clock = clock;
+        this.adminMfaEnabled = adminMfaEnabled;
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        // Tạm tắt TOTP cho admin: quyền vào /api/v1/admin vẫn do hasAnyRole trong SecurityConfig kiểm.
         String path = request.getRequestURI();
-        return path == null || !path.startsWith(ADMIN_PREFIX);
+        return !adminMfaEnabled || path == null || !path.startsWith(ADMIN_PREFIX);
     }
 
     @Override

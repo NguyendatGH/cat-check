@@ -2,6 +2,7 @@ package com.catcheck.admin.api;
 
 import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -46,7 +47,7 @@ public final class AdminIdempotency {
 
         @Override
         public URI typeUri() {
-            return URI.create("https://catcheck.vn/problems/" + slug);
+            return ProblemTypes.of(slug);
         }
     }
 }

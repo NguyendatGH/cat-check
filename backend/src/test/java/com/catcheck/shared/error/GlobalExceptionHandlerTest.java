@@ -184,7 +184,7 @@ class GlobalExceptionHandlerTest {
 
         @Override
         public URI typeUri() {
-            return URI.create("https://catcheck.vn/problems/too-fast");
+            return ProblemTypes.of("too-fast");
         }
     }
 }

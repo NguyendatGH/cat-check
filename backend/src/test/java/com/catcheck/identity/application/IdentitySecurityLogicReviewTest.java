@@ -17,6 +17,7 @@ import com.catcheck.identity.domain.RateLimitRule;
 import com.catcheck.identity.domain.TotpStatus;
 import com.catcheck.identity.domain.UserAccount;
 import com.catcheck.identity.domain.UserIdentity;
+import com.catcheck.identity.domain.UserRole;
 import com.catcheck.identity.domain.UserStatus;
 import com.catcheck.identity.domain.port.AuthenticatedSessionGateway;
 import com.catcheck.identity.domain.port.AuthenticatedSessionRevoker;
@@ -130,12 +131,39 @@ class IdentitySecurityLogicReviewTest {
         when(hasher.currentPepperVersion()).thenReturn(1);
         when(hasher.hash(any(Integer.class), any(), any(), any())).thenReturn("hash");
 
-        OtpService service = new OtpService(mock(EmailOtpRepository.class), mock(UserAccountRepository.class), hasher,
-                new OtpCodeGenerator(), policy(), limiter, mock(NotificationGateway.class), audit(), CLOCK, false);
+        OtpService service = new OtpService(mock(EmailOtpRepository.class), mock(UserAccountRepository.class),
+                mock(UserRoleRepository.class), hasher, new OtpCodeGenerator(), policy(), limiter,
+                mock(NotificationGateway.class), audit(), CLOCK, false, "");
 
         service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
 
         verify(limiter).rejectIfLimited(RateLimitRule.OTP_REQUEST_BY_IP, CONTEXT.ipAddress());
+    }
+
+    @Test
+    void adminOtpGoesToTheConfiguredInboxExceptEmailChange() {
+        OtpCodeHasher hasher = mock(OtpCodeHasher.class);
+        when(hasher.currentPepperVersion()).thenReturn(1);
+        when(hasher.hash(any(Integer.class), any(), any(), any())).thenReturn("hash");
+        UserAccountRepository accounts = mock(UserAccountRepository.class);
+        when(accounts.findById(USER_A)).thenReturn(Optional.of(account(USER_A, UserStatus.ACTIVE)));
+        when(accounts.findById(USER_B)).thenReturn(Optional.of(account(USER_B, UserStatus.ACTIVE)));
+        UserRoleRepository roles = mock(UserRoleRepository.class);
+        when(roles.findByUserId(USER_A)).thenReturn(List.of(UserRole.USER, UserRole.ADMIN_SUPER));
+        when(roles.findByUserId(USER_B)).thenReturn(List.of(UserRole.USER));
+        NotificationGateway gateway = mock(NotificationGateway.class);
+        OtpService service = new OtpService(mock(EmailOtpRepository.class), accounts, roles, hasher,
+                new OtpCodeGenerator(), policy(), allowingLimiter(), gateway, audit(), CLOCK, false,
+                " Ops@Example.com ");
+
+        service.requestOtp("person@example.com", OtpPurpose.PASSWORD_RESET, USER_A, null, CONTEXT);
+        service.requestOtp("person@example.com", OtpPurpose.PASSWORD_RESET, USER_B, null, CONTEXT);
+        service.requestOtp("new@example.com", OtpPurpose.EMAIL_CHANGE, USER_A, null, CONTEXT);
+
+        ArgumentCaptor<TransactionalEmailRequest> sent = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
+        verify(gateway, times(3)).enqueueTransactionalEmail(sent.capture());
+        assertThat(sent.getAllValues()).extracting(TransactionalEmailRequest::toAddress)
+                .containsExactly("ops@example.com", "person@example.com", "new@example.com");
     }
 
     @Test
@@ -148,8 +176,8 @@ class IdentitySecurityLogicReviewTest {
         when(accounts.findByEmail(EmailAddress.of("person@example.com")))
                 .thenReturn(Optional.of(account(USER_A, UserStatus.PENDING_VERIFICATION, AppLocale.EN)));
         NotificationGateway gateway = mock(NotificationGateway.class);
-        OtpService service = new OtpService(mock(EmailOtpRepository.class), accounts, hasher,
-                new OtpCodeGenerator(), policy(), allowingLimiter(), gateway, audit(), CLOCK, false);
+        OtpService service = new OtpService(mock(EmailOtpRepository.class), accounts, mock(UserRoleRepository.class),
+                hasher, new OtpCodeGenerator(), policy(), allowingLimiter(), gateway, audit(), CLOCK, false, "");
 
         service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, USER_A, null, CONTEXT);
         service.requestOtp("person@example.com", OtpPurpose.REGISTER_VERIFY, null, null, CONTEXT);
@@ -176,8 +204,9 @@ class IdentitySecurityLogicReviewTest {
                 .thenReturn(Optional.of(challenge));
         when(challenges.incrementAttempt(challenge.id())).thenReturn(1);
 
-        OtpService service = new OtpService(challenges, mock(UserAccountRepository.class), hasher, new OtpCodeGenerator(),
-                policy(), allowingLimiter(), mock(NotificationGateway.class), audit(), CLOCK, false);
+        OtpService service = new OtpService(challenges, mock(UserAccountRepository.class), mock(UserRoleRepository.class),
+                hasher, new OtpCodeGenerator(), policy(), allowingLimiter(), mock(NotificationGateway.class), audit(),
+                CLOCK, false, "");
 
         assertThatThrownBy(() -> service.verifyOtp("person@example.com", OtpPurpose.REGISTER_VERIFY,
                 "123456", CONTEXT)).isInstanceOf(BusinessRuleException.class);
@@ -267,7 +296,7 @@ class IdentitySecurityLogicReviewTest {
 
         MfaService service = new MfaService(totps, mock(MfaRecoveryCodeRepository.class),
                 mock(UserRoleRepository.class), mock(com.catcheck.identity.api.PiiCipher.class),
-                mock(RecoveryCodeHasher.class), allowingLimiter(), audit(), CLOCK, false);
+                mock(RecoveryCodeHasher.class), allowingLimiter(), audit(), CLOCK, false, true);
 
         assertThatThrownBy(() -> service.confirm(USER_A, "123456", CONTEXT))
                 .isInstanceOf(RateLimitedException.class)
@@ -402,12 +431,29 @@ class IdentitySecurityLogicReviewTest {
                 null, NOW.minusSeconds(3600), 1, null, null, NOW, NOW);
     }
 
+    @Test
+    void loginSkipsTotpForAdminAndSellerOnlyWhileAdminMfaIsDisabled() {
+        MfaTotpRepository totps = mock(MfaTotpRepository.class);
+        when(totps.findByUserId(USER_A)).thenReturn(Optional.of(activeTotp()));
+        MfaService disabled = new MfaService(totps, mock(MfaRecoveryCodeRepository.class),
+                mock(UserRoleRepository.class), mock(com.catcheck.identity.api.PiiCipher.class),
+                mock(RecoveryCodeHasher.class), allowingLimiter(), audit(), CLOCK, false, false);
+        MfaService enabled = new MfaService(totps, mock(MfaRecoveryCodeRepository.class),
+                mock(UserRoleRepository.class), mock(com.catcheck.identity.api.PiiCipher.class),
+                mock(RecoveryCodeHasher.class), allowingLimiter(), audit(), CLOCK, false, true);
+
+        assertThat(disabled.loginRequiresTotp(USER_A, Set.of("USER", "ADMIN_SUPER"))).isFalse();
+        assertThat(disabled.loginRequiresTotp(USER_A, Set.of("USER", "ADMIN_CATALOG"))).isFalse();
+        assertThat(disabled.loginRequiresTotp(USER_A, Set.of("USER"))).isTrue();
+        assertThat(enabled.loginRequiresTotp(USER_A, Set.of("USER", "ADMIN_SUPER"))).isTrue();
+    }
+
     private static MfaService mfaService(MfaTotpRepository totps, MfaRecoveryCodeRepository codes) {
         RecoveryCodeHasher hasher = mock(RecoveryCodeHasher.class);
         when(hasher.currentPepperVersion()).thenReturn(1);
         when(hasher.hash(any(Integer.class), any())).thenReturn("hash");
         return new MfaService(totps, codes, mock(UserRoleRepository.class),
-                mock(com.catcheck.identity.api.PiiCipher.class), hasher, allowingLimiter(), audit(), CLOCK, false);
+                mock(com.catcheck.identity.api.PiiCipher.class), hasher, allowingLimiter(), audit(), CLOCK, false, true);
     }
 
     private static LoginService loginServiceWith(RateLimiter limiter) {

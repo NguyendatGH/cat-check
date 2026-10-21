@@ -89,6 +89,12 @@ catcheck:
   auth:
     # Temporarily raised from the default 5; set CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS to change.
     max-concurrent-sessions: ${CATCHECK_AUTH_MAX_CONCURRENT_SESSIONS:20}
+    # Hộp thư thật nhận OTP của mọi tài khoản admin (ADMIN_SUPPORT/CATALOG/SUPER) có email không có thật.
+    # Bỏ trống = gửi về email của tài khoản như bình thường.
+    admin-otp-email: ${CATCHECK_ADMIN_OTP_EMAIL:}
+    # TẠM TẮT: admin/seller (ADMIN_SUPPORT/CATALOG/SUPER) đúng mật khẩu là đăng nhập luôn, không qua TOTP,
+    # và /api/v1/admin không đòi phiên TOTP. Buyer bật TOTP vẫn phải nhập mã. Bật lại: CATCHECK_AUTH_ADMIN_MFA_ENABLED=true.
+    admin-mfa-enabled: ${CATCHECK_AUTH_ADMIN_MFA_ENABLED:false}
 
   credit:
     # Quà chào mừng cho mỗi tài khoản người mua mới (đăng ký email đã xác minh / Google OAuth).

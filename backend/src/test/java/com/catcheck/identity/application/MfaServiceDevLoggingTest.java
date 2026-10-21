@@ -87,7 +87,8 @@ class MfaServiceDevLoggingTest {
                 mock(RateLimiter.class),
                 mock(AuditLogService.class),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                enabled);
+                enabled,
+                true);
     }
 
     private static MfaTotp activeTotp() {

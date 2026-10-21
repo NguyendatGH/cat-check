@@ -84,7 +84,8 @@ class MigrationNamingTests {
                         "V36__shop_payos_payment.sql",
                         "V37__seed_admin_seller_accounts.sql",
                         "V38__add_quang_nam_clinics.sql",
-                        "V39__enrich_ai_knowledge_base.sql");
+                        "V39__enrich_ai_knowledge_base.sql",
+                        "V40__align_ai_knowledge_base_with_ph_bands.sql");
     }
 
     @Test
