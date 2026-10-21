@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   ArrowRight,
   Camera,
@@ -13,14 +13,12 @@ import {
   Info,
   MessageCircle,
   PartyPopper,
-  QrCode,
   ScanLine,
   ShieldAlert,
   ShoppingBag,
   Sparkles,
   Ticket,
   X,
-  Zap,
 } from "lucide-react";
 import { Badge, Button, Card, SkeletonLoader, celebrate } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -29,7 +27,6 @@ import { isApiError } from "@/shared/api";
 import {
   ActivationCodeField,
   QrCodeScannerModal,
-  SAMPLE_QR_CODES,
   isValidActivationCode,
   formatActivationCode,
   useActivateCode,
@@ -43,13 +40,18 @@ import { usePageReveal } from "@/shared/lib/motion/usePageReveal";
 export function CreditsActivatePage() {
   const { t } = useTranslation(["credit", "common"]);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const activateCode = useActivateCode();
   const { data: balance } = useCreditBalance();
 
   const pageRef = useRef<HTMLDivElement>(null);
   usePageReveal(pageRef);
 
-  const [code, setCode] = useState("");
+  // QR in dạng link (…/credits/activate?code=CC-…) mở bằng camera điện thoại thì điền sẵn mã, người dùng vẫn tự bấm kích hoạt.
+  const [code, setCode] = useState(() => {
+    const fromLink = searchParams.get("code") ?? "";
+    return isValidActivationCode(fromLink) ? formatActivationCode(fromLink) : "";
+  });
   const [formatError, setFormatError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [success, setSuccess] = useState<ActivationResult | null>(null);
@@ -348,52 +350,8 @@ export function CreditsActivatePage() {
             }
           />
 
-          {/* Sample test QR codes */}
-          <div className="mt-3 rounded-xl border border-dashed border-border-strong bg-background-alt p-3">
-            <div className="flex items-center justify-between pb-1.5">
-              <span className="flex items-center gap-1 text-[11px] font-bold text-text-secondary">
-                <Zap className="size-3 text-secondary" aria-hidden="true" />
-                {t("activate.qrSamplesTitle")}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {SAMPLE_QR_CODES.map((item) => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => {
-                    setCode(item.code);
-                    setFormatError(null);
-                    setApiError(null);
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all active:scale-95",
-                    code === item.code
-                      ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
-                      : "border-border/60 bg-surface text-text-secondary hover:border-primary/40 hover:text-text-primary",
-                  )}
-                >
-                  <QrCode className="size-3 opacity-60" aria-hidden="true" />
-                  <span>{item.label}</span>
-                  <span className="text-[10px] text-text-tertiary">({item.desc})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-caption text-text-tertiary">
+          <div className="mt-2 text-caption text-text-tertiary">
             <span>{t("activate.formatHint")}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setCode("CC-PLUS-7K3M9QX2RT");
-                setFormatError(null);
-                setApiError(null);
-              }}
-              className="text-overline font-mono font-medium text-primary transition-colors hover:underline active:scale-95"
-            >
-              {t("activate.exampleCode")}
-            </button>
           </div>
         </div>
 

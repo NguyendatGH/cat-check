@@ -1,5 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { CreditsActivatePage } from "./CreditsActivatePage";
 
@@ -60,7 +61,11 @@ describe("CreditsActivatePage", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(<CreditsActivatePage />);
+      root.render(
+        <MemoryRouter initialEntries={["/credits/activate"]}>
+          <CreditsActivatePage />
+        </MemoryRouter>,
+      );
     });
 
     expect(container.textContent).toContain("pages.activate.title");
@@ -73,9 +78,32 @@ describe("CreditsActivatePage", () => {
     expect(container.textContent).toContain("activate.qrNotice1kg");
     expect(container.textContent).toContain("activate.qrNotice25kg");
     expect(container.textContent).toContain("activate.qrScanCta");
-    expect(container.textContent).toContain("activate.qrSamplesTitle");
-    expect(container.textContent).toContain("Túi 1 kg");
-    expect(container.textContent).toContain("Túi 2,5 kg");
+    expect(container.textContent).not.toContain("activate.qrSamplesTitle");
+    expect(container.querySelector<HTMLInputElement>("#activation-code-field")?.value).toBe("");
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it.each([
+    ["cc-plus-7k3m9qx2rt", "CC-PLUS-7K3M9QX2RT"],
+    ["not-a-code", ""],
+  ])("prefills the code from ?code=%s", (param, expected) => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={[`/credits/activate?code=${param}`]}>
+          <CreditsActivatePage />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelector<HTMLInputElement>("#activation-code-field")?.value).toBe(expected);
 
     act(() => {
       root.unmount();

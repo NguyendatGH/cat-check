@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Image as ImageIcon, QrCode, RefreshCw, X, Zap } from "lucide-react";
+import { Image as ImageIcon, QrCode, RefreshCw, X } from "lucide-react";
 import jsQR from "jsqr";
 import { Button } from "@/shared/ui";
 import { formatActivationCode, isValidActivationCode } from "./schemas";
@@ -10,24 +10,6 @@ interface QrCodeScannerModalProps {
   onClose: () => void;
   onScan: (code: string) => void;
 }
-
-export const SAMPLE_QR_CODES = [
-  {
-    code: "CC-MINI-7K3M9QX2RT",
-    label: "Túi 1 kg",
-    desc: "10 credit / 7 ngày",
-  },
-  {
-    code: "CC-DAILY-8N4K2PX9WQ",
-    label: "Túi 2,5 kg",
-    desc: "36 credit / 30 ngày",
-  },
-  {
-    code: "CC-PLUS-9M5K3QX1AB",
-    label: "Túi Plus",
-    desc: "60 credit / 60 ngày",
-  },
-];
 
 function extractActivationCode(rawText: string): string | null {
   const trimmed = rawText.trim();
@@ -315,7 +297,7 @@ export function QrCodeScannerModal({ isOpen, onClose, onScan }: QrCodeScannerMod
           </div>
         )}
 
-        {/* Bottom controls & Sample QR section */}
+        {/* Bottom controls */}
         <div className="flex flex-col gap-3 p-4 bg-background-alt/50">
           <div className="flex items-center gap-2">
             <input
@@ -337,32 +319,6 @@ export function QrCodeScannerModal({ isOpen, onClose, onScan }: QrCodeScannerMod
             >
               {t("activate.qr.chooseImage")}
             </Button>
-          </div>
-
-          {/* Quick sample codes for testing */}
-          <div className="rounded-xl border border-border/60 bg-surface p-3">
-            <div className="flex items-center justify-between pb-2">
-              <span className="flex items-center gap-1.5 text-overline font-bold uppercase tracking-wider text-text-tertiary">
-                <Zap className="size-3.5 text-secondary" aria-hidden="true" />
-                {t("activate.qr.sampleTitle")}
-              </span>
-              <span className="text-[10px] text-text-tertiary">{t("activate.qr.sampleCta")}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {SAMPLE_QR_CODES.map((item) => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => {
-                    handleDetected(item.code);
-                  }}
-                  className="flex flex-col items-center justify-center rounded-lg border border-border-strong/40 bg-background-alt p-2 text-center transition-all hover:border-primary/40 hover:bg-primary/5 active:scale-95"
-                >
-                  <span className="text-[11px] font-bold text-text-primary">{item.label}</span>
-                  <span className="text-[9px] text-text-secondary">{item.desc}</span>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </div>

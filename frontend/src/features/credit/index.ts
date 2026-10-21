@@ -6,7 +6,7 @@ export {
   formatRemainingSeconds,
 } from "./components";
 export type { ActivationCodeFieldProps, CreditBatchCardProps } from "./components";
-export { QrCodeScannerModal, SAMPLE_QR_CODES } from "./QrCodeScannerModal";
+export { QrCodeScannerModal } from "./QrCodeScannerModal";
 export {
   creditKeys,
   entitlementKey,

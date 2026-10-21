@@ -83,16 +83,12 @@
     "qrNotice1kg": "1 kg bag: 10 credits / 7 days",
     "qrNotice25kg": "2.5 kg bag: 36 credits / 30 days",
     "qrNoticeDesc": "Validity starts from the moment of activation, so only scan when opening the litter. Scanning multiple codes will stack credits and duration.",
-    "qrSamplesTitle": "Sample QR codes for testing:",
     "qr": {
       "title": "Scan QR activation code",
       "subtitle": "On CatCheck litter bag",
       "guide": "Point your camera at the QR code printed on your CatCheck litter bag",
-      "chooseImage": "Choose QR image from device",
-      "sampleTitle": "Quick sample QR codes",
-      "sampleCta": "Tap to scan now"
+      "chooseImage": "Choose QR image from device"
     },
-    "exampleCode": "Example: CC-PLUS-7K3M9QX2RT",
     "currentBalance": "Available balance",
     "guideTitle": "Where do I find the activation code?",
     "guideStep1Title": "Back of the litter bag",
