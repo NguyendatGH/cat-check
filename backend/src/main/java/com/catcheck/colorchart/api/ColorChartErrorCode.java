@@ -1,6 +1,7 @@
 package com.catcheck.colorchart.api;
 
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -33,8 +34,6 @@ public enum ColorChartErrorCode implements ErrorCode {
 
     RESOURCE_MODIFIED("resource-modified", HttpStatus.PRECONDITION_FAILED);
 
-    private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
-
     private final String slug;
     private final HttpStatus status;
 
@@ -55,6 +54,6 @@ public enum ColorChartErrorCode implements ErrorCode {
 
     @Override
     public URI typeUri() {
-        return URI.create(PROBLEM_BASE + slug);
+        return ProblemTypes.of(slug);
     }
 }

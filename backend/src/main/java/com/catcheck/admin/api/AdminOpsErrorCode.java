@@ -1,6 +1,7 @@
 package com.catcheck.admin.api;
 
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -23,8 +24,6 @@ public enum AdminOpsErrorCode implements ErrorCode {
 
     BROADCAST_CONFIRMATION_REQUIRED("admin/broadcast-confirmation-required", HttpStatus.BAD_REQUEST);
 
-    private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
-
     private final String slug;
     private final HttpStatus status;
 
@@ -45,6 +44,6 @@ public enum AdminOpsErrorCode implements ErrorCode {
 
     @Override
     public URI typeUri() {
-        return URI.create(PROBLEM_BASE + slug);
+        return ProblemTypes.of(slug);
     }
 }

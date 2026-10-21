@@ -62,6 +62,7 @@ public class MfaService {
     private final AuditLogService auditLogService;
     private final Clock clock;
     private final boolean devConsoleEnabled;
+    private final boolean adminMfaEnabled;
     private final SecureRandom random = new SecureRandom();
 
     public MfaService(MfaTotpRepository totpRepository,
@@ -72,7 +73,8 @@ public class MfaService {
                       RateLimiter rateLimiter,
                       AuditLogService auditLogService,
                       Clock clock,
-                      @Value("${catcheck.dev.log-otp:false}") boolean devConsoleEnabled) {
+                      @Value("${catcheck.dev.log-otp:false}") boolean devConsoleEnabled,
+                      @Value("${catcheck.auth.admin-mfa-enabled:true}") boolean adminMfaEnabled) {
         this.totpRepository = totpRepository;
         this.recoveryCodeRepository = recoveryCodeRepository;
         this.roleRepository = roleRepository;
@@ -82,6 +84,7 @@ public class MfaService {
         this.auditLogService = auditLogService;
         this.clock = clock;
         this.devConsoleEnabled = devConsoleEnabled;
+        this.adminMfaEnabled = adminMfaEnabled;
     }
 
     public void logCurrentTotpForDev(UUID userId, String email) {
@@ -370,6 +373,15 @@ public class MfaService {
         }
         long remaining = recoveryCodeRepository.countUnusedByUserId(userId);
         return TotpStatusView.of(totp, remaining);
+    }
+
+    // Tắt catcheck.auth.admin-mfa-enabled thì admin/seller (ADMIN_*) đúng mật khẩu là vào luôn; buyer bật TOTP vẫn phải nhập mã.
+    @Transactional(readOnly = true)
+    public boolean loginRequiresTotp(UUID userId, Set<String> roles) {
+        if (!adminMfaEnabled && roles.stream().map(UserRole::valueOf).anyMatch(UserRole::isAdmin)) {
+            return false;
+        }
+        return totpEnabled(userId);
     }
 
     @Transactional(readOnly = true)

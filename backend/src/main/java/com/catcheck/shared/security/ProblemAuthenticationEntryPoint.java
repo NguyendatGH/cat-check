@@ -1,5 +1,6 @@
 package com.catcheck.shared.security;
 
+import com.catcheck.shared.error.ProblemTypes;
 import com.catcheck.shared.i18n.MessageResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,7 +19,7 @@ import java.time.Clock;
 public class ProblemAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final String ERROR_CODE = "UNAUTHENTICATED";
-    private static final URI TYPE = URI.create("https://catcheck.vn/problems/unauthenticated");
+    private static final URI TYPE = ProblemTypes.of("unauthenticated");
 
     private final MessageResolver messageResolver;
     private final LocaleResolver localeResolver;

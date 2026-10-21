@@ -265,10 +265,10 @@ function LoginView({ messageApi }: { messageApi: ReturnType<typeof message.useMe
 
       <div className="flex flex-col gap-6 pb-6 pt-2 lg:col-span-5 lg:justify-between lg:gap-0 lg:bg-surface lg:p-12 lg:pb-12 lg:pt-12">
         <header className="order-1 flex flex-col items-center gap-1 text-center lg:hidden">
-          <div className="relative mb-1 flex h-20 w-44 items-center justify-center">
-            <img src={appLogo} alt={t("pages.login.title")} className="h-20 w-44 object-contain" />
-            <span className="absolute bottom-1 right-1 flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-text-on">
-              <Check size={15} aria-hidden="true" strokeWidth={3} />
+          <div className="relative mb-1 inline-flex items-center justify-center">
+            <img src={appLogo} alt={t("pages.login.title")} className="h-16 w-auto max-w-[140px] object-contain" />
+            <span className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-secondary text-secondary-text-on shadow-xs ring-2 ring-surface">
+              <Check size={11} aria-hidden="true" strokeWidth={3} />
             </span>
           </div>
           <div className="flex items-center gap-2">

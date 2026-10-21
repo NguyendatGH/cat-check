@@ -7,7 +7,7 @@ export const ROLES = {
   activationCodes: ["ADMIN_SUPER", "ADMIN_SUPPORT"],
   activationCodesWrite: ["ADMIN_SUPER"],
   packagesRead: ["ADMIN_SUPER", "ADMIN_CATALOG", "ADMIN_SUPPORT"],
-  packagesWrite: ["ADMIN_SUPER"],
+  packagesWrite: ["ADMIN_SUPER", "ADMIN_CATALOG"],
   products: ["ADMIN_SUPER", "ADMIN_CATALOG"],
   colorChart: ["ADMIN_SUPER", "ADMIN_CATALOG"],
   careTipsWrite: ["ADMIN_SUPER", "ADMIN_CATALOG", "DPO"],

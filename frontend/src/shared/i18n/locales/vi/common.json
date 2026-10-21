@@ -9,7 +9,7 @@
     "loading": "Đang tải…"
   },
   "app": {
-    "name": "CatCheck",
+    "name": "CATCHECK",
     "wordmark": "CATCHECK"
   },
   "comingSoon": {
@@ -30,7 +30,7 @@
       "body": "Đăng nhập để theo dõi hồ sơ sức khoẻ thật của bé mèo và lưu lại lịch sử quét.",
       "login": "Đăng nhập",
       "register": "Tạo tài khoản",
-      "shop": "Mua cát cho bé"
+      "shop": "Mua cát vệ sinh"
     },
     "guestName": "bạn",
     "heroBadge": "Chỉ thị màu pH",
@@ -118,7 +118,7 @@
   },
   "welcome": {
     "disclaimer": "Hỗ trợ theo dõi sức khỏe • Không thay thế chẩn đoán thú y",
-    "slogan": "check with care, always there",
+    "slogan": "CHECK WITH CARE, ALWAYS THERE",
     "sloganVi": "Check để hiểu, Chăm để yêu",
     "slideTitle": "Chăm sóc thông minh bắt đầu từ việc quan sát mỗi ngày",
     "slideBody": "Theo dõi sự thay đổi màu sắc hạt cát vệ sinh và lưu trữ hồ sơ sức khỏe đường tiết niệu của mèo cưng theo thời gian.",
@@ -129,7 +129,7 @@
     },
     "ctaPrimary": "Bắt đầu ngay",
     "ctaSecondary": "Đăng nhập",
-    "ctaShop": "Mua cát cho bé",
+    "ctaShop": "Mua cát vệ sinh",
     "legalPrefix": "Bằng việc tiếp tục, bạn đồng ý với",
     "legalTerms": "Điều khoản",
     "legalAnd": "&",

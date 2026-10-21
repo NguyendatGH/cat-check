@@ -1,6 +1,7 @@
 package com.catcheck.media.api;
 
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -14,8 +15,6 @@ public enum MediaErrorCode implements ErrorCode {
     STORAGE_KEY_NOT_FOUND("storage-key-not-found", HttpStatus.NOT_FOUND),
 
     STORAGE_IO_ERROR("storage-io-error", HttpStatus.INTERNAL_SERVER_ERROR);
-
-    private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
 
     private final String slug;
     private final HttpStatus status;
@@ -37,6 +36,6 @@ public enum MediaErrorCode implements ErrorCode {
 
     @Override
     public URI typeUri() {
-        return URI.create(PROBLEM_BASE + slug);
+        return ProblemTypes.of(slug);
     }
 }

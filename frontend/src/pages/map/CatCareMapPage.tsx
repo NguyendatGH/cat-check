@@ -40,7 +40,7 @@ type FilterId = "all" | PlaceKind;
 
 type LocationStatus = "idle" | "requesting" | "ready" | "denied" | "unavailable" | "unsupported";
 
-const NEARBY_RADIUS_KM = 25;
+const NEARBY_RADIUS_KM = 50;
 
 function googleMapsSearchUrl(location: UserLocation, query: string): string {
   const lat = location.latitude.toFixed(3);
@@ -524,6 +524,8 @@ export function CatCareMapPage() {
   const isDesktop = useBreakpoint("lg");
   const [searchParams] = useSearchParams();
   const [filter, setFilter] = useState<FilterId>("all");
+  const [highRatingOnly, setHighRatingOnly] = useState(false);
+  const [areaFilter, setAreaFilter] = useState<"ALL" | "DUY_XUYEN" | "DA_NANG">("ALL");
   const [activeId, setActiveId] = useState(() => searchParams.get("place") ?? "");
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query.trim(), 300);
@@ -607,7 +609,51 @@ export function CatCareMapPage() {
         : osmAll.length > 0
           ? t("location.nearbyFound", { count: osmAll.length })
           : t("location.nearbyNone", { radius: NEARBY_RADIUS_KM });
-  const visible = places.filter((p) => filter === "all" || p.kind === filter);
+
+  const visible = places.filter((p) => {
+    if (filter !== "all" && p.kind !== filter) return false;
+    if (highRatingOnly && (p.rating < 4.5 || p.reviewCount < 1)) return false;
+    if (areaFilter === "DUY_XUYEN") {
+      const text = `${p.area} ${p.address} ${p.name}`.toLowerCase();
+      return (
+        text.includes("duy xuyên") ||
+        text.includes("nam phước") ||
+        text.includes("hội an") ||
+        text.includes("điện bàn") ||
+        text.includes("quảng nam")
+      );
+    }
+    if (areaFilter === "DA_NANG") {
+      const text = `${p.area} ${p.address} ${p.name}`.toLowerCase();
+      return (
+        text.includes("đà nẵng") ||
+        text.includes("hải châu") ||
+        text.includes("sơn trà") ||
+        text.includes("thanh khê") ||
+        text.includes("ngũ hành sơn") ||
+        text.includes("cẩm lệ") ||
+        text.includes("liên chiểu")
+      );
+    }
+    return true;
+  });
+
+  // Smart recommendation: Select clinics with rating >= 4.5 and reviewCount >= 5
+  // If user location is known, pick closest among top-rated. Otherwise, highest reviews.
+  const recommendedPlace = (() => {
+    if (visible.length === 0) return null;
+    const topRated = visible.filter((p) => p.rating >= 4.5 && p.reviewCount >= 5);
+    if (topRated.length > 0) {
+      if (userLocation) {
+        return topRated.slice().sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))[0];
+      }
+      return topRated.slice().sort((a, b) => b.reviewCount - a.reviewCount)[0];
+    }
+    const withRating = visible.filter((p) => p.rating >= 4.5);
+    if (withRating.length > 0) return withRating[0];
+    return visible[0];
+  })();
+
   const activePlace = visible.find((p) => p.id === activeId);
   const selectedId = activePlace?.id ?? "";
 
@@ -639,9 +685,11 @@ export function CatCareMapPage() {
   const resetFilters = () => {
     setFilter("all");
     setQuery("");
+    setHighRatingOnly(false);
+    setAreaFilter("ALL");
   };
 
-  const isFiltered = filter !== "all" || query.trim() !== "";
+  const isFiltered = filter !== "all" || query.trim() !== "" || highRatingOnly || areaFilter !== "ALL";
   const showSkeleton = placesQuery.isPending;
   const showError = placesQuery.isError && !placesQuery.data;
   const showEmpty = !showSkeleton && !showError && visible.length === 0;
@@ -683,7 +731,7 @@ export function CatCareMapPage() {
   );
 
   if (!isDesktop) {
-    const nearestPlace = visible.length > 0 ? visible[0] : null;
+    const nearestPlace = recommendedPlace || (visible.length > 0 ? visible[0] : null);
     const others = visible.filter((p) => p.id !== selectedId && p.id !== nearestPlace?.id);
     return (
       <div className="flex flex-col gap-3 px-4 py-4">
@@ -701,6 +749,57 @@ export function CatCareMapPage() {
             onChange={setFilter}
             className="overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
           />
+        </div>
+
+        {/* Quick Area & Rating Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <button
+            type="button"
+            onClick={() => {
+              setHighRatingOnly((prev) => !prev);
+            }}
+            aria-pressed={highRatingOnly}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+              highRatingOnly
+                ? "bg-amber-500 text-white shadow-xs"
+                : "border border-border/70 bg-surface text-text-secondary hover:border-amber-400 hover:text-text-primary",
+            )}
+          >
+            {t("filters.topRated", { count: places.filter((p) => p.rating >= 4.5).length })}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAreaFilter((prev) => (prev === "DUY_XUYEN" ? "ALL" : "DUY_XUYEN"));
+            }}
+            aria-pressed={areaFilter === "DUY_XUYEN"}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+              areaFilter === "DUY_XUYEN"
+                ? "bg-primary-dark text-white shadow-xs"
+                : "border border-border/70 bg-surface text-text-secondary hover:border-primary/50 hover:text-primary-dark",
+            )}
+          >
+            <MapPin size={11} aria-hidden="true" />
+            {t("filters.duyXuyen")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAreaFilter((prev) => (prev === "DA_NANG" ? "ALL" : "DA_NANG"));
+            }}
+            aria-pressed={areaFilter === "DA_NANG"}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+              areaFilter === "DA_NANG"
+                ? "bg-primary-dark text-white shadow-xs"
+                : "border border-border/70 bg-surface text-text-secondary hover:border-primary/50 hover:text-primary-dark",
+            )}
+          >
+            <MapPin size={11} aria-hidden="true" />
+            {t("filters.daNang")}
+          </button>
         </div>
 
         <PlaceMap
@@ -722,7 +821,7 @@ export function CatCareMapPage() {
           <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-text-secondary" aria-live="polite">
             {locationMessage}
             {nearbyMessage ? <span className="block pt-0.5">{nearbyMessage}</span> : null}
-            {userLocation && osmAll.length < 3 ? <MoreOnGoogleMaps location={userLocation} /> : null}
+            {userLocation && places.length === 0 ? <MoreOnGoogleMaps location={userLocation} /> : null}
           </p>
           <button
             type="button"
@@ -820,7 +919,7 @@ export function CatCareMapPage() {
               <p className="min-w-0 flex-1 text-[11px] text-text-tertiary" aria-live="polite">
                 {locationMessage}
                 {nearbyMessage ? <span className="block pt-0.5">{nearbyMessage}</span> : null}
-                {userLocation && osmAll.length < 3 ? <MoreOnGoogleMaps location={userLocation} /> : null}
+                {userLocation && places.length === 0 ? <MoreOnGoogleMaps location={userLocation} /> : null}
               </p>
             </div>
           </div>
@@ -837,29 +936,79 @@ export function CatCareMapPage() {
               onChange={setFilter}
               className="-mx-3 overflow-x-auto px-3 pt-2.5 [scrollbar-width:thin]"
             />
+            {/* Quick Area & Rating Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setHighRatingOnly((prev) => !prev);
+                }}
+                aria-pressed={highRatingOnly}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+                  highRatingOnly
+                    ? "bg-amber-500 text-white shadow-xs"
+                    : "border border-border/70 bg-surface text-text-secondary hover:border-amber-400 hover:text-text-primary",
+                )}
+              >
+                {t("filters.topRated", { count: places.filter((p) => p.rating >= 4.5).length })}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAreaFilter((prev) => (prev === "DUY_XUYEN" ? "ALL" : "DUY_XUYEN"));
+                }}
+                aria-pressed={areaFilter === "DUY_XUYEN"}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+                  areaFilter === "DUY_XUYEN"
+                    ? "bg-primary-dark text-white shadow-xs"
+                    : "border border-border/70 bg-surface text-text-secondary hover:border-primary/50 hover:text-primary-dark",
+                )}
+              >
+                <MapPin size={11} aria-hidden="true" />
+                {t("filters.duyXuyen")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAreaFilter((prev) => (prev === "DA_NANG" ? "ALL" : "DA_NANG"));
+                }}
+                aria-pressed={areaFilter === "DA_NANG"}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all active:scale-95",
+                  areaFilter === "DA_NANG"
+                    ? "bg-primary-dark text-white shadow-xs"
+                    : "border border-border/70 bg-surface text-text-secondary hover:border-primary/50 hover:text-primary-dark",
+                )}
+              >
+                <MapPin size={11} aria-hidden="true" />
+                {t("filters.daNang")}
+              </button>
+            </div>
           </div>
 
           <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain rounded-xl bg-background-alt p-2.5">
             {showSkeleton ? <ListSkeleton /> : null}
-            {visible.length > 0 && (
+            {recommendedPlace && (
               <li className="relative">
                 <div className="mb-2 text-[12px] font-bold text-text-secondary px-1">{t("list.recommendedTitle")}</div>
                 <DesktopPlaceCard
-                  place={visible[0]}
-                  active={visible[0].id === selectedId}
+                  place={recommendedPlace}
+                  active={recommendedPlace.id === selectedId}
                   isRecommended={true}
                   onSelect={() => {
-                    setActiveId(visible[0].id === selectedId ? "" : visible[0].id);
+                    setActiveId(recommendedPlace.id === selectedId ? "" : recommendedPlace.id);
                   }}
                 />
               </li>
             )}
-            {visible.length > 1 && (
+            {visible.filter((p) => p.id !== recommendedPlace?.id).length > 0 && (
               <li className="relative pt-1">
                 <div className="mb-2 text-[12px] font-bold text-text-secondary px-1">{t("list.otherTitle")}</div>
               </li>
             )}
-            {visible.slice(1).map((p) => (
+            {visible.filter((p) => p.id !== recommendedPlace?.id).map((p) => (
               <DesktopPlaceCard
                 key={p.id}
                 place={p}

@@ -17,6 +17,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,7 +46,7 @@ class OAuth2LoginSuccessHandlerTest {
 
     @Test
     void googleLoginWithActiveTotpWaitsForTheSecondFactor() throws Exception {
-        when(mfaService.totpEnabled(USER)).thenReturn(true);
+        when(mfaService.loginRequiresTotp(eq(USER), any())).thenReturn(true);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         handler.onAuthenticationSuccess(new MockHttpServletRequest(), response, oidcAuthentication());

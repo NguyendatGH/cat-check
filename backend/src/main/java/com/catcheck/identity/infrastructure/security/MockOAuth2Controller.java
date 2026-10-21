@@ -64,7 +64,7 @@ public class MockOAuth2Controller {
         OAuthService.OAuthResult result = oauthService.findOrCreate(claims,
                 AuthRequestContext.UNKNOWN);
 
-        if (mfaService.totpEnabled(result.userId())) {
+        if (mfaService.loginRequiresTotp(result.userId(), result.roles())) {
             sessionGateway.beginPendingMfa(result.userId(), result.email().value(), result.roles(), true);
             return new RedirectView("/auth/oauth/complete?mfa=required");
         }

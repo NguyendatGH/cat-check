@@ -1,6 +1,7 @@
 package com.catcheck.reminder.api;
 
 import com.catcheck.shared.error.ErrorCode;
+import com.catcheck.shared.error.ProblemTypes;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -16,8 +17,6 @@ public enum ReminderErrorCode implements ErrorCode {
     CAT_NOT_FOUND("cat/not-found", HttpStatus.NOT_FOUND),
 
     FEATURE_NOT_IN_PLAN("credit/feature-not-in-plan", HttpStatus.FORBIDDEN);
-
-    private static final String PROBLEM_BASE = "https://catcheck.vn/problems/";
 
     private final String slug;
     private final HttpStatus status;
@@ -39,6 +38,6 @@ public enum ReminderErrorCode implements ErrorCode {
 
     @Override
     public URI typeUri() {
-        return URI.create(PROBLEM_BASE + slug);
+        return ProblemTypes.of(slug);
     }
 }

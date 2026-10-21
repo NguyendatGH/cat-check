@@ -128,7 +128,10 @@ export function CaptureTrigger({
           {VIEWFINDER_CORNERS.map((corner) => (
             <span key={corner} className={cn("absolute size-9 border-surface", corner)} />
           ))}
-          <span className="absolute inset-x-3 h-0.5 rounded-full bg-gradient-to-r from-transparent via-secondary to-transparent animate-scan-line" />
+          {/* Sweep only over the live viewfinder: over a captured photo it reads as "still waiting". */}
+          {!previewUrl ? (
+            <span className="absolute inset-x-3 h-0.5 rounded-full bg-gradient-to-r from-transparent via-secondary to-transparent animate-scan-line" />
+          ) : null}
         </div>
 
         <p className="absolute inset-x-[10%] bottom-[22%] flex items-center justify-center gap-2 rounded-full bg-surface/15 px-3 py-2 text-center text-small font-semibold text-white">

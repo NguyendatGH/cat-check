@@ -230,4 +230,17 @@ describe("OrderTrackingPage", () => {
     expect(bank.text).toContain("payment.methods.BANK_TRANSFER.name");
     bank.cleanup();
   });
+
+  it("displays confirmed status, cod reassurance, and COD timeline without payment countdown for COD orders", () => {
+    show({ ...baseOrder, status: "PENDING_PAYMENT", paymentMethod: "COD" });
+    const { text, cleanup } = render();
+
+    expect(text).toContain("order.status.CONFIRMED");
+    expect(text).toContain("order.codConfirmedTitle");
+    expect(text).toContain("order.codConfirmedBody");
+    expect(text).not.toContain("order.expiresIn");
+    expect(text).not.toContain("order.payAgain");
+    expect(text).not.toContain("order.status.PENDING_PAYMENT");
+    cleanup();
+  });
 });

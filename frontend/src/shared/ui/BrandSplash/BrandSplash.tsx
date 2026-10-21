@@ -18,7 +18,7 @@ import letterKSrc from "@/shared/assets/images/splash/l-k.png";
 
 gsap.registerPlugin(useGSAP);
 
-// Layers cut from the brand logo (web-auth/logo.png); boxes are px inside its 459x300 trimmed frame.
+// Layers cut from the earlier brand logo (612x408 web-auth/logo.png); boxes are px inside its 459x300 trimmed frame.
 const FRAME = { w: 459, h: 300 };
 
 interface Layer {
@@ -298,7 +298,7 @@ function SplashOverlay({ phase, runId }: { phase: Exclude<SplashPhase, "hidden">
           className="absolute inset-x-0 block whitespace-nowrap text-center text-[clamp(9px,2.6vw,12px)] font-bold leading-none tracking-[0.12em] text-text-tertiary will-change-transform"
           style={{ top: pct(283, FRAME.h) }}
         >
-          {t("welcome.slogan")}
+          {t("welcome.sloganVi")}
         </span>
         {showLoading && phase === "intro" && (
           <span className="absolute inset-x-0 top-full mt-8 flex justify-center" aria-hidden="true">

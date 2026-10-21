@@ -62,7 +62,7 @@ async function submitSigns(serverBody: unknown): Promise<string> {
   );
   await act(async () => {
     submit?.click();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 150));
   });
   const text = document.body.textContent;
   act(() => {

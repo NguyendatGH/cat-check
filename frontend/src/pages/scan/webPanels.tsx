@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { AlertTriangle, ArrowRight, Camera, ChevronRight, ImageOff, Info, Lock, ScanLine } from "lucide-react";
+import { AlertTriangle, ArrowRight, Camera, ChevronRight, ImageOff, Info, ScanLine } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { intlLocale } from "@/shared/lib/format/locale";
 import { findBandForPh, phTokenStyle, type PhBand } from "@/entities/ph-bands";
@@ -122,8 +122,6 @@ interface WebCapturePanelProps {
   catCard: ReactNode;
   previewUrl?: string | null;
   onPickFile: (file: File, source: "CAMERA" | "GALLERY") => void;
-  onSubmit: () => void;
-  submitDisabled?: boolean;
   locked?: boolean;
   busy?: boolean;
   error?: CaptureErrorMessage | null;
@@ -178,8 +176,6 @@ export function WebCapturePanel({
   catCard,
   previewUrl,
   onPickFile,
-  onSubmit,
-  submitDisabled,
   locked = false,
   busy = false,
   error,
@@ -200,7 +196,7 @@ export function WebCapturePanel({
               label={t("web.takePhoto")}
               icon={<Camera className="size-3.5" aria-hidden="true" />}
               capture
-              disabled={busy}
+              disabled={busy || locked}
               onPick={(file) => {
                 onPickFile(file, "CAMERA");
               }}
@@ -208,7 +204,7 @@ export function WebCapturePanel({
             <FilePickButton
               label={t("web.uploadNew")}
               icon={<img src={iconUpload} alt="" className="size-3.5" />}
-              disabled={busy}
+              disabled={busy || locked}
               onPick={(file) => {
                 onPickFile(file, "GALLERY");
               }}
@@ -233,15 +229,6 @@ export function WebCapturePanel({
       </Panel>
 
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={submitDisabled || locked}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary-dark px-6 py-3 text-body font-bold text-white shadow-brand-lg transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {locked ? <Lock className="size-4" aria-hidden="true" /> : <ScanLine className="size-4" aria-hidden="true" />}
-          {t("web.analyzeCta")}
-        </button>
         <p className="text-small text-text-tertiary">{t("capture.creditNote")}</p>
         {error ? (
           <p

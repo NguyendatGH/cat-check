@@ -975,6 +975,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "/seller/packages",
+            element: (
+              <PageSuspense>
+                <LazyPages.adminPackages />
+              </PageSuspense>
+            ),
+          },
+          {
             path: "/seller/orders",
             element: (
               <PageSuspense>

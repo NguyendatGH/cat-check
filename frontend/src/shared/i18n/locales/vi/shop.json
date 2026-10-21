@@ -181,6 +181,17 @@
     "totalLabel": "Tổng thanh toán",
     "emptyTitle": "Chưa có gì để thanh toán",
     "emptyBody": "Giỏ hàng của bạn đang trống. Thêm sản phẩm từ cửa hàng rồi quay lại bước này.",
+    "promoLabel": "Mã giảm giá / Voucher",
+    "promoPlaceholder": "Nhập mã giảm giá (ví dụ: CATCHECK10)",
+    "applyPromo": "Áp dụng",
+    "promoApplied": "Đã áp dụng mã {{code}}",
+    "promoDiscount": "Giảm giá voucher ({{code}})",
+    "promoInvalid": "Mã giảm giá không hợp lệ hoặc đã hết hạn.",
+    "promoHint": "Mã gợi ý:",
+    "useCurrentLocation": "Chọn vị trí hiện tại",
+    "locatingAddress": "Đang lấy vị trí…",
+    "locationError": "Không thể lấy vị trí hiện tại. Vui lòng cấp quyền hoặc nhập địa chỉ tay.",
+    "saveInfoLabel": "Lưu thông tin nhận hàng cho lần mua sau",
     "errors": {
       "nameRequired": "Nhập tên người nhận.",
       "nameTooLong": "Tên người nhận tối đa 120 ký tự.",
@@ -213,6 +224,7 @@
     "methodLabel": "Phương thức",
     "statusLabel": "Trạng thái",
     "status": {
+      "CONFIRMED": "Đã xác nhận đơn hàng",
       "PENDING_PAYMENT": "Chờ thanh toán",
       "PAID": "Đã thanh toán",
       "PACKING": "Đang chuẩn bị hàng",
@@ -221,6 +233,8 @@
       "CANCELLED": "Đã hủy",
       "UNKNOWN": "Chưa rõ trạng thái"
     },
+    "codConfirmedTitle": "Đơn hàng COD đã được xác nhận",
+    "codConfirmedBody": "Bạn sẽ thanh toán bằng tiền mặt khi nhận hàng. CatCheck đang chuẩn bị kiện hàng cho bạn.",
     "paymentUnknown": "Phương thức khác",
     "paymentNote": {
       "COD": "Trả tiền cho người giao khi nhận kiện hàng.",
