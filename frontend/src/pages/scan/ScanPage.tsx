@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Navigate, useNavigate } from "react-router";
 import { ArrowLeft, History, Ticket } from "lucide-react";
-import { Button } from "@/shared/ui";
 import {
   AnalyzingState,
   CaptureTrigger,
@@ -70,7 +69,6 @@ export function ScanPage() {
     assignment,
     selectedCatId,
     selectedCatName,
-    file,
     previewUrl,
     setFile,
     setSelectedCat,
@@ -80,7 +78,6 @@ export function ScanPage() {
   const { data: bands } = usePhBands();
   const balanceQuery = useCreditBalance();
   const entitlementQuery = useEntitlement();
-  const [captureSource, setCaptureSource] = useState<CaptureSource>("CAMERA");
   const catId = assignment === "ASSIGNED" ? (selectedCatId ?? undefined) : undefined;
   const { data: selectedCat } = useCat(catId);
   const { data: latestScans } = useRecentCatScans(catId, 1);
@@ -129,24 +126,21 @@ export function ScanPage() {
   const submitError = submitScan.isError && !outOfCredit && !polling ? captureErrorOf(submitScan.error, t) : null;
   const inconclusiveBand = bands?.find((band) => band.code === "INCONCLUSIVE");
 
-  const handleSubmit = () => {
-    if (!file || outOfCredit) return;
+  // One shot, one submission: a picked/captured photo goes straight to analysis, no confirm step.
+  const handlePick = (picked: File | null, source: CaptureSource = "CAMERA") => {
+    submitScan.reset();
+    setFile(picked);
+    if (!picked || outOfCredit) return;
     submitScan.mutate({
       metadata: {
         scanRequestId,
         catId: assignment === "SHARED_UNKNOWN" ? null : selectedCatId,
         assignment,
         capturedAt: new Date().toISOString(),
-        captureSource,
+        captureSource: source,
       },
-      file,
+      file: picked,
     });
-  };
-
-  const handlePick = (picked: File | null, source?: CaptureSource) => {
-    submitScan.reset();
-    setFile(picked);
-    if (source) setCaptureSource(source);
   };
 
   const retryAfterInconclusive = () => {
@@ -262,9 +256,8 @@ export function ScanPage() {
               }
               previewUrl={previewUrl}
               onPickFile={handlePick}
-              onSubmit={handleSubmit}
-              submitDisabled={!file || analyzing || inconclusive !== null}
-              busy={analyzing}
+              // An inconclusive scan already owns this request id; retry from the notice to get a new one.
+              busy={analyzing || inconclusive !== null}
               locked={outOfCredit}
               error={submitError}
             />
@@ -362,7 +355,7 @@ export function ScanPage() {
         retakeLabel={t("capture.retake")}
         cameraLabel={t("capture.camera")}
         chooseFromGalleryLabel={t("capture.gallery")}
-        disabled={submitScan.isPending}
+        disabled={outOfCredit}
       />
       {outOfCredit && outOfCreditPanel ? (
         outOfCreditPanel
@@ -381,9 +374,6 @@ export function ScanPage() {
             </p>
           ) : null}
           <p className="text-caption text-text-tertiary">{t("capture.creditNote")}</p>
-          <Button variant="primary" size="lg" disabled={!file} onClick={handleSubmit}>
-            {t("capture.submit")}
-          </Button>
         </>
       )}
     </div>
