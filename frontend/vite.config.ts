@@ -109,8 +109,8 @@ export default defineConfig({
       // Adds /registerSW.js to index.html. Push needs an active worker (navigator.serviceWorker.ready).
       injectRegister: "script",
       manifest: {
-        name: "CatCheck",
-        short_name: "CatCheck",
+        name: "CATCHECK",
+        short_name: "CATCHECK",
         description: "Theo dõi sức khoẻ mèo qua cát vệ sinh đổi màu theo pH",
         theme_color: "#2F4FB2",
         background_color: "#FAF8FF",

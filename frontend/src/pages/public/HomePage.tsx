@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { useWelcomeScene } from "@/shared/lib/motion/usePageReveal";
-import welcomeLogo from "@/shared/assets/images/web-auth/logo.png";
+import welcomeLogo from "@/shared/assets/images/welcome-logo-lockup.png";
 import welcomeCat from "@/shared/assets/images/welcome-hero-cat.png";
 import iconShield from "@/shared/assets/icons/welcome/shield.svg";
 import iconScan from "@/shared/assets/icons/welcome/feature-scan.svg";
@@ -51,13 +51,13 @@ export function HomePage() {
           data-scene="copy"
           className="flex flex-col items-center pt-3 lg:col-start-1 lg:row-start-2 lg:items-start lg:pt-0"
         >
-          <img src={welcomeLogo} alt={t("app.name")} className="h-16 w-[96.09px] object-contain" />
-          <div className="flex items-center justify-center gap-1 pt-2 opacity-90 lg:justify-start">
-            <span className="text-[11px] font-semibold leading-[14px] tracking-[0.55px] text-primary-dark">
-              {t("welcome.slogan")}
-            </span>
-          </div>
-          <p className="pt-0.5 text-[11px] font-semibold italic leading-[14px] text-text-secondary">
+          {/* The lockup already carries the slogan, so it is sized to keep that line legible. */}
+          <img
+            src={welcomeLogo}
+            alt={`${t("app.name")}: ${t("welcome.slogan")}`}
+            className="h-auto w-[260px] lg:w-[300px]"
+          />
+          <p className="pt-2 text-[11px] font-semibold italic leading-[14px] text-text-secondary">
             {t("welcome.sloganVi")}
           </p>
         </div>
