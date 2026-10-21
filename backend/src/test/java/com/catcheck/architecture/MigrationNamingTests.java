@@ -81,7 +81,10 @@ class MigrationNamingTests {
                         "V33__community_comment_reaction.sql",
                         "V34__ai_rag_hybrid.sql",
                         "V35__ai_chunk_embedding.sql",
-                        "V36__shop_payos_payment.sql");
+                        "V36__shop_payos_payment.sql",
+                        "V37__seed_admin_seller_accounts.sql",
+                        "V38__add_quang_nam_clinics.sql",
+                        "V39__enrich_ai_knowledge_base.sql");
     }
 
     @Test
