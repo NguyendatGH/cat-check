@@ -484,6 +484,16 @@
     "notFound": "This care article is no longer published or the link is incorrect.",
     "reviewedAt": "Reviewed on {{date}}",
     "sourceLabel": "Reference:",
-    "disclaimer": "For reference only; it does not replace a veterinarian's diagnosis."
+    "disclaimer": "For reference only; it does not replace a veterinarian's diagnosis.",
+    "backToAssistant": "AI Assistant",
+    "backHome": "Home",
+    "category": "Cat Care Guide",
+    "verifiedByVet": "Reviewed by Veterinary Experts",
+    "readingTime": "{{minutes}} min read",
+    "askAiAboutThis": "Need more answers about your cat?",
+    "askAiDesc": "CatCheck AI Assistant can analyze pH trends and answer based on reviewed veterinary guides.",
+    "askAiButton": "Ask AI Assistant now",
+    "shareTip": "Share article",
+    "copied": "Article link copied!"
   }
 }

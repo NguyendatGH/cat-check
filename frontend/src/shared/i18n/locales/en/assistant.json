@@ -11,7 +11,8 @@
   "error": "Couldn't send your question. Please try again.",
   "selectCat": {
     "label": "Which cat are you asking about?",
-    "generalOption": "General question"
+    "generalOption": "General question",
+    "short": "About"
   },
   "askingAbout": "Asking about: {{name}}",
   "welcome": "Hi there! How can I help?",
@@ -30,5 +31,17 @@
   "jumpToLatest": "Latest message",
   "charCount": "{{count}}/{{max}}",
   "switchedTo": "Now asking about {{name}}",
-  "switchedGeneral": "Now asking a general question"
+  "switchedGeneral": "Now asking a general question",
+  "historyButton": "History",
+  "historyTitle": "Chat history",
+  "historyDescription": "Your previous conversations",
+  "newChat": "New chat",
+  "noHistory": "No chat history yet",
+  "noHistoryDesc": "Your conversations will appear here.",
+  "loadHistoryError": "Failed to load chat history",
+  "loadMessagesError": "Failed to load conversation messages",
+  "active": "Active",
+  "untitledConversation": "Conversation",
+  "creditDeductedTitle": "1 credit deducted",
+  "creditDeductedDesc": "You used 1 AI Assistant query. Remaining balance: {{balance}} credit(s)."
 }

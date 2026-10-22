@@ -11,7 +11,8 @@
   "error": "Không gửi được câu hỏi. Vui lòng thử lại.",
   "selectCat": {
     "label": "Hỏi về bé mèo nào?",
-    "generalOption": "Hỏi chung"
+    "generalOption": "Hỏi chung",
+    "short": "Hỏi về"
   },
   "askingAbout": "Đang hỏi về: {{name}}",
   "welcome": "Chào bạn! Mình có thể giúp gì?",
@@ -30,5 +31,17 @@
   "jumpToLatest": "Tin nhắn mới nhất",
   "charCount": "{{count}}/{{max}}",
   "switchedTo": "Đang hỏi về {{name}}",
-  "switchedGeneral": "Đang hỏi chung"
+  "switchedGeneral": "Đang hỏi chung",
+  "historyButton": "Lịch sử",
+  "historyTitle": "Lịch sử trò chuyện",
+  "historyDescription": "Danh sách các cuộc trò chuyện trước đây của bạn",
+  "newChat": "Cuộc trò chuyện mới",
+  "noHistory": "Chưa có lịch sử trò chuyện",
+  "noHistoryDesc": "Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây.",
+  "loadHistoryError": "Không thể tải lịch sử trò chuyện",
+  "loadMessagesError": "Không thể tải nội dung cuộc trò chuyện",
+  "active": "Đang trò chuyện",
+  "untitledConversation": "Cuộc trò chuyện",
+  "creditDeductedTitle": "Đã trừ 1 credit",
+  "creditDeductedDesc": "Bạn vừa dùng 1 lượt hỏi đáp với Trợ lý AI. Số dư còn lại: {{balance}} credit."
 }

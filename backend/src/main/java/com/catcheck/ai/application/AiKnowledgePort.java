@@ -1,5 +1,6 @@
 package com.catcheck.ai.application;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,6 +21,12 @@ public interface AiKnowledgePort {
     }
 
     record Conversation(UUID id, UUID userId) {
+    }
+
+    record ConversationSummary(UUID id, UUID userId, Instant createdAt, Instant updatedAt, String preview) {
+    }
+
+    record MessageItem(UUID id, UUID conversationId, String role, String content, String provider, Instant createdAt) {
     }
 
     /** Both candidate lists come from one database round trip; {@code vector} is empty without an embedding. */
@@ -59,6 +66,14 @@ public interface AiKnowledgePort {
     Optional<AiChatService.ChatResult> findReply(UUID userId, UUID requestKey);
 
     List<String[]> history(UUID conversationId, int limit);
+
+    default List<ConversationSummary> listConversations(UUID userId, int limit) {
+        return List.of();
+    }
+
+    default List<MessageItem> listMessages(UUID conversationId) {
+        return List.of();
+    }
 
     void saveCitations(UUID messageId, List<RetrievedChunk> chunks);
 

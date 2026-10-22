@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { AlertTriangle, ArrowLeft, ArrowRight, Banknote, MapPin, QrCode, ShoppingCart, X } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, MapPin, X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import {
   Dialog,
@@ -10,29 +9,16 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  EmptyState,
   ErrorState,
   SkeletonLoader,
   toast,
 } from "@/shared/ui";
-import { useClearCart, useShopCart, useShopPaymentMethods } from "@/features/shop";
-import { usePaymentMethodStore } from "./paymentMethodStore";
-import {
-  SHOP_PAYMENT_METHOD_IDS,
-  cartSavings,
-  exceedsStock,
-  formatVnd,
-  maxOrderQuantity,
-  type ShopPaymentMethodId,
-} from "./shopFormat";
+import { useClearCart, useShopCart } from "@/features/shop";
+import { EmptyCart } from "./EmptyCart";
+import { PaymentMethodPicker } from "./PaymentMethodPicker";
+import { cartSavings, exceedsStock, formatVnd, maxOrderQuantity } from "./shopFormat";
 import { ProductGlyph, QuantityStepper, ShippingFee } from "./shopUi";
 import { useCartLineActions } from "./useCartActions";
-
-
-const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon> = {
-  COD: Banknote,
-  PAYOS: QrCode,
-};
 
 function ClearCartButton() {
   const { t } = useTranslation("shop");
@@ -84,16 +70,6 @@ export function CartPage() {
   const navigate = useNavigate();
   const cartQuery = useShopCart();
   const { pendingProductId, isUpdating, setQuantity, remove } = useCartLineActions();
-  const paymentMethodId = usePaymentMethodStore((s) => s.paymentMethodId);
-  const setPaymentMethod = usePaymentMethodStore((s) => s.setPaymentMethod);
-  // COD only until the server confirms PayOS is configured (no keys ⇒ checkout with PAYOS would be a 503).
-  const serverMethods = useShopPaymentMethods().data ?? ["COD"];
-  const paymentMethodIds = SHOP_PAYMENT_METHOD_IDS.filter((id) => serverMethods.includes(id));
-  const paymentMethodOffered = paymentMethodIds.includes(paymentMethodId);
-  useEffect(() => {
-    if (!paymentMethodOffered) setPaymentMethod("COD");
-  }, [paymentMethodOffered, setPaymentMethod]);
-
   const cart = cartQuery.data;
   const lines = cart?.lines ?? [];
   const isEmpty = lines.length === 0;
@@ -108,14 +84,15 @@ export function CartPage() {
   return (
     <div className="flex flex-col gap-4 lg:gap-5">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2.5 text-[22px] font-bold text-text-primary lg:text-[26px]">
-          {t("cartPage.title")}
+        {/* Badge nằm ngoài h1: TaskLayout lấy chữ của h1 làm tiêu đề header mobile ("Giỏ hàng0 món"). */}
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-[22px] font-bold text-text-primary lg:text-[26px]">{t("cartPage.title")}</h1>
           {cart ? (
-            <span className="rounded-full bg-chip-bg px-2.5 py-0.5 text-[12px] font-semibold text-primary-dark">
+            <span className="hidden rounded-full bg-chip-bg px-2.5 py-0.5 text-[12px] font-semibold text-primary-dark lg:inline">
               {t("cartPage.count", { count: lines.length })}
             </span>
           ) : null}
-        </h1>
+        </div>
         <div className="flex items-center gap-3">
           <Link
             to="/shop"
@@ -145,20 +122,7 @@ export function CartPage() {
           className="rounded-2xl bg-surface shadow-brand-md"
         />
       ) : isEmpty ? (
-        <EmptyState
-          icon={<ShoppingCart size={22} />}
-          title={t("cartPage.empty")}
-          description={t("cartPage.emptyBody")}
-          action={
-            <Link
-              to="/shop"
-              className="inline-flex rounded-xl bg-primary-dark px-5 py-3 text-[13px] font-bold text-white hover:bg-primary"
-            >
-              {t("cartPage.emptyCta")}
-            </Link>
-          }
-          className="rounded-2xl bg-surface shadow-brand-md"
-        />
+        <EmptyCart />
       ) : (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
@@ -238,59 +202,7 @@ export function CartPage() {
               })}
             </ul>
 
-            <fieldset className="rounded-2xl bg-surface p-4 shadow-brand-md">
-              <legend className="contents">
-                <span className="text-[15px] font-bold text-text-primary">{t("cartPage.paymentTitle")}</span>
-              </legend>
-              <div className="flex flex-col gap-2.5 pt-3">
-                {paymentMethodIds.map((methodId) => {
-                  const Icon = PAYMENT_ICONS[methodId];
-                  const selected = paymentMethodId === methodId;
-                  return (
-                    <label
-                      key={methodId}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary",
-                        selected
-                          ? "border-primary-dark bg-chip-bg/40"
-                          : "border-border bg-surface hover:border-border-strong",
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="payment-method"
-                        value={methodId}
-                        checked={selected}
-                        onChange={() => {
-                          setPaymentMethod(methodId);
-                        }}
-                        className="sr-only"
-                      />
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark">
-                        <Icon size={18} aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-bold leading-snug text-text-primary">
-                          {t(`payment.methods.${methodId}.name`)}
-                        </span>
-                        <span className="block pt-0.5 text-[12px] leading-relaxed text-text-secondary">
-                          {t(`payment.methods.${methodId}.note`)}
-                        </span>
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                          selected ? "border-primary-dark" : "border-border-strong",
-                        )}
-                      >
-                        {selected ? <span className="size-2.5 rounded-full bg-primary-dark" /> : null}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
+            <PaymentMethodPicker title={t("cartPage.paymentTitle")} />
           </div>
 
           <div className="flex w-full flex-col gap-4 lg:sticky lg:top-20 lg:w-[360px] lg:shrink-0">

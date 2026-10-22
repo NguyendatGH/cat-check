@@ -61,3 +61,52 @@ export async function chatWithAssistant(
   }
   return (await response.json()) as AiChatResponse;
 }
+
+export interface AiConversationSummary {
+  id: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  preview: string | null;
+}
+
+export interface AiMessageItem {
+  id: string;
+  conversationId: string;
+  role: "USER" | "ASSISTANT";
+  content: string;
+  provider: string;
+  createdAt: string;
+}
+
+export async function fetchAiConversations(limit: number = 20): Promise<AiConversationSummary[]> {
+  const headers = new Headers({
+    Accept: "application/json",
+    "Accept-Language": currentAcceptLanguage(),
+  });
+  const response = await fetch(`/api/v1/ai/conversations?limit=${String(limit)}`, {
+    method: "GET",
+    credentials: "include",
+    headers,
+  });
+  if (!response.ok) {
+    throw new ApiError(`Failed to fetch conversations with status ${String(response.status)}`, response.status);
+  }
+  return (await response.json()) as AiConversationSummary[];
+}
+
+export async function fetchAiConversationMessages(conversationId: string): Promise<AiMessageItem[]> {
+  const headers = new Headers({
+    Accept: "application/json",
+    "Accept-Language": currentAcceptLanguage(),
+  });
+  const response = await fetch(`/api/v1/ai/conversations/${conversationId}/messages`, {
+    method: "GET",
+    credentials: "include",
+    headers,
+  });
+  if (!response.ok) {
+    throw new ApiError(`Failed to fetch messages with status ${String(response.status)}`, response.status);
+  }
+  return (await response.json()) as AiMessageItem[];
+}

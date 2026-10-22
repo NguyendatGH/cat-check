@@ -58,3 +58,22 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
+
+export interface ConsumeCreditResponse {
+  chargedCredits: number;
+  balanceAfter: number;
+}
+
+export interface ConsumeCreditParams {
+  credits?: number;
+  idempotencyKey?: string;
+  note?: string;
+}
+
+export async function consumeCredit(params?: ConsumeCreditParams): Promise<ConsumeCreditResponse> {
+  return apiFetch<ConsumeCreditResponse>("/credits/consume", {
+    method: "POST",
+    body: JSON.stringify(params ?? { credits: 1 }),
+  });
+}
+

@@ -1,4 +1,4 @@
-import { Fragment, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Camera, Check, ChevronDown, ChevronLeft, Search, Trash2 } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogTitle, DialogTrigger, Input } from "@/shared/ui";
@@ -745,7 +745,7 @@ export function toCanonicalCode(value: string): string {
 }
 
 
-const BOTTOM_THRESHOLD_PX = 8;
+const BOTTOM_THRESHOLD_PX = 24;
 
 interface DisclaimerScrollProps {
   children: ReactNode;
@@ -756,23 +756,56 @@ export function DisclaimerScroll({ children, onReachBottom }: DisclaimerScrollPr
   const { t } = useTranslation("onboarding");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [reachedBottom, setReachedBottom] = useState(false);
+  const onReachBottomRef = useRef(onReachBottom);
+  onReachBottomRef.current = onReachBottom;
 
-  const handleScroll = () => {
+  const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const isNotScrollable = el.scrollHeight <= el.clientHeight + BOTTOM_THRESHOLD_PX;
     const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceToBottom <= BOTTOM_THRESHOLD_PX && !reachedBottom) {
+    const isAtBottom = distanceToBottom <= BOTTOM_THRESHOLD_PX;
+
+    if (isNotScrollable || isAtBottom) {
       setReachedBottom(true);
-      onReachBottom();
+      onReachBottomRef.current();
+    }
+  }, []);
+
+  const handleScroll = () => {
+    if (!reachedBottom) {
+      checkScroll();
     }
   };
+
+  useEffect(() => {
+    checkScroll();
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(() => {
+        checkScroll();
+      });
+      ro.observe(el);
+      return () => {
+        ro.disconnect();
+      };
+    }
+
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll]);
 
   return (
     <div className="flex flex-col gap-3">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="max-h-[50dvh] overflow-y-auto rounded-xl border border-border bg-surface p-4"
+        className="max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-4 focus-visible:outline-2 focus-visible:outline-primary"
         role="region"
         aria-label={t("disclaimer.title")}
       >

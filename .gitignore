@@ -70,3 +70,7 @@ backend/data/
 # ---- Agent skills là repo riêng, không nhúng vào repo chính ----
 agent-skills/
 archived/
+*.md
+.claude
+.superpowers
+.agents/rules/
