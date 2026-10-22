@@ -14,16 +14,17 @@
     "denied": "Location permission not granted, so all places are shown. Allow location in your browser to see distances.",
     "unavailable": "Couldn't get your location, so all places are shown. Check your GPS and try again.",
     "manual": "Allow your browser to share your location to see the distance to each place.",
-    "nearbyLoading": "Looking for vet clinics near you on OpenStreetMap…",
-    "nearbyFound": "Found {{count}} more vet clinics near you from OpenStreetMap.",
-    "nearbyNone": "No additional vet clinics found within {{radius}} km on OpenStreetMap.",
+    "nearbyLoading": "Looking for vet clinics near you…",
+    "nearbyFound": "Found {{count}} more vet clinics near you.",
+    "nearbyNone": "No additional vet clinics found within {{radius}} km.",
     "moreOnGoogle": "Find more near you on Google Maps",
     "googleSearchQuery": "veterinary clinic",
-    "nearbyError": "Couldn't look up clinics near you on OpenStreetMap; showing the CatCheck list."
+    "nearbyError": "Couldn't look up clinics near you; showing the CatCheck list."
   },
   "source": {
     "osm": "OpenStreetMap",
-    "osmNote": "From OpenStreetMap community data, not verified by CatCheck. Directions and calling only; booking through CatCheck isn't available yet."
+    "goong": "Goong",
+    "externalNote": "From {{provider}} map data, not verified by CatCheck. Directions and calling only; booking through CatCheck isn't available yet."
   },
   "search": {
     "placeholder": "Enter a ward, district or place name…",
@@ -49,7 +50,7 @@
     "currentLocation": "Your current location",
     "recenter": "Back to current location",
     "pinLabel": "Select {{name}} on the map",
-    "attribution": "Map uses OpenStreetMap data; pins come from coordinates in CatCheck's place list and from vet clinics near you recorded by the OpenStreetMap community."
+    "attribution": "Map uses OpenStreetMap data; pins come from coordinates in CatCheck's place list and from vet clinics near you in OpenStreetMap and Goong data."
   },
   "rating": {
     "empty": "No reviews yet",

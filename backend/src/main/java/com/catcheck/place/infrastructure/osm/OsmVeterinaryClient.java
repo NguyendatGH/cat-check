@@ -3,6 +3,7 @@ package com.catcheck.place.infrastructure.osm;
 import com.catcheck.place.domain.ExternalPlace;
 import com.catcheck.place.domain.port.NearbyPlaceSource;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -16,14 +17,19 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+// Order 1: khi trùng với nguồn khác, giữ bản OSM (có số điện thoại, giờ mở cửa).
 @Component
+@Order(1)
 public class OsmVeterinaryClient implements NearbyPlaceSource {
     public static final String ID_PREFIX = "osm:";
+    public static final String SOURCE = "OSM";
     private static final List<String> ENDPOINTS = List.of(
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter");
-    private static final Duration TTL = Duration.ofHours(1);
+    private static final Duration TTL = Duration.ofHours(24);
     private static final int MAX_CACHE = 500;
+    // Overpass lỗi thì nghỉ một lúc: tránh mỗi request lại đợi + dội thêm tải lên server đang quá tải.
+    private static final Duration COOL_DOWN = Duration.ofMinutes(5);
 
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OsmVeterinaryClient.class);
 
@@ -36,6 +42,8 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
             .build();
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
     private final java.time.Clock clock;
+    private volatile Instant upstreamDownUntil = Instant.MIN;
+    private final java.util.Set<String> inFlight = ConcurrentHashMap.newKeySet();
 
     public OsmVeterinaryClient(java.time.Clock clock) { this.clock = clock; }
 
@@ -48,24 +56,34 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
 
     @Override
     public List<ExternalPlace> nearby(double latitude, double longitude, long radiusMeters) {
-        double lat = Math.round(latitude * 100.0) / 100.0;
-        double lon = Math.round(longitude * 100.0) / 100.0;
+        double lat = NearbyPlaceSource.snap(latitude);
+        double lon = NearbyPlaceSource.snap(longitude);
         int radius = Math.clamp(radiusMeters, MIN_RADIUS_METERS, MAX_RADIUS_METERS);
         String key = String.format(Locale.ROOT, "%.2f,%.2f,%d", lat, lon, radius);
         Cached hit = cache.get(key);
         if (hit != null && hit.at().plus(TTL).isAfter(clock.instant())) return hit.places();
+        if (clock.instant().isBefore(upstreamDownUntil)) return staleOrFail(hit);
+        // Lượt tra trước cho ô này còn chạy (Overpass có thể mất cả phút): không gọi trùng, không bắt request này đợi.
+        if (!inFlight.add(key)) return staleOrFail(hit);
         List<ExternalPlace> places;
         try {
             places = fetchWithRetry(lat, lon, radius);
         } catch (RuntimeException e) {
             LOG.warn("Overpass lookup failed: {}", e.getClass().getSimpleName());
-            if (hit != null) return hit.places();
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_GATEWAY, "OSM_LOOKUP_FAILED");
+            upstreamDownUntil = clock.instant().plus(COOL_DOWN);
+            return staleOrFail(hit);
+        } finally {
+            inFlight.remove(key);
         }
         if (cache.size() >= MAX_CACHE) cache.clear();
         cache.put(key, new Cached(clock.instant(), places));
         return places;
+    }
+
+    private static List<ExternalPlace> staleOrFail(Cached hit) {
+        if (hit != null) return hit.places();
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_GATEWAY, "OSM_LOOKUP_FAILED");
     }
 
     private List<ExternalPlace> fetchWithRetry(double lat, double lon, int radius) {
@@ -122,7 +140,7 @@ public class OsmVeterinaryClient implements NearbyPlaceSource {
             boolean allDay = "24/7".equals(text(tags.get("opening_hours")));
             out.add(new ExternalPlace(ID_PREFIX + el.get("type") + "/" + el.get("id"), name, "CLINIC",
                     address, area == null ? "" : area, plat, plon, phone,
-                    allDay ? List.of("24/7") : List.of()));
+                    allDay ? List.of("24/7") : List.of(), SOURCE));
         }
         return out;
     }
