@@ -185,7 +185,7 @@ class PlaceControllerTest {
 
     private MockMvc mvcWithUpstream(NearbyPlaceSource source) {
         return AdminApiMockMvc.build(new PlaceController(
-                new PlaceService(Mockito.mock(PlaceRepository.class), source), messageResolver));
+                new PlaceService(Mockito.mock(PlaceRepository.class), java.util.List.of(source)), messageResolver));
     }
 
     private static MessageResolver unnamedMessageResolver() {

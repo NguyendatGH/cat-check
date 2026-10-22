@@ -14,16 +14,17 @@
     "denied": "Chưa có quyền vị trí nên đang hiển thị mọi cơ sở. Cho phép vị trí trong trình duyệt để xem khoảng cách.",
     "unavailable": "Không lấy được vị trí, đang hiển thị mọi cơ sở. Kiểm tra GPS rồi thử lại.",
     "manual": "Cho phép trình duyệt chia sẻ vị trí để xem khoảng cách tới từng cơ sở.",
-    "nearbyLoading": "Đang tìm phòng khám thú y quanh bạn trên OpenStreetMap…",
-    "nearbyFound": "Có thêm {{count}} phòng khám thú y quanh bạn từ OpenStreetMap.",
-    "nearbyNone": "Không tìm thấy thêm phòng khám thú y nào trong bán kính {{radius}} km trên OpenStreetMap.",
+    "nearbyLoading": "Đang tìm phòng khám thú y quanh bạn…",
+    "nearbyFound": "Có thêm {{count}} phòng khám thú y quanh bạn.",
+    "nearbyNone": "Không tìm thấy thêm phòng khám thú y nào trong bán kính {{radius}} km.",
     "moreOnGoogle": "Tìm thêm quanh bạn trên Google Maps",
     "googleSearchQuery": "phòng khám thú y",
-    "nearbyError": "Chưa tra được phòng khám quanh bạn trên OpenStreetMap, đang hiển thị danh sách CatCheck."
+    "nearbyError": "Chưa tra được phòng khám quanh bạn, đang hiển thị danh sách CatCheck."
   },
   "source": {
     "osm": "OpenStreetMap",
-    "osmNote": "Cơ sở từ dữ liệu cộng đồng OpenStreetMap, CatCheck chưa xác minh. Chỉ có chỉ đường và gọi điện, chưa đặt lịch qua CatCheck."
+    "goong": "Goong",
+    "externalNote": "Cơ sở từ dữ liệu bản đồ {{provider}}, CatCheck chưa xác minh. Chỉ có chỉ đường và gọi điện, chưa đặt lịch qua CatCheck."
   },
   "search": {
     "placeholder": "Nhập phường, quận hoặc tên cơ sở…",
@@ -49,7 +50,7 @@
     "currentLocation": "Vị trí hiện tại của bạn",
     "recenter": "Về vị trí hiện tại",
     "pinLabel": "Chọn {{name}} trên bản đồ",
-    "attribution": "Bản đồ dùng dữ liệu OpenStreetMap; ghim lấy từ toạ độ trong danh sách cơ sở của CatCheck và phòng khám thú y quanh bạn do cộng đồng OpenStreetMap ghi nhận."
+    "attribution": "Bản đồ dùng dữ liệu OpenStreetMap; ghim lấy từ toạ độ trong danh sách cơ sở của CatCheck và phòng khám thú y quanh bạn từ dữ liệu OpenStreetMap và Goong."
   },
   "rating": {
     "empty": "Chưa có đánh giá",
