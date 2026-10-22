@@ -9,12 +9,39 @@ const chat = vi.hoisted(() => ({
   fetchAiConversationMessages: vi.fn(),
 }));
 
+const creditMock = vi.hoisted(() => ({
+  consumeCredit: vi.fn(),
+}));
+
+const notificationMock = vi.hoisted(() => ({
+  info: vi.fn(),
+}));
+
 vi.mock("@/features/assistant", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/assistant")>()),
   chatWithAssistant: chat.chatWithAssistant,
   fetchAiConversations: chat.fetchAiConversations,
   fetchAiConversationMessages: chat.fetchAiConversationMessages,
 }));
+
+vi.mock("@/features/credit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/credit")>()),
+  consumeCredit: creditMock.consumeCredit,
+}));
+
+vi.mock("antd", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("antd")>()),
+  notification: {
+    info: notificationMock.info,
+  },
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({
+    invalidateQueries: vi.fn(),
+  }),
+}));
+
 vi.mock("@/features/cat", () => ({
   useCatList: () => ({
     data: {
@@ -46,6 +73,12 @@ beforeEach(() => {
   chat.fetchAiConversations.mockResolvedValue([]);
   chat.fetchAiConversationMessages.mockReset();
   chat.fetchAiConversationMessages.mockResolvedValue([]);
+  creditMock.consumeCredit.mockReset();
+  creditMock.consumeCredit.mockResolvedValue({
+    chargedCredits: 1,
+    balanceAfter: 9,
+  });
+  notificationMock.info.mockReset();
 });
 
 afterEach(() => {
@@ -239,4 +272,56 @@ describe("AssistantPage — đổi bé trong lúc trò chuyện", () => {
     });
     container.remove();
   });
+
+  it("trừ 1 credit và hiển thị antd notification sau khi AI trả lời hiển thị trên giao diện", async () => {
+    creditMock.consumeCredit.mockResolvedValue({
+      chargedCredits: 1,
+      balanceAfter: 8,
+    });
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<AssistantPage />);
+      await Promise.resolve();
+    });
+
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(textarea, "Mèo bị ốm?");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const button = container.querySelector('button[aria-label="send"]') as HTMLButtonElement;
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+
+    // Xác nhận response của AI đã hiển thị trên giao diện
+    expect(container.textContent).toContain("Trả lời");
+
+    // Xác nhận consumeCredit đã được gọi với 1 credit
+    expect(creditMock.consumeCredit).toHaveBeenCalledWith(
+      expect.objectContaining({ credits: 1 }),
+    );
+
+    // Xác nhận antd notification.info đã được gọi
+    expect(notificationMock.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        placement: "topRight",
+      }),
+    );
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });
+

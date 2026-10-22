@@ -1,5 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api";
 import { CareTipPage } from "./CareTipPage";
@@ -26,7 +27,11 @@ function render(query: Record<string, unknown>): HTMLDivElement {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   const container = document.createElement("div");
   act(() => {
-    createRoot(container).render(<CareTipPage />);
+    createRoot(container).render(
+      <MemoryRouter>
+        <CareTipPage />
+      </MemoryRouter>,
+    );
   });
   return container;
 }

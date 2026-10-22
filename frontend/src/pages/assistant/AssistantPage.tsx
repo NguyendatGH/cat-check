@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp, History, Plus, Users } from "lucide-react";
+import { notification } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api/errors";
 import {
@@ -17,6 +19,7 @@ import {
 } from "@/features/assistant";
 import { CatAvatar } from "@/entities/cat";
 import { useCatList } from "@/features/cat";
+import { consumeCredit, creditKeys } from "@/features/credit";
 import { AssistantHistoryDrawer } from "./AssistantHistoryDrawer";
 
 const MAX_LENGTH = 4000;
@@ -41,6 +44,7 @@ function prefersReducedMotion() {
 
 export function AssistantPage() {
   const { t } = useTranslation("assistant");
+  const queryClient = useQueryClient();
   const { data: catListData } = useCatList("ACTIVE");
   const catItems = catListData?.items;
   const cats = useMemo(() => catItems ?? [], [catItems]);
@@ -207,7 +211,26 @@ export function AssistantPage() {
     try {
       const response = await chatWithAssistant(text, conversationId, selectedCatId || undefined, requestKey);
       setConversationId(response.conversationId);
+      // Hiển thị câu trả lời của AI trên giao diện trước
       setTurns((current) => [...current, { id: nextId(), kind: "assistant", response }]);
+      setPending(false);
+
+      // Khi người dùng đã nhận được response của AI trên giao diện, thực hiện trừ 1 credit và thông báo
+      try {
+        const deduction = await consumeCredit({ credits: 1, note: "AI Chat Assistant" });
+        void queryClient.invalidateQueries({ queryKey: creditKeys.balance() });
+        void queryClient.invalidateQueries({ queryKey: creditKeys.ledger() });
+        notification.info({
+          message: t("creditDeductedTitle", "Đã trừ 1 credit"),
+          description: t("creditDeductedDesc", {
+            defaultValue: `Bạn vừa dùng 1 lượt hỏi đáp với Trợ lý AI. Số dư còn lại: ${String(deduction.balanceAfter)} credit.`,
+            balance: deduction.balanceAfter,
+          }),
+          placement: "topRight",
+        });
+      } catch (creditErr) {
+        console.error("Failed to deduct credit:", creditErr);
+      }
     } catch (cause) {
       const detail = isApiError(cause) && cause.status < 500 && cause.code ? cause.message : t("error");
       setTurns((current) =>

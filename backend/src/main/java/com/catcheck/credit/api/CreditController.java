@@ -3,11 +3,14 @@ package com.catcheck.credit.api;
 import com.catcheck.credit.api.dto.ActivateCreditCodeRequest;
 import com.catcheck.credit.api.dto.ActivationResponse;
 import com.catcheck.credit.api.dto.BalanceResponse;
+import com.catcheck.credit.api.dto.ConsumeCreditRequest;
+import com.catcheck.credit.api.dto.ConsumeCreditResponse;
 import com.catcheck.credit.api.dto.EntitlementResponse;
 import com.catcheck.credit.api.dto.LedgerPageResponse;
 import com.catcheck.credit.api.dto.PackagePlanListResponse;
 import com.catcheck.credit.api.dto.PackagePlanResponse;
 import com.catcheck.credit.application.ActivateCreditCodeService;
+import com.catcheck.credit.application.ConsumeCreditService;
 import com.catcheck.credit.application.CreditBalanceService;
 import com.catcheck.credit.application.CreditLedgerHistoryService;
 import com.catcheck.credit.application.EntitlementService;
@@ -40,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 public class CreditController {
 
     private final ActivateCreditCodeService activateCreditCodeService;
+    private final ConsumeCreditService consumeCreditService;
     private final CreditBalanceService creditBalanceService;
     private final CreditLedgerHistoryService creditLedgerHistoryService;
     private final EntitlementService entitlementService;
@@ -47,12 +51,14 @@ public class CreditController {
 
     public CreditController(
             ActivateCreditCodeService activateCreditCodeService,
+            ConsumeCreditService consumeCreditService,
             CreditBalanceService creditBalanceService,
             CreditLedgerHistoryService creditLedgerHistoryService,
             EntitlementService entitlementService,
             PackageCatalogService packageCatalogService
     ) {
         this.activateCreditCodeService = activateCreditCodeService;
+        this.consumeCreditService = consumeCreditService;
         this.creditBalanceService = creditBalanceService;
         this.creditLedgerHistoryService = creditLedgerHistoryService;
         this.entitlementService = entitlementService;
@@ -111,6 +117,26 @@ public class CreditController {
     @GetMapping("/credits/balance")
     public BalanceResponse balance(@CurrentUser SecurityPrincipal user) {
         return BalanceResponse.from(creditBalanceService.balanceOf(user.userId()));
+    }
+
+    @Operation(
+            operationId = "consumeCredit",
+            summary = "Trừ credit khi sử dụng dịch vụ (AI Chat, v.v.)",
+            description = """
+                    Trừ credit của người dùng theo nguyên tắc FEFO. Yêu cầu có đủ credit khả dụng.""")
+    @PostMapping("/credits/consume")
+    public ResponseEntity<ConsumeCreditResponse> consume(
+            @CurrentUser SecurityPrincipal user,
+            @Valid @RequestBody(required = false) ConsumeCreditRequest request) {
+
+        int credits = (request != null && request.credits() != null) ? request.credits() : 1;
+        String idempotencyKey = (request != null) ? request.idempotencyKey() : null;
+        String note = (request != null) ? request.note() : null;
+
+        com.catcheck.credit.api.CreditConsumption.CreditCharge charge = consumeCreditService.consume(
+                user.userId(), credits, idempotencyKey, note);
+
+        return ResponseEntity.ok(new ConsumeCreditResponse(charge.chargedCredits(), charge.balanceAfter()));
     }
 
     @Operation(

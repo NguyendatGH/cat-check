@@ -41,5 +41,7 @@
   "loadHistoryError": "Failed to load chat history",
   "loadMessagesError": "Failed to load conversation messages",
   "active": "Active",
-  "untitledConversation": "Conversation"
+  "untitledConversation": "Conversation",
+  "creditDeductedTitle": "1 credit deducted",
+  "creditDeductedDesc": "You used 1 AI Assistant query. Remaining balance: {{balance}} credit(s)."
 }

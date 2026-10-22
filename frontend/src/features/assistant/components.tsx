@@ -31,7 +31,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   );
 }
 
-// Lightweight formatting for bullet/numbered lists and **bold**; never injects HTML.
+// Lightweight formatting for bullet/numbered lists, **bold**, headings, and dividers; never injects HTML.
 export function RichText({ text }: { text: string }) {
   const blocks: ReactNode[] = [];
   let list: { ordered: boolean; items: string[] } | null = null;
@@ -58,6 +58,48 @@ export function RichText({ text }: { text: string }) {
 
   text.split("\n").forEach((raw) => {
     const line = raw.trimEnd();
+
+    // Markdown horizontal divider (---, ***, ___)
+    if (/^\s*[-*_]{3,}\s*$/.test(line)) {
+      flush();
+      const key = `hr-${String(blocks.length)}`;
+      blocks.push(<hr key={key} className="my-1.5 border-t border-border/50" />);
+      return;
+    }
+
+    // Markdown headings (# Title, ## Title, ### Title)
+    const headingMatch = /^\s*#{1,6}\s+(.*)$/.exec(line);
+    if (headingMatch) {
+      flush();
+      const key = `h-${String(blocks.length)}`;
+      blocks.push(
+        <p key={key} className="font-bold text-text-primary text-[15px] pt-1">
+          {renderInline(headingMatch[1], key)}
+        </p>,
+      );
+      return;
+    }
+
+    // Markdown table divider row (|---|---|) -> ignore
+    if (/^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(line)) {
+      return;
+    }
+
+    // Markdown table row (| Col 1 | Col 2 |) -> convert to clean formatted list item
+    const tableRowMatch = /^\s*\|(.*)\|\s*$/.exec(line);
+    if (tableRowMatch) {
+      const cells = tableRowMatch[1]
+        .split("|")
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0);
+      if (cells.length > 0) {
+        if (list && list.ordered) flush();
+        list ??= { ordered: false, items: [] };
+        list.items.push(cells.join(" — "));
+        return;
+      }
+    }
+
     const bullet = /^\s*[-*•]\s+(.*)$/.exec(line);
     const numbered = /^\s*\d+[.)]\s+(.*)$/.exec(line);
     if (bullet || numbered) {

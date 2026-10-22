@@ -17,7 +17,8 @@ export {
   useEntitlement,
   usePackageCatalog,
 } from "./hooks";
-export { apiFetch } from "./api";
+export { apiFetch, consumeCredit } from "./api";
+export type { ConsumeCreditParams, ConsumeCreditResponse } from "./api";
 export { WelcomeBonusCelebration } from "./WelcomeBonusCelebration";
 export {
   WELCOME_PACKAGE_CODE,
