@@ -1,5 +1,5 @@
-export { chatWithAssistant } from "./api";
-export type { AiChatResponse, AiCitation } from "./api";
+export { chatWithAssistant, fetchAiConversations, fetchAiConversationMessages } from "./api";
+export type { AiChatResponse, AiCitation, AiConversationSummary, AiMessageItem } from "./api";
 export {
   AssistantAvatar,
   AssistantBubble,

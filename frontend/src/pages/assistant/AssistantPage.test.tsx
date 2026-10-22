@@ -3,12 +3,45 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssistantPage } from "./AssistantPage";
 
-const chat = vi.hoisted(() => ({ chatWithAssistant: vi.fn() }));
+const chat = vi.hoisted(() => ({
+  chatWithAssistant: vi.fn(),
+  fetchAiConversations: vi.fn(),
+  fetchAiConversationMessages: vi.fn(),
+}));
+
+const creditMock = vi.hoisted(() => ({
+  consumeCredit: vi.fn(),
+}));
+
+const notificationMock = vi.hoisted(() => ({
+  info: vi.fn(),
+}));
 
 vi.mock("@/features/assistant", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/assistant")>()),
   chatWithAssistant: chat.chatWithAssistant,
+  fetchAiConversations: chat.fetchAiConversations,
+  fetchAiConversationMessages: chat.fetchAiConversationMessages,
 }));
+
+vi.mock("@/features/credit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/credit")>()),
+  consumeCredit: creditMock.consumeCredit,
+}));
+
+vi.mock("antd", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("antd")>()),
+  notification: {
+    info: notificationMock.info,
+  },
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({
+    invalidateQueries: vi.fn(),
+  }),
+}));
+
 vi.mock("@/features/cat", () => ({
   useCatList: () => ({
     data: {
@@ -19,9 +52,10 @@ vi.mock("@/features/cat", () => ({
     },
   }),
 }));
+const tMock = (key: string) => key;
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
-  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "vi" } }),
+  useTranslation: () => ({ t: tMock, i18n: { language: "vi" } }),
 }));
 
 beforeEach(() => {
@@ -35,6 +69,16 @@ beforeEach(() => {
     citations: [],
     createdAt: "2026-10-10T00:00:00Z",
   });
+  chat.fetchAiConversations.mockReset();
+  chat.fetchAiConversations.mockResolvedValue([]);
+  chat.fetchAiConversationMessages.mockReset();
+  chat.fetchAiConversationMessages.mockResolvedValue([]);
+  creditMock.consumeCredit.mockReset();
+  creditMock.consumeCredit.mockResolvedValue({
+    chargedCredits: 1,
+    balanceAfter: 9,
+  });
+  notificationMock.info.mockReset();
 });
 
 afterEach(() => {
@@ -152,4 +196,132 @@ describe("AssistantPage — đổi bé trong lúc trò chuyện", () => {
     });
     container.remove();
   });
+
+  it("khôi phục tin nhắn khi chọn một cuộc trò chuyện từ lịch sử", async () => {
+    chat.fetchAiConversations.mockResolvedValue([
+      {
+        id: "conv-old",
+        userId: "u1",
+        createdAt: "2026-10-10T00:00:00Z",
+        updatedAt: "2026-10-10T00:05:00Z",
+        preview: "Mèo bị nôn",
+      },
+    ]);
+    chat.fetchAiConversationMessages.mockResolvedValue([
+      {
+        id: "msg-1",
+        conversationId: "conv-old",
+        role: "USER",
+        content: "Mèo bị nôn làm sao?",
+        provider: "",
+        createdAt: "2026-10-10T00:00:00Z",
+      },
+      {
+        id: "msg-2",
+        conversationId: "conv-old",
+        role: "ASSISTANT",
+        content: "Hãy quan sát thêm",
+        provider: "retrieval-fallback",
+        createdAt: "2026-10-10T00:00:05Z",
+      },
+    ]);
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<AssistantPage />);
+      await Promise.resolve();
+    });
+
+    const historyBtn = container.querySelector('button[aria-label="historyButton"]') as HTMLButtonElement;
+    expect(historyBtn).not.toBeNull();
+
+    await act(async () => {
+      historyBtn.click();
+      await Promise.resolve();
+    });
+
+    expect(chat.fetchAiConversations).toHaveBeenCalled();
+
+    // Settle drawer content
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    const convButton = Array.from(document.body.querySelectorAll("button")).find((btn) =>
+      btn.textContent.includes("Mèo bị nôn"),
+    );
+    expect(convButton).toBeDefined();
+
+    await act(async () => {
+      convButton?.click();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+
+    expect(chat.fetchAiConversationMessages).toHaveBeenCalledWith("conv-old");
+    expect(container.textContent).toContain("Mèo bị nôn làm sao?");
+    expect(container.textContent).toContain("Hãy quan sát thêm");
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("trừ 1 credit và hiển thị antd notification sau khi AI trả lời hiển thị trên giao diện", async () => {
+    creditMock.consumeCredit.mockResolvedValue({
+      chargedCredits: 1,
+      balanceAfter: 8,
+    });
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<AssistantPage />);
+      await Promise.resolve();
+    });
+
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(textarea, "Mèo bị ốm?");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const button = container.querySelector('button[aria-label="send"]') as HTMLButtonElement;
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+
+    // Xác nhận response của AI đã hiển thị trên giao diện
+    expect(container.textContent).toContain("Trả lời");
+
+    // Xác nhận consumeCredit đã được gọi với 1 credit
+    expect(creditMock.consumeCredit).toHaveBeenCalledWith(
+      expect.objectContaining({ credits: 1 }),
+    );
+
+    // Xác nhận antd notification.info đã được gọi
+    expect(notificationMock.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        placement: "topRight",
+      }),
+    );
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });
+

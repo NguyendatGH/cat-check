@@ -4,18 +4,15 @@ import { Link, useNavigate } from "react-router";
 import {
   AlertTriangle,
   ArrowLeft,
-  Banknote,
   Loader2,
   Lock,
   MapPin,
   Navigation,
-  QrCode,
   ShoppingCart,
   Tag,
   Ticket,
   X,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
 import { EmptyState, ErrorState, Input, SkeletonLoader, toast } from "@/shared/ui";
@@ -29,7 +26,8 @@ import {
   type CheckoutFormValues,
 } from "./checkoutForm";
 import { usePaymentMethodStore } from "./paymentMethodStore";
-import { exceedsStock, formatVnd, nextStepAfterOrder, type ShopPaymentMethodId } from "./shopFormat";
+import { PaymentMethodPicker } from "./PaymentMethodPicker";
+import { exceedsStock, formatVnd, nextStepAfterOrder } from "./shopFormat";
 import { ProductGlyph, ShippingFee } from "./shopUi";
 
 export interface PromoCodeDef {
@@ -45,16 +43,40 @@ export const PROMO_LIST: PromoCodeDef[] = [
   { code: "CATFRIEND", label: "Giảm 20.000đ", type: "FIXED", amount: 20000 },
 ];
 
-export const PROMO_CODES: Record<string, PromoCodeDef> = Object.fromEntries(
-  PROMO_LIST.map((p) => [p.code, p]),
-);
+export const PROMO_CODES: Record<string, PromoCodeDef> = Object.fromEntries(PROMO_LIST.map((p) => [p.code, p]));
 
 const SAVED_CHECKOUT_KEY = "catcheck_saved_shipping_info";
 
-const PAYMENT_ICONS: Record<ShopPaymentMethodId, LucideIcon> = {
-  COD: Banknote,
-  PAYOS: QrCode,
-};
+// Nháp đang điền (kể cả mã giảm giá) sống qua lần tải lại trang, mất khi đóng tab; khác với "lưu cho lần sau".
+const CHECKOUT_DRAFT_KEY = "catcheck_checkout_draft";
+
+type CheckoutDraft = CheckoutFormValues & { promoCode?: string };
+
+function readStored<T>(storage: () => Storage, key: string): Partial<T> | null {
+  try {
+    const raw = storage().getItem(key);
+    return raw ? (JSON.parse(raw) as Partial<T>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function initialValues(displayName: string): CheckoutFormValues {
+  const draft = readStored<CheckoutDraft>(() => sessionStorage, CHECKOUT_DRAFT_KEY);
+  if (draft) {
+    return {
+      receiverName: draft.receiverName ?? displayName,
+      receiverPhone: draft.receiverPhone ?? "",
+      shippingAddress: draft.shippingAddress ?? "",
+    };
+  }
+  const saved = readStored<CheckoutFormValues>(() => localStorage, SAVED_CHECKOUT_KEY);
+  return {
+    receiverName: saved?.receiverName || displayName,
+    receiverPhone: saved?.receiverPhone || "",
+    shippingAddress: saved?.shippingAddress || "",
+  };
+}
 
 const FIELD_ORDER: CheckoutField[] = ["receiverName", "receiverPhone", "shippingAddress"];
 
@@ -77,16 +99,15 @@ export function CheckoutPage() {
   const createOrder = useCreateOrder();
   const paymentMethodId = usePaymentMethodStore((s) => s.paymentMethodId);
   const displayName = useSessionStore((s) => s.user?.displayName ?? "");
-  const [values, setValues] = useState<CheckoutFormValues>({
-    receiverName: displayName,
-    receiverPhone: "",
-    shippingAddress: "",
-  });
+  const [values, setValues] = useState<CheckoutFormValues>(() => initialValues(displayName));
   const [touched, setTouched] = useState<Partial<Record<CheckoutField, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [promoInput, setPromoInput] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<PromoCodeDef | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<PromoCodeDef | null>(() => {
+    const code = readStored<CheckoutDraft>(() => sessionStorage, CHECKOUT_DRAFT_KEY)?.promoCode;
+    return (code && PROMO_CODES[code]) || null;
+  });
   const [promoError, setPromoError] = useState<string | null>(null);
   const [saveInfo, setSaveInfo] = useState(() => {
     try {
@@ -99,24 +120,14 @@ export function CheckoutPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const addressId = useId();
 
-  // Load saved shipping information on mount if present
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(SAVED_CHECKOUT_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<CheckoutFormValues>;
-        if (parsed.receiverName || parsed.receiverPhone || parsed.shippingAddress) {
-          setValues((prev) => ({
-            receiverName: parsed.receiverName || prev.receiverName,
-            receiverPhone: parsed.receiverPhone || prev.receiverPhone,
-            shippingAddress: parsed.shippingAddress || prev.shippingAddress,
-          }));
-        }
-      }
+      const draft: CheckoutDraft = { ...values, promoCode: appliedPromo?.code };
+      sessionStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft));
     } catch {
-      // Ignore localStorage errors
+      // Ignore storage errors
     }
-  }, []);
+  }, [values, appliedPromo]);
 
   const cart = cartQuery.data;
   const lines = cart?.lines ?? [];
@@ -240,6 +251,11 @@ export function CheckoutPage() {
       },
       {
         onSuccess: (order) => {
+          try {
+            sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+          } catch {
+            // Ignore storage errors
+          }
           const next = nextStepAfterOrder(order);
           if (next.kind === "redirect") window.location.assign(next.url);
           else void navigate(next.path, { replace: true, state: { justPlaced: true } });
@@ -248,14 +264,13 @@ export function CheckoutPage() {
     );
   };
 
-  const MethodIcon = PAYMENT_ICONS[paymentMethodId];
-
   const header = (
     <div className="flex items-center justify-between gap-3">
       <h1 className="text-[22px] font-bold text-text-primary lg:text-[26px]">{t("checkout.title")}</h1>
+      {/* Mobile: TaskLayout đã có nút quay lại ở header. */}
       <Link
         to="/cart"
-        className="flex items-center gap-1.5 text-[12px] font-semibold text-primary-dark hover:underline"
+        className="hidden items-center gap-1.5 text-[12px] font-semibold text-primary-dark hover:underline lg:flex"
       >
         <ArrowLeft size={14} aria-hidden="true" />
         {t("checkout.back")}
@@ -422,30 +437,7 @@ export function CheckoutPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl bg-surface p-4 shadow-brand-md md:p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[15px] font-bold text-text-primary">{t("checkout.paymentMethodLabel")}</h2>
-              <Link
-                to="/cart"
-                className="rounded-lg px-2 py-1 text-[12px] font-semibold text-primary-dark hover:bg-background-alt"
-              >
-                {t("checkout.edit")}
-              </Link>
-            </div>
-            <div className="flex items-center gap-3 pt-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background-alt text-primary-dark">
-                <MethodIcon size={18} aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[14px] font-bold text-text-primary">
-                  {t(`payment.methods.${paymentMethodId}.name`)}
-                </span>
-                <span className="block text-[12px] leading-relaxed text-text-secondary">
-                  {t(`payment.methods.${paymentMethodId}.note`)}
-                </span>
-              </span>
-            </div>
-          </section>
+          <PaymentMethodPicker title={t("checkout.paymentMethodLabel")} />
         </div>
 
         <section className="w-full rounded-2xl bg-surface p-5 shadow-brand-md lg:sticky lg:top-20 lg:w-[380px] lg:shrink-0">
@@ -581,7 +573,9 @@ export function CheckoutPage() {
             </div>
             {appliedPromo && promoDiscountVnd > 0 ? (
               <div className="flex justify-between gap-4 text-success-text animate-pop-spring">
-                <dt className="text-success-text font-medium">{t("checkout.promoDiscount", { code: appliedPromo.code })}</dt>
+                <dt className="text-success-text font-medium">
+                  {t("checkout.promoDiscount", { code: appliedPromo.code })}
+                </dt>
                 <dd className="font-bold text-success-text">-{formatVnd(promoDiscountVnd)}</dd>
               </div>
             ) : null}
@@ -589,9 +583,7 @@ export function CheckoutPage() {
 
           <div className="mt-3 flex items-end justify-between gap-4 border-t border-border pt-3">
             <span className="text-[15px] font-bold text-text-primary">{t("checkout.totalLabel")}</span>
-            <span className="text-[24px] font-bold leading-none text-primary-dark">
-              {formatVnd(finalTotalVnd)}
-            </span>
+            <span className="text-[24px] font-bold leading-none text-primary-dark">{formatVnd(finalTotalVnd)}</span>
           </div>
 
           {hasStockIssue ? (

@@ -1,19 +1,26 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowDown, Bot, Send, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, History, Plus, Users } from "lucide-react";
+import { notification } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api/errors";
 import {
+  AssistantAvatar,
   AssistantBubble,
   AssistantEmptyState,
   ContextDivider,
   TypingIndicator,
   UserBubble,
   chatWithAssistant,
+  fetchAiConversationMessages,
   type AiChatResponse,
+  type AiMessageItem,
 } from "@/features/assistant";
 import { CatAvatar } from "@/entities/cat";
 import { useCatList } from "@/features/cat";
+import { consumeCredit, creditKeys } from "@/features/credit";
+import { AssistantHistoryDrawer } from "./AssistantHistoryDrawer";
 
 const MAX_LENGTH = 4000;
 const COUNTER_FROM = 3500;
@@ -37,6 +44,7 @@ function prefersReducedMotion() {
 
 export function AssistantPage() {
   const { t } = useTranslation("assistant");
+  const queryClient = useQueryClient();
   const { data: catListData } = useCatList("ACTIVE");
   const catItems = catListData?.items;
   const cats = useMemo(() => catItems ?? [], [catItems]);
@@ -54,12 +62,64 @@ export function AssistantPage() {
   const [conversationId, setConversationId] = useState<string>();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [pending, setPending] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const atBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
+
+  const handleSelectConversation = async (selectedId: string) => {
+    if (selectedId === conversationId || pending) return;
+    setPending(true);
+    try {
+      const messages = await fetchAiConversationMessages(selectedId);
+      const restoredTurns: Turn[] = messages.map((msg: AiMessageItem) => {
+        if (msg.role === "USER") {
+          return {
+            id: msg.id,
+            kind: "user",
+            text: msg.content,
+            sentAt: msg.createdAt,
+            requestKey: msg.id,
+          };
+        }
+        return {
+          id: msg.id,
+          kind: "assistant",
+          response: {
+            conversationId: selectedId,
+            messageId: msg.id,
+            answer: msg.content,
+            provider: msg.provider || "assistant",
+            citations: [],
+            createdAt: msg.createdAt,
+          },
+        };
+      });
+      setConversationId(selectedId);
+      setTurns(restoredTurns);
+      atBottomRef.current = true;
+      setTimeout(() => {
+        scrollToBottom(false);
+      }, 50);
+    } catch {
+      // Fallback if loading messages fails
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleNewChat = () => {
+    if (pending) return;
+    setConversationId(undefined);
+    setTurns([]);
+    setMessage("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
 
   const coarsePointer = useMemo(
     () => typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches,
@@ -82,7 +142,8 @@ export function AssistantPage() {
   };
 
   useEffect(() => {
-    if (atBottomRef.current) scrollToBottom(true);
+    // Chưa có tin nhắn thì giữ đầu trang: empty state cao hơn màn hình nhỏ, cuộn xuống sẽ che mất lời chào.
+    if (atBottomRef.current && (turns.length > 0 || pending)) scrollToBottom(true);
   }, [turns, pending]);
 
   // Mobile: the app header (with its collapsible shortcut row) has no fixed height, so fill the space
@@ -150,7 +211,26 @@ export function AssistantPage() {
     try {
       const response = await chatWithAssistant(text, conversationId, selectedCatId || undefined, requestKey);
       setConversationId(response.conversationId);
+      // Hiển thị câu trả lời của AI trên giao diện trước
       setTurns((current) => [...current, { id: nextId(), kind: "assistant", response }]);
+      setPending(false);
+
+      // Khi người dùng đã nhận được response của AI trên giao diện, thực hiện trừ 1 credit và thông báo
+      try {
+        const deduction = await consumeCredit({ credits: 1, note: "AI Chat Assistant" });
+        void queryClient.invalidateQueries({ queryKey: creditKeys.balance() });
+        void queryClient.invalidateQueries({ queryKey: creditKeys.ledger() });
+        notification.info({
+          message: t("creditDeductedTitle", "Đã trừ 1 credit"),
+          description: t("creditDeductedDesc", {
+            defaultValue: `Bạn vừa dùng 1 lượt hỏi đáp với Trợ lý AI. Số dư còn lại: ${String(deduction.balanceAfter)} credit.`,
+            balance: deduction.balanceAfter,
+          }),
+          placement: "topRight",
+        });
+      } catch (creditErr) {
+        console.error("Failed to deduct credit:", creditErr);
+      }
     } catch (cause) {
       const detail = isApiError(cause) && cause.status < 500 && cause.code ? cause.message : t("error");
       setTurns((current) =>
@@ -183,10 +263,10 @@ export function AssistantPage() {
 
   const chipClass = (active: boolean) =>
     cn(
-      "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-small font-semibold transition-colors disabled:opacity-60",
+      "inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-[13px] font-semibold transition-[background-color,color,transform] duration-200 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary disabled:opacity-60",
       active
-        ? "border-primary bg-primary text-white"
-        : "border-border bg-surface text-text-secondary hover:border-primary/50 hover:text-text-primary",
+        ? "bg-primary text-white shadow-sm shadow-primary/25"
+        : "bg-background-alt text-text-secondary hover:bg-chip-bg hover:text-text-primary",
     );
 
   const canSend = !pending && message.trim().length > 0;
@@ -196,79 +276,52 @@ export function AssistantPage() {
       ref={rootRef}
       className="mx-auto flex h-[calc(100dvh-136px-env(safe-area-inset-bottom))] w-full max-w-3xl lg:min-h-[420px] flex-col overflow-hidden lg:h-[calc(100dvh-120px)] lg:rounded-3xl lg:border lg:border-border/60 lg:bg-surface lg:shadow-brand-md"
     >
-      <header className="shrink-0 border-b border-border/60 bg-surface/95 px-4 pb-2.5 pt-3 lg:px-6 lg:pt-4">
-        <div className="flex items-center gap-3">
-          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-xs">
-            <Bot size={20} aria-hidden="true" />
-            <span
-              className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-surface bg-success"
-              aria-hidden="true"
-            />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-h3 font-bold text-text-primary">{t("title")}</h1>
-            <p className="truncate text-small text-text-secondary">{t("description")}</p>
-          </div>
+      <header className="flex shrink-0 items-center gap-3 border-b border-border/50 bg-surface px-4 py-3 lg:px-6">
+        <AssistantAvatar className="size-10 [&>svg]:size-5" />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-body font-bold leading-tight text-text-primary">{t("title")}</h1>
+          <p className="truncate text-small text-text-secondary">{t("description")}</p>
         </div>
-
-        {cats.length > 0 ? (
-          <div
-            role="radiogroup"
-            aria-label={t("selectCat.label")}
-            className="-mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] lg:-mx-6 lg:px-6"
-          >
-            {cats.map((cat) => {
-              const active = cat.id === selectedCatId;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  disabled={pending}
-                  onClick={() => {
-                    selectCat(cat.id);
-                  }}
-                  className={chipClass(active)}
-                >
-                  <CatAvatar src={cat.avatarUrl} name={cat.name} size="sm" className="!size-7" />
-                  <span className="max-w-[9rem] truncate">{cat.name}</span>
-                </button>
-              );
-            })}
+        <div className="flex items-center gap-1.5">
+          {turns.length > 0 && (
             <button
               type="button"
-              role="radio"
-              aria-checked={selectedCatId === ""}
-              disabled={pending}
-              onClick={() => {
-                selectCat("");
-              }}
-              className={chipClass(selectedCatId === "")}
+              onClick={handleNewChat}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border/70 bg-surface px-3 text-caption font-semibold text-text-secondary transition-colors hover:bg-background-alt hover:text-text-primary focus-visible:outline-2 focus-visible:outline-primary active:scale-95"
+              title={t("newChat")}
+              aria-label={t("newChat")}
             >
-              <span
-                className="flex size-7 items-center justify-center rounded-full bg-chip-bg text-primary"
-                aria-hidden="true"
-              >
-                <Users size={14} />
-              </span>
-              {t("selectCat.generalOption")}
+              <Plus size={15} />
+              <span className="hidden sm:inline">{t("newChat")}</span>
             </button>
-          </div>
-        ) : null}
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setHistoryOpen(true);
+            }}
+            className="inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-surface text-text-secondary transition-colors hover:bg-background-alt hover:text-text-primary focus-visible:outline-2 focus-visible:outline-primary active:scale-95 sm:w-auto sm:px-3 sm:gap-1.5"
+            title={t("historyButton")}
+            aria-label={t("historyButton")}
+          >
+            <History size={16} />
+            <span className="hidden sm:inline text-caption font-semibold">{t("historyButton")}</span>
+          </button>
+        </div>
       </header>
 
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="assistant-scroll flex h-full flex-col gap-4 overflow-y-auto px-4 py-4 lg:px-6"
+          className="assistant-scroll flex h-full flex-col gap-5 overflow-y-auto bg-background px-4 py-5 lg:px-8"
           aria-live="polite"
           aria-busy={pending}
         >
           {turns.length === 0 ? (
             <AssistantEmptyState
               catName={selectedCat?.name}
+              catAvatarUrl={selectedCat?.avatarUrl}
               suggestions={suggestions}
               onPick={(question) => {
                 void send(question);
@@ -312,7 +365,7 @@ export function AssistantPage() {
               setShowJump(false);
               scrollToBottom(true);
             }}
-            className="assistant-msg-in absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-small font-semibold text-primary-dark shadow-brand-md"
+            className="assistant-msg-in absolute bottom-3 left-1/2 inline-flex min-h-9 -translate-x-1/2 items-center gap-1.5 rounded-full bg-surface px-3.5 text-small font-semibold text-primary-dark shadow-md shadow-primary/15 transition-transform active:scale-[0.97]"
           >
             <ArrowDown size={14} aria-hidden="true" />
             {t("jumpToLatest")}
@@ -320,41 +373,93 @@ export function AssistantPage() {
         ) : null}
       </div>
 
-      <div className="shrink-0 border-t border-border/60 bg-surface/95 px-3 pb-2 pt-2.5 lg:px-6 lg:pb-4">
-        <div className="flex items-end gap-2 rounded-3xl border border-border bg-background-alt p-1.5 pl-4 transition-colors focus-within:border-primary focus-within:bg-surface">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            className="max-h-[140px] min-h-10 flex-1 resize-none bg-transparent py-2 text-body leading-6 text-text-primary outline-none placeholder:text-text-tertiary"
-            value={message}
-            maxLength={MAX_LENGTH}
-            onChange={(event) => {
-              setMessage(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && !coarsePointer) {
-                event.preventDefault();
-                submit();
-              }
-            }}
-            placeholder={t("placeholder")}
-            aria-label={t("inputLabel")}
-          />
-          <button
-            type="button"
-            disabled={!canSend}
-            onClick={submit}
-            aria-label={t("send")}
-            className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-full transition-[background-color,color,opacity] duration-200",
-              canSend ? "bg-primary text-white shadow-xs hover:bg-primary-dark" : "bg-border/70 text-text-tertiary",
-            )}
-          >
-            <Send size={17} aria-hidden="true" />
-          </button>
+      <div className="shrink-0 bg-surface px-3 pb-2 pt-2.5 lg:px-6 lg:pb-4">
+        <div className="rounded-[26px] bg-surface shadow-lg shadow-primary/10 ring-1 ring-border/70 transition-shadow duration-200 focus-within:ring-2 focus-within:ring-primary">
+          {cats.length > 0 ? (
+            <div
+              role="radiogroup"
+              aria-label={t("selectCat.label")}
+              className="flex items-center gap-1.5 overflow-x-auto px-2 pt-2 [scrollbar-width:none]"
+            >
+              <span className="shrink-0 pl-1.5 pr-0.5 text-[12px] font-medium text-text-tertiary" aria-hidden="true">
+                {t("selectCat.short")}
+              </span>
+              {cats.map((cat) => {
+                const active = cat.id === selectedCatId;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={pending}
+                    onClick={() => {
+                      selectCat(cat.id);
+                    }}
+                    className={chipClass(active)}
+                  >
+                    <CatAvatar src={cat.avatarUrl} name={cat.name} size="sm" className="!size-6" />
+                    <span className="max-w-[9rem] truncate">{cat.name}</span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={selectedCatId === ""}
+                disabled={pending}
+                onClick={() => {
+                  selectCat("");
+                }}
+                className={chipClass(selectedCatId === "")}
+              >
+                <span
+                  className="flex size-6 items-center justify-center rounded-full bg-surface text-primary"
+                  aria-hidden="true"
+                >
+                  <Users size={13} />
+                </span>
+                {t("selectCat.generalOption")}
+              </button>
+            </div>
+          ) : null}
+          <div className="flex items-end gap-2 p-1.5 pl-4">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              className="max-h-[140px] min-h-10 flex-1 resize-none bg-transparent py-2 text-body leading-6 text-text-primary outline-none placeholder:text-text-tertiary"
+              value={message}
+              maxLength={MAX_LENGTH}
+              onChange={(event) => {
+                setMessage(event.target.value);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && !coarsePointer) {
+                  event.preventDefault();
+                  submit();
+                }
+              }}
+              placeholder={t("placeholder")}
+              aria-label={t("inputLabel")}
+            />
+            <button
+              type="button"
+              disabled={!canSend}
+              onClick={submit}
+              aria-label={t("send")}
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                canSend
+                  ? "bg-primary text-white shadow-md shadow-primary/30 hover:bg-primary-dark active:scale-95"
+                  : "bg-chip-bg text-primary/45",
+              )}
+            >
+              <ArrowUp size={19} strokeWidth={2.4} aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <div className="flex items-start justify-between gap-3 px-2 pt-1.5">
-          <p className="text-[11px] leading-4 text-text-tertiary">{t("disclaimer")}</p>
+          <p className="flex-1 text-center text-[11px] leading-4 text-pretty text-text-tertiary">{t("disclaimer")}</p>
           {message.length >= COUNTER_FROM ? (
             <span
               className={cn(
@@ -367,6 +472,16 @@ export function AssistantPage() {
           ) : null}
         </div>
       </div>
+
+      <AssistantHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        activeConversationId={conversationId}
+        onSelectConversation={(id) => {
+          void handleSelectConversation(id);
+        }}
+        onNewChat={handleNewChat}
+      />
     </div>
   );
 }

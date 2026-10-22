@@ -484,6 +484,16 @@
     "notFound": "Bài chăm sóc này không còn được công bố hoặc đường dẫn không đúng.",
     "reviewedAt": "Rà soát ngày {{date}}",
     "sourceLabel": "Nguồn tham khảo:",
-    "disclaimer": "Thông tin tham khảo, không thay thế chẩn đoán của bác sĩ thú y."
+    "disclaimer": "Thông tin tham khảo, không thay thế chẩn đoán của bác sĩ thú y.",
+    "backToAssistant": "Trợ lý AI",
+    "backHome": "Trang chủ",
+    "category": "Cẩm nang chăm sóc mèo",
+    "verifiedByVet": "Đã duyệt bởi chuyên gia thú y",
+    "readingTime": "{{minutes}} phút đọc",
+    "askAiAboutThis": "Cần giải đáp thêm về tình trạng của bé?",
+    "askAiDesc": "Trợ lý AI CatCheck có thể phân tích dải pH và trả lời dựa trên cẩm nang y khoa đã được duyệt.",
+    "askAiButton": "Hỏi Trợ lý AI ngay",
+    "shareTip": "Chia sẻ bài viết",
+    "copied": "Đã chép liên kết bài viết!"
   }
 }

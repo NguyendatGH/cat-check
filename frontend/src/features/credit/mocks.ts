@@ -234,4 +234,8 @@ export const handlers = [
   }),
 ];
 
-export const worker = setupWorker(...handlers);
+export const worker =
+  typeof window !== "undefined" && typeof navigator !== "undefined" && "serviceWorker" in navigator
+    ? setupWorker(...handlers)
+    : (null as unknown as ReturnType<typeof setupWorker>);
+
