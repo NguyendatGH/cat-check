@@ -2,6 +2,7 @@ import { StrictMode, act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CheckoutPage } from "./CheckoutPage";
+import { usePaymentMethodStore } from "./paymentMethodStore";
 
 const state = vi.hoisted(() => ({
   cartQuery: {
@@ -35,6 +36,7 @@ const state = vi.hoisted(() => ({
 vi.mock("@/features/shop", () => ({
   useShopCart: () => state.cartQuery,
   useCreateOrder: () => ({ mutate: state.createOrder, isPending: false }),
+  useShopPaymentMethods: () => ({ data: ["COD", "PAYOS"] }),
 }));
 
 vi.mock("@/entities/user", () => ({
@@ -83,11 +85,14 @@ function renderCheckout() {
 describe("CheckoutPage Enhancements", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
+    usePaymentMethodStore.setState({ paymentMethodId: "COD" });
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it("renders geolocation button, save info checkbox, and promo code section", () => {
@@ -106,9 +111,7 @@ describe("CheckoutPage Enhancements", () => {
   it("applies voucher CATCHECK10 (10% off) and updates total display", () => {
     const { container, cleanup } = renderCheckout();
 
-    const catcheck10Btn = [...container.querySelectorAll("button")].find(
-      (b) => b.textContent.trim() === "CATCHECK10",
-    );
+    const catcheck10Btn = [...container.querySelectorAll("button")].find((b) => b.textContent.trim() === "CATCHECK10");
     expect(catcheck10Btn).toBeDefined();
 
     act(() => {
@@ -126,9 +129,7 @@ describe("CheckoutPage Enhancements", () => {
   it("applies FREESHIP (30k off shipping) and updates total display", () => {
     const { container, cleanup } = renderCheckout();
 
-    const freeshipBtn = [...container.querySelectorAll("button")].find(
-      (b) => b.textContent.trim() === "FREESHIP",
-    );
+    const freeshipBtn = [...container.querySelectorAll("button")].find((b) => b.textContent.trim() === "FREESHIP");
     expect(freeshipBtn).toBeDefined();
 
     act(() => {
@@ -163,6 +164,53 @@ describe("CheckoutPage Enhancements", () => {
     expect(phoneInput?.value).toBe("0901234567");
     expect(addressInput?.value).toBe("Nam Phước, Duy Xuyên, Quảng Nam");
 
+    cleanup();
+  });
+
+  it("keeps what the user typed and the applied voucher after a reload", () => {
+    const first = renderCheckout();
+    const address = first.container.querySelector<HTMLTextAreaElement>('textarea[name="shippingAddress"]');
+    act(() => {
+      if (!address) return;
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(
+        address,
+        "12 Trần Phú, Tam Kỳ",
+      );
+      address.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    act(() => {
+      [...first.container.querySelectorAll("button")].find((b) => b.textContent.trim() === "FREESHIP")?.click();
+    });
+    first.cleanup();
+
+    const second = renderCheckout();
+    expect(second.container.querySelector<HTMLTextAreaElement>('textarea[name="shippingAddress"]')?.value).toBe(
+      "12 Trần Phú, Tam Kỳ",
+    );
+    expect(second.container.textContent).toContain("checkout.promoDiscount:FREESHIP");
+    second.cleanup();
+  });
+
+  it("lets a buy-now shopper pick the payment method on the checkout page", () => {
+    sessionStorage.setItem(
+      "catcheck_checkout_draft",
+      JSON.stringify({ receiverName: "Đạt Test", receiverPhone: "0901234567", shippingAddress: "12 Trần Phú, Tam Kỳ" }),
+    );
+    const { container, cleanup } = renderCheckout();
+
+    const payos = container.querySelector<HTMLInputElement>('input[name="payment-method"][value="PAYOS"]');
+    expect(payos).not.toBeNull();
+    act(() => {
+      payos?.click();
+    });
+    act(() => {
+      container.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+    });
+
+    expect(state.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentMethod: "PAYOS" }),
+      expect.anything(),
+    );
     cleanup();
   });
 });

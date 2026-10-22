@@ -11,7 +11,8 @@
   "error": "Couldn't send your question. Please try again.",
   "selectCat": {
     "label": "Which cat are you asking about?",
-    "generalOption": "General question"
+    "generalOption": "General question",
+    "short": "About"
   },
   "askingAbout": "Asking about: {{name}}",
   "welcome": "Hi there! How can I help?",

@@ -11,7 +11,8 @@
   "error": "Không gửi được câu hỏi. Vui lòng thử lại.",
   "selectCat": {
     "label": "Hỏi về bé mèo nào?",
-    "generalOption": "Hỏi chung"
+    "generalOption": "Hỏi chung",
+    "short": "Hỏi về"
   },
   "askingAbout": "Đang hỏi về: {{name}}",
   "welcome": "Chào bạn! Mình có thể giúp gì?",
