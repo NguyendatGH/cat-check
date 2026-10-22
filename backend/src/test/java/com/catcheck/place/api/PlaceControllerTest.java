@@ -185,7 +185,7 @@ class PlaceControllerTest {
 
     private MockMvc mvcWithUpstream(NearbyPlaceSource source) {
         return AdminApiMockMvc.build(new PlaceController(
-                new PlaceService(Mockito.mock(PlaceRepository.class), source), messageResolver));
+                new PlaceService(Mockito.mock(PlaceRepository.class), java.util.List.of(source)), messageResolver));
     }
 
     private static MessageResolver unnamedMessageResolver() {
@@ -198,7 +198,7 @@ class PlaceControllerTest {
     @Test
     void osmPlaceWithoutANameGetsTheUnnamedLabelInTheRequestLanguage() throws Exception {
         MockMvc realService = mvcWithUpstream((lat, lon, radius) -> java.util.List.of(
-                new ExternalPlace("osm:node/1", null, "CLINIC", "", "", 10.77, 106.7, null, java.util.List.of())));
+                new ExternalPlace("osm:node/1", null, "CLINIC", "", "", 10.77, 106.7, null, java.util.List.of(), "OSM")));
 
         nearby(realService, "10.77", "106.7", null)
                 .andExpect(status().isOk())

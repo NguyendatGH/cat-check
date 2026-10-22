@@ -2,7 +2,14 @@ import { useTranslation } from "react-i18next";
 import { Navigation, Star } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { formatNumber } from "@/shared/lib/format/formatNumber";
-import { KIND_CHIP_CLASS, KIND_ICON, distanceText, isAroundTheClockBadge, type PlaceKind } from "./placeView";
+import {
+  KIND_CHIP_CLASS,
+  KIND_ICON,
+  distanceText,
+  isAroundTheClockBadge,
+  type PlaceKind,
+  type PlaceSource,
+} from "./placeView";
 
 export function KindChip({ kind, size = "sm" }: { kind: PlaceKind; size?: "sm" | "md" }) {
   const { t } = useTranslation("map");
@@ -21,17 +28,24 @@ export function KindChip({ kind, size = "sm" }: { kind: PlaceKind; size?: "sm" |
   );
 }
 
-export function OsmSourceChip({ size = "sm" }: { size?: "sm" | "md" }) {
+export function ExternalSourceChip({
+  source,
+  size = "sm",
+}: {
+  source: Exclude<PlaceSource, "catcheck">;
+  size?: "sm" | "md";
+}) {
   const { t } = useTranslation("map");
+  const provider = t(`source.${source}`);
   return (
     <span
       className={cn(
         "inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-border font-semibold text-text-secondary",
         size === "md" ? "px-2.5 py-1 text-[11px]" : "px-2 py-0.5 text-[10px]",
       )}
-      title={t("source.osmNote")}
+      title={t("source.externalNote", { provider })}
     >
-      {t("source.osm")}
+      {provider}
     </span>
   );
 }

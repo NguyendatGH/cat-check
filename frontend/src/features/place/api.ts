@@ -18,7 +18,7 @@ export interface PlaceApi {
   badges: string[];
   rating: number;
   reviewCount: number;
-  source?: "CATCHECK" | "OSM";
+  source?: "CATCHECK" | "OSM" | "GOONG";
 }
 
 export interface PlaceReviewApi {

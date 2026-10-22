@@ -21,7 +21,7 @@ import { DisclaimerBanner } from "@/entities/disclaimer";
 import { listNearbyPlaces, listPlaces } from "@/features/place";
 import { acquireLocation, type UserLocation } from "./location";
 import { PlaceMap } from "./PlaceMap";
-import { DistanceLabel, KindChip, OsmSourceChip, PlaceBadges, RatingLine } from "./placeParts";
+import { DistanceLabel, KindChip, ExternalSourceChip, PlaceBadges, RatingLine } from "./placeParts";
 import {
   KIND_CHIP_CLASS,
   KIND_ICON,
@@ -40,7 +40,8 @@ type FilterId = "all" | PlaceKind;
 
 type LocationStatus = "idle" | "requesting" | "ready" | "denied" | "unavailable" | "unsupported";
 
-const NEARBY_RADIUS_KM = 50;
+// Backend từ chối radiusKm > 25 (NearbyPlaceSource.MAX_RADIUS_METERS) bằng 400, khi đó bản đồ chỉ còn cơ sở CatCheck.
+const NEARBY_RADIUS_KM = 25;
 
 function googleMapsSearchUrl(location: UserLocation, query: string): string {
   const lat = location.latitude.toFixed(3);
@@ -71,7 +72,7 @@ function matchesQuery(place: ViewPlace, query: string): boolean {
 }
 
 function PlaceName({ place, className }: { place: ViewPlace; className: string }) {
-  if (place.source === "osm") return <span className={cn("block", className)}>{place.name}</span>;
+  if (place.source !== "catcheck") return <span className={cn("block", className)}>{place.name}</span>;
   return (
     <Link to={`/map/clinics/${place.id}`} className={cn("block", className)}>
       {place.name}
@@ -257,7 +258,7 @@ function MobileSelectedCard({ place, onClose }: { place: ViewPlace; onClose: () 
             {t("list.selected")}
           </span>
           <KindChip kind={place.kind} />
-          {place.source === "osm" ? <OsmSourceChip /> : null}
+          {place.source !== "catcheck" ? <ExternalSourceChip source={place.source} /> : null}
         </div>
         <button
           type="button"
@@ -284,8 +285,10 @@ function MobileSelectedCard({ place, onClose }: { place: ViewPlace; onClose: () 
           {place.address}
         </p>
       ) : null}
-      {place.source === "osm" ? (
-        <p className="pt-1.5 text-[11px] leading-relaxed text-text-tertiary">{t("source.osmNote")}</p>
+      {place.source !== "catcheck" ? (
+        <p className="pt-1.5 text-[11px] leading-relaxed text-text-tertiary">
+          {t("source.externalNote", { provider: t(`source.${place.source}`) })}
+        </p>
       ) : null}
 
       {place.badges.length > 0 ? (
@@ -335,7 +338,7 @@ function MobilePlaceRow({
       >
         <Icon size={16} aria-hidden="true" />
       </button>
-      {place.source === "osm" ? (
+      {place.source !== "catcheck" ? (
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {isRecommended ? (
@@ -346,7 +349,7 @@ function MobilePlaceRow({
             <span className="block truncate text-[13px] font-bold text-text-primary">{place.name}</span>
           </div>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pt-1 text-[11px] text-text-secondary">
-            <OsmSourceChip />
+            <ExternalSourceChip source={place.source} />
             <span className="truncate">{place.area || place.address}</span>
             <DistanceLabel km={place.distanceKm} className="text-primary-dark" />
           </span>
@@ -419,7 +422,7 @@ function DesktopPlaceCard({
             </span>
           ) : null}
           <KindChip kind={place.kind} />
-          {place.source === "osm" ? <OsmSourceChip /> : null}
+          {place.source !== "catcheck" ? <ExternalSourceChip source={place.source} /> : null}
           <PlaceBadges badges={place.badges} />
         </div>
         <button
@@ -441,8 +444,10 @@ function DesktopPlaceCard({
       <PlaceName place={place} className="pt-1.5 text-[16px] font-bold leading-snug text-primary-dark hover:underline" />
       {place.address ? <p className="pt-0.5 text-[11px] text-text-tertiary">{place.address}</p> : null}
 
-      {place.source === "osm" ? (
-        <p className="pt-1.5 text-[10px] leading-relaxed text-text-tertiary">{t("source.osmNote")}</p>
+      {place.source !== "catcheck" ? (
+        <p className="pt-1.5 text-[10px] leading-relaxed text-text-tertiary">
+          {t("source.externalNote", { provider: t(`source.${place.source}`) })}
+        </p>
       ) : (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2">
           <RatingLine rating={place.rating} reviewCount={place.reviewCount} />
@@ -464,7 +469,7 @@ function DesktopMapPopup({ place, onClose }: { place: ViewPlace; onClose: () => 
       <div className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           <KindChip kind={place.kind} />
-          {place.source === "osm" ? <OsmSourceChip /> : null}
+          {place.source !== "catcheck" ? <ExternalSourceChip source={place.source} /> : null}
           <PlaceBadges badges={place.badges} />
         </div>
         <button
@@ -493,7 +498,7 @@ function DesktopMapPopup({ place, onClose }: { place: ViewPlace; onClose: () => 
           <span className="font-bold text-text-primary">{place.phone}</span>
         </p>
       ) : null}
-      {place.source === "osm" ? (
+      {place.source !== "catcheck" ? (
         <div className="pt-3">
           <PlaceActions place={place} size="sm" />
         </div>
@@ -593,12 +598,12 @@ export function CatCareMapPage() {
   });
 
   const catcheckPlaces = (placesQuery.data ?? []).map((place) => toViewPlace(place, userLocation));
-  const osmAll = userLocation
+  const externalAll = userLocation
     ? (nearbyQuery.data ?? [])
         .map((place) => toViewPlace(place, userLocation))
         .filter((p) => !catcheckPlaces.some((c) => distanceKm(c, p) < DUPLICATE_RADIUS_KM))
     : [];
-  const places = [...catcheckPlaces, ...osmAll.filter((p) => matchesQuery(p, debouncedQuery))];
+  const places = [...catcheckPlaces, ...externalAll.filter((p) => matchesQuery(p, debouncedQuery))];
   if (userLocation) places.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
   const nearbyMessage = !userLocation
     ? null
@@ -606,8 +611,8 @@ export function CatCareMapPage() {
       ? t("location.nearbyLoading")
       : nearbyQuery.isError
         ? t("location.nearbyError")
-        : osmAll.length > 0
-          ? t("location.nearbyFound", { count: osmAll.length })
+        : externalAll.length > 0
+          ? t("location.nearbyFound", { count: externalAll.length })
           : t("location.nearbyNone", { radius: NEARBY_RADIUS_KM });
 
   const visible = places.filter((p) => {

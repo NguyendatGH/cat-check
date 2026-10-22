@@ -59,7 +59,7 @@ export function distanceText(km: number): { key: "distance.meters" | "distance.k
   return { key: "distance.km", value: formatNumber(km, { maximumFractionDigits: 1 }) };
 }
 
-export type PlaceSource = "catcheck" | "osm";
+export type PlaceSource = "catcheck" | "osm" | "goong";
 
 export interface ViewPlace {
   id: string;
@@ -82,7 +82,7 @@ export function toViewPlace(place: PlaceApi, from: LatLng | null = null): ViewPl
   const hasCoordinates = validCoordinates(place.latitude, place.longitude);
   return {
     id: place.id,
-    source: place.source === "OSM" ? "osm" : "catcheck",
+    source: place.source === "OSM" ? "osm" : place.source === "GOONG" ? "goong" : "catcheck",
     name: place.name,
     kind: placeKind(place.kind),
     address: place.address,

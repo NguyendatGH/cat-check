@@ -226,6 +226,14 @@ catcheck:
       max-retries: 0
       payment-ttl: PT5M
 
+  place:
+    goong:
+      # Trống = tắt Goong (không gọi HTTP, bản đồ chỉ còn CatCheck + OSM). Goong tính phí theo request:
+      # daily-request-budget chặn tổng số request/ngày (autocomplete + detail), endpoint nearby là public.
+      api-key: ${CATCHECK_PLACE_GOONG_API_KEY:}
+      base-url: ${CATCHECK_PLACE_GOONG_BASE_URL:https://rsapi.goong.io}
+      daily-request-budget: ${CATCHECK_PLACE_GOONG_DAILY_REQUEST_BUDGET:900}
+
   i18n:
     default-locale: vi
     supported-locales: vi,en
