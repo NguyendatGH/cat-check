@@ -104,6 +104,18 @@ public class AiChatService {
         return chat(userId, conversationId, catId, message, locale, null);
     }
 
+    public List<AiKnowledgePort.ConversationSummary> listConversations(UUID userId, int limit) {
+        return repository.listConversations(userId, limit);
+    }
+
+    public List<AiKnowledgePort.MessageItem> getConversationMessages(UUID userId, UUID conversationId) {
+        AiKnowledgePort.Conversation conv = repository.createConversation(userId, conversationId);
+        if (conv == null) {
+            throw new BusinessRuleException(AiErrorCode.CONVERSATION_NOT_FOUND);
+        }
+        return repository.listMessages(conversationId);
+    }
+
     /**
      * Provider LLM được gọi NGOÀI transaction: một provider treo không được giữ kết nối DB. Câu hỏi được
      * ghi ngay ở pha chuẩn bị (kèm {@code requestKey}) nên request trùng đang chạy bị chặn trước khi

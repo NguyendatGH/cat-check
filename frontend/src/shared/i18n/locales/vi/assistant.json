@@ -31,5 +31,15 @@
   "jumpToLatest": "Tin nhắn mới nhất",
   "charCount": "{{count}}/{{max}}",
   "switchedTo": "Đang hỏi về {{name}}",
-  "switchedGeneral": "Đang hỏi chung"
+  "switchedGeneral": "Đang hỏi chung",
+  "historyButton": "Lịch sử",
+  "historyTitle": "Lịch sử trò chuyện",
+  "historyDescription": "Danh sách các cuộc trò chuyện trước đây của bạn",
+  "newChat": "Cuộc trò chuyện mới",
+  "noHistory": "Chưa có lịch sử trò chuyện",
+  "noHistoryDesc": "Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây.",
+  "loadHistoryError": "Không thể tải lịch sử trò chuyện",
+  "loadMessagesError": "Không thể tải nội dung cuộc trò chuyện",
+  "active": "Đang trò chuyện",
+  "untitledConversation": "Cuộc trò chuyện"
 }

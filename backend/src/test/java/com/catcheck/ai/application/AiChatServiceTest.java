@@ -667,6 +667,54 @@ class AiChatServiceTest {
         }
     }
 
+    @Test
+    void listConversationsReturnsUserConversations() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        UUID convId = UUID.randomUUID();
+        knowledge.conversationSummaries = List.of(
+                new AiKnowledgePort.ConversationSummary(convId, USER_ID, NOW, NOW, "Mèo bị tiểu buốt")
+        );
+        AiChatService service = service(knowledge, messages -> Optional.empty());
+
+        List<AiKnowledgePort.ConversationSummary> result = service.listConversations(USER_ID, 20);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().id()).isEqualTo(convId);
+        assertThat(result.getFirst().preview()).isEqualTo("Mèo bị tiểu buốt");
+    }
+
+    @Test
+    void getConversationMessagesReturnsMessagesWhenOwnedByUser() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        UUID convId = UUID.randomUUID();
+        UUID msgId = UUID.randomUUID();
+        knowledge.conversation = new AiKnowledgePort.Conversation(convId, USER_ID);
+        knowledge.messageItems = List.of(
+                new AiKnowledgePort.MessageItem(msgId, convId, "USER", "Mèo ăn gì tốt?", null, NOW)
+        );
+        AiChatService service = service(knowledge, messages -> Optional.empty());
+
+        List<AiKnowledgePort.MessageItem> result = service.getConversationMessages(USER_ID, convId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().id()).isEqualTo(msgId);
+        assertThat(result.getFirst().role()).isEqualTo("USER");
+        assertThat(result.getFirst().content()).isEqualTo("Mèo ăn gì tốt?");
+    }
+
+    @Test
+    void getConversationMessagesThrowsWhenConversationNotFoundOrNotOwned() {
+        FakeKnowledge knowledge = new FakeKnowledge();
+        UUID convId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        knowledge.conversation = new AiKnowledgePort.Conversation(convId, otherUserId);
+        AiChatService service = service(knowledge, messages -> Optional.empty());
+
+        assertThatThrownBy(() -> service.getConversationMessages(USER_ID, convId))
+                .isInstanceOf(BusinessRuleException.class)
+                .satisfies(ex -> assertThat(((BusinessRuleException) ex).errorCode()).isEqualTo(AiErrorCode.CONVERSATION_NOT_FOUND));
+    }
+
     private static final class FakeAiChatRateLimiter implements AiChatRateLimiter {
         boolean blocked;
         long retryAfterSeconds;
@@ -775,6 +823,19 @@ class AiChatServiceTest {
         @Override
         public int eraseConversationContent(UUID userId) {
             return 0;
+        }
+
+        List<AiKnowledgePort.ConversationSummary> conversationSummaries = List.of();
+        List<AiKnowledgePort.MessageItem> messageItems = List.of();
+
+        @Override
+        public List<AiKnowledgePort.ConversationSummary> listConversations(UUID userId, int limit) {
+            return conversationSummaries;
+        }
+
+        @Override
+        public List<AiKnowledgePort.MessageItem> listMessages(UUID conversationId) {
+            return messageItems;
         }
     }
 }

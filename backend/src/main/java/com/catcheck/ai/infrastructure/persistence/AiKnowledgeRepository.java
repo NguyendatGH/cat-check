@@ -229,6 +229,43 @@ public class AiKnowledgeRepository implements AiKnowledgePort {
     }
 
     @Override
+    public List<ConversationSummary> listConversations(UUID userId, int limit) {
+        return jdbc.query("""
+                SELECT c.id, c.user_id, c.created_at, c.updated_at,
+                       (SELECT m.content FROM ai_message m
+                        WHERE m.conversation_id = c.id AND m.role = 'USER' AND m.content <> ?
+                        ORDER BY m.created_at ASC LIMIT 1) AS preview
+                FROM ai_conversation c
+                WHERE c.user_id = ?
+                ORDER BY c.updated_at DESC
+                LIMIT ?
+                """, (rs, rowNum) -> new ConversationSummary(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("user_id", UUID.class),
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getTimestamp("updated_at").toInstant(),
+                        rs.getString("preview")
+                ), ERASED_CONTENT, userId, Math.max(1, Math.min(limit, 100)));
+    }
+
+    @Override
+    public List<MessageItem> listMessages(UUID conversationId) {
+        return jdbc.query("""
+                SELECT id, conversation_id, role, content, provider, created_at
+                FROM ai_message
+                WHERE conversation_id = ? AND content <> ?
+                ORDER BY created_at ASC
+                """, (rs, rowNum) -> new MessageItem(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("conversation_id", UUID.class),
+                        rs.getString("role"),
+                        rs.getString("content"),
+                        rs.getString("provider"),
+                        rs.getTimestamp("created_at").toInstant()
+                ), conversationId, ERASED_CONTENT);
+    }
+
+    @Override
     public int eraseConversationContent(UUID userId) {
         return jdbc.update("""
                 UPDATE ai_message m SET content = ?

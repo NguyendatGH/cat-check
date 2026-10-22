@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowDown, ArrowUp, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, History, Plus, Users } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { isApiError } from "@/shared/api/errors";
 import {
@@ -11,10 +11,13 @@ import {
   TypingIndicator,
   UserBubble,
   chatWithAssistant,
+  fetchAiConversationMessages,
   type AiChatResponse,
+  type AiMessageItem,
 } from "@/features/assistant";
 import { CatAvatar } from "@/entities/cat";
 import { useCatList } from "@/features/cat";
+import { AssistantHistoryDrawer } from "./AssistantHistoryDrawer";
 
 const MAX_LENGTH = 4000;
 const COUNTER_FROM = 3500;
@@ -55,12 +58,64 @@ export function AssistantPage() {
   const [conversationId, setConversationId] = useState<string>();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [pending, setPending] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const atBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
+
+  const handleSelectConversation = async (selectedId: string) => {
+    if (selectedId === conversationId || pending) return;
+    setPending(true);
+    try {
+      const messages = await fetchAiConversationMessages(selectedId);
+      const restoredTurns: Turn[] = messages.map((msg: AiMessageItem) => {
+        if (msg.role === "USER") {
+          return {
+            id: msg.id,
+            kind: "user",
+            text: msg.content,
+            sentAt: msg.createdAt,
+            requestKey: msg.id,
+          };
+        }
+        return {
+          id: msg.id,
+          kind: "assistant",
+          response: {
+            conversationId: selectedId,
+            messageId: msg.id,
+            answer: msg.content,
+            provider: msg.provider || "assistant",
+            citations: [],
+            createdAt: msg.createdAt,
+          },
+        };
+      });
+      setConversationId(selectedId);
+      setTurns(restoredTurns);
+      atBottomRef.current = true;
+      setTimeout(() => {
+        scrollToBottom(false);
+      }, 50);
+    } catch {
+      // Fallback if loading messages fails
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleNewChat = () => {
+    if (pending) return;
+    setConversationId(undefined);
+    setTurns([]);
+    setMessage("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
 
   const coarsePointer = useMemo(
     () => typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches,
@@ -203,6 +258,32 @@ export function AssistantPage() {
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-body font-bold leading-tight text-text-primary">{t("title")}</h1>
           <p className="truncate text-small text-text-secondary">{t("description")}</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {turns.length > 0 && (
+            <button
+              type="button"
+              onClick={handleNewChat}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border/70 bg-surface px-3 text-caption font-semibold text-text-secondary transition-colors hover:bg-background-alt hover:text-text-primary focus-visible:outline-2 focus-visible:outline-primary active:scale-95"
+              title={t("newChat")}
+              aria-label={t("newChat")}
+            >
+              <Plus size={15} />
+              <span className="hidden sm:inline">{t("newChat")}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setHistoryOpen(true);
+            }}
+            className="inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-surface text-text-secondary transition-colors hover:bg-background-alt hover:text-text-primary focus-visible:outline-2 focus-visible:outline-primary active:scale-95 sm:w-auto sm:px-3 sm:gap-1.5"
+            title={t("historyButton")}
+            aria-label={t("historyButton")}
+          >
+            <History size={16} />
+            <span className="hidden sm:inline text-caption font-semibold">{t("historyButton")}</span>
+          </button>
         </div>
       </header>
 
@@ -368,6 +449,16 @@ export function AssistantPage() {
           ) : null}
         </div>
       </div>
+
+      <AssistantHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        activeConversationId={conversationId}
+        onSelectConversation={(id) => {
+          void handleSelectConversation(id);
+        }}
+        onNewChat={handleNewChat}
+      />
     </div>
   );
 }

@@ -31,5 +31,15 @@
   "jumpToLatest": "Latest message",
   "charCount": "{{count}}/{{max}}",
   "switchedTo": "Now asking about {{name}}",
-  "switchedGeneral": "Now asking a general question"
+  "switchedGeneral": "Now asking a general question",
+  "historyButton": "History",
+  "historyTitle": "Chat history",
+  "historyDescription": "Your previous conversations",
+  "newChat": "New chat",
+  "noHistory": "No chat history yet",
+  "noHistoryDesc": "Your conversations will appear here.",
+  "loadHistoryError": "Failed to load chat history",
+  "loadMessagesError": "Failed to load conversation messages",
+  "active": "Active",
+  "untitledConversation": "Conversation"
 }
