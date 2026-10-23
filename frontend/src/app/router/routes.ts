@@ -61,6 +61,7 @@ export const ROUTE_PATTERNS = {
   adminPackages: "/admin/packages",
   adminProducts: "/admin/products",
   adminOrders: "/admin/orders",
+  adminVouchers: "/admin/vouchers",
   adminPhColorChart: "/admin/ph-color-chart",
   adminContent: "/admin/content",
   adminPrivacyRequests: "/admin/privacy/requests",

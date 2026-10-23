@@ -10,6 +10,7 @@ import {
   listMyOrders,
   listShopPaymentMethods,
   listShopProducts,
+  listShopPromos,
   removeShopCartLine,
   setShopCartLine,
   type CartApi,
@@ -22,9 +23,14 @@ export const shopKeys = {
   product: (productId: string) => ["shop", "product", productId] as const,
   cart: () => ["shop", "cart"] as const,
   paymentMethods: () => ["shop", "payment-methods"] as const,
+  promos: () => ["shop", "promos"] as const,
   orders: () => ["shop", "orders"] as const,
   order: (orderId: string) => ["shop", "order", orderId] as const,
 };
+
+export function useShopPromos() {
+  return useQuery({ queryKey: shopKeys.promos(), queryFn: listShopPromos, staleTime: 60_000 });
+}
 
 export function useShopProducts() {
   return useQuery({ queryKey: shopKeys.products(), queryFn: listShopProducts, staleTime: 60_000 });

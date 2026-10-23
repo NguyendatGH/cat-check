@@ -7,6 +7,8 @@ import com.catcheck.shop.domain.ExpiredPayment;
 import com.catcheck.shop.domain.MarkPaidResult;
 import com.catcheck.shop.domain.Order;
 import com.catcheck.shop.domain.Product;
+import com.catcheck.shop.domain.PromoCode;
+import com.catcheck.shop.domain.PromoCodeDraft;
 
 import java.time.Instant;
 import java.util.List;
@@ -21,8 +23,12 @@ public interface ShopRepository {
     void removeCartLine(UUID userId, UUID productId);
     void clearCart(UUID userId);
     /** Throws ORDER_LIMIT_REACHED when the user already has {@code maxOpenOrders} PENDING_PAYMENT orders. */
+    default Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address,
+                              Instant paymentExpiresAt, int maxOpenOrders) {
+        return createOrder(userId, paymentMethod, receiverName, receiverPhone, address, null, paymentExpiresAt, maxOpenOrders);
+    }
     Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address,
-                      Instant paymentExpiresAt, int maxOpenOrders);
+                      String promoCode, Instant paymentExpiresAt, int maxOpenOrders);
     Optional<Order> order(UUID userId, UUID orderId);
     List<Order> orders(UUID userId, int limit);
     void attachPaymentLink(UUID orderId, String paymentLinkId, String checkoutUrl);
@@ -46,4 +52,12 @@ public interface ShopRepository {
     Optional<AdminProduct> adminLockProduct(UUID id);
     Optional<AdminProduct> adminUpdate(UUID id, AdminProductDraft draft);
     Optional<AdminProduct> adminSetStatus(UUID id, String status);
+
+    default List<PromoCode> publicPromoCodes(Instant now) { return List.of(); }
+    default List<PromoCode> adminPromoCodes() { return List.of(); }
+    default Optional<PromoCode> adminPromoCode(UUID id) { return Optional.empty(); }
+    default PromoCode adminCreatePromoCode(PromoCodeDraft draft) { throw new UnsupportedOperationException(); }
+    default Optional<PromoCode> adminUpdatePromoCode(UUID id, PromoCodeDraft draft) { return Optional.empty(); }
+    default Optional<PromoCode> adminSetPromoCodeStatus(UUID id, boolean isActive) { return Optional.empty(); }
+    default boolean adminDeletePromoCode(UUID id) { return false; }
 }

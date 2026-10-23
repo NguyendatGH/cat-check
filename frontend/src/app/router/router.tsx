@@ -775,6 +775,16 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "/admin/vouchers",
+            element: (
+              <RequireRole roles={ROLES.products}>
+                <PageSuspense>
+                  <LazyPages.adminVouchers />
+                </PageSuspense>
+              </RequireRole>
+            ),
+          },
+          {
             path: "/admin/ph-color-chart",
             element: (
               <RequireRole roles={ROLES.colorChart}>

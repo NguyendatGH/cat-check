@@ -114,6 +114,7 @@ export const LazyPages = {
   ),
   adminProducts: lazy(() => import("@/pages/admin/AdminProductsPage").then((m) => ({ default: m.AdminProductsPage }))),
   adminOrders: lazy(() => import("@/pages/admin/AdminOrdersPage").then((m) => ({ default: m.AdminOrdersPage }))),
+  adminVouchers: lazy(() => import("@/pages/admin/AdminVouchersPage").then((m) => ({ default: m.AdminVouchersPage }))),
   adminPackages: lazy(() => import("@/pages/admin/AdminPackagesPage").then((m) => ({ default: m.AdminPackagesPage }))),
   adminPhColorChart: lazy(() =>
     import("@/pages/admin/AdminPhColorChartPage").then((m) => ({ default: m.AdminPhColorChartPage })),
