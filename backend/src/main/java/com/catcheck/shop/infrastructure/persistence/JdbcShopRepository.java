@@ -8,7 +8,10 @@ import com.catcheck.shop.domain.ExpiredPayment;
 import com.catcheck.shop.domain.MarkPaidResult;
 import com.catcheck.shop.domain.Order;
 import com.catcheck.shop.domain.Product;
+import com.catcheck.shop.domain.PromoCode;
+import com.catcheck.shop.domain.PromoCodeDraft;
 import com.catcheck.shop.domain.port.ShopRepository;
+import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -20,6 +23,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -77,7 +81,7 @@ public class JdbcShopRepository implements ShopRepository {
     @Override
     @Transactional
     public Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address,
-                             Instant paymentExpiresAt, int maxOpenOrders) {
+                             String promoCode, Instant paymentExpiresAt, int maxOpenOrders) {
         List<UUID> notPublished = new ArrayList<>();
         List<CartLine> lines = jdbc.query("""
                 SELECT p.id, p.sku, p.name, p.description, p.image_url, p.price_vnd, p.compare_at_price_vnd,
@@ -99,11 +103,24 @@ public class JdbcShopRepository implements ShopRepository {
         }
         long subtotal = lines.stream().mapToLong(CartLine::totalVnd).sum();
         long shipping = subtotal >= 500000 ? 0 : 30000;
+        long discount = 0;
+        if (promoCode != null && !promoCode.isBlank()) {
+            String clean = promoCode.strip().toUpperCase(Locale.ROOT);
+            PromoCode promo = jdbc.query(PROMO_COLS_SELECT + " WHERE upper(code) = ? FOR UPDATE",
+                    (rs, row) -> mapPromoCode(rs), clean).stream().findFirst()
+                    .orElseThrow(() -> new BusinessRuleException(ShopErrorCode.PROMO_CODE_INVALID));
+            if (!promo.isValid(Instant.now(), subtotal)) {
+                throw new BusinessRuleException(ShopErrorCode.PROMO_CODE_INVALID);
+            }
+            discount = promo.calculateDiscount(subtotal, shipping);
+            jdbc.update("UPDATE shop_promo_code SET used_count = used_count + 1 WHERE id = ?", promo.id());
+        }
+        long total = Math.max(0, subtotal + shipping - discount);
         Long payosCode = "PAYOS".equals(paymentMethod) ? jdbc.queryForObject("SELECT nextval('shop_order_payos_code_seq')", Long.class) : null;
         UUID id = jdbc.queryForObject("""
-                INSERT INTO shop_order (order_code, user_id, payment_method, receiver_name, receiver_phone, shipping_address, subtotal_vnd, shipping_fee_vnd, total_vnd, payos_order_code, payment_expires_at)
-                VALUES ('CC-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
-                """, UUID.class, userId, paymentMethod, receiverName, receiverPhone, address, subtotal, shipping, subtotal + shipping, payosCode, paymentExpiresAt);
+                INSERT INTO shop_order (order_code, user_id, payment_method, receiver_name, receiver_phone, shipping_address, subtotal_vnd, discount_vnd, shipping_fee_vnd, total_vnd, payos_order_code, payment_expires_at)
+                VALUES ('CC-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+                """, UUID.class, userId, paymentMethod, receiverName, receiverPhone, address, subtotal, discount, shipping, total, payosCode, paymentExpiresAt);
         for (CartLine line : lines) {
             jdbc.update("INSERT INTO shop_order_line (order_id, product_id, product_name, unit_price_vnd, quantity) VALUES (?, ?, ?, ?, ?)", id, line.product().id(), line.product().name(), line.product().priceVnd(), line.quantity());
             jdbc.update("UPDATE shop_product SET stock_quantity = stock_quantity - ? WHERE id = ?", line.quantity(), line.product().id());
@@ -256,6 +273,92 @@ public class JdbcShopRepository implements ShopRepository {
         long compare = rs.getLong("compare_at_price_vnd");
         boolean compareWasNull = rs.wasNull();
         return new Product(rs.getObject("id", UUID.class), rs.getString("sku"), rs.getString("name"), rs.getString("description"), rs.getString("image_url"), rs.getLong("price_vnd"), compareWasNull ? null : compare, rs.getInt("stock_quantity"));
+    }
+
+    private static final String PROMO_COLS = "id, code, label, type, amount, min_order_vnd, max_discount_vnd, usage_limit, used_count, starts_at, expires_at, is_active, created_at, updated_at";
+    private static final String PROMO_COLS_SELECT = "SELECT " + PROMO_COLS + " FROM shop_promo_code";
+
+    @Override
+    public List<PromoCode> publicPromoCodes(Instant now) {
+        return jdbc.query(PROMO_COLS_SELECT + " WHERE is_active = true AND (starts_at IS NULL OR starts_at <= ?) AND (expires_at IS NULL OR expires_at >= ?) AND (usage_limit IS NULL OR used_count < usage_limit) ORDER BY created_at ASC",
+                (rs, row) -> mapPromoCode(rs), now, now);
+    }
+
+    @Override
+    public List<PromoCode> adminPromoCodes() {
+        return jdbc.query(PROMO_COLS_SELECT + " ORDER BY created_at DESC", (rs, row) -> mapPromoCode(rs));
+    }
+
+    @Override
+    public Optional<PromoCode> adminPromoCode(UUID id) {
+        return jdbc.query(PROMO_COLS_SELECT + " WHERE id = ?", (rs, row) -> mapPromoCode(rs), id).stream().findFirst();
+    }
+
+    @Override
+    @Transactional
+    public PromoCode adminCreatePromoCode(PromoCodeDraft d) {
+        try {
+            return jdbc.queryForObject("""
+                    INSERT INTO shop_promo_code (code, label, type, amount, min_order_vnd, max_discount_vnd, usage_limit, starts_at, expires_at, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    RETURNING\s""" + PROMO_COLS,
+                    (rs, row) -> mapPromoCode(rs),
+                    d.code(), d.label(), d.type(), d.amount(), d.minOrderVnd(), d.maxDiscountVnd(), d.usageLimit(), d.startsAt(), d.expiresAt(), d.isActive());
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            throw new ConflictException(ShopErrorCode.PROMO_CODE_DUPLICATE);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Optional<PromoCode> adminUpdatePromoCode(UUID id, PromoCodeDraft d) {
+        try {
+            return jdbc.query("""
+                    UPDATE shop_promo_code
+                       SET label = ?, type = ?, amount = ?, min_order_vnd = ?, max_discount_vnd = ?,
+                           usage_limit = ?, starts_at = ?, expires_at = ?, is_active = ?
+                     WHERE id = ?
+                     RETURNING\s""" + PROMO_COLS,
+                    (rs, row) -> mapPromoCode(rs),
+                    d.label(), d.type(), d.amount(), d.minOrderVnd(), d.maxDiscountVnd(),
+                    d.usageLimit(), d.startsAt(), d.expiresAt(), d.isActive(), id).stream().findFirst();
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            throw new ConflictException(ShopErrorCode.PROMO_CODE_DUPLICATE);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Optional<PromoCode> adminSetPromoCodeStatus(UUID id, boolean isActive) {
+        return jdbc.query("UPDATE shop_promo_code SET is_active = ? WHERE id = ? RETURNING " + PROMO_COLS,
+                (rs, row) -> mapPromoCode(rs), isActive, id).stream().findFirst();
+    }
+
+    @Override
+    @Transactional
+    public boolean adminDeletePromoCode(UUID id) {
+        return jdbc.update("DELETE FROM shop_promo_code WHERE id = ?", id) > 0;
+    }
+
+    private static PromoCode mapPromoCode(ResultSet rs) throws SQLException {
+        Long maxDiscount = rs.getObject("max_discount_vnd") != null ? rs.getLong("max_discount_vnd") : null;
+        Integer usageLimit = rs.getObject("usage_limit") != null ? rs.getInt("usage_limit") : null;
+        return new PromoCode(
+                (UUID) rs.getObject("id"),
+                rs.getString("code"),
+                rs.getString("label"),
+                rs.getString("type"),
+                rs.getLong("amount"),
+                rs.getLong("min_order_vnd"),
+                maxDiscount,
+                usageLimit,
+                rs.getInt("used_count"),
+                instant(rs, "starts_at"),
+                instant(rs, "expires_at"),
+                rs.getBoolean("is_active"),
+                instant(rs, "created_at"),
+                instant(rs, "updated_at")
+        );
     }
 
     private static java.time.Instant instant(ResultSet rs, String column) throws SQLException {

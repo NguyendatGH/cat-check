@@ -17,7 +17,7 @@ import { isApiError } from "@/shared/api";
 import { cn } from "@/shared/lib/cn";
 import { EmptyState, ErrorState, Input, SkeletonLoader, toast } from "@/shared/ui";
 import { useSessionStore } from "@/entities/user";
-import { useCreateOrder, useShopCart } from "@/features/shop";
+import { useCreateOrder, useShopCart, useShopPromos } from "@/features/shop";
 import {
   CHECKOUT_LIMITS,
   validateCheckout,
@@ -86,6 +86,7 @@ function serverErrorKey(error: unknown): string {
     if (error.code === "CART_EMPTY") return "checkout.errors.cartEmpty";
     if (error.code === "PAYMENT_UNAVAILABLE") return "checkout.errors.paymentUnavailable";
     if (error.code === "ORDER_LIMIT_REACHED") return "checkout.errors.orderLimit";
+    if (error.code === "PROMO_CODE_INVALID") return "checkout.promoInvalid";
     if (error.status === 401) return "checkout.errors.session";
     if (error.status === 400) return "checkout.errors.validation";
   }
@@ -96,6 +97,7 @@ export function CheckoutPage() {
   const { t } = useTranslation("shop");
   const navigate = useNavigate();
   const cartQuery = useShopCart();
+  const promosQuery = useShopPromos();
   const createOrder = useCreateOrder();
   const paymentMethodId = usePaymentMethodStore((s) => s.paymentMethodId);
   const displayName = useSessionStore((s) => s.user?.displayName ?? "");
@@ -109,6 +111,18 @@ export function CheckoutPage() {
     return (code && PROMO_CODES[code]) || null;
   });
   const [promoError, setPromoError] = useState<string | null>(null);
+
+  const availablePromos = (promosQuery.data && promosQuery.data.length > 0) ? promosQuery.data : PROMO_LIST;
+
+  useEffect(() => {
+    const draftCode = readStored<CheckoutDraft>(() => sessionStorage, CHECKOUT_DRAFT_KEY)?.promoCode;
+    if (draftCode && !appliedPromo && promosQuery.data) {
+      const match = promosQuery.data.find((p) => p.code.toUpperCase() === draftCode.toUpperCase());
+      if (match) {
+        setAppliedPromo(match);
+      }
+    }
+  }, [promosQuery.data, appliedPromo]);
   const [saveInfo, setSaveInfo] = useState(() => {
     try {
       return localStorage.getItem(SAVED_CHECKOUT_KEY) !== null;
@@ -146,7 +160,7 @@ export function CheckoutPage() {
   const handleApplyPromo = () => {
     const clean = promoInput.trim().toUpperCase();
     if (!clean) return;
-    const found = PROMO_LIST.find((p) => p.code === clean);
+    const found = availablePromos.find((p) => p.code.toUpperCase() === clean);
     if (found) {
       setAppliedPromo(found);
       setPromoError(null);
@@ -248,6 +262,7 @@ export function CheckoutPage() {
         receiverName: values.receiverName.trim(),
         receiverPhone: values.receiverPhone.trim(),
         shippingAddress: values.shippingAddress.trim(),
+        promoCode: appliedPromo?.code,
       },
       {
         onSuccess: (order) => {
@@ -540,7 +555,7 @@ export function CheckoutPage() {
                 {promoError ? <p className="text-[11px] font-semibold text-danger-text">{promoError}</p> : null}
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <span className="text-[11px] text-text-tertiary">{t("checkout.promoHint")}</span>
-                  {PROMO_LIST.map((p) => (
+                  {availablePromos.map((p) => (
                     <button
                       key={p.code}
                       type="button"

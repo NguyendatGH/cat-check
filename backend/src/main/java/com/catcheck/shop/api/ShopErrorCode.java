@@ -17,7 +17,10 @@ public enum ShopErrorCode implements ErrorCode {
     PAYMENT_UNAVAILABLE("shop/payment-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     PRODUCT_SKU_DUPLICATE("shop/product-sku-duplicate", HttpStatus.CONFLICT),
     PRODUCT_INVALID("shop/product-invalid", HttpStatus.BAD_REQUEST),
-    ADMIN_ROLE_REQUIRED("shop/admin-role-required", HttpStatus.FORBIDDEN);
+    ADMIN_ROLE_REQUIRED("shop/admin-role-required", HttpStatus.FORBIDDEN),
+    PROMO_CODE_INVALID("shop/promo-code-invalid", HttpStatus.BAD_REQUEST),
+    PROMO_CODE_DUPLICATE("shop/promo-code-duplicate", HttpStatus.CONFLICT),
+    PROMO_CODE_NOT_FOUND("shop/promo-code-not-found", HttpStatus.NOT_FOUND);
 
     private final String slug;
     private final HttpStatus status;

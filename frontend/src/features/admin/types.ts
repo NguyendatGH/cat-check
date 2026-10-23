@@ -504,3 +504,33 @@ export interface AdminOrder {
   refundNeeded: boolean;
   allowedNextStatuses: string[];
 }
+
+export interface AdminPromoCode {
+  id: string;
+  code: string;
+  label: string;
+  type: "PERCENT" | "FIXED" | "SHIPPING";
+  amount: number;
+  minOrderVnd: number;
+  maxDiscountVnd: number | null;
+  usageLimit: number | null;
+  usedCount: number;
+  startsAt: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPromoCodePayload {
+  code: string;
+  label: string;
+  type: "PERCENT" | "FIXED" | "SHIPPING";
+  amount: number;
+  minOrderVnd?: number;
+  maxDiscountVnd?: number | null;
+  usageLimit?: number | null;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+  isActive?: boolean;
+}

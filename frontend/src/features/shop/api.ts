@@ -88,6 +88,15 @@ export function getShopProduct(productId: string) {
 export function listShopPaymentMethods() {
   return request<string[]>("/shop/payment-methods");
 }
+export interface ShopPromoApi {
+  code: string;
+  label: string;
+  type: "PERCENT" | "FIXED" | "SHIPPING";
+  amount: number;
+}
+export function listShopPromos() {
+  return request<ShopPromoApi[]>("/shop/promos");
+}
 export function getShopCart() {
   return request<CartApi>("/cart");
 }
@@ -105,6 +114,7 @@ export function createShopOrder(payload: {
   receiverName: string;
   receiverPhone: string;
   shippingAddress: string;
+  promoCode?: string;
 }) {
   return request<OrderApi>("/orders", { method: "POST", body: JSON.stringify(payload) });
 }

@@ -39,6 +39,11 @@ export {
   useSetAdminProductStatus,
   useAdminOrders,
   useChangeAdminOrderStatus,
+  useAdminPromos,
+  useCreateAdminPromo,
+  useUpdateAdminPromo,
+  useSetAdminPromoStatus,
+  useDeleteAdminPromo,
   useAdminJobRuns,
   useAdminOutbox,
   useAdminAuditLogs,
@@ -289,4 +294,15 @@ export type {
   AdminRetentionPolicy,
   AdminRetentionDryRun,
   RetentionAction,
+  AdminPromoCode,
+  AdminPromoCodePayload,
 } from "./types";
+
+export {
+  listAdminPromos,
+  getAdminPromo,
+  createAdminPromo,
+  updateAdminPromo,
+  setAdminPromoStatus,
+  deleteAdminPromo,
+} from "./api";

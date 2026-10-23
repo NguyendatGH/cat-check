@@ -58,8 +58,17 @@ import type {
   AdminRetentionDryRun,
   AdminMfaResetRequest,
   AdminMaintenance,
+  AdminPromoCode,
+  AdminPromoCodePayload,
 } from "./types";
-import { downloadAdminActivationBatchCsv } from "./api";
+import {
+  downloadAdminActivationBatchCsv,
+  listAdminPromos,
+  createAdminPromo,
+  updateAdminPromo,
+  setAdminPromoStatus,
+  deleteAdminPromo,
+} from "./api";
 
 export const adminKeys = {
   all: ["admin"] as const,
@@ -1017,6 +1026,64 @@ export function useChangeAdminOrderStatus(): UseMutationResult<
     // Also after a 409: the order changed under us, so the list must show its real state.
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
+    },
+  });
+}
+
+const ADMIN_PROMOS_KEY = ["admin", "shop-promos"] as const;
+
+export function useAdminPromos(): UseQueryResult<AdminPromoCode[]> {
+  return useQuery({
+    queryKey: ADMIN_PROMOS_KEY,
+    queryFn: listAdminPromos,
+    retry: false,
+  });
+}
+
+export function useCreateAdminPromo(): UseMutationResult<AdminPromoCode, Error, AdminPromoCodePayload> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload) => createAdminPromo(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_PROMOS_KEY });
+    },
+  });
+}
+
+export function useUpdateAdminPromo(): UseMutationResult<
+  AdminPromoCode,
+  Error,
+  { id: string; payload: AdminPromoCodePayload }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }) => updateAdminPromo(id, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_PROMOS_KEY });
+    },
+  });
+}
+
+export function useSetAdminPromoStatus(): UseMutationResult<
+  AdminPromoCode,
+  Error,
+  { id: string; isActive: boolean }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }) => setAdminPromoStatus(id, isActive),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_PROMOS_KEY });
+    },
+  });
+}
+
+export function useDeleteAdminPromo(): UseMutationResult<void, Error, string> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => deleteAdminPromo(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ADMIN_PROMOS_KEY });
     },
   });
 }

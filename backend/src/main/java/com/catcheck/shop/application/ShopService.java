@@ -50,17 +50,18 @@ public class ShopService {
     public Product product(UUID id) { return repository.product(id).orElseThrow(() -> new NotFoundException(ShopErrorCode.PRODUCT_NOT_FOUND)); }
     public List<CartLine> cart(UUID userId) { return repository.cart(userId); }
     public List<String> paymentMethods() { return gateway.enabled() ? List.of("COD", "PAYOS") : List.of("COD"); }
+    public List<com.catcheck.shop.domain.PromoCode> promos() { return repository.publicPromoCodes(clock.instant()); }
     public void setLine(UUID userId, UUID productId, int quantity) { if (quantity < 1 || quantity > 99) throw new IllegalArgumentException("quantity"); repository.setCartLine(userId, productId, quantity); }
     public void removeLine(UUID userId, UUID productId) { repository.removeCartLine(userId, productId); }
     public void clearCart(UUID userId) { repository.clearCart(userId); }
 
     /** One transaction: a PayOS failure rolls back the order, the stock deduction and the cart clearing. */
     @Transactional
-    public Order checkout(UUID userId, String paymentMethod, String name, String phone, String address) {
+    public Order checkout(UUID userId, String paymentMethod, String name, String phone, String address, String promoCode) {
         boolean payosOrder = "PAYOS".equals(paymentMethod);
         if (payosOrder && !gateway.enabled()) throw new BusinessRuleException(ShopErrorCode.PAYMENT_UNAVAILABLE);
         Instant expiresAt = payosOrder ? clock.instant().plus(payos.paymentTtl()) : null;
-        Order order = repository.createOrder(userId, paymentMethod, name.strip(), phone.strip(), address.strip(), expiresAt, maxOpenOrders);
+        Order order = repository.createOrder(userId, paymentMethod, name.strip(), phone.strip(), address.strip(), promoCode, expiresAt, maxOpenOrders);
         if (!payosOrder) return order;
         PaymentLink link;
         try {
@@ -74,6 +75,11 @@ public class ShopService {
         }
         repository.attachPaymentLink(order.id(), link.paymentLinkId(), link.checkoutUrl());
         return repository.order(userId, order.id()).orElseThrow();
+    }
+
+    @Transactional
+    public Order checkout(UUID userId, String paymentMethod, String name, String phone, String address) {
+        return checkout(userId, paymentMethod, name, phone, address, null);
     }
 
     public Order order(UUID userId, UUID orderId) { return repository.order(userId, orderId).orElseThrow(() -> new NotFoundException(ShopErrorCode.ORDER_NOT_FOUND)); }

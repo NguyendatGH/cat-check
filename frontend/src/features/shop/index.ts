@@ -9,12 +9,14 @@ export {
   listMyOrders,
   listShopPaymentMethods,
   listShopProducts,
+  listShopPromos,
   removeShopCartLine,
   setShopCartLine,
   type CartApi,
   type CartLineApi,
   type OrderApi,
   type ShopProductApi,
+  type ShopPromoApi,
 } from "./api";
 export {
   shopKeys,
@@ -29,5 +31,6 @@ export {
   useShopPaymentMethods,
   useShopProduct,
   useShopProducts,
+  useShopPromos,
   type SetCartLineVars,
 } from "./hooks";
