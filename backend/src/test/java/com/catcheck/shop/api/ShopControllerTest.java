@@ -70,6 +70,40 @@ class ShopControllerTest {
     }
 
     @Test
+    void checkoutWithPromoCodePassesCodeToService() throws Exception {
+        TestPrincipal user = TestPrincipal.withRoles();
+        AdminApiMockMvc.authenticate(user);
+        Order created = order("PENDING_PAYMENT", null);
+        Mockito.when(service.checkout(user.userId(), "COD", "A", "0900000000", "B", "CATCHECK10"))
+                .thenReturn(created);
+
+        mvc.perform(post("/api/v1/orders").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"paymentMethod":"COD","receiverName":"A","receiverPhone":"0900000000","shippingAddress":"B","promoCode":"CATCHECK10"}
+                        """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(created.id().toString()));
+
+        Mockito.verify(service).checkout(user.userId(), "COD", "A", "0900000000", "B", "CATCHECK10");
+    }
+
+    @Test
+    void checkoutWithoutPromoCodePassesNullToService() throws Exception {
+        TestPrincipal user = TestPrincipal.withRoles();
+        AdminApiMockMvc.authenticate(user);
+        Order created = order("PENDING_PAYMENT", null);
+        Mockito.when(service.checkout(user.userId(), "COD", "A", "0900000000", "B", null))
+                .thenReturn(created);
+
+        mvc.perform(post("/api/v1/orders").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"paymentMethod":"COD","receiverName":"A","receiverPhone":"0900000000","shippingAddress":"B"}
+                        """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(created.id().toString()));
+
+        Mockito.verify(service).checkout(user.userId(), "COD", "A", "0900000000", "B", null);
+    }
+
+    @Test
     void myOrdersListsOrdersAndHidesInternalPaymentFields() throws Exception {
         TestPrincipal user = TestPrincipal.withRoles();
         AdminApiMockMvc.authenticate(user);

@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   ShoppingBag,
+  Ticket,
   UserCog,
   Users,
   LogOut,
@@ -126,6 +127,13 @@ const ADMIN_NAV: readonly AdminNavGroup<AdminNavItem>[] = [
         to: ROUTE_PATTERNS.adminOrders,
         labelKey: "nav.orders",
         icon: ClipboardList,
+        roles: ROLES.products,
+      },
+      {
+        id: "vouchers",
+        to: ROUTE_PATTERNS.adminVouchers,
+        labelKey: "nav.vouchers",
+        icon: Ticket,
         roles: ROLES.products,
       },
       {

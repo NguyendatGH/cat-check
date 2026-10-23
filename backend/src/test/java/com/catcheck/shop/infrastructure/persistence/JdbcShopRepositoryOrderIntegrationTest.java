@@ -1,12 +1,15 @@
 package com.catcheck.shop.infrastructure.persistence;
 
 import com.catcheck.shared.config.JdbcTemplateConfig;
+import com.catcheck.shared.error.BusinessRuleException;
 import com.catcheck.shared.error.ConflictException;
 import com.catcheck.shared.testing.TestPostgres;
 import com.catcheck.shop.api.ShopErrorCode;
 import com.catcheck.shop.domain.ExpiredPayment;
 import com.catcheck.shop.domain.MarkPaidResult;
 import com.catcheck.shop.domain.Order;
+import com.catcheck.shop.domain.PromoCode;
+import com.catcheck.shop.domain.PromoCodeDraft;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -120,6 +123,21 @@ class JdbcShopRepositoryOrderIntegrationTest {
         assertThat(order.payosOrderCode()).isNull();
         assertThat(order.paymentExpiresAt()).isNull();
         assertThat(order.refundNeeded()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Giam gia voi ma voucher: tinh discount_vnd va tru vao total_vnd")
+    void orderAppliesPromoDiscountCorrectly() {
+        UUID user = newUser();
+        UUID product = newProduct();
+        jdbc.update("INSERT INTO shop_cart_line (user_id, product_id, quantity) VALUES (?, ?, 1) ON CONFLICT DO NOTHING",
+                user, product);
+        Order order = tx.execute(s -> repository.createOrder(user, "COD", "A", "0900000000", "Addr", "CATCHECK10", null, 3));
+
+        assertThat(order.subtotalVnd()).isEqualTo(100_000);
+        assertThat(order.shippingFeeVnd()).isEqualTo(30_000);
+        assertThat(order.discountVnd()).isEqualTo(10_000);
+        assertThat(order.totalVnd()).isEqualTo(120_000);
     }
 
     @Test
@@ -345,6 +363,76 @@ class JdbcShopRepositoryOrderIntegrationTest {
         assertThat(repository.adminOrders("PENDING_PAYMENT", 1000, 0)).extracting(Order::id).contains(order.id());
         assertThat(repository.adminOrders("DELIVERED", 1000, 0)).extracting(Order::id).doesNotContain(order.id());
         assertThat(repository.adminOrders(null, 1000, 0)).extracting(Order::id).contains(order.id());
+    }
+
+    @Test
+    @DisplayName("Admin CRUD promo code và publicPromoCodes chỉ lấy mã active")
+    void adminPromoLifecycle() {
+        String code = "TESTPROMO" + System.currentTimeMillis() % 10000;
+        PromoCodeDraft draft = new PromoCodeDraft(
+                code, "Giam 15%", "PERCENT", 15, 50000, 20000L, 50,
+                Instant.now().minus(1, ChronoUnit.HOURS),
+                Instant.now().plus(2, ChronoUnit.DAYS),
+                true
+        );
+        PromoCode created = repository.adminCreatePromoCode(draft);
+        assertThat(created.code()).isEqualTo(code);
+        assertThat(created.isActive()).isTrue();
+
+        assertThat(repository.adminPromoCode(created.id())).isPresent();
+        assertThat(repository.publicPromoCodes(Instant.now())).extracting(PromoCode::code).contains(code);
+
+        // Deactivate
+        repository.adminSetPromoCodeStatus(created.id(), false);
+        assertThat(repository.adminPromoCode(created.id()).orElseThrow().isActive()).isFalse();
+        assertThat(repository.publicPromoCodes(Instant.now())).extracting(PromoCode::code).doesNotContain(code);
+
+        // Delete
+        repository.adminDeletePromoCode(created.id());
+        assertThat(repository.adminPromoCode(created.id())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Đặt hàng với promo code: tính đúng discount, tăng used_count và chặn khi hết lượt dùng")
+    void orderWithPromoCodeDiscountAndUsageLimit() {
+        String code = "LIMIT1_" + System.currentTimeMillis() % 10000;
+        PromoCodeDraft draft = new PromoCodeDraft(
+                code, "Giam 30K", "FIXED", 30000, 50000, null, 1,
+                Instant.now().minus(1, ChronoUnit.HOURS),
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                true
+        );
+        PromoCode promo = repository.adminCreatePromoCode(draft);
+
+        UUID user1 = newUser();
+        UUID product = newProduct(); // 100,000 VND
+        jdbc.update("INSERT INTO shop_cart_line (user_id, product_id, quantity) VALUES (?, ?, 1)", user1, product);
+
+        // Place order with promo code
+        Order order1 = tx.execute(s -> repository.createOrder(
+                user1, "COD", "Khách 1", "0900000001", "Hà Nội", code, null, 10
+        ));
+
+        assertThat(order1).isNotNull();
+        assertThat(order1.subtotalVnd()).isEqualTo(100000);
+        assertThat(order1.shippingFeeVnd()).isEqualTo(30000);
+        assertThat(order1.discountVnd()).isEqualTo(30000);
+        assertThat(order1.totalVnd()).isEqualTo(100000); // 100000 + 30000 - 30000
+
+        // used_count in DB must be 1 now
+        PromoCode afterFirstUse = repository.adminPromoCode(promo.id()).orElseThrow();
+        assertThat(afterFirstUse.usedCount()).isEqualTo(1);
+
+        // Second user attempts to use the same promo code (usage limit was 1)
+        UUID user2 = newUser();
+        jdbc.update("INSERT INTO shop_cart_line (user_id, product_id, quantity) VALUES (?, ?, 1)", user2, product);
+
+        assertThatThrownBy(() -> tx.execute(s -> repository.createOrder(
+                user2, "COD", "Khách 2", "0900000002", "Đà Nẵng", code, null, 10
+        )))
+                .isInstanceOf(BusinessRuleException.class)
+                .satisfies(e -> assertThat(((BusinessRuleException) e).errorCode())
+                        .isEqualTo(ShopErrorCode.PROMO_CODE_INVALID));
     }
 
     /** Run the same action on two threads released together; the row lock must serialize them. */

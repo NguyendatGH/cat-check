@@ -136,7 +136,7 @@ class AdminShopControllerTest {
         @Override public void removeCartLine(UUID userId, UUID productId) { throw new UnsupportedOperationException(); }
         @Override public void clearCart(UUID userId) { throw new UnsupportedOperationException(); }
         @Override public Order createOrder(UUID userId, String paymentMethod, String receiverName, String receiverPhone, String address,
-                                           Instant paymentExpiresAt, int maxOpenOrders) {
+                                           String promoCode, Instant paymentExpiresAt, int maxOpenOrders) {
             throw new UnsupportedOperationException();
         }
         @Override public Optional<Order> order(UUID userId, UUID orderId) { throw new UnsupportedOperationException(); }

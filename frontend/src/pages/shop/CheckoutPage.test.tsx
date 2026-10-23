@@ -35,6 +35,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@/features/shop", () => ({
   useShopCart: () => state.cartQuery,
+  useShopPromos: () => ({ data: undefined, isPending: false }),
   useCreateOrder: () => ({ mutate: state.createOrder, isPending: false }),
   useShopPaymentMethods: () => ({ data: ["COD", "PAYOS"] }),
 }));
@@ -209,6 +210,32 @@ describe("CheckoutPage Enhancements", () => {
 
     expect(state.createOrder).toHaveBeenCalledWith(
       expect.objectContaining({ paymentMethod: "PAYOS" }),
+      expect.anything(),
+    );
+    cleanup();
+  });
+
+  it("submits the order with applied promoCode", () => {
+    sessionStorage.setItem(
+      "catcheck_checkout_draft",
+      JSON.stringify({
+        receiverName: "Đạt Test",
+        receiverPhone: "0901234567",
+        shippingAddress: "12 Trần Phú, Tam Kỳ",
+        promoCode: "CATCHECK10",
+      }),
+    );
+    const { container, cleanup } = renderCheckout();
+
+    act(() => {
+      container.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+    });
+
+    expect(state.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        receiverName: "Đạt Test",
+        promoCode: "CATCHECK10",
+      }),
       expect.anything(),
     );
     cleanup();

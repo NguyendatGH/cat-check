@@ -1,7 +1,7 @@
 import { ApiError } from "@/shared/api/errors";
 import { currentAcceptLanguage } from "@/shared/api/acceptLanguage";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "@/shared/config/constants";
-import type { AdminOrder } from "./types";
+import type { AdminOrder, AdminPromoCode, AdminPromoCodePayload } from "./types";
 
 const BASE_URL = "/api/v1";
 
@@ -147,5 +147,40 @@ export function changeAdminOrderStatus(orderId: string, status: string, reason?:
   return adminFetch<AdminOrder>(`/admin/shop/orders/${encodeURIComponent(orderId)}/status`, {
     method: "POST",
     json: { status, reason },
+  });
+}
+
+export function listAdminPromos() {
+  return adminFetch<AdminPromoCode[]>("/admin/shop/promos");
+}
+
+export function getAdminPromo(id: string) {
+  return adminFetch<AdminPromoCode>(`/admin/shop/promos/${encodeURIComponent(id)}`);
+}
+
+export function createAdminPromo(payload: AdminPromoCodePayload) {
+  return adminFetch<AdminPromoCode>("/admin/shop/promos", {
+    method: "POST",
+    json: payload,
+  });
+}
+
+export function updateAdminPromo(id: string, payload: AdminPromoCodePayload) {
+  return adminFetch<AdminPromoCode>(`/admin/shop/promos/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    json: payload,
+  });
+}
+
+export function setAdminPromoStatus(id: string, isActive: boolean) {
+  return adminFetch<AdminPromoCode>(`/admin/shop/promos/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    json: { isActive },
+  });
+}
+
+export function deleteAdminPromo(id: string) {
+  return adminFetch<void>(`/admin/shop/promos/${encodeURIComponent(id)}`, {
+    method: "DELETE",
   });
 }

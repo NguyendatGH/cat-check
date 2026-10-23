@@ -45,6 +45,12 @@ public class ShopController {
     @Operation(operationId = "listShopPaymentMethods", description = "Phương thức thanh toán đang mở: luôn có COD; PAYOS chỉ khi đã cấu hình khoá PayOS.")
     public List<String> paymentMethods() { return service.paymentMethods(); }
 
+    @GetMapping("/shop/promos")
+    @Operation(operationId = "listPublicShopPromos", description = "Danh sách mã giảm giá đang kích hoạt và còn hiệu lực.")
+    public List<com.catcheck.shop.api.dto.ShopPromoCodeResponse> promos() {
+        return service.promos().stream().map(com.catcheck.shop.api.dto.ShopPromoCodeResponse::from).toList();
+    }
+
     @GetMapping("/cart")
     @Operation(operationId = "getCart")
     public CartResponse cart(@CurrentUser SecurityPrincipal user) { return CartResponse.from(service.cart(user.userId())); }
@@ -69,7 +75,13 @@ public class ShopController {
     @PostMapping("/orders")
     @Operation(operationId = "createShopOrder")
     public ResponseEntity<OrderResponse> checkout(@CurrentUser SecurityPrincipal user, @Valid @RequestBody CheckoutRequest request) {
-        OrderResponse response = OrderResponse.from(service.checkout(user.userId(), request.paymentMethod().toUpperCase(), request.receiverName(), request.receiverPhone(), request.shippingAddress()));
+        OrderResponse response = OrderResponse.from(service.checkout(
+                user.userId(),
+                request.paymentMethod().toUpperCase(),
+                request.receiverName(),
+                request.receiverPhone(),
+                request.shippingAddress(),
+                request.promoCode()));
         return ResponseEntity.created(URI.create("/api/v1/orders/" + response.id())).body(response);
     }
 
