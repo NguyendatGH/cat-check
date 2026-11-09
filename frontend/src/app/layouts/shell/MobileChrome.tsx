@@ -18,6 +18,7 @@ import appLogo from "@/shared/assets/images/web-auth/logo.png";
 import { useHomePath, useSessionStore } from "@/entities/user";
 import { NotificationUnreadBadge } from "@/features/notification";
 import { ROUTE_PATTERNS } from "../../router/routes";
+import { SOCIAL_LINKS } from "./socialLinks";
 
 const MOBILE_NAV_ITEMS = [
   { to: ROUTE_PATTERNS.dashboard, icon: NavHomeIcon, labelKey: "nav.dashboard", tour: "tab-dashboard" },
@@ -143,6 +144,21 @@ export function MobileAppHeader() {
                 <item.icon size={17} aria-hidden="true" />
                 {item.label}
               </NavLink>
+            </li>
+          ))}
+          <li aria-hidden="true" className="my-2 w-px shrink-0 bg-border" />
+          {SOCIAL_LINKS.map(({ label, href, Icon }) => (
+            <li key={label} className="shrink-0">
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                tabIndex={collapsed ? -1 : undefined}
+                className="flex size-10 items-center justify-center rounded-full border border-border bg-surface text-text-primary transition-colors duration-200 hover:border-primary/40 active:bg-primary/10"
+              >
+                <Icon size={17} />
+              </a>
             </li>
           ))}
         </ul>
