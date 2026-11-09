@@ -10,6 +10,7 @@ import iconBell from "@/shared/assets/icons/web-dashboard/header-bell.svg";
 import iconAvatar from "@/shared/assets/icons/web-dashboard/header-avatar.svg";
 import { ROUTE_PATTERNS } from "../../router/routes";
 import { HeaderSearch } from "./HeaderSearch";
+import { SOCIAL_LINKS } from "./socialLinks";
 
 function LatestScanPill({ enabled }: { enabled: boolean }) {
   const { t } = useTranslation("common");
@@ -65,6 +66,22 @@ export function DesktopHeader({ showBack = false }: { showBack?: boolean }) {
 
       <div className="ml-auto flex shrink-0 items-center gap-4">
         <LatestScanPill enabled={Boolean(user)} />
+
+        <div className="flex items-center">
+          {SOCIAL_LINKS.map(({ label, href, Icon }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={label}
+              title={label}
+              className="flex size-9 items-center justify-center rounded-xl text-text-secondary transition-all duration-200 hover:bg-background-alt hover:text-text-primary active:scale-95"
+            >
+              <Icon size={16} />
+            </a>
+          ))}
+        </div>
 
         <button
           type="button"
